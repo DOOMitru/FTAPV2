@@ -1,0 +1,122 @@
+<?php
+
+use App\Http\Controllers\ProfileController;
+use Illuminate\Support\Facades\Route;
+
+/*
+|--------------------------------------------------------------------------
+| Web Routes
+|--------------------------------------------------------------------------
+|
+| Here is where you can register web routes for your application. These
+| routes are loaded by the RouteServiceProvider and all of them will
+| be assigned to the "web" middleware group. Make something great!
+|
+*/
+
+Route::get('/', function () {
+    $currentSeason = \App\Models\PokerSeason::where('start_date', '<=', now())
+        ->where('end_date', '>=', now())
+        ->first() ?? \App\Models\PokerSeason::orderBy('start_date', 'desc')->first();
+
+    $nextTournament = \App\Models\PokerTournament::with(['venue', 'season'])
+        ->where('start_time', '>=', now())
+        ->orderBy('start_time', 'asc')
+        ->first();
+
+    return view('home', compact('currentSeason', 'nextTournament'));
+})->name('home');
+
+Route::prefix('about')->name('about.')->group(function () {
+    Route::get('/', function () {
+        return view('about.index');
+    })->name('index');
+
+    // Redirect old routes to the new combined about page
+    Route::redirect('/mission', '/about')->name('mission');
+    Route::redirect('/sponsors', '/about#become-a-sponsor')->name('sponsors');
+});
+
+Route::prefix('rules')->name('rules.')->group(function () {
+    Route::get('/regulations', function () {
+        return view('rules.tournament');
+    })->name('tournament');
+
+    Route::redirect('/tournament', '/rules/regulations')->name('old-tournament');
+    Route::redirect('/final-tournament', '/rules/regulations#final-stakes')->name('final-tournament');
+
+    Route::get('/conduct', function () {
+        return view('rules.betting');
+    })->name('betting');
+
+    Route::redirect('/betting', '/rules/conduct')->name('old-betting');
+    Route::redirect('/behaviour', '/rules/conduct#conduct-rules')->name('behaviour');
+
+    Route::get('/texas-holdem', function () {
+        return view('rules.texas-holdem');
+    })->name('texas-holdem');
+
+    Route::get('/points-structure', function () {
+        $pointsStructure = \App\Models\PointsStructure::orderBy('place')->get();
+        
+        // Fetch top 3 performers of the current season for a live preview
+        $currentSeason = \App\Models\PokerSeason::where('is_active', true)->first();
+        $topPerformers = collect();
+        
+        if ($currentSeason) {
+            $topPerformers = \App\Models\User::withSum(['tournamentResults' => function($query) use ($currentSeason) {
+                $query->whereHas('tournament', function($q) use ($currentSeason) {
+                    $q->where('season_id', $currentSeason->id);
+                });
+            }], 'points')
+            ->orderByDesc('tournament_results_sum_points')
+            ->take(3)
+            ->get();
+        }
+
+        return view('rules.points-structure', compact('pointsStructure', 'topPerformers', 'currentSeason'));
+    })->name('points-structure');
+});
+
+Route::get('/events', function () {
+    $upcomingTournaments = \App\Models\PokerTournament::with(['venue', 'season'])
+        ->where('start_time', '>=', now())
+        ->orderBy('start_time', 'asc')
+        ->get();
+
+    $pastTournaments = \App\Models\PokerTournament::with(['venue', 'season', 'results'])
+        ->where('start_time', '<', now())
+        ->orderBy('start_time', 'desc')
+        ->get();
+
+    return view('events', compact('upcomingTournaments', 'pastTournaments'));
+})->name('events');
+
+Route::get('/contact', function () {
+    return view('contact');
+})->name('contact');
+
+Route::get('/dashboard', [\App\Http\Controllers\DashboardController::class, 'index'])
+    ->middleware(['auth', 'verified'])->name('dashboard');
+
+Route::middleware('auth')->group(function () {
+    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
+    Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
+    Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+
+    Route::prefix('poker')->name('poker.')->group(function () {
+        Route::resource('seasons', \App\Http\Controllers\Poker\PokerSeasonController::class);
+        Route::resource('venues', \App\Http\Controllers\Poker\VenueController::class);
+        Route::resource('tournaments', \App\Http\Controllers\Poker\PokerTournamentController::class);
+        Route::post('tournaments/{tournament}/register', [\App\Http\Controllers\Poker\PokerTournamentController::class, 'register'])->name('tournaments.register');
+        Route::delete('tournaments/{tournament}/unregister', [\App\Http\Controllers\Poker\PokerTournamentController::class, 'unregister'])->name('tournaments.unregister');
+        Route::resource('results', \App\Http\Controllers\Poker\PokerTournamentResultController::class);
+        Route::resource('registrants', \App\Http\Controllers\Poker\PokerTournamentRegistrantController::class);
+        Route::resource('venue-points', \App\Http\Controllers\Poker\VenuePointsController::class);
+        Route::resource('points-structure', \App\Http\Controllers\Poker\PointsStructureController::class);
+    });
+
+    Route::resource('users', \App\Http\Controllers\UserController::class);
+});
+
+require __DIR__.'/auth.php';

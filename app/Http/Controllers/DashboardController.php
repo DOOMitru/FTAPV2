@@ -1,0 +1,68 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\PokerSeason;
+use App\Models\PokerTournament;
+use App\Models\PokerTournamentResult;
+use Illuminate\Http\Request;
+use Illuminate\View\View;
+use Illuminate\Support\Facades\Auth;
+
+class DashboardController extends Controller
+{
+    public function index(): View
+    {
+        $user = Auth::user();
+        $now = now();
+
+        // 1. Upcoming Tournaments
+        $upcomingTournaments = PokerTournament::with(['venue', 'registrants'])
+            ->where('start_time', '>', $now)
+            ->orderBy('start_time', 'asc')
+            ->take(5)
+            ->get();
+
+        // 2. User Personalized Statistics
+        $userResults = PokerTournamentResult::where('user_id', $user->id)
+            ->with(['tournament.season'])
+            ->latest()
+            ->get();
+
+        $totalPoints = $userResults->sum('points');
+        $tournamentsPlayed = $userResults->count();
+        $podiums = $userResults->whereIn('place', [1, 2, 3])->count();
+        $wins = $userResults->where('place', 1)->count();
+
+        // 3. Current Season Standing
+        $currentSeason = PokerSeason::where('is_current', true)->first();
+
+        $seasonRank = null;
+        $seasonPoints = 0;
+
+        if ($currentSeason) {
+            $seasonLeaderboard = $currentSeason->results()
+                ->selectRaw('user_id, SUM(points) as total_points')
+                ->groupBy('user_id')
+                ->orderByDesc('total_points')
+                ->get();
+
+            $seasonPoints = $seasonLeaderboard->where('user_id', $user->id)->first()?->total_points ?? 0;
+            
+            $rankIndex = $seasonLeaderboard->search(fn($item) => $item->user_id === $user->id);
+            $seasonRank = ($rankIndex !== false) ? $rankIndex + 1 : null;
+        }
+
+        return view('dashboard', compact(
+            'upcomingTournaments',
+            'userResults',
+            'totalPoints',
+            'tournamentsPlayed',
+            'podiums',
+            'wins',
+            'currentSeason',
+            'seasonRank',
+            'seasonPoints'
+        ));
+    }
+}
