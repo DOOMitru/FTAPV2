@@ -41,6 +41,7 @@ class PokerTournamentController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
+            'scheduled_at' => 'required|date',
             'start_time' => 'required|date',
             'venue_id' => 'required|exists:venues,id',
         ]);
@@ -78,7 +79,7 @@ class PokerTournamentController extends Controller
         $podium = $orderedResults->take(3);
 
         $isUserRegistered = $tournament->registrants()->where('user_id', auth()->id())->exists();
-        $isPast = \Illuminate\Support\Carbon::parse($tournament->start_time)->isPast();
+        $isPast = \Illuminate\Support\Carbon::parse($tournament->scheduled_at)->isPast();
 
         $pointsStructure = \App\Models\PointsStructure::orderBy('place')->get();
 
@@ -113,7 +114,7 @@ class PokerTournamentController extends Controller
         $targetUserId = ($isAdmin && $request->has('user_id')) ? $request->user_id : auth()->id();
         
         // Only enforce "past" check for non-admins
-        if (!$isAdmin && \Illuminate\Support\Carbon::parse($tournament->start_time)->isPast()) {
+        if (!$isAdmin && \Illuminate\Support\Carbon::parse($tournament->scheduled_at)->isPast()) {
             return back()->with('error', 'Cannot register for a tournament that has already started or passed.');
         }
 
@@ -146,7 +147,7 @@ class PokerTournamentController extends Controller
      */
     public function unregister(PokerTournament $tournament): RedirectResponse
     {
-        if (\Illuminate\Support\Carbon::parse($tournament->start_time)->isPast()) {
+        if (\Illuminate\Support\Carbon::parse($tournament->scheduled_at)->isPast()) {
             return back()->with('error', 'Cannot unregister from a tournament that has already started or passed.');
         }
 
@@ -179,6 +180,7 @@ class PokerTournamentController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
+            'scheduled_at' => 'required|date',
             'start_time' => 'required|date',
             'venue_id' => 'required|exists:venues,id',
             'season_id' => 'required|exists:seasons,id',

@@ -60,10 +60,10 @@
 
                                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-6">
                                         <div>
-                                            <div class="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-1">{{ __('Date & Time') }}</div>
+                                            <div class="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-1">{{ __('Registration Closes') }}</div>
                                             <div class="text-sm font-semibold text-gray-900 dark:text-white">
-                                                {{ $tournament->start_time->format('M d, Y') }}<br>
-                                                <span class="text-indigo-600 dark:text-indigo-400">{{ $tournament->start_time->format('h:i A') }}</span>
+                                                {{ $tournament->scheduled_at ? $tournament->scheduled_at->format('M d, Y') : $tournament->start_time->format('M d, Y') }}<br>
+                                                <span class="text-indigo-600 dark:text-indigo-400">{{ $tournament->scheduled_at ? $tournament->scheduled_at->format('h:i A') : $tournament->start_time->format('h:i A') }}</span>
                                             </div>
                                         </div>
                                         <div>

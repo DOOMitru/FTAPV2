@@ -18,12 +18,14 @@ class PokerTournament extends Model
     protected $fillable = [
         'name',
         'description',
+        'scheduled_at',
         'start_time',
         'venue_id',
         'season_id',
     ];
 
     protected $casts = [
+        'scheduled_at' => 'datetime',
         'start_time' => 'datetime',
     ];
 

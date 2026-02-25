@@ -47,7 +47,7 @@ class PokerTournamentRegistrantController extends Controller
         $validated['registered_by'] = $request->user()?->id;
 
         $tournament = PokerTournament::findOrFail($validated['tournament_id']);
-        $validated['is_late_entry'] = strtotime($validated['registered_at']) > strtotime($tournament->start_time);
+        $validated['is_late_entry'] = strtotime($validated['registered_at']) > strtotime($tournament->scheduled_at);
 
         PokerTournamentRegistrant::create($validated);
 

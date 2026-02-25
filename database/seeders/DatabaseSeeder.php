@@ -96,6 +96,7 @@ class DatabaseSeeder extends Seeder
                 $tournament = PokerTournament::create([
                     'name'        => ($tournamentNames[$t % count($tournamentNames)]) . ' ' . $sd['name'],
                     'description' => 'A highly competitive event in the ' . $sd['name'] . '.',
+                    'scheduled_at'=> $tournamentDate->copy()->setTime(rand(17, 19), 0),
                     'start_time'  => $tournamentDate->setTime(rand(17, 19), 0),
                     'season_id'   => $season->id,
                     'venue_id'    => $venues->random()->id,

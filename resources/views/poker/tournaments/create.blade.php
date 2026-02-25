@@ -26,11 +26,19 @@
 
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
+                                <x-input-label for="scheduled_at" :value="__('Registration Closes (Scheduled At)')" />
+                                <x-text-input id="scheduled_at" name="scheduled_at" type="datetime-local" class="mt-1 block w-full" :value="old('scheduled_at')" required />
+                                <x-input-error class="mt-2" :messages="$errors->get('scheduled_at')" />
+                            </div>
+
+                            <div>
                                 <x-input-label for="start_time" :value="__('Start Date & Time')" />
                                 <x-text-input id="start_time" name="start_time" type="datetime-local" class="mt-1 block w-full" :value="old('start_time')" required />
                                 <x-input-error class="mt-2" :messages="$errors->get('start_time')" />
                             </div>
+                        </div>
 
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
                                 <x-input-label for="season_display" :value="__('Season')" />
                                 <div class="mt-1 block w-full px-4 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-md shadow-sm text-gray-500 dark:text-gray-400">

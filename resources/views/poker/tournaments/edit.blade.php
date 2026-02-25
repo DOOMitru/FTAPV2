@@ -27,11 +27,19 @@
 
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
+                                <x-input-label for="scheduled_at" :value="__('Registration Closes (Scheduled At)')" />
+                                <x-text-input id="scheduled_at" name="scheduled_at" type="datetime-local" class="mt-1 block w-full" :value="old('scheduled_at', $tournament->scheduled_at ? \Illuminate\Support\Carbon::parse($tournament->scheduled_at)->format('Y-m-d\TH:i') : '')" required />
+                                <x-input-error class="mt-2" :messages="$errors->get('scheduled_at')" />
+                            </div>
+
+                            <div>
                                 <x-input-label for="start_time" :value="__('Start Date & Time')" />
                                 <x-text-input id="start_time" name="start_time" type="datetime-local" class="mt-1 block w-full" :value="old('start_time', \Illuminate\Support\Carbon::parse($tournament->start_time)->format('Y-m-d\TH:i'))" required />
                                 <x-input-error class="mt-2" :messages="$errors->get('start_time')" />
                             </div>
+                        </div>
 
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
                                 <x-input-label for="season_id" :value="__('Season')" />
                                 <select id="season_id" name="season_id" class="mt-1 block w-full border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-indigo-500 dark:focus:ring-indigo-600 rounded-md shadow-sm" required>

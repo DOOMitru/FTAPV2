@@ -99,15 +99,15 @@
                                 <div class="px-8 py-6 flex flex-col md:flex-row md:items-center justify-between gap-6 group">
                                     <div class="flex items-start gap-4">
                                         <div class="w-12 h-12 rounded-2xl bg-gray-50 dark:bg-gray-900 flex flex-col items-center justify-center border border-gray-100 dark:border-gray-700 flex-shrink-0">
-                                            <span class="text-[8px] font-black text-indigo-500 uppercase">{{ \Illuminate\Support\Carbon::parse($tournament->start_time)->format('M') }}</span>
-                                            <span class="text-lg font-black text-gray-900 dark:text-white">{{ \Illuminate\Support\Carbon::parse($tournament->start_time)->format('d') }}</span>
+                                            <span class="text-[8px] font-black text-indigo-500 uppercase">{{ \Illuminate\Support\Carbon::parse($tournament->scheduled_at)->format('M') }}</span>
+                                            <span class="text-lg font-black text-gray-900 dark:text-white">{{ \Illuminate\Support\Carbon::parse($tournament->scheduled_at)->format('d') }}</span>
                                         </div>
                                         <div class="min-w-0">
                                             <h4 class="text-sm font-bold text-gray-900 dark:text-white group-hover:text-indigo-600 transition-colors truncate">{{ $tournament->name }}</h4>
                                             <div class="flex items-center gap-4 mt-1">
-                                                <span class="flex items-center text-[10px] text-gray-400 font-bold uppercase tracking-tighter">
+                                                <span class="flex items-center text-[10px] text-gray-400 font-bold uppercase tracking-tighter" title="Registration Deadline">
                                                     <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                                                    {{ \Illuminate\Support\Carbon::parse($tournament->start_time)->format('h:i A') }}
+                                                    {{ \Illuminate\Support\Carbon::parse($tournament->scheduled_at)->format('h:i A') }}
                                                 </span>
                                                 <span class="flex items-center text-[10px] text-gray-400 font-bold uppercase tracking-tighter">
                                                     <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
