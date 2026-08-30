@@ -58,9 +58,9 @@ Route::prefix('rules')->name('rules.')->group(function () {
 
     Route::get('/points-structure', function () {
         $pointsStructure = \App\Models\PointsStructure::orderBy('place')->get();
-        
+
         // Fetch top 3 performers of the current season for a live preview
-        $currentSeason = \App\Models\PokerSeason::where('is_active', true)->first();
+        $currentSeason = \App\Models\PokerSeason::where('is_current', true)->first();
         $topPerformers = collect();
         
         if ($currentSeason) {
@@ -96,6 +96,10 @@ Route::get('/contact', function () {
     return view('contact');
 })->name('contact');
 
+Route::post('/contact', [\App\Http\Controllers\ContactController::class, 'store'])
+    ->middleware('throttle:5,1')
+    ->name('contact.store');
+
 Route::get('/dashboard', [\App\Http\Controllers\DashboardController::class, 'index'])
     ->middleware(['auth', 'verified'])->name('dashboard');
 
@@ -104,19 +108,28 @@ Route::middleware('auth')->group(function () {
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
-    Route::prefix('poker')->name('poker.')->group(function () {
-        Route::resource('seasons', \App\Http\Controllers\Poker\PokerSeasonController::class);
+    // Player-facing tournament and season views. Deliberately outside the
+    // /poker prefix, which is admin-only.
+    Route::get('/tournaments/{tournament}', [\App\Http\Controllers\Poker\PokerTournamentController::class, 'show'])
+        ->name('tournaments.show');
+    Route::post('/tournaments/{tournament}/register', [\App\Http\Controllers\Poker\PokerTournamentController::class, 'register'])
+        ->name('tournaments.register');
+    Route::delete('/tournaments/{tournament}/unregister', [\App\Http\Controllers\Poker\PokerTournamentController::class, 'unregister'])
+        ->name('tournaments.unregister');
+    Route::get('/seasons/{season}', [\App\Http\Controllers\Poker\PokerSeasonController::class, 'show'])
+        ->name('seasons.show');
+
+    Route::middleware('admin')->prefix('poker')->name('poker.')->group(function () {
+        Route::resource('seasons', \App\Http\Controllers\Poker\PokerSeasonController::class)->except(['show']);
         Route::resource('venues', \App\Http\Controllers\Poker\VenueController::class);
-        Route::resource('tournaments', \App\Http\Controllers\Poker\PokerTournamentController::class);
-        Route::post('tournaments/{tournament}/register', [\App\Http\Controllers\Poker\PokerTournamentController::class, 'register'])->name('tournaments.register');
-        Route::delete('tournaments/{tournament}/unregister', [\App\Http\Controllers\Poker\PokerTournamentController::class, 'unregister'])->name('tournaments.unregister');
-        Route::resource('results', \App\Http\Controllers\Poker\PokerTournamentResultController::class);
-        Route::resource('registrants', \App\Http\Controllers\Poker\PokerTournamentRegistrantController::class);
-        Route::resource('venue-points', \App\Http\Controllers\Poker\VenuePointsController::class);
-        Route::resource('points-structure', \App\Http\Controllers\Poker\PointsStructureController::class);
+        Route::resource('tournaments', \App\Http\Controllers\Poker\PokerTournamentController::class)->except(['show']);
+        Route::resource('results', \App\Http\Controllers\Poker\PokerTournamentResultController::class)->except(['show']);
+        Route::resource('registrants', \App\Http\Controllers\Poker\PokerTournamentRegistrantController::class)->except(['show']);
+        Route::resource('venue-points', \App\Http\Controllers\Poker\VenuePointsController::class)->except(['show']);
+        Route::resource('points-structure', \App\Http\Controllers\Poker\PointsStructureController::class)->except(['show']);
     });
 
-    Route::resource('users', \App\Http\Controllers\UserController::class);
+    Route::resource('users', \App\Http\Controllers\UserController::class)->except(['create', 'store'])->middleware('admin');
 });
 
 require __DIR__.'/auth.php';

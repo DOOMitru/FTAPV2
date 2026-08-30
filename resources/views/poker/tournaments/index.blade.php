@@ -39,7 +39,7 @@
                                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{{ $tournament->season->name }}</td>
                                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{{ $tournament->start_time }}</td>
                                         <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                            <a href="{{ route('poker.tournaments.show', $tournament) }}" class="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300 mr-4">{{ __('View') }}</a>
+                                            <a href="{{ route('tournaments.show', $tournament) }}" class="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300 mr-4">{{ __('View') }}</a>
                                             <a href="{{ route('poker.tournaments.edit', $tournament) }}" class="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300 mr-4">{{ __('Edit') }}</a>
                                             <form action="{{ route('poker.tournaments.destroy', $tournament) }}" method="POST" class="inline">
                                                 @csrf

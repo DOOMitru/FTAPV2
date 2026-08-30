@@ -42,7 +42,7 @@ class PokerTournamentController extends Controller
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
             'scheduled_at' => 'required|date',
-            'start_time' => 'required|date',
+            'start_time' => 'required|date|after_or_equal:scheduled_at',
             'venue_id' => 'required|exists:venues,id',
         ]);
 
@@ -79,7 +79,9 @@ class PokerTournamentController extends Controller
         $podium = $orderedResults->take(3);
 
         $isUserRegistered = $tournament->registrants()->where('user_id', auth()->id())->exists();
-        $isPast = \Illuminate\Support\Carbon::parse($tournament->scheduled_at)->isPast();
+        // "Past" means play has begun, which is start_time — not the
+        // registration cutoff held in scheduled_at.
+        $isPast = \Illuminate\Support\Carbon::parse($tournament->start_time)->isPast();
 
         $pointsStructure = \App\Models\PointsStructure::orderBy('place')->get();
 
@@ -115,7 +117,7 @@ class PokerTournamentController extends Controller
         
         // Only enforce "past" check for non-admins
         if (!$isAdmin && \Illuminate\Support\Carbon::parse($tournament->scheduled_at)->isPast()) {
-            return back()->with('error', 'Cannot register for a tournament that has already started or passed.');
+            return back()->with('error', 'Registration has closed for this tournament.');
         }
 
         // Check if the target user is already registered
@@ -148,7 +150,7 @@ class PokerTournamentController extends Controller
     public function unregister(PokerTournament $tournament): RedirectResponse
     {
         if (\Illuminate\Support\Carbon::parse($tournament->scheduled_at)->isPast()) {
-            return back()->with('error', 'Cannot unregister from a tournament that has already started or passed.');
+            return back()->with('error', 'Registration has closed, so this entry can no longer be withdrawn.');
         }
 
         $registration = $tournament->registrants()->where('user_id', auth()->id())->first();
@@ -181,7 +183,7 @@ class PokerTournamentController extends Controller
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
             'scheduled_at' => 'required|date',
-            'start_time' => 'required|date',
+            'start_time' => 'required|date|after_or_equal:scheduled_at',
             'venue_id' => 'required|exists:venues,id',
             'season_id' => 'required|exists:seasons,id',
         ]);

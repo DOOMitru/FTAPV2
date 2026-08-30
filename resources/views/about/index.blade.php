@@ -86,8 +86,10 @@
                         <p class="text-gray-500 dark:text-gray-400 mb-8 text-sm">
                             Ready to grow your business while supporting local poker? Send us an inquiry below and we'll get in touch to finalize your sponsorship.
                         </p>
-                        <form action="#" method="POST" class="space-y-5">
+                        <form action="{{ route('contact.store') }}" method="POST" class="space-y-5">
                             @csrf
+                            <input type="hidden" name="topic" value="sponsorship">
+                            <input type="text" name="company" id="sponsor_company" tabindex="-1" autocomplete="off" hidden>
                             <div>
                                 <label for="name" class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Business or Representative Name</label>
                                 <input type="text" name="name" id="name" class="block w-full rounded-lg border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-amber-500 focus:border-amber-500 transition-colors" placeholder="e.g. Ace High Beverages" required>
@@ -100,6 +102,15 @@
                                 <label for="message" class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Message</label>
                                 <textarea name="message" id="message" rows="4" class="block w-full rounded-lg border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-amber-500 focus:border-amber-500 transition-colors" placeholder="How can we help highlight your brand?" required></textarea>
                             </div>
+
+                            @if (session('status'))
+                                <p class="text-sm font-semibold text-green-600 dark:text-green-400">{{ session('status') }}</p>
+                            @endif
+
+                            @error('message')
+                                <p class="text-sm font-semibold text-red-600 dark:text-red-400">{{ $message }}</p>
+                            @enderror
+
                             <button type="submit" class="w-full py-4 px-6 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-black uppercase tracking-widest transition-all duration-300 shadow-lg hover:shadow-indigo-500/30 transform hover:-translate-y-1">
                                 Send Inquiry
                             </button>

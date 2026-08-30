@@ -59,7 +59,7 @@
                         </div>
                         
                         @if($currentSeason)
-                            <a href="{{ route('poker.seasons.show', $currentSeason) }}" class="mt-6 w-full inline-flex items-center justify-center px-4 py-3 bg-white text-indigo-700 text-xs font-bold rounded-xl hover:bg-indigo-50 transition-colors uppercase tracking-widest">
+                            <a href="{{ route('seasons.show', $currentSeason) }}" class="mt-6 w-full inline-flex items-center justify-center px-4 py-3 bg-white text-indigo-700 text-xs font-bold rounded-xl hover:bg-indigo-50 transition-colors uppercase tracking-widest">
                                 {{ __('Full Season Stats') }}
                             </a>
                         @endif
@@ -123,15 +123,15 @@
                                                 <svg class="w-3 h-3 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
                                                 {{ __('Registered') }}
                                             </span>
-                                        @else
-                                            <form action="{{ route('poker.tournaments.register', $tournament) }}" method="POST">
+                                        @elseif($tournament->registration_open)
+                                            <form action="{{ route('tournaments.register', $tournament) }}" method="POST">
                                                 @csrf
                                                 <button type="submit" class="inline-flex items-center px-4 py-2 bg-indigo-600 text-white text-[10px] font-black rounded-lg hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-500/20 uppercase tracking-widest">
                                                     {{ __('Sign Up') }}
                                                 </button>
                                             </form>
                                         @endif
-                                        <a href="{{ route('poker.tournaments.show', $tournament) }}" class="p-2 bg-gray-50 dark:bg-gray-700 rounded-lg text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
+                                        <a href="{{ route('tournaments.show', $tournament) }}" class="p-2 bg-gray-50 dark:bg-gray-700 rounded-lg text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
                                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
                                         </a>
                                     </div>

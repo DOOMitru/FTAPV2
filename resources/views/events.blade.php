@@ -82,17 +82,19 @@
                                     @endif
 
                                     <div class="flex items-center gap-3">
-                                        <a href="{{ route('poker.tournaments.show', $tournament) }}" class="inline-flex items-center px-5 py-2.5 bg-indigo-600 dark:bg-indigo-500 text-white text-[10px] font-bold rounded-lg hover:bg-indigo-700 dark:hover:bg-indigo-400 transition-all shadow-md shadow-indigo-500/20 uppercase tracking-widest group">
+                                        <a href="{{ route('tournaments.show', $tournament) }}" class="inline-flex items-center px-5 py-2.5 bg-indigo-600 dark:bg-indigo-500 text-white text-[10px] font-bold rounded-lg hover:bg-indigo-700 dark:hover:bg-indigo-400 transition-all shadow-md shadow-indigo-500/20 uppercase tracking-widest group">
                                             {{ __('Details') }}
                                             <svg class="w-3.5 h-3.5 ml-2 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg>
                                         </a>
                                         @auth
-                                            <form action="{{ route('poker.tournaments.register', $tournament) }}" method="POST">
-                                                @csrf
-                                                <button type="submit" class="p-2.5 bg-gray-50 dark:bg-gray-900 text-gray-400 dark:text-gray-500 rounded-lg border border-gray-100 dark:border-gray-700 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors" title="Quick Register">
-                                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"/></svg>
-                                                </button>
-                                            </form>
+                                            @if($tournament->registration_open)
+                                                <form action="{{ route('tournaments.register', $tournament) }}" method="POST">
+                                                    @csrf
+                                                    <button type="submit" class="p-2.5 bg-gray-50 dark:bg-gray-900 text-gray-400 dark:text-gray-500 rounded-lg border border-gray-100 dark:border-gray-700 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors" title="Quick Register">
+                                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"/></svg>
+                                                    </button>
+                                                </form>
+                                            @endif
                                         @endauth
                                     </div>
                                 </div>
@@ -119,7 +121,7 @@
 
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                         @foreach($pastTournaments as $tournament)
-                            <a href="{{ route('poker.tournaments.show', $tournament) }}" class="group bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 p-6 rounded-xl shadow-sm hover:shadow-lg hover:border-indigo-100 dark:hover:border-indigo-900/50 transition-all duration-300">
+                            <a href="{{ route('tournaments.show', $tournament) }}" class="group bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 p-6 rounded-xl shadow-sm hover:shadow-lg hover:border-indigo-100 dark:hover:border-indigo-900/50 transition-all duration-300">
                                 <div class="flex justify-between items-start mb-4">
                                     <div class="text-[9px] font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-widest">{{ $tournament->start_time->format('M Y') }}</div>
                                     <span class="px-2 py-0.5 bg-gray-50 dark:bg-gray-900 text-gray-400 dark:text-gray-500 text-[8px] font-bold uppercase rounded border border-gray-100 dark:border-gray-700">{{ __('Completed') }}</span>

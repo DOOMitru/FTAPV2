@@ -118,7 +118,9 @@ class PointsStructurePageTest extends TestCase
 - [ ] **Step 2: Run test to verify it fails**
 
 Run: `php artisan test --filter=PointsStructurePageTest`
-Expected: `test_points_structure_page_loads_when_a_current_season_exists` FAILS with `SQLSTATE[HY000]: General error: 1 no such column: is_active`. The second test passes already (it never reaches the query).
+Expected: `test_points_structure_page_shows_the_current_season` FAILS on the `assertViewHas('currentSeason', ...)` assertion, because `$currentSeason` is `null`.
+
+**Do not expect a SQL error.** Laravel's SQLite grammar emits `where "is_active" = ?`, and SQLite's double-quoted-string-literal misfeature degrades the unknown quoted identifier into the string `'is_active'` — the query returns 0 rows rather than raising `no such column`. (A *bare* identifier, `where is_active = 1`, does raise it; Eloquent never emits one.) So the bug is silent on SQLite: the season is never found and the page's top-3 leaders panel never renders. It would throw on MySQL/PostgreSQL, making this a latent crash if the driver ever changes. This is why the test must assert the view data, not merely a 200.
 
 - [ ] **Step 3: Apply the fix**
 
@@ -255,13 +257,13 @@ Suggested message: `refactor: move player-facing tournament and season routes ou
 
 ## Task 3: Admin middleware, applied to `/poker` and `/users`
 
-Spec §5.2. Today any authenticated user can create, edit and delete every league record. Only `/users` is gated, via seven repeated `abort_unless` calls.
+Spec §5.2. Today any authenticated user can create, edit and delete every league record. Only `/users` is gated, via five repeated `abort_unless` calls.
 
 **Files:**
 - Create: `app/Http/Middleware/EnsureUserIsAdmin.php`
 - Modify: `bootstrap/app.php`
 - Modify: `routes/web.php`
-- Modify: `app/Http/Controllers/UserController.php` (remove 7 `abort_unless` lines)
+- Modify: `app/Http/Controllers/UserController.php` (remove 5 `abort_unless` lines)
 - Test: `tests/Feature/AdminAccessTest.php`
 
 **Interfaces:**
@@ -475,7 +477,7 @@ Both already sit inside the outer `Route::middleware('auth')` group, so `auth` s
 
 - [ ] **Step 6: Remove the now-redundant checks**
 
-In `app/Http/Controllers/UserController.php`, delete all seven occurrences of:
+In `app/Http/Controllers/UserController.php`, delete all five occurrences of:
 
 ```php
         abort_unless(auth()->user()->is_admin, 403);
@@ -1288,8 +1290,10 @@ composer test
   one current automatically clears the others.
 - A **tournament** belongs to a season and a venue. `scheduled_at` is the
   registration cutoff; `start_time` is when play begins.
-- **Registrants** sign up for a tournament. Registering after `scheduled_at` is
-  recorded as a late entry.
+- **Registrants** sign up for a tournament. Self-registration closes at
+  `scheduled_at`. An administrator can still add a player after that from the
+  registrants screen, where an entry recorded after `scheduled_at` is flagged as
+  a late entry.
 - **Results** award points from the shared **points structure** table, so place
   and points are never typed in by hand.
 - **Venue points** are a separate loyalty ledger, independent of tournament results.

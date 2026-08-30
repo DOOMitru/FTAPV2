@@ -96,7 +96,7 @@
                             </div>
                             
                             <div class="mt-8 pt-6 border-t border-white/10 text-center">
-                                <a href="{{ route('poker.seasons.show', $currentSeason) }}" class="inline-flex items-center text-[10px] font-bold uppercase tracking-widest hover:opacity-80 transition-opacity">
+                                <a href="{{ route('seasons.show', $currentSeason) }}" class="inline-flex items-center text-[10px] font-bold uppercase tracking-widest hover:opacity-80 transition-opacity">
                                     {{ __('Full Season Standings') }}
                                     <svg class="w-3 h-3 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg>
                                 </a>

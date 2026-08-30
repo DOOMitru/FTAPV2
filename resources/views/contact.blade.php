@@ -66,8 +66,9 @@
                             </div>
                         </div>
 
-                        <form action="#" method="POST" class="space-y-5">
+                        <form action="{{ route('contact.store') }}" method="POST" class="space-y-5">
                             @csrf
+                            <input type="text" name="company" id="company" tabindex="-1" autocomplete="off" hidden>
                             <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
                                 <div>
                                     <label for="name" class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Name</label>
@@ -80,12 +81,12 @@
                             </div>
 
                             <div>
-                                <label for="subject" class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Subject</label>
-                                <select name="subject" id="subject" class="block w-full rounded-lg border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-amber-500 focus:border-amber-500 transition-colors">
-                                    <option>General Inquiry</option>
-                                    <option>League Registration</option>
-                                    <option>Commercial Partnership</option>
-                                    <option>Technical Support</option>
+                                <label for="topic" class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Subject</label>
+                                <select name="topic" id="topic" class="block w-full rounded-lg border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-amber-500 focus:border-amber-500 transition-colors">
+                                    <option value="general">General Inquiry</option>
+                                    <option value="registration">League Registration</option>
+                                    <option value="partnership">Commercial Partnership</option>
+                                    <option value="support">Technical Support</option>
                                 </select>
                             </div>
 
@@ -93,6 +94,14 @@
                                 <label for="message" class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Message</label>
                                 <textarea name="message" id="message" rows="4" class="block w-full rounded-lg border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-amber-500 focus:border-amber-500 transition-colors" placeholder="How can we help?" required></textarea>
                             </div>
+
+                            @if (session('status'))
+                                <p class="text-sm font-semibold text-green-600 dark:text-green-400">{{ session('status') }}</p>
+                            @endif
+
+                            @error('message')
+                                <p class="text-sm font-semibold text-red-600 dark:text-red-400">{{ $message }}</p>
+                            @enderror
 
                             <button type="submit" class="w-full py-4 px-6 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-black uppercase tracking-widest transition-all duration-300 shadow-lg hover:shadow-indigo-500/30 transform hover:-translate-y-1">
                                 Initialize Connection

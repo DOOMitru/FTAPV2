@@ -23,32 +23,32 @@
                         <x-nav-link :href="route('users.index')" :active="request()->routeIs('users.*')">
                             {{ __('Users') }}
                         </x-nav-link>
-                    @endif
 
-                    <!-- Poker Management Dropdown -->
-                    <div class="hidden sm:flex sm:items-center sm:ms-6">
-                        <x-dropdown align="right" width="48">
-                            <x-slot name="trigger">
-                                <button class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800 hover:text-gray-700 dark:hover:text-gray-300 focus:outline-none transition ease-in-out duration-150">
-                                    <div>{{ __('Poker') }}</div>
-                                    <div class="ms-1">
-                                        <svg class="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
-                                            <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
-                                        </svg>
-                                    </div>
-                                </button>
-                            </x-slot>
-                            <x-slot name="content">
-                                <x-dropdown-link :href="route('poker.seasons.index')">{{ __('Seasons') }}</x-dropdown-link>
-                                <x-dropdown-link :href="route('poker.venues.index')">{{ __('Venues') }}</x-dropdown-link>
-                                <x-dropdown-link :href="route('poker.tournaments.index')">{{ __('Tournaments') }}</x-dropdown-link>
-                                <x-dropdown-link :href="route('poker.results.index')">{{ __('Results') }}</x-dropdown-link>
-                                <x-dropdown-link :href="route('poker.registrants.index')">{{ __('Registrants') }}</x-dropdown-link>
-                                <x-dropdown-link :href="route('poker.venue-points.index')">{{ __('Venue Points') }}</x-dropdown-link>
-                                <x-dropdown-link :href="route('poker.points-structure.index')">{{ __('Points Structure') }}</x-dropdown-link>
-                            </x-slot>
-                        </x-dropdown>
-                    </div>
+                        <!-- Poker Management Dropdown -->
+                        <div class="hidden sm:flex sm:items-center sm:ms-6">
+                            <x-dropdown align="right" width="48">
+                                <x-slot name="trigger">
+                                    <button class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800 hover:text-gray-700 dark:hover:text-gray-300 focus:outline-none transition ease-in-out duration-150">
+                                        <div>{{ __('Poker') }}</div>
+                                        <div class="ms-1">
+                                            <svg class="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
+                                                <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+                                            </svg>
+                                        </div>
+                                    </button>
+                                </x-slot>
+                                <x-slot name="content">
+                                    <x-dropdown-link :href="route('poker.seasons.index')">{{ __('Seasons') }}</x-dropdown-link>
+                                    <x-dropdown-link :href="route('poker.venues.index')">{{ __('Venues') }}</x-dropdown-link>
+                                    <x-dropdown-link :href="route('poker.tournaments.index')">{{ __('Tournaments') }}</x-dropdown-link>
+                                    <x-dropdown-link :href="route('poker.results.index')">{{ __('Results') }}</x-dropdown-link>
+                                    <x-dropdown-link :href="route('poker.registrants.index')">{{ __('Registrants') }}</x-dropdown-link>
+                                    <x-dropdown-link :href="route('poker.venue-points.index')">{{ __('Venue Points') }}</x-dropdown-link>
+                                    <x-dropdown-link :href="route('poker.points-structure.index')">{{ __('Points Structure') }}</x-dropdown-link>
+                                </x-slot>
+                            </x-dropdown>
+                        </div>
+                    @endif
                 </div>
             </div>
 
@@ -124,20 +124,20 @@
                 <x-responsive-nav-link :href="route('users.index')" :active="request()->routeIs('users.*')">
                     {{ __('Users') }}
                 </x-responsive-nav-link>
-            @endif
 
-            <div class="pt-4 pb-1 border-t border-gray-200 dark:border-gray-600">
-                <div class="px-4 font-medium text-xs text-gray-400 uppercase tracking-widest">{{ __('Poker Management') }}</div>
-                <div class="mt-2 space-y-1">
-                    <x-responsive-nav-link :href="route('poker.seasons.index')">{{ __('Seasons') }}</x-responsive-nav-link>
-                    <x-responsive-nav-link :href="route('poker.venues.index')">{{ __('Venues') }}</x-responsive-nav-link>
-                    <x-responsive-nav-link :href="route('poker.tournaments.index')">{{ __('Tournaments') }}</x-responsive-nav-link>
-                    <x-responsive-nav-link :href="route('poker.results.index')">{{ __('Results') }}</x-responsive-nav-link>
-                    <x-responsive-nav-link :href="route('poker.registrants.index')">{{ __('Registrants') }}</x-responsive-nav-link>
-                    <x-responsive-nav-link :href="route('poker.venue-points.index')">{{ __('Venue Points') }}</x-responsive-nav-link>
-                    <x-responsive-nav-link :href="route('poker.points-structure.index')">{{ __('Points Structure') }}</x-responsive-nav-link>
+                <div class="pt-4 pb-1 border-t border-gray-200 dark:border-gray-600">
+                    <div class="px-4 font-medium text-xs text-gray-400 uppercase tracking-widest">{{ __('Poker Management') }}</div>
+                    <div class="mt-2 space-y-1">
+                        <x-responsive-nav-link :href="route('poker.seasons.index')">{{ __('Seasons') }}</x-responsive-nav-link>
+                        <x-responsive-nav-link :href="route('poker.venues.index')">{{ __('Venues') }}</x-responsive-nav-link>
+                        <x-responsive-nav-link :href="route('poker.tournaments.index')">{{ __('Tournaments') }}</x-responsive-nav-link>
+                        <x-responsive-nav-link :href="route('poker.results.index')">{{ __('Results') }}</x-responsive-nav-link>
+                        <x-responsive-nav-link :href="route('poker.registrants.index')">{{ __('Registrants') }}</x-responsive-nav-link>
+                        <x-responsive-nav-link :href="route('poker.venue-points.index')">{{ __('Venue Points') }}</x-responsive-nav-link>
+                        <x-responsive-nav-link :href="route('poker.points-structure.index')">{{ __('Points Structure') }}</x-responsive-nav-link>
+                    </div>
                 </div>
-            </div>
+            @endif
         </div>
 
         <div class="pt-4 pb-1 border-t border-gray-200 dark:border-gray-600">

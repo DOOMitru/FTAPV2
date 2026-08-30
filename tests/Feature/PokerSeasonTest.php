@@ -71,7 +71,7 @@ class PokerSeasonTest extends TestCase
 
     public function test_controller_store_sets_current_correctly()
     {
-        $user = User::factory()->create();
+        $user = User::factory()->create(['is_admin' => true]);
         
         $response = $this->actingAs($user)->post(route('poker.seasons.store'), [
             'name' => 'Season 1',

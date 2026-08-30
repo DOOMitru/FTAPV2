@@ -18,8 +18,8 @@ class DashboardController extends Controller
 
         // 1. Upcoming Tournaments
         $upcomingTournaments = PokerTournament::with(['venue', 'registrants'])
-            ->where('scheduled_at', '>', $now)
-            ->orderBy('scheduled_at', 'asc')
+            ->where('start_time', '>', $now)
+            ->orderBy('start_time', 'asc')
             ->take(5)
             ->get();
 

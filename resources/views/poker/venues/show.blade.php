@@ -180,7 +180,7 @@
                         </div>
                         <div class="divide-y divide-gray-50 dark:divide-gray-700">
                             @forelse($venue->tournaments->sortByDesc('start_time')->take(10) as $tournament)
-                                <a href="{{ route('poker.tournaments.show', $tournament) }}" class="block px-6 py-5 hover:bg-gray-50/50 dark:hover:bg-gray-900/40 transition-all group">
+                                <a href="{{ route('tournaments.show', $tournament) }}" class="block px-6 py-5 hover:bg-gray-50/50 dark:hover:bg-gray-900/40 transition-all group">
                                     <div class="flex justify-between items-start gap-4">
                                         <div class="min-w-0">
                                             <div class="text-xs font-bold text-gray-900 dark:text-white truncate group-hover:text-indigo-600 transition-colors">{{ $tournament->name }}</div>

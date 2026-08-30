@@ -45,7 +45,7 @@
                                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{{ $season->start_date }}</td>
                                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{{ $season->end_date }}</td>
                                         <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                            <a href="{{ route('poker.seasons.show', $season) }}" class="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-amber-500 mr-4">{{ __('View Stats') }}</a>
+                                            <a href="{{ route('seasons.show', $season) }}" class="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-amber-500 mr-4">{{ __('View Stats') }}</a>
                                             <a href="{{ route('poker.seasons.edit', $season) }}" class="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300 mr-4">{{ __('Edit') }}</a>
                                             <form action="{{ route('poker.seasons.destroy', $season) }}" method="POST" class="inline">
                                                 @csrf

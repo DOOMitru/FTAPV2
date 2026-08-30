@@ -14,8 +14,6 @@ class UserController extends Controller
      */
     public function index(): View
     {
-        abort_unless(auth()->user()->is_admin, 403);
-        
         $users = User::orderBy('first_name')->paginate(15);
         return view('users.index', compact('users'));
     }
@@ -25,8 +23,6 @@ class UserController extends Controller
      */
     public function show(User $user): View
     {
-        abort_unless(auth()->user()->is_admin, 403);
-
         return view('users.show', compact('user'));
     }
 
@@ -35,8 +31,6 @@ class UserController extends Controller
      */
     public function edit(User $user): View
     {
-        abort_unless(auth()->user()->is_admin, 403);
-
         return view('users.edit', compact('user'));
     }
 
@@ -45,8 +39,6 @@ class UserController extends Controller
      */
     public function update(Request $request, User $user): RedirectResponse
     {
-        abort_unless(auth()->user()->is_admin, 403);
-
         $validated = $request->validate([
             'first_name' => 'required|string|max:255',
             'last_name' => 'required|string|max:255',
@@ -77,8 +69,6 @@ class UserController extends Controller
      */
     public function destroy(User $user): RedirectResponse
     {
-        abort_unless(auth()->user()->is_admin, 403);
-
         if ($user->id === auth()->id()) {
             return back()->with('error', 'You cannot delete yourself.');
         }
