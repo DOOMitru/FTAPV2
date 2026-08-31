@@ -31,6 +31,7 @@
 @import "./3-components/_dropdown.css";
 @import "./3-components/_modal.css";
 @import "./3-components/_nav.css";
+@import "./4-pages/_season-show.css";
 
 /* Tailwind — temporary. Removed at the end of Phase 5, once every view is
    converted. Until then it styles the views this phase has not reached.
