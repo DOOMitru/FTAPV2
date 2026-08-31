@@ -1,3 +1,23 @@
+/* First To Act Poker design system. Cascade order within the imports matters:
+   tokens define the variables everything else reads, layout owns spacing,
+   components own appearance, pages own the few one-off rules that belong
+   nowhere else.
+
+   These @import statements MUST come before the @tailwind directives. CSS
+   requires @import to precede all other statements, and postcss-import
+   enforces it by SILENTLY SKIPPING any @import that follows one — it emits a
+   warning ("@import must precede all other statements (besides @charset or
+   empty @layer)") and the build still succeeds. Putting these after @tailwind would therefore leave the entire
+   design system unloaded with a green build and no error. Verified
+   empirically before this plan was executed. */
+@import "./1-base/_tokens.css";
+@import "./1-base/_typography.css";
+
+/* Tailwind — temporary. Removed at the end of Phase 5, once every view is
+   converted. Until then it styles the views this phase has not reached.
+   It loads after the design system, so on the rare selector both target,
+   a Tailwind utility wins. That is correct during the transition: unconverted
+   views must keep rendering exactly as they do today. */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
