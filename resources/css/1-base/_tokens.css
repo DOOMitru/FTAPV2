@@ -1,0 +1,132 @@
+/* Design tokens.
+ *
+ * The light palette is the base definition on bare :root, so every colour has
+ * a value with no media query or attribute selector in play. Dark values are
+ * declared once as --dark-* and mapped twice: under prefers-color-scheme for
+ * viewers who never chose, and under [data-theme="dark"] so an explicit choice
+ * beats the system in both directions.
+ */
+
+:root {
+    color-scheme: light;
+
+    /* Light — Frosted Ice */
+    --c-bg: #F4F7FC;
+    --c-surface: #FFFFFF;
+    --c-surface-raised: #EEF2F9;
+    --c-border: #E2E8F0;
+    --c-text: #0F172A;
+    --c-text-muted: #475569;
+    --c-primary: #1E40AF;
+    --c-primary-hover: #1E3A8A;
+    --c-primary-ink: #FFFFFF;
+
+    /* Coral is shared by both themes. --c-accent is for fills behind large or
+       bold text, borders and icons. White on #EF4537 is 3.8:1 and fails AA for
+       normal text, so anything with a small label uses --c-accent-strong. */
+    --c-accent: #EF4537;
+    --c-accent-strong: #D63A2C;
+    --c-accent-hover: #B93225;
+    --c-accent-ink: #FFFFFF;
+
+    /* Dark — Cyber Navy. Declared here, applied below. */
+    --dark-bg: #0B0F19;
+    --dark-surface: #161F33;
+    --dark-surface-raised: #1C2740;
+    --dark-border: #1E293B;
+    --dark-text: #E2E8F0;
+    --dark-text-muted: #94A3B8;
+    --dark-primary: #06B6D4;
+    --dark-primary-hover: #22D3EE;
+    --dark-primary-ink: #0B0F19;
+
+    /* Spacing — 4px base */
+    --space-1: 0.25rem;
+    --space-2: 0.5rem;
+    --space-3: 0.75rem;
+    --space-4: 1rem;
+    --space-5: 1.5rem;
+    --space-6: 2rem;
+    --space-8: 3rem;
+    --space-10: 4rem;
+    --space-12: 6rem;
+
+    /* Radii — tight, to read as instrument panelling rather than soft cards */
+    --radius-sm: 3px;
+    --radius: 6px;
+    --radius-pill: 999px;
+
+    --border-width: 1px;
+
+    /* The only shadow in the system. Dropdowns and modals float; nothing else
+       does. Every other separation is a 1px border. */
+    --shadow-overlay: 0 12px 32px -8px rgb(11 15 25 / 0.28);
+
+    /* Type */
+    --font-display: "Archivo Expanded", "Archivo", system-ui, sans-serif;
+    --font-body: "Archivo", system-ui, sans-serif;
+    --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", monospace;
+
+    --step--2: 0.6875rem;
+    --step--1: 0.8125rem;
+    --step-0: 0.9375rem;
+    --step-1: 1.125rem;
+    --step-2: 1.5rem;
+    --step-3: 2rem;
+    --step-4: clamp(2.5rem, 5vw, 3.5rem);
+    --step-5: clamp(3rem, 8vw, 5.5rem);
+
+    --leading-tight: 1.15;
+    --leading-normal: 1.55;
+
+    --transition-fast: 140ms ease;
+    --transition-reveal: 480ms cubic-bezier(0.2, 0.7, 0.3, 1);
+
+    --rail-width: 240px;
+    --measure: 68ch;
+}
+
+@media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+        color-scheme: dark;
+        --c-bg: var(--dark-bg);
+        --c-surface: var(--dark-surface);
+        --c-surface-raised: var(--dark-surface-raised);
+        --c-border: var(--dark-border);
+        --c-text: var(--dark-text);
+        --c-text-muted: var(--dark-text-muted);
+        --c-primary: var(--dark-primary);
+        --c-primary-hover: var(--dark-primary-hover);
+        --c-primary-ink: var(--dark-primary-ink);
+    }
+}
+
+:root[data-theme="dark"] {
+    color-scheme: dark;
+    --c-bg: var(--dark-bg);
+    --c-surface: var(--dark-surface);
+    --c-surface-raised: var(--dark-surface-raised);
+    --c-border: var(--dark-border);
+    --c-text: var(--dark-text);
+    --c-text-muted: var(--dark-text-muted);
+    --c-primary: var(--dark-primary);
+    --c-primary-hover: var(--dark-primary-hover);
+    --c-primary-ink: var(--dark-primary-ink);
+}
+
+/* Alpine hides these until it initialises. Replaces the style="display: none"
+   attributes previously used in dropdown and public shell markup. */
+[x-cloak] {
+    display: none !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+}

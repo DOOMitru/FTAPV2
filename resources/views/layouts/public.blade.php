@@ -14,24 +14,7 @@
         <!-- Scripts -->
         @vite(['resources/css/app.css', 'resources/js/app.ts'])
         <link rel="icon" href="{{ asset('favicon.png') }}" type="image/png"/>
-        <script>
-            // On page load or when changing themes, best to add inline in `head` to avoid FOUC
-            if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-                document.documentElement.classList.add('dark')
-            } else {
-                document.documentElement.classList.remove('dark')
-            }
-
-            function toggleTheme() {
-                if (document.documentElement.classList.contains('dark')) {
-                    document.documentElement.classList.remove('dark')
-                    localStorage.theme = 'light'
-                } else {
-                    document.documentElement.classList.add('dark')
-                    localStorage.theme = 'dark'
-                }
-            }
-        </script>
+        <x-theme-script />
     </head>
     <body class="font-sans antialiased bg-gray-100 text-gray-900 dark:bg-gray-900 dark:text-white">
         <div class="min-h-screen flex flex-col">
