@@ -10,7 +10,7 @@
         <span class="p-item__number">{{ $number }}</span>
     @elseif ($icon)
         {{-- Same SVG-path-as-data convention as <x-p-section-head>. --}}
-        <span class="p-item__icon">
+        <span class="p-icon-tile">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                  stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <path d="{!! $icon !!}"/>

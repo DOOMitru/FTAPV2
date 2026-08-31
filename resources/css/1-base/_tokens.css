@@ -48,6 +48,20 @@
     --gradient-primary: linear-gradient(135deg, #1E40AF 0%, #172554 100%);
     --gradient-accent: linear-gradient(135deg, #EF4537 0%, #F59E0B 100%);
     --gradient-surface: linear-gradient(180deg, var(--c-surface) 0%, var(--c-bg) 100%);
+    /* Panel fills are a SEPARATE token from --gradient-primary, which cannot
+       simply be darkened: it is also background-clipped onto the hero's
+       highlighted word, and a dark ramp there would sink that word into the
+       dark page ground. Large fills want depth; small accents want brightness.
+       Light is unchanged; dark drops from mean luminance 0.53 to 0.11. White
+       measures 9.11:1 and 5.36:1 on the dark stops and 8.72:1 and 14.69:1 on
+       the light, so the ink here is white in BOTH themes -- unlike
+       --c-primary-ink, which flips. */
+    --gradient-panel: linear-gradient(135deg, #1E40AF 0%, #172554 100%);
+    --gradient-panel-ink: #FFFFFF;
+    /* Its inverse, for the rare element that flips the pairing -- a chip whose
+       GROUND is --gradient-panel-ink. Fixed in both themes because the ground
+       it sits on is fixed too; using --c-text there gave near-white on white. */
+    --gradient-panel-ink-inverse: #0B0F19;
     /* Card-scale, and quiet on purpose: the hero and panel ramps carry 1.67:1
        between stops, which is right for one moment and unbearable across 21
        cards. Composed from the surface tokens, so it needs no dark twin. */
@@ -95,6 +109,7 @@
        7.89:1 and 6.91:1 on the two stops. The accent gradient is shared — coral
        and amber sit on both grounds equally. */
     --dark-gradient-primary: linear-gradient(135deg, #06B6D4 0%, #67E8F9 100%);
+    --dark-gradient-panel: linear-gradient(135deg, #164E63 0%, #0E7490 100%);
     --dark-shadow-raised: 0 1px 2px rgb(0 0 0 / 0.40), 0 4px 14px -2px rgb(0 0 0 / 0.45);
     --dark-shadow-float: 0 10px 30px -6px rgb(0 0 0 / 0.55);
 
@@ -168,6 +183,7 @@
         --c-primary-hover: var(--dark-primary-hover);
         --c-primary-ink: var(--dark-primary-ink);
         --gradient-primary: var(--dark-gradient-primary);
+        --gradient-panel: var(--dark-gradient-panel);
         --shadow-raised: var(--dark-shadow-raised);
         --shadow-float: var(--dark-shadow-float);
         --c-accent-text: var(--dark-accent-text);
@@ -186,6 +202,7 @@
     --c-primary-hover: var(--dark-primary-hover);
     --c-primary-ink: var(--dark-primary-ink);
     --gradient-primary: var(--dark-gradient-primary);
+    --gradient-panel: var(--dark-gradient-panel);
     --shadow-raised: var(--dark-shadow-raised);
     --shadow-float: var(--dark-shadow-float);
     --c-accent-text: var(--dark-accent-text);

@@ -16,8 +16,8 @@
 .p-panel {
     padding: var(--space-6);
     border-radius: var(--radius-lg);
-    background-image: var(--gradient-primary);
-    color: var(--c-primary-ink);
+    background-image: var(--gradient-panel);
+    color: var(--gradient-panel-ink);
     box-shadow: var(--shadow-float);
 }
 
@@ -132,7 +132,9 @@
     margin-block-end: var(--space-5);
 }
 
-.p-section-head__icon {
+/* One disc, two consumers: section heads and icon rule cards, which carried
+   byte-identical rules before this. */
+.p-icon-tile {
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -144,10 +146,12 @@
     color: var(--c-primary-ink);
 }
 
-.p-section-head__icon svg {
+.p-icon-tile svg {
     width: 1.25rem;
     height: 1.25rem;
 }
+
+
 
 .p-section-head__title {
     font-family: var(--font-body);
@@ -433,23 +437,6 @@
     scroll-margin-block-start: 5rem;
 }
 
-.p-item__icon {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    flex: 0 0 auto;
-    width: 2.5rem;
-    height: 2.5rem;
-    border-radius: var(--radius);
-    background-image: var(--gradient-primary);
-    color: var(--c-primary-ink);
-}
-
-.p-item__icon svg {
-    width: 1.25rem;
-    height: 1.25rem;
-}
-
 .p-fact {
     display: flex;
     align-items: center;
@@ -486,4 +473,195 @@
     border-radius: var(--radius-pill);
     background-color: currentColor;
     opacity: 0.5;
+}
+
+/* The points table's figure column: a large tabular number with its unit set
+   small beside it, so the column scans as a list of magnitudes. */
+.p-points {
+    display: flex;
+    align-items: baseline;
+    justify-content: flex-end;
+    gap: var(--space-2);
+}
+
+.p-points__value {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    font-size: var(--step-2);
+    font-weight: 600;
+    letter-spacing: -0.02em;
+}
+
+.p-points__unit {
+    font-family: var(--font-body);
+    font-size: var(--step--2);
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--c-text-muted);
+}
+
+.p-tier {
+    font-size: var(--step-0);
+    font-weight: 600;
+}
+
+.p-tier + .badge {
+    margin-block-start: var(--space-2);
+}
+
+/* Standings preview inside a gradient panel. */
+/* A panel heading, not .u-eyebrow: that utility is --c-text-muted, which is
+   tuned for a page ground and washes out to near-invisible on a saturated
+   gradient. Inside a panel the only safe ink is the panel's own. */
+.p-panel__eyebrow {
+    margin-block-end: var(--space-5);
+    font-family: var(--font-body);
+    font-size: var(--step--2);
+    font-weight: 600;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    opacity: 0.85;
+}
+
+/* Across, not down: this list sat in a narrow sidebar and now spans the page.
+   auto-fit collapses it back to one column when the space is not there. */
+.p-leaders {
+    display: grid;
+    gap: var(--space-4);
+    grid-template-columns: repeat(auto-fit, minmax(min(16rem, 100%), 1fr));
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+/* Each leader is a tile. Laid out across the full width without one, the
+   points of one leader end up hard against the seat number of the next and the
+   three read as a single run-on line. */
+.p-leader {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    padding: var(--space-3) var(--space-4);
+    border-radius: var(--radius);
+    background-color: rgb(255 255 255 / 0.12);
+}
+
+.p-leader__seat {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    width: 1.75rem;
+    height: 1.75rem;
+    border-radius: var(--radius-sm);
+    background-color: rgb(255 255 255 / 0.2);
+    font-family: var(--font-mono);
+    font-size: var(--step--2);
+    font-weight: 600;
+}
+
+/* The body must grow and stay start-aligned; without flex:1 the seat, name and
+   points distribute evenly and the name drifts to the middle of the row. */
+.p-leader__body {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+/* display:block, because .l-stack--tight only sets margins -- inline children
+   still share a line however much margin they carry. */
+.p-leader__name {
+    display: block;
+    font-size: var(--step--1);
+    font-weight: 600;
+}
+
+.p-leader__nickname {
+    display: block;
+    font-size: var(--step--2);
+    opacity: 0.75;
+}
+
+.p-leader__points {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    font-size: var(--step-0);
+    font-weight: 600;
+    text-align: end;
+}
+
+/* A quiet link out of a gradient panel. Underlined rather than coloured: there
+   is no second colour available on a saturated ground. */
+.p-panel__link {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    margin-block-start: var(--space-5);
+    padding-block-start: var(--space-4);
+    border-block-start: var(--border-width) solid rgb(255 255 255 / 0.25);
+    width: 100%;
+    color: inherit;
+    font-family: var(--font-body);
+    font-size: var(--step--2);
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    text-decoration: underline;
+    text-underline-offset: 0.25em;
+}
+
+.p-panel__link svg {
+    width: 0.875rem;
+    height: 0.875rem;
+}
+
+
+
+
+
+/* A closing caveat, not a heading. */
+.p-note {
+    max-width: 46rem;
+    margin-inline: auto;
+    font-size: var(--step--1);
+    line-height: var(--leading-relaxed);
+    color: var(--c-text-muted);
+}
+
+/* First, second and third read as a ranking rather than a list. Three steps of
+   one variable -- emphasis -- rather than gold/silver/bronze, which would put
+   three more colours into a system that has one. */
+.p-leader--1 {
+    background-color: rgb(255 255 255 / 0.22);
+}
+
+.p-leader--1 .p-leader__seat {
+    background-color: var(--gradient-panel-ink);
+    color: var(--gradient-panel-ink-inverse);
+}
+
+.p-leader--1 .p-leader__name {
+    font-size: var(--step-0);
+}
+
+.p-leader--1 .p-leader__points {
+    font-size: var(--step-2);
+}
+
+.p-leader--2 {
+    background-color: rgb(255 255 255 / 0.14);
+}
+
+.p-leader--2 .p-leader__points {
+    font-size: var(--step-1);
+}
+
+.p-leader--3 {
+    background-color: rgb(255 255 255 / 0.09);
+}
+
+.p-leader--3 .p-leader__body,
+.p-leader--3 .p-leader__points {
+    opacity: 0.85;
 }

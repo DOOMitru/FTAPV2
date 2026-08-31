@@ -51,7 +51,10 @@
 }
 
 /* Any cell holding a number. Right-aligned, tabular, so columns line up. */
-.table__num {
+/* Scoped under .table on purpose. Bare `.table__num` is (0,1,0) and loses to
+   `.table th` (0,1,1), so numeric column HEADERS silently stayed start-aligned
+   above their right-aligned figures -- here and on poker/seasons/show. */
+.table .table__num {
     font-family: var(--font-mono);
     font-variant-numeric: tabular-nums;
     text-align: end;

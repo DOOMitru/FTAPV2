@@ -389,7 +389,15 @@ class ContentPreservationTest extends TestCase
             'points' => 391,
         ]);
 
-        $response = $this->get('/rules/points-structure');
+        // The leaders panel is signed-in only, so a guest must NOT see it --
+        // asserting that is the point, not an aside: the panel links into the
+        // members' standings.
+        $this->get('/rules/points-structure')
+            ->assertOk()
+            ->assertDontSee('Current Season Leaders')
+            ->assertDontSee('Leadfoot');
+
+        $response = $this->actingAs(User::factory()->create())->get('/rules/points-structure');
         $response->assertOk();
 
         // The season's NAME is never printed here -- it only reaches the page
@@ -398,7 +406,7 @@ class ContentPreservationTest extends TestCase
         $response->assertSee('Leadfoot');
         $response->assertSee('Kowalczyk');
         $response->assertSee('391');
-        $response->assertSee('Season Leaders Peak');
+        $response->assertSee('Current Season Leaders');
 
         // Whatever the seeded structure holds, every place and point value in
         // it has to survive the rewrite.
