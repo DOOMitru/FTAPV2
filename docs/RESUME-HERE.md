@@ -148,3 +148,39 @@ behaviour itself is guarded; only the focus/scroll side effects are missing.
 3. **`.superpowers/sdd/` may be deleted.** It holds the 539-line decision ledger and 17
    agent reports, all gitignored. Everything with forward value has been copied into this
    file. Delete it whenever convenient.
+
+## Deferred to after Phase 5 — the accent gradient's hue drift
+
+**Decision (owner, 2026-08-31): do not change the accent until Phase 5 is done.**
+Changing it now would leave 14 unconverted admin views on the old colour while the
+public site moved, so the app would be visibly two-toned until the conversion finishes.
+
+The facts, so this does not have to be re-derived:
+
+- The accent **already matches the logo exactly**. `public/images/hero_logo.png`'s
+  dominant colour is `#EF4537` (22.7% of the mark; 13.9% of `header_logo.png`), and
+  `--c-accent` is `#EF4537`. It was sampled, not guessed.
+- Five of the six accent values sit at **hue 5deg, identical to the mark** --
+  `--c-accent`, `--c-accent-strong`, `--c-accent-hover`, `--dark-accent-text` exactly,
+  and `--c-accent-text` within 2deg. They differ only in lightness, for contrast.
+- **One value drifted, and it was introduced during Phase 2 Task 5.** Deepening
+  `--gradient-accent` for readability kept the original's coral-to-amber structure:
+  stop A `#8A2B1E` is hue 7deg (fine), stop B `#A2570C` is **hue 30deg -- amber, not
+  red**. That is why the accent panel reads brown rather than as the brand colour, and
+  it is the largest accent surface on the site.
+
+Two ways to resolve, both costed:
+
+1. **Keep the amber ramp.** 25deg of hue travel is what makes it read as a gradient
+   rather than a flat fill.
+2. **Make it a red ramp**, both stops at hue 5deg, so the panel is unmistakably the
+   logo colour. A lightness gradient rather than a hue one -- which does work: the
+   primary panel's dark ramp is cyan into pale cyan at 0deg apart and reads fine.
+   Needs a pair clearing white at 4.5:1 on both stops AND 1.5:1 between them.
+
+**Cost of any accent change: six values in `1-base/_tokens.css`, consumed by 9 rules.
+No accent hex is hardcoded anywhere else in `resources/`.** The work is not the
+substitution, it is re-deriving the contrast family -- three separate AA failures were
+found around the accent during Phases 1-2, which is why there are six values and not one.
+
+After Phase 5 this is a single-file change plus a rebuild.
