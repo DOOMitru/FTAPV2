@@ -22,8 +22,7 @@
 }
 
 /* Warm variant for the moments that should feel like a poker chip rather than
-   a product page. Its ink is --gradient-accent-ink, never white: white measures
-   3.77:1 on coral and 2.15:1 on amber and fails AA on both. */
+   a product page. Same depth as .p-panel, a different temperature. */
 .p-panel--accent {
     background-image: var(--gradient-accent);
     color: var(--gradient-accent-ink);
@@ -75,6 +74,10 @@
 
 .p-hero--start {
     text-align: start;
+    /* The stack owns the spacing when the hero is one member of a column;
+       .p-hero's own block-end margin is for a hero that opens a page. Leaving
+       both gave 112px above the next block and 48px below it. */
+    margin-block-end: 0;
 }
 
 .p-hero__eyebrow {
@@ -227,7 +230,6 @@
 .p-chip__index {
     font-family: var(--font-mono);
     font-size: var(--step--2);
-    opacity: 0.7;
 }
 
 .p-chip__label {
@@ -344,9 +346,11 @@
     margin-block: var(--space-4) var(--space-6);
     font-size: var(--step--1);
     line-height: var(--leading-relaxed);
-    /* Inherits the panel's ink at reduced strength rather than a grey token,
-       which would be invisible on a saturated gradient. */
-    opacity: 0.85;
+    /* Full-strength ink, deliberately. A grey token would be invisible on a
+       saturated gradient, and fading the panel's own ink is worse: it moves the
+       text toward the ground. At 0.85 this measured 4.45:1 on the accent
+       panel's coral stop and 4.34:1 on the dark panel's light stop -- both
+       below AA. Hierarchy here comes from size, not from opacity. */
 }
 
 .p-chip-grid {
@@ -456,7 +460,6 @@
     font-weight: 600;
     letter-spacing: 0.12em;
     text-transform: uppercase;
-    opacity: 0.8;
 }
 
 .p-fact__value {
@@ -521,7 +524,6 @@
     font-weight: 600;
     letter-spacing: 0.16em;
     text-transform: uppercase;
-    opacity: 0.85;
 }
 
 /* Across, not down: this list sat in a narrow sidebar and now spans the page.
@@ -580,7 +582,6 @@
 .p-leader__nickname {
     display: block;
     font-size: var(--step--2);
-    opacity: 0.75;
 }
 
 .p-leader__points {
@@ -661,7 +662,125 @@
     background-color: rgb(255 255 255 / 0.09);
 }
 
-.p-leader--3 .p-leader__body,
-.p-leader--3 .p-leader__points {
-    opacity: 0.85;
+
+/* A two-column split for pages that pair narrative with a form. Collapses to
+   one column when the columns stop fitting, without a breakpoint. */
+.p-split {
+    display: grid;
+    gap: var(--space-8);
+    grid-template-columns: repeat(auto-fit, minmax(min(24rem, 100%), 1fr));
+    align-items: start;
+}
+
+/* An addressable detail — email, Discord — as an icon beside a label and value. */
+.p-contact {
+    display: flex;
+    /* Centred against the tile, not top-aligned: the tile is 2.5rem and the
+       label-plus-value block is shorter, so without this the text sat high and
+       the pair read as misaligned. */
+    align-items: center;
+    gap: var(--space-4);
+}
+
+.p-contact__label {
+    font-family: var(--font-body);
+    font-size: var(--step--2);
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--c-text-muted);
+}
+
+.p-contact__value {
+    display: block;
+    margin-block-start: var(--space-1);
+    font-size: var(--step-0);
+    font-weight: 600;
+}
+
+/* The form card's masthead: mark, title, and a line of context. */
+.p-form-head {
+    display: flex;
+    align-items: center;
+    gap: var(--space-4);
+    margin-block-end: var(--space-6);
+}
+
+.p-form-head__mark {
+    width: 3.5rem;
+    height: auto;
+}
+
+.p-form-head__title {
+    font-family: var(--font-display);
+    font-size: var(--step-2);
+    font-weight: 400;
+    line-height: var(--leading-tight);
+    text-transform: uppercase;
+}
+
+.p-benefits {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.p-benefit {
+    display: flex;
+    gap: var(--space-3);
+    font-size: var(--step--1);
+    line-height: var(--leading-relaxed);
+}
+
+.p-benefit__tick {
+    flex: 0 0 auto;
+    width: 1.25rem;
+    height: 1.25rem;
+    color: var(--c-primary);
+}
+
+/* The opening paragraph of a prose block: one step up, so the eye lands there
+   before the body copy. */
+.p-lede {
+    font-size: var(--step-1);
+    line-height: var(--leading-relaxed);
+}
+
+/* A page's supporting image. Contained rather than cropped -- these are logos
+   and marks, not photography. */
+.p-figure {
+    display: block;
+    width: 100%;
+    max-width: 18rem;
+    height: auto;
+    margin-inline: auto;
+    object-fit: contain;
+}
+
+/* No opacity on any of the panel text above. See the note on .p-panel__text.
+   The only opacity left inside a panel is on .p-fact__rail, which is a
+   decorative bar carrying no information.
+
+   Context under a form card's title. Owns its own rhythm so the block can be
+   one paragraph or several without the caller spacing them. */
+.p-form-head__notes {
+    margin-block-end: var(--space-5);
+    font-size: var(--step--1);
+    line-height: var(--leading-relaxed);
+    color: var(--c-text-muted);
+}
+
+.p-form-head__notes > * + * {
+    margin-block-start: var(--space-3);
+}
+
+/* Addressable details, side by side. A wider gap than .l-grid's, because these
+   blocks have no border to separate them -- the space is the separation. */
+.p-contacts {
+    display: grid;
+    gap: var(--space-6);
+    grid-template-columns: repeat(auto-fit, minmax(min(14rem, 100%), 1fr));
 }

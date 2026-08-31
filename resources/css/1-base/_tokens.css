@@ -46,7 +46,7 @@
        3.77:1 and on amber 2.15:1 — both fail AA. Dark ink gives 5.09:1 and
        8.92:1. This is the same trap --c-accent-text exists for. */
     --gradient-primary: linear-gradient(135deg, #1E40AF 0%, #172554 100%);
-    --gradient-accent: linear-gradient(135deg, #EF4537 0%, #F59E0B 100%);
+    --gradient-accent: linear-gradient(135deg, #8A2B1E 0%, #A2570C 100%);
     --gradient-surface: linear-gradient(180deg, var(--c-surface) 0%, var(--c-bg) 100%);
     /* Panel fills are a SEPARATE token from --gradient-primary, which cannot
        simply be darkened: it is also background-clipped onto the hero's
@@ -66,10 +66,14 @@
        between stops, which is right for one moment and unbearable across 21
        cards. Composed from the surface tokens, so it needs no dark twin. */
     --gradient-raised: linear-gradient(160deg, var(--c-surface-raised) 0%, var(--c-surface) 100%);
-    /* NOT --c-accent-ink, which is already white for --c-accent-strong fills.
-       White fails on both stops of the accent gradient; this is the ink that
-       passes. Shared by both themes, like the gradient itself. */
-    --gradient-accent-ink: #0B0F19;
+    /* White, now that the accent stops are deep. The first draft used coral and
+       amber at full chroma with dark ink -- it cleared AA on paper (5.09:1) but
+       was genuinely hard to read: a saturated orange field is fatiguing behind
+       small dark text however the ratio scores. Deepened to rust and burnt
+       amber, which carry white at 8.59:1 and 5.38:1 and land at mean luminance
+       0.109, matching --gradient-panel's 0.106 so the two panels read as one
+       family at two temperatures. Shared by both themes, like the gradient. */
+    --gradient-accent-ink: #FFFFFF;
 
     --shadow-raised: 0 1px 2px rgb(15 23 42 / 0.06), 0 4px 12px -2px rgb(15 23 42 / 0.08);
     --shadow-float: 0 8px 24px -4px rgb(15 23 42 / 0.12);

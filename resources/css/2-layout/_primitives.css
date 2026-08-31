@@ -68,3 +68,9 @@
 .l-prose {
     max-width: var(--measure);
 }
+
+/* A measure without a rhythm is half a prose block: consecutive paragraphs ran
+   together with no gap at all. */
+.l-prose > * + * {
+    margin-block-start: var(--space-4);
+}

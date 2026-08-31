@@ -1,116 +1,89 @@
 <x-public-layout>
-    <div class="bg-gray-50 dark:bg-gray-900 transition-colors duration-500 overflow-hidden relative min-h-screen pt-20">
-        <!-- Background Decorative Elements -->
-        <div class="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none text-transparent">.
-            <div class="absolute -top-[20%] -left-[10%] w-[50%] h-[50%] bg-indigo-600/5 dark:bg-indigo-500/10 blur-[120px] rounded-full"></div>
-            <div class="absolute top-[40%] -right-[10%] w-[40%] h-[40%] bg-amber-500/5 dark:bg-amber-400/10 blur-[120px] rounded-full"></div>
-        </div>
+    <div class="p-split">
+        <div class="l-stack--loose">
+            {{-- The page's hero, start-aligned inside a column rather than
+                 centred across the page. Uses <x-p-hero> like the other seven
+                 public pages instead of hand-setting .p-hero__title, which was
+                 borrowing a block's internals from outside the block. --}}
+            <x-p-hero align="start"
+                      :eyebrow="__('Connect with us')"
+                      :title="__('Join the First to Act Circle')"
+                      :highlight="__('First to Act')">
+                {{ __("Whether you're looking to join the league, discuss partnership opportunities, or need technical assistance, our stewards are ready to connect.") }}
+            </x-p-hero>
 
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-32 pb-24 relative z-10">
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-20 items-start">
-                
-                <!-- Left Column: Impactful Content -->
-                <div class="space-y-10">
+            <div class="p-contacts">
+                <div class="p-contact">
+                    <span class="p-icon-tile">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <path d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                        </svg>
+                    </span>
+
                     <div>
-                        <x-section-badge type="mission" class="mb-6" label="Connect with us" />
-                        <h1 class="text-5xl sm:text-7xl font-black text-gray-900 dark:text-white leading-[1.1] tracking-tighter mb-8">
-                            Join the <span class="bg-clip-text text-transparent bg-gradient-to-r from-amber-500 to-amber-700 dark:from-amber-400 dark:to-yellow-600">First to Act</span> Circle
-                        </h1>
-                        <p class="text-xl text-gray-600 dark:text-gray-400 leading-relaxed max-w-xl">
-                            Whether you're looking to join the league, discuss partnership opportunities, or need technical assistance, our stewards are ready to connect.
-                        </p>
-                    </div>
-
-                    <!-- Contact Details -->
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-8">
-                        <div class="group">
-                            <div class="flex items-center gap-4 mb-4">
-                                <div class="w-10 h-10 rounded-xl bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-500 flex items-center justify-center border border-amber-100 dark:border-amber-700/30 group-hover:scale-110 transition-transform">
-                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
-                                </div>
-                                <h3 class="font-bold text-gray-900 dark:text-white uppercase tracking-widest text-xs">Email Us</h3>
-                            </div>
-                            <p class="text-gray-600 dark:text-gray-400 text-sm font-medium">steward@firsttoact.com</p>
-                        </div>
-
-                        <div class="group">
-                            <div class="flex items-center gap-4 mb-4">
-                                <div class="w-10 h-10 rounded-xl bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-500 flex items-center justify-center border border-amber-100 dark:border-amber-700/30 group-hover:scale-110 transition-transform">
-                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8h2a2 2 0 012 2v6a2 2 0 01-2 2h-2v4l-4-4H9a1.994 1.994 0 01-1.414-.586m0 0L11 14h4a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2v4l.586-.586z"/></svg>
-                                </div>
-                                <h3 class="font-bold text-gray-900 dark:text-white uppercase tracking-widest text-xs">League Discord</h3>
-                            </div>
-                            <p class="text-gray-600 dark:text-gray-400 text-sm font-medium">discord.gg/firsttoact</p>
-                        </div>
-                    </div>
-
-                    <!-- Decorative Quote/Badge -->
-                    <div class="pt-8 border-t border-gray-200 dark:border-gray-800">
-                        <div class="flex items-center gap-3">
-                            <div class="w-1 h-12 bg-amber-600 rounded-full shadow-[0_0_15px_rgba(217,119,6,0.3)]"></div>
-                            <p class="text-xs font-black text-gray-400 dark:text-gray-600 uppercase tracking-[0.4em]">
-                                "Decisions at the table, <br/> Integrity everywhere else."
-                            </p>
-                        </div>
+                        <span class="p-contact__label">{{ __('Email Us') }}</span>
+                        <span class="p-contact__value">steward@firsttoact.com</span>
                     </div>
                 </div>
 
-                <!-- Right Column: Form Card (Matched to About Page) -->
-                <div class="relative">
-                    <div class="bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700">
-                        <div class="flex flex-col sm:flex-row items-center gap-6 mb-10">
-                            <img src="{{ asset('images/hero_logo.png') }}" alt="First to Act Poker League" class="w-20 h-auto transition-transform duration-500 hover:scale-110">
-                            <div class="text-center sm:text-left">
-                                <h2 class="text-2xl font-bold mb-1 text-gray-900 dark:text-white uppercase tracking-tight">Send a <span class="text-amber-600">Transmission</span></h2>
-                                <p class="text-gray-500 dark:text-gray-400 text-xs font-medium uppercase tracking-widest">Connect with the league</p>
-                            </div>
-                        </div>
+                <div class="p-contact">
+                    {{-- Filled rather than stroked: the Facebook mark is a solid
+                         glyph and outlining it does not read as the logo. --}}
+                    <span class="p-icon-tile">
+                        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                            <path d="M22 12.06C22 6.5 17.52 2 12 2S2 6.5 2 12.06c0 5.02 3.66 9.18 8.44 9.94v-7.03H7.9v-2.91h2.54V9.85c0-2.52 1.5-3.91 3.77-3.91 1.09 0 2.24.2 2.24.2v2.46h-1.26c-1.24 0-1.63.78-1.63 1.57v1.89h2.78l-.45 2.91h-2.33V22c4.78-.76 8.44-4.92 8.44-9.94z"/>
+                        </svg>
+                    </span>
 
-                        <form action="{{ route('contact.store') }}" method="POST" class="space-y-5">
-                            @csrf
-                            <input type="text" name="company" id="company" tabindex="-1" autocomplete="off" hidden>
-                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                                <div>
-                                    <label for="name" class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Name</label>
-                                    <input type="text" name="name" id="name" class="block w-full rounded-lg border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-amber-500 focus:border-amber-500 transition-colors" placeholder="Your name" required>
-                                </div>
-                                <div>
-                                    <label for="email" class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Email Address</label>
-                                    <input type="email" name="email" id="email" class="block w-full rounded-lg border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-amber-500 focus:border-amber-500 transition-colors" placeholder="contact@example.com" required>
-                                </div>
-                            </div>
-
-                            <div>
-                                <label for="topic" class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Subject</label>
-                                <select name="topic" id="topic" class="block w-full rounded-lg border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-amber-500 focus:border-amber-500 transition-colors">
-                                    <option value="general">General Inquiry</option>
-                                    <option value="registration">League Registration</option>
-                                    <option value="partnership">Commercial Partnership</option>
-                                    <option value="support">Technical Support</option>
-                                </select>
-                            </div>
-
-                            <div>
-                                <label for="message" class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Message</label>
-                                <textarea name="message" id="message" rows="4" class="block w-full rounded-lg border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-amber-500 focus:border-amber-500 transition-colors" placeholder="How can we help?" required></textarea>
-                            </div>
-
-                            @if (session('status'))
-                                <p class="text-sm font-semibold text-green-600 dark:text-green-400">{{ session('status') }}</p>
-                            @endif
-
-                            @error('message')
-                                <p class="text-sm font-semibold text-red-600 dark:text-red-400">{{ $message }}</p>
-                            @enderror
-
-                            <button type="submit" class="w-full py-4 px-6 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-black uppercase tracking-widest transition-all duration-300 shadow-lg hover:shadow-indigo-500/30 transform hover:-translate-y-1">
-                                Initialize Connection
-                            </button>
-                        </form>
+                    <div>
+                        <span class="p-contact__label">{{ __('Facebook Page') }}</span>
+                        <span class="p-contact__value">facebook.com/firsttoact</span>
                     </div>
                 </div>
-
             </div>
+
         </div>
+
+        <x-card class="p-raised">
+            <div class="p-form-head">
+                <img class="p-form-head__mark" src="{{ asset('images/hero_logo.png') }}" alt="">
+
+                <div>
+                    <h2 class="p-form-head__title">{{ __('Send us a message') }}</h2>
+                    <p class="u-eyebrow">{{ __('Connect with the league') }}</p>
+                </div>
+            </div>
+
+            @if (session('status'))
+                <x-alert variant="success">{{ session('status') }}</x-alert>
+            @endif
+
+            <form action="{{ route('contact.store') }}" method="POST" class="l-stack">
+                @csrf
+                <x-honeypot />
+
+                <div class="l-grid">
+                    <x-field name="name" :label="__('Name')" required placeholder="{{ __('Your name') }}" />
+                    <x-field name="email" type="email" :label="__('Email Address')" required placeholder="contact@example.com" />
+                </div>
+
+                <x-field name="topic" :label="__('Subject')">
+                    <select class="field__control" name="topic" id="topic">
+                        <option value="general">{{ __('General Inquiry') }}</option>
+                        <option value="registration">{{ __('League Registration') }}</option>
+                        <option value="partnership">{{ __('Commercial Partnership') }}</option>
+                        <option value="support">{{ __('Technical Support') }}</option>
+                    </select>
+                </x-field>
+
+                <x-field name="message" :label="__('Message')">
+                    <textarea class="field__control" name="message" id="message" rows="4"
+                              placeholder="{{ __('How can we help?') }}" required></textarea>
+                </x-field>
+
+                <x-btn variant="primary" class="btn--block">{{ __('Send') }}</x-btn>
+            </form>
+        </x-card>
     </div>
 </x-public-layout>
