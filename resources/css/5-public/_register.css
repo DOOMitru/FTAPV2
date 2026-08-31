@@ -1,0 +1,53 @@
+/* The public register.
+ *
+ * The dashboard is borders-not-shadows: a 1px hairline does every separation
+ * and the only shadow in the whole app shell is --shadow-overlay, on dropdowns
+ * and modals. The public site is the shop window and plays by different rules --
+ * gradients and elevation are allowed here and only here.
+ *
+ * This file is the boundary. PublicRegisterTest asserts that --gradient-* and
+ * --shadow-raised / --shadow-float are referenced from 5-public/ and the public
+ * shell alone, so the licence cannot quietly leak into the dashboard. Two
+ * registers, one product: every gradient stop derives from --c-primary or
+ * --c-accent, so the public pages are louder, not different.
+ */
+
+/* The primary panel. Hero blocks, CTA bands, the "highlight" sections. */
+.p-panel {
+    padding: var(--space-6);
+    border-radius: var(--radius-lg);
+    background-image: var(--gradient-primary);
+    color: var(--c-primary-ink);
+    box-shadow: var(--shadow-float);
+}
+
+/* Warm variant for the moments that should feel like a poker chip rather than
+   a product page. Its ink is --gradient-accent-ink, never white: white measures
+   3.77:1 on coral and 2.15:1 on amber and fails AA on both. */
+.p-panel--accent {
+    background-image: var(--gradient-accent);
+    color: var(--gradient-accent-ink);
+}
+
+/* A section-wide wash, for banding long pages without drawing a line. Subtle
+   by construction: it runs --c-surface to --c-bg, two colours already adjacent. */
+.p-wash {
+    background-image: var(--gradient-surface);
+}
+
+/* Elevation instead of a hairline. .p-raised is the resting state for a public
+   card; .p-lift adds the hover response. Both stay off the dashboard. */
+.p-raised {
+    border-radius: var(--radius-lg);
+    background-color: var(--c-surface);
+    box-shadow: var(--shadow-raised);
+}
+
+.p-lift {
+    transition: box-shadow var(--transition-fast), transform var(--transition-fast);
+}
+
+.p-lift:hover {
+    box-shadow: var(--shadow-float);
+    transform: translateY(-2px);
+}

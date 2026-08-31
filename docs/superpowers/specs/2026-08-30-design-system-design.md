@@ -65,6 +65,45 @@ Phase 1 is the architectural work specified below. Phases 2–5 are conversions 
 
 ---
 
+## 4.1 Amendment, 2026-08-31 — two visual registers
+
+The original brief set one rule for the whole app: *thin 1px borders instead of heavy
+shadows*. Sizing up Phase 2 showed all eight public pages leaning on gradients, blurs and
+glow shadows — 32 instances — so converting them literally meant flattening the shop
+window. The owner's ruling: **keep borders-not-shadows for the dashboard; the public pages
+may use gradients.**
+
+That is two registers, not an exception, so it is built as two:
+
+| | Dashboard (`layouts/app`) | Public (`layouts/public`, `layouts/guest`) |
+|---|---|---|
+| Separation | 1px `--c-border` hairline | elevation, `--shadow-raised` / `--shadow-float` |
+| Fills | flat `--c-surface` | `--gradient-primary` / `--gradient-accent` / `--gradient-surface` |
+| Radius | `--radius` 6px | `--radius-lg` 14px |
+| Shadow | `--shadow-overlay` only, on dropdowns and modals | free |
+
+**One product, two volumes.** Every gradient stop derives from `--c-primary` or
+`--c-accent`, so the public site is louder than the dashboard, not different from it.
+
+Contrast is fixed at the token, not left to each page:
+
+- `--gradient-primary` carries `--c-primary-ink` — measured 8.72:1 / 9.93:1 on the light
+  stops, 7.89:1 / 6.91:1 on the dark.
+- `--gradient-accent` carries `--gradient-accent-ink`, **never white**. White is 3.77:1 on
+  coral and 2.15:1 on amber; both fail. Dark ink gives 5.09:1 and 8.92:1. Note this is a
+  *different token* from `--c-accent-ink`, which is white and belongs to
+  `--c-accent-strong` fills.
+
+**The boundary is enforced, not documented.** `resources/css/5-public/` is the only place
+these tokens may be referenced (plus the public shell and page files), and
+`tests/Feature/PublicRegisterTest.php` fails the build otherwise. A second assertion
+catches the sidestep — a raw `box-shadow` value outside the public register. Both were
+proven to fire by injecting a violation. The check fences the *tokens*, not the word
+"gradient", because `_meter.css` uses `repeating-linear-gradient` for the chip stack: one
+colour repeated is a pattern, not decoration.
+
+---
+
 ## 5. Phase 0 — Correctness & cleanup
 
 ### 5.1 `is_active` crash (blocker)
