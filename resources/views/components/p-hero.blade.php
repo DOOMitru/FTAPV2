@@ -1,4 +1,4 @@
-@props(['eyebrow' => null, 'title', 'highlight' => null, 'align' => 'center'])
+@props(['eyebrow' => null, 'title', 'highlight' => null, 'align' => 'center', 'level' => 1, 'plain' => false])
 
 {{--
     The opening block on every public page. `highlight` is the one word of the
@@ -16,14 +16,21 @@
     }
 @endphp
 
-<header {{ $attributes->merge(['class' => 'p-hero'.($align === 'start' ? ' p-hero--start' : '')]) }}>
+@php
+    $heading = 'h'.($level === 1 ? '1' : '2');
+    $classes = 'p-hero'
+        .($align === 'start' ? ' p-hero--start' : '')
+        .($plain ? ' p-hero--plain' : '');
+@endphp
+
+<header {{ $attributes->merge(['class' => $classes]) }}>
     @if ($eyebrow)
         <p class="u-eyebrow p-hero__eyebrow">{{ $eyebrow }}</p>
     @endif
 
-    <h1 class="p-hero__title">
+    <{{ $heading }} class="p-hero__title">
         {{ $before }}@if ($after !== null)<span class="p-hero__highlight">{{ $highlight }}</span>{{ $after }}@endif
-    </h1>
+    </{{ $heading }}>
 
     @if (trim($slot) !== '')
         <p class="p-hero__lede">{{ $slot }}</p>

@@ -25,7 +25,7 @@
         ];
     @endphp
 
-        <div class="l-stack--tight">
+        <div class="l-stack l-stack--tight">
             @foreach ($bettingRules as $rule)
                 <x-p-item :icon="$rule['icon']" :title="$rule['title']">{{ $rule['text'] }}</x-p-item>
             @endforeach
@@ -48,7 +48,7 @@
         ];
     @endphp
 
-        <div class="l-stack--tight">
+        <div class="l-stack l-stack--tight">
             @foreach ($conductRules as $rule)
                 <x-p-item :number="$rule['id']" :title="$rule['title']">{{ $rule['text'] }}</x-p-item>
             @endforeach
@@ -85,7 +85,7 @@
                     </p>
                 </div>
 
-                <div class="l-stack--tight">
+                <div class="l-stack l-stack--tight">
                     @foreach ($penalties as $row)
                         <x-p-fact :label="$row['label']">{{ $row['effect'] }}</x-p-fact>
                     @endforeach

@@ -957,3 +957,110 @@
 .p-event__actions .btn {
     min-width: 7.5rem;
 }
+
+/* A section intro rather than a page hero: no band, no radius, tighter below,
+   and a step down in size. Three washed bands stacked down one page would read
+   as three pages, and three 56px titles as four heroes -- a section heading has
+   to be visibly subordinate to the page's own. */
+.p-hero--plain {
+    padding: 0;
+    border-radius: 0;
+    background-image: none;
+    margin-block-end: var(--space-6);
+}
+
+.p-hero--plain .p-hero__title {
+    font-size: var(--step-3);
+}
+
+/* Label-and-value rows on a plain surface. .p-fact is the panel equivalent;
+   this one uses border and muted text, which a saturated ground cannot. */
+.p-rows {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    margin: 0;
+}
+
+.p-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--space-3);
+}
+
+.p-row__label {
+    font-family: var(--font-body);
+    font-size: var(--step--2);
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--c-text-muted);
+}
+
+.p-row__value {
+    font-size: var(--step--1);
+    font-weight: 600;
+    text-align: end;
+}
+
+/* The sponsor wall. */
+.p-sponsors {
+    display: grid;
+    gap: var(--space-4);
+    grid-template-columns: repeat(auto-fit, minmax(min(11rem, 100%), 1fr));
+}
+
+.p-sponsor {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-1);
+    padding: var(--space-6) var(--space-4);
+    text-align: center;
+}
+
+/* The mark. These are typographic stand-ins, not artwork, so they take the
+   page's own ink rather than five different brand colours -- five accents in a
+   one-accent system is what the rest of this phase has been removing. */
+.p-sponsor__mark {
+    font-family: var(--font-display);
+    font-size: var(--step-2);
+    line-height: 1;
+    color: var(--c-text);
+}
+
+.p-sponsor__name {
+    margin-block-start: var(--space-2);
+    font-size: var(--step--1);
+    font-weight: 600;
+}
+
+.p-sponsor__trade {
+    font-size: var(--step--2);
+    color: var(--c-text-muted);
+}
+
+/* A closing call to action, centred under a section. */
+.p-cta {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-4);
+    padding-block-start: var(--space-8);
+    text-align: center;
+}
+
+.p-cta__lede {
+    font-size: var(--step-0);
+    color: var(--c-text-muted);
+}
+
+/* A major band of a public page. The shell's .l-stack puts 24px between its
+   children, which is right for stacked cards and much too tight between
+   sections of a marketing page. Padding rather than a margin, so it adds to the
+   stack's gap instead of collapsing against it and leaving the total to chance. */
+.p-section {
+    padding-block-start: var(--space-8);
+}

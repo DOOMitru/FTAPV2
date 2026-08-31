@@ -1,6 +1,6 @@
 <x-public-layout>
     <div class="p-split">
-        <div class="l-stack--loose">
+        <div class="l-stack l-stack--loose">
             {{-- The page's hero, start-aligned inside a column rather than
                  centred across the page. Uses <x-p-hero> like the other seven
                  public pages instead of hand-setting .p-hero__title, which was
