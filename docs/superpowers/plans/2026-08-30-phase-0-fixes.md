@@ -1233,7 +1233,7 @@ APP_NAME=Laravel
 to:
 
 ```
-APP_NAME="First To Act Poker"
+APP_NAME="First to Act Poker"
 ```
 
 Then run `php artisan config:clear`.
@@ -1243,7 +1243,7 @@ Then run `php artisan config:clear`.
 Replace `README.md` entirely:
 
 ```markdown
-# First To Act Poker
+# First to Act Poker
 
 League management for a recreational poker league: seasons, venues, tournaments,
 registrations, results and standings.
@@ -1312,7 +1312,7 @@ Run: `php artisan test`
 Expected: all green.
 
 Run: `php artisan serve` and load `/`, `/about`, `/contact`.
-Expected: all 200; the browser tab shows "First To Act Poker".
+Expected: all 200; the browser tab shows "First to Act Poker".
 
 - [ ] **Step 6: Checkpoint — hand off for commit**
 

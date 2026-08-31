@@ -4,30 +4,51 @@
 }
 
 /* Dropdowns and modals are the system's only exception to borders-not-shadows.
-   A floating layer separated by a 1px hairline alone reads as broken. */
+   A floating layer separated by a 1px hairline alone reads as broken. Sized
+   and grounded deliberately (raised surface, generous min-width) so the menu
+   reads as a considered panel rather than a default browser popup. */
 .dropdown__menu {
     position: absolute;
     inset-inline-end: 0;
     z-index: 50;
-    min-width: 12rem;
+    min-width: 13rem;
     margin-block-start: var(--space-2);
-    padding-block: var(--space-1);
+    padding-block: var(--space-2);
     border: var(--border-width) solid var(--c-border);
     border-radius: var(--radius);
     background-color: var(--c-surface);
     box-shadow: var(--shadow-overlay);
 }
 
-/* For a trigger pinned to the bottom of a viewport-height container (the
-   rail footer's user menu), the default downward menu opens off the bottom
-   of the screen — on mobile the rail is `position: fixed` with no
-   scrollable ancestor, so "Log out" becomes unreachable. Opt in per call
-   site via <x-dropdown up>. */
-.dropdown__menu--up {
-    inset-block-end: 100%;
-    inset-block-start: auto;
-    margin-block-start: 0;
-    margin-block-end: var(--space-2);
+/* Start-aligned variant. The three admin group menus in the top bar open from
+   the start edge of their trigger; the default opens from the end edge. */
+.dropdown__menu--left {
+    inset-inline-end: auto;
+    inset-inline-start: 0;
+}
+
+/* A 3px transparent inline-start border that becomes --c-primary on
+   hover/focus, paired with a raised ground — the same hairline-and-accent
+   language as the rest of the system, instead of a plain grey hover. */
+/* Inline disclosure for the mobile menu. Lives here, not in the top bar's
+   stylesheet: 2-layout/ is imported before 3-components/, so a modifier placed
+   there loses to .dropdown__menu at equal specificity and silently does nothing.
+   Below 48rem the panel flows in the document instead of floating over it. */
+@media (max-width: 48rem) {
+    .dropdown__menu--inline-mobile {
+        position: static;
+        min-width: 0;
+        margin-block-start: var(--space-1);
+        padding-block: 0;
+        border: 0;
+        border-radius: 0;
+        background-color: transparent;
+        box-shadow: none;
+        margin-inline-start: var(--space-3);
+        padding-inline-start: var(--space-3);
+        border-inline-start: var(--border-width) solid var(--c-border);
+    }
+
 }
 
 .dropdown__item {
@@ -35,16 +56,27 @@
     width: 100%;
     padding: var(--space-2) var(--space-4);
     border: 0;
+    border-inline-start: 3px solid transparent;
     background-color: transparent;
     color: var(--c-text);
-    font-size: var(--step--1);
+    /* Matches .nav-link exactly, so a menu item and a top-level link read as the
+       same kind of thing — one navigation vocabulary, not two. */
+    font-family: var(--font-display);
+    font-size: var(--step--2);
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
     text-align: start;
     text-decoration: none;
     cursor: pointer;
-    transition: background-color var(--transition-fast);
+    transition:
+        background-color var(--transition-fast),
+        border-color var(--transition-fast);
 }
 
-.dropdown__item:hover {
+.dropdown__item:hover,
+.dropdown__item:focus-visible {
+    border-inline-start-color: var(--c-primary);
     background-color: var(--c-surface-raised);
 }
 

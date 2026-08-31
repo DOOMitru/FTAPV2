@@ -1,83 +1,105 @@
-<nav class="shell__rail" x-ref="rail" x-bind:class="{ 'shell__rail--open': railOpen }" aria-label="{{ __('Main') }}">
-    <a class="shell__brand" href="{{ route('dashboard') }}">{{ __('FTAP') }}</a>
-
-    <div>
-        <div class="nav-group">
-            <a class="nav-link {{ request()->routeIs('dashboard') ? 'nav-link--current' : '' }}"
-               @if (request()->routeIs('dashboard')) aria-current="page" @endif
-               href="{{ route('dashboard') }}">{{ __('Dashboard') }}</a>
-        </div>
+<x-topbar>
+    <x-slot name="links">
+        <a class="nav-link {{ request()->routeIs('dashboard') ? 'nav-link--current' : '' }}"
+           @if (request()->routeIs('dashboard')) aria-current="page" @endif
+           href="{{ route('dashboard') }}">{{ __('Dashboard') }}</a>
 
         @if (Auth::user()->is_admin)
-            <div class="nav-group">
-                <span class="nav-group__label">{{ __('League') }}</span>
-                <a class="nav-link {{ request()->routeIs('poker.seasons.*') ? 'nav-link--current' : '' }}"
-                   @if (request()->routeIs('poker.seasons.*')) aria-current="page" @endif
-                   href="{{ route('poker.seasons.index') }}">{{ __('Seasons') }}</a>
-                <a class="nav-link {{ request()->routeIs('poker.venues.*') ? 'nav-link--current' : '' }}"
-                   @if (request()->routeIs('poker.venues.*')) aria-current="page" @endif
-                   href="{{ route('poker.venues.index') }}">{{ __('Venues') }}</a>
-                <a class="nav-link {{ request()->routeIs('poker.tournaments.*') ? 'nav-link--current' : '' }}"
-                   @if (request()->routeIs('poker.tournaments.*')) aria-current="page" @endif
-                   href="{{ route('poker.tournaments.index') }}">{{ __('Tournaments') }}</a>
-            </div>
+            <x-dropdown align="left" width="48" :inline-mobile="true">
+                <x-slot name="trigger">
+                    <button type="button"
+                            class="nav-link {{ request()->routeIs('poker.seasons.*', 'poker.venues.*', 'poker.tournaments.*') ? 'nav-link--current' : '' }}"
+                            @if (request()->routeIs('poker.seasons.*', 'poker.venues.*', 'poker.tournaments.*')) aria-current="page" @endif>
+                        {{ __('League') }}
+                    </button>
+                </x-slot>
 
-            <div class="nav-group">
-                <span class="nav-group__label">{{ __('Play') }}</span>
-                <a class="nav-link {{ request()->routeIs('poker.results.*') ? 'nav-link--current' : '' }}"
-                   @if (request()->routeIs('poker.results.*')) aria-current="page" @endif
-                   href="{{ route('poker.results.index') }}">{{ __('Results') }}</a>
-                <a class="nav-link {{ request()->routeIs('poker.registrants.*') ? 'nav-link--current' : '' }}"
-                   @if (request()->routeIs('poker.registrants.*')) aria-current="page" @endif
-                   href="{{ route('poker.registrants.index') }}">{{ __('Registrants') }}</a>
-                <a class="nav-link {{ request()->routeIs('poker.venue-points.*') ? 'nav-link--current' : '' }}"
-                   @if (request()->routeIs('poker.venue-points.*')) aria-current="page" @endif
-                   href="{{ route('poker.venue-points.index') }}">{{ __('Venue points') }}</a>
-            </div>
+                <x-slot name="content">
+                    <x-dropdown-link :href="route('poker.seasons.index')">{{ __('Seasons') }}</x-dropdown-link>
+                    <x-dropdown-link :href="route('poker.venues.index')">{{ __('Venues') }}</x-dropdown-link>
+                    <x-dropdown-link :href="route('poker.tournaments.index')">{{ __('Tournaments') }}</x-dropdown-link>
+                </x-slot>
+            </x-dropdown>
 
-            <div class="nav-group">
-                <span class="nav-group__label">{{ __('Setup') }}</span>
-                <a class="nav-link {{ request()->routeIs('poker.points-structure.*') ? 'nav-link--current' : '' }}"
-                   @if (request()->routeIs('poker.points-structure.*')) aria-current="page" @endif
-                   href="{{ route('poker.points-structure.index') }}">{{ __('Points structure') }}</a>
-                <a class="nav-link {{ request()->routeIs('users.*') ? 'nav-link--current' : '' }}"
-                   @if (request()->routeIs('users.*')) aria-current="page" @endif
-                   href="{{ route('users.index') }}">{{ __('Players') }}</a>
-            </div>
+            <x-dropdown align="left" width="48" :inline-mobile="true">
+                <x-slot name="trigger">
+                    <button type="button"
+                            class="nav-link {{ request()->routeIs('poker.results.*', 'poker.registrants.*', 'poker.venue-points.*') ? 'nav-link--current' : '' }}"
+                            @if (request()->routeIs('poker.results.*', 'poker.registrants.*', 'poker.venue-points.*')) aria-current="page" @endif>
+                        {{ __('Play') }}
+                    </button>
+                </x-slot>
+
+                <x-slot name="content">
+                    <x-dropdown-link :href="route('poker.results.index')">{{ __('Results') }}</x-dropdown-link>
+                    <x-dropdown-link :href="route('poker.registrants.index')">{{ __('Registrants') }}</x-dropdown-link>
+                    <x-dropdown-link :href="route('poker.venue-points.index')">{{ __('Venue points') }}</x-dropdown-link>
+                </x-slot>
+            </x-dropdown>
+
+            <x-dropdown align="left" width="48" :inline-mobile="true">
+                <x-slot name="trigger">
+                    <button type="button"
+                            class="nav-link {{ request()->routeIs('poker.points-structure.*', 'users.*') ? 'nav-link--current' : '' }}"
+                            @if (request()->routeIs('poker.points-structure.*', 'users.*')) aria-current="page" @endif>
+                        {{ __('Setup') }}
+                    </button>
+                </x-slot>
+
+                <x-slot name="content">
+                    <x-dropdown-link :href="route('poker.points-structure.index')">{{ __('Points structure') }}</x-dropdown-link>
+                    <x-dropdown-link :href="route('users.index')">{{ __('Players') }}</x-dropdown-link>
+                </x-slot>
+            </x-dropdown>
         @endif
-    </div>
+    </x-slot>
 
-    <div class="shell__rail-footer l-stack l-stack--tight">
-        <button type="button" class="nav-link" data-theme-toggle aria-pressed="false">
-            {{ __('Switch theme') }}
-        </button>
+    <x-slot name="actions">
+        {{-- Two structures rather than one restyled: on desktop the identity is a
+             dropdown; on mobile it is a flat row. They differ in shape, not just
+             in layout, so CSS alone cannot express both from one markup tree. --}}
+        <div class="topbar__actions-desktop">
+            <x-theme-toggle />
 
-        {{-- A real user menu, per spec §6.5's "theme toggle · user menu". This is the app's
-             only remaining <x-dropdown> consumer once the old top-bar navigation goes, so
-             removing it would strand the component, its stylesheet, and Task 12's
-             dropdown-link work. It is also simply better than three flat links in a rail.
-             `up`: the trigger is pinned to the rail's bottom (margin-block-start: auto), so
-             the default downward menu opens off the bottom of the viewport on mobile — see
-             .dropdown__menu--up in _dropdown.css. --}}
-        <x-dropdown align="right" width="48" up>
-            <x-slot name="trigger">
-                <button type="button" class="nav-link nav-link--user">
+            <x-dropdown align="right" width="48">
+                <x-slot name="trigger">
+                    <button type="button" class="nav-link nav-link--user">
+                        <x-avatar :user="auth()->user()" decorative />
+                        <span>{{ auth()->user()->display_name }}</span>
+                    </button>
+                </x-slot>
+
+                <x-slot name="content">
+                    <x-dropdown-link :href="route('profile.edit')">{{ __('Your profile') }}</x-dropdown-link>
+
+                    <form method="POST" action="{{ route('logout') }}">
+                        @csrf
+                        <x-dropdown-link :href="route('logout')"
+                                onclick="event.preventDefault(); this.closest('form').submit();">
+                            {{ __('Log out') }}
+                        </x-dropdown-link>
+                    </form>
+                </x-slot>
+            </x-dropdown>
+        </div>
+
+        {{-- Mobile: log out sits alone on the left where a destructive action is
+             hard to hit by accident; theme and identity group on the right. The
+             avatar and name go straight to the profile — no second disclosure. --}}
+        <div class="topbar__actions-mobile">
+            <form method="POST" action="{{ route('logout') }}">
+                @csrf
+                <x-btn variant="danger" size="sm">{{ __('Log out') }}</x-btn>
+            </form>
+
+            <div class="topbar__identity">
+                <x-theme-toggle />
+
+                <a class="nav-link nav-link--user" href="{{ route('profile.edit') }}">
                     <x-avatar :user="auth()->user()" decorative />
                     <span>{{ auth()->user()->display_name }}</span>
-                </button>
-            </x-slot>
-
-            <x-slot name="content">
-                <x-dropdown-link :href="route('profile.edit')">{{ __('Your profile') }}</x-dropdown-link>
-
-                <form method="POST" action="{{ route('logout') }}">
-                    @csrf
-                    <x-dropdown-link :href="route('logout')"
-                            onclick="event.preventDefault(); this.closest('form').submit();">
-                        {{ __('Log out') }}
-                    </x-dropdown-link>
-                </form>
-            </x-slot>
-        </x-dropdown>
-    </div>
-</nav>
+                </a>
+            </div>
+        </div>
+    </x-slot>
+</x-topbar>

@@ -51,7 +51,7 @@ Three file-disjoint commits are possible if you stage `routes/web.php` interacti
 
 ## Before you commit, know this
 
-- **`.env` is modified and gitignored.** Two new/changed keys: `APP_NAME="First To Act Poker"`
+- **`.env` is modified and gitignored.** Two new/changed keys: `APP_NAME="First to Act Poker"`
   and `LEAGUE_CONTACT_EMAIL="hello@example.com"`. Add `LEAGUE_CONTACT_EMAIL` to any deployed
   environment or contact-form mail falls back to `MAIL_FROM_ADDRESS`.
 - **`package-lock.json` was regenerated cleanly.** You restored the committed version and

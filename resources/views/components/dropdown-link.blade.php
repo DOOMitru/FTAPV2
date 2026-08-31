@@ -1,1 +1,6 @@
-<a {{ $attributes->merge(['class' => 'block w-full px-4 py-2 text-start text-sm leading-5 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 focus:outline-none focus:bg-gray-100 dark:focus:bg-gray-800 transition duration-150 ease-in-out']) }}>{{ $slot }}</a>
+{{-- Wired to the design system's .dropdown__item, which carries the same type
+     treatment as .nav-link so a menu item and a top-level link read as one
+     vocabulary. Previously this rendered stock Breeze Tailwind, which left the
+     design-system rule dead and put text-gray-700 on the dark surface at
+     1.59:1 — below AA and close to unreadable in dark mode. --}}
+<a {{ $attributes->merge(['class' => 'dropdown__item']) }}>{{ $slot }}</a>

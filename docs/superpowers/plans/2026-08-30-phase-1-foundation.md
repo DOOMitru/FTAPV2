@@ -140,7 +140,7 @@ mkdir -p resources/css/1-base resources/css/2-layout resources/css/3-components 
 Replace `resources/css/app.css` entirely:
 
 ```css
-/* First To Act Poker design system. Cascade order within the imports matters:
+/* First to Act Poker design system. Cascade order within the imports matters:
    tokens define the variables everything else reads, layout owns spacing,
    components own appearance, pages own the few one-off rules that belong
    nowhere else.
@@ -1732,304 +1732,203 @@ Suggested message: `feat: restyle dropdown and modal overlays and drop their inl
 
 ---
 
-## Task 8: The app shell
+## Task 8: The shared top bar
 
-Replaces the top-bar dropdown holding eight admin links with a left rail.
+**Revision history.** v1 built a 240px left rail; the owner rejected the concept. v2 built an
+app-only top bar. v3 (this) makes the bar **shared between the authenticated and public
+sites**, adds a mobile menu, and applies seven owner-requested refinements. Spec §6.5 amended.
 
 **Files:**
-- Create: `resources/css/2-layout/_shell-app.css`, `resources/css/3-components/_nav.css`
+- Create: `resources/css/2-layout/_topbar.css`
+- Create: `resources/views/components/topbar.blade.php`, `brand.blade.php`, `theme-toggle.blade.php`
+- Rewrite: `resources/css/2-layout/_shell-app.css`, `resources/css/3-components/_nav.css`, `resources/css/3-components/_dropdown.css`
 - Rewrite: `resources/views/layouts/navigation.blade.php`, `resources/views/layouts/app.blade.php`
 - Modify: `resources/css/app.css`
 
+**Do NOT touch:** `theme-script.blade.php`, `_tokens.css`, `dropdown.blade.php` (all carry
+reviewed fixes unrelated to this work).
+
 **Interfaces:**
-- Consumes: every component from Tasks 5–7, `--rail-width`
-- Produces: the `$header` and `$slot` contract that every authenticated view already uses — **do not change it**, or all 30+ authenticated views break at once.
+- Produces: `<x-topbar>` with `links` and `actions` slots; `<x-brand>`; `<x-theme-toggle>`.
+  Task 9 consumes all three for the public shell — that is how the two bars stay consolidated.
+- Preserves: the `$header` / `$slot` contract, unchanged.
 
-- [ ] **Step 1: Write the shell CSS**
+### The seven changes
 
-Create `resources/css/2-layout/_shell-app.css`:
+1. **Mobile.** Below `48rem` the links collapse behind a hamburger instead of wrapping to a
+   second row. The panel closes on Escape and on outside click.
+2. **Brand links to the public site** — `route('home')` in both bars, not `route('dashboard')`.
+3. **Tighter wordmark tracking** — `0.14em` → `0.06em`.
+4. **Location line** — "Regina, SK" beneath the wordmark, muted and smaller.
+5. **Icon-only theme toggle** — sun/moon, swapped by CSS on `[data-theme]`, which is reliable
+   because the theme script now always stamps the attribute.
+6. **Better dropdown menus** — see Step 5.
+7. **One bar, both sites** — a single component, so the mobile-menu logic exists once.
 
-```css
-.shell {
-    display: grid;
-    min-height: 100vh;
-    grid-template-columns: var(--rail-width) minmax(0, 1fr);
-    background-color: var(--c-bg);
-}
-
-.shell__rail {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-6);
-    padding: var(--space-5) var(--space-4);
-    border-inline-end: var(--border-width) solid var(--c-border);
-    background-color: var(--c-surface);
-}
-
-.shell__brand {
-    font-family: var(--font-display);
-    font-size: var(--step-1);
-    font-weight: 700;
-    letter-spacing: 0.22em;
-    text-transform: uppercase;
-    color: var(--c-text);
-    text-decoration: none;
-}
-
-.shell__rail-footer {
-    margin-block-start: auto;
-    padding-block-start: var(--space-4);
-    border-block-start: var(--border-width) solid var(--c-border);
-}
-
-.shell__main {
-    display: flex;
-    flex-direction: column;
-    min-width: 0;
-}
-
-.shell__header {
-    padding: var(--space-5) var(--space-6);
-    border-block-end: var(--border-width) solid var(--c-border);
-}
-
-.shell__content {
-    flex: 1 1 auto;
-    padding: var(--space-6);
-}
-
-.shell__drawer-toggle {
-    display: none;
-}
-
-@media (max-width: 56.25rem) {
-    .shell {
-        grid-template-columns: minmax(0, 1fr);
-    }
-
-    /* Below the breakpoint the rail slides off-canvas and Alpine toggles
-       .shell__rail--open. Visibility is CSS's job at every width, so there is
-       no window.innerWidth check in the markup to go stale on resize. */
-    .shell__rail {
-        position: fixed;
-        inset-block: 0;
-        inset-inline-start: 0;
-        z-index: 90;
-        width: var(--rail-width);
-        box-shadow: var(--shadow-overlay);
-        transform: translateX(-100%);
-        transition: transform var(--transition-fast);
-    }
-
-    .shell__rail--open {
-        transform: translateX(0);
-    }
-
-    .shell__drawer-toggle {
-        display: inline-flex;
-    }
-
-    .shell__content {
-        padding: var(--space-4);
-    }
-}
-```
-
-Create `resources/css/3-components/_nav.css`:
-
-```css
-.nav-group + .nav-group {
-    margin-block-start: var(--space-5);
-}
-
-.nav-group__label {
-    display: block;
-    padding-inline: var(--space-3);
-    margin-block-end: var(--space-2);
-    font-family: var(--font-display);
-    font-size: var(--step--2);
-    font-weight: 600;
-    letter-spacing: 0.18em;
-    text-transform: uppercase;
-    color: var(--c-text-muted);
-}
-
-.nav-link {
-    display: block;
-    padding: var(--space-2) var(--space-3);
-    border-radius: var(--radius-sm);
-    color: var(--c-text);
-    font-size: var(--step--1);
-    text-decoration: none;
-    transition:
-        background-color var(--transition-fast),
-        color var(--transition-fast);
-}
-
-.nav-link:hover {
-    background-color: var(--c-surface-raised);
-}
-
-.nav-link:focus-visible {
-    outline: 2px solid var(--c-primary);
-    outline-offset: 2px;
-}
-
-/* The only place a filled primary appears outside a button. It marks where you
-   are, which is worth the ink. */
-.nav-link--current {
-    background-color: var(--c-primary);
-    color: var(--c-primary-ink);
-    font-weight: 600;
-}
-```
-
-`.nav-group + .nav-group` sets margin, which is an outer-spacing rule inside a component file. It is allowed here because the rail's groups have no layout primitive between them; note it in the file so the next reader knows it was considered.
-
-- [ ] **Step 2: Rewrite the navigation**
-
-Replace `resources/views/layouts/navigation.blade.php` entirely:
+- [ ] **Step 1: `<x-brand>`**
 
 ```blade
-<nav class="shell__rail" x-bind:class="{ 'shell__rail--open': railOpen }" aria-label="{{ __('Main') }}">
-    <a class="shell__brand" href="{{ route('dashboard') }}">{{ __('FTAP') }}</a>
+{{-- Links to the public site from both bars: the mark is the way back out of
+     the admin area, not a link to the dashboard. --}}
+<a class="brand" href="{{ route('home') }}">
+    <img class="brand__logo" src="{{ asset('images/header_logo.png') }}" alt="">
+    <span class="brand__text">
+        <span class="brand__name">{{ __('First to Act Poker') }}</span>
+        <span class="brand__location">{{ __('Regina, SK') }}</span>
+    </span>
+</a>
+```
 
-    <div>
-        <div class="nav-group">
-            <a class="nav-link {{ request()->routeIs('dashboard') ? 'nav-link--current' : '' }}"
-               href="{{ route('dashboard') }}">{{ __('Dashboard') }}</a>
-        </div>
+The logo is decorative (`alt=""`); the link's accessible name comes from the wordmark. Below
+`48rem` the location line hides but the name stays visible — the name is identity, the
+location is garnish.
 
-        @if (Auth::user()->is_admin)
-            <div class="nav-group">
-                <span class="nav-group__label">{{ __('League') }}</span>
-                <a class="nav-link {{ request()->routeIs('poker.seasons.*') ? 'nav-link--current' : '' }}"
-                   href="{{ route('poker.seasons.index') }}">{{ __('Seasons') }}</a>
-                <a class="nav-link {{ request()->routeIs('poker.venues.*') ? 'nav-link--current' : '' }}"
-                   href="{{ route('poker.venues.index') }}">{{ __('Venues') }}</a>
-                <a class="nav-link {{ request()->routeIs('poker.tournaments.*') ? 'nav-link--current' : '' }}"
-                   href="{{ route('poker.tournaments.index') }}">{{ __('Tournaments') }}</a>
-            </div>
+- [ ] **Step 2: `<x-theme-toggle>`**
 
-            <div class="nav-group">
-                <span class="nav-group__label">{{ __('Play') }}</span>
-                <a class="nav-link {{ request()->routeIs('poker.results.*') ? 'nav-link--current' : '' }}"
-                   href="{{ route('poker.results.index') }}">{{ __('Results') }}</a>
-                <a class="nav-link {{ request()->routeIs('poker.registrants.*') ? 'nav-link--current' : '' }}"
-                   href="{{ route('poker.registrants.index') }}">{{ __('Registrants') }}</a>
-                <a class="nav-link {{ request()->routeIs('poker.venue-points.*') ? 'nav-link--current' : '' }}"
-                   href="{{ route('poker.venue-points.index') }}">{{ __('Venue points') }}</a>
-            </div>
+Both icons ship in the DOM; CSS shows one. Each carries its own visually-hidden label so the
+accessible name describes **what the click will do**, not the current state.
 
-            <div class="nav-group">
-                <span class="nav-group__label">{{ __('Setup') }}</span>
-                <a class="nav-link {{ request()->routeIs('poker.points-structure.*') ? 'nav-link--current' : '' }}"
-                   href="{{ route('poker.points-structure.index') }}">{{ __('Points structure') }}</a>
-                <a class="nav-link {{ request()->routeIs('users.*') ? 'nav-link--current' : '' }}"
-                   href="{{ route('users.index') }}">{{ __('Players') }}</a>
-            </div>
-        @endif
-    </div>
+```blade
+<button type="button" class="theme-toggle" data-theme-toggle>
+    <svg class="theme-toggle__icon theme-toggle__icon--sun" viewBox="0 0 24 24" fill="none"
+         stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+        <circle cx="12" cy="12" r="4"/>
+        <path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>
+    </svg>
+    <svg class="theme-toggle__icon theme-toggle__icon--moon" viewBox="0 0 24 24" fill="none"
+         stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/>
+    </svg>
+    <span class="u-visually-hidden theme-toggle__label--light">{{ __('Switch to light theme') }}</span>
+    <span class="u-visually-hidden theme-toggle__label--dark">{{ __('Switch to dark theme') }}</span>
+</button>
+```
 
-    <div class="shell__rail-footer l-stack l-stack--tight">
-        <button type="button" class="nav-link" data-theme-toggle aria-pressed="false">
-            {{ __('Switch theme') }}
+Drop `aria-pressed` — it described a state, and the label now describes the action. Check
+`resources/js/theme.ts` still works: it targets `[data-theme-toggle]` and sets `aria-pressed`,
+so **remove that line from `theme.ts`** rather than leaving it setting an attribute nothing uses.
+
+- [ ] **Step 3: `<x-topbar>`**
+
+```blade
+@props(['links' => null, 'actions' => null])
+
+<header class="topbar" x-data="{ menuOpen: false }" x-on:keydown.escape.window="menuOpen = false">
+    <div class="topbar__inner">
+        <x-brand />
+
+        <button type="button" class="topbar__burger" x-on:click="menuOpen = ! menuOpen"
+                x-bind:aria-expanded="menuOpen.toString()" aria-controls="topbar-menu">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                 stroke-linecap="round" aria-hidden="true">
+                <path x-show="! menuOpen" d="M4 7h16M4 12h16M4 17h16"/>
+                <path x-show="menuOpen" x-cloak d="M6 6l12 12M18 6L6 18"/>
+            </svg>
+            <span class="u-visually-hidden">{{ __('Menu') }}</span>
         </button>
 
-        <a class="nav-link" href="{{ route('profile.edit') }}">{{ __('Your profile') }}</a>
-
-        <form method="POST" action="{{ route('logout') }}">
-            @csrf
-            <button type="submit" class="nav-link">{{ __('Log out') }}</button>
-        </form>
+        <div class="topbar__panel" id="topbar-menu"
+             x-bind:class="{ 'topbar__panel--open': menuOpen }"
+             x-on:click.outside="menuOpen = false">
+            <nav class="topbar__nav" aria-label="{{ __('Main') }}">{{ $links }}</nav>
+            <div class="topbar__actions">{{ $actions }}</div>
+        </div>
     </div>
-</nav>
+</header>
 ```
 
-- [ ] **Step 3: Rewrite the app layout**
+- [ ] **Step 4: `_topbar.css`**
 
-Replace `resources/views/layouts/app.blade.php` entirely:
+Key requirements, written against the tokens:
+
+- `.topbar` — `--c-surface` ground, 1px bottom border, no shadow.
+- `.topbar__inner` — flex row, `max-width: 80rem`, `margin-inline: auto`, aligned with
+  `.l-container` so the bar and page content share a measure.
+- `.brand` — flex row, `gap: var(--space-3)`; `.brand__logo` height `2.25rem`;
+  `.brand__text` a column with no gap.
+- `.brand__name` — display face, `font-stretch: 125%`, `letter-spacing: 0.06em`, uppercase,
+  `var(--step--1)`.
+- `.brand__location` — deliberately **recessive**, not a second wordmark. Body face (not the
+  display face), natural case "Regina, SK" (not uppercase), `var(--step--2)`, weight 400,
+  `letter-spacing: normal`, `--c-text-muted`, and `line-height: 1.1` so it tucks under the
+  name rather than floating. The hierarchy comes from the contrast: the name is wide,
+  uppercase and tracked; the location is small, natural-case and untracked. If it reads as
+  competing with the name at a glance, it is still too loud — reduce it further rather than
+  the reverse.
+- `.topbar__burger` — hidden at/above `48rem`, shown below. **Give it a two-class-proof
+  selector**: a previous version of this task had `.btn { display: inline-flex }` silently
+  defeat a `display: none` rule at equal specificity because of import order. Do not compose
+  `.btn` here; make `.topbar__burger` standalone.
+- `.topbar__panel` — above `48rem` it is a flex row that pushes `.topbar__actions` to the end
+  with `margin-inline-start: auto`. Below `48rem` it is `display: none` unless
+  `.topbar__panel--open`, then a stacked column filling the bar's width.
+- `.theme-toggle` — square, `--radius-sm`, transparent, hover `--c-surface-raised`, visible
+  focus ring. Icon `1.25rem`.
+- Icon and label swapping, which works because `data-theme` is always present:
+  ```css
+  [data-theme="light"] .theme-toggle__icon--sun,
+  [data-theme="light"] .theme-toggle__label--light { display: none; }
+  [data-theme="dark"]  .theme-toggle__icon--moon,
+  [data-theme="dark"]  .theme-toggle__label--dark  { display: none; }
+  ```
+  (`.u-visually-hidden` is `position: absolute`, so `display: none` on the unwanted label
+  removes it from the accessible name cleanly.)
+
+- [ ] **Step 5: Improve the dropdown menus**
+
+Rework `_dropdown.css` so the menus read as deliberate panels rather than default popups:
+
+- `.dropdown__menu` — `min-width: 13rem`; `padding-block: var(--space-2)`; `--radius`;
+  1px `--c-border`; `--c-surface`; `--shadow-overlay`; `margin-block-start: var(--space-2)`.
+- `.dropdown__item` — `padding: var(--space-2) var(--space-4)`; `var(--step--1)`;
+  `--c-text`; a **3px transparent inline-start border** that becomes `--c-primary` on
+  hover/focus, with the background going `--c-surface-raised`. That gives the menu the same
+  hairline-and-accent language as the rest of the system instead of a plain grey hover.
+- Keep `.dropdown__menu--left`; it has three consumers.
+
+- [ ] **Step 6: Rewrite `navigation.blade.php` on the shared component**
 
 ```blade
-<!DOCTYPE html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
-    <head>
-        <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1">
-        <meta name="csrf-token" content="{{ csrf_token() }}">
+<x-topbar>
+    <x-slot name="links">
+        <a class="nav-link …" href="{{ route('dashboard') }}" …>Dashboard</a>
+        @if (Auth::user()->is_admin)
+            … League / Play / Setup dropdowns …
+        @endif
+    </x-slot>
 
-        <title>{{ config('app.name', 'First To Act Poker') }}</title>
-
-        <x-theme-script />
-
-        @vite(['resources/css/app.css', 'resources/js/app.ts'])
-        <link rel="icon" href="{{ asset('favicon.png') }}" type="image/png"/>
-    </head>
-    <body>
-        <div class="shell" x-data="{ railOpen: false }">
-            @include('layouts.navigation')
-
-            <div class="shell__main">
-                <button type="button" class="btn btn--ghost btn--sm shell__drawer-toggle"
-                        x-on:click="railOpen = ! railOpen"
-                        x-bind:aria-expanded="railOpen.toString()">
-                    {{ __('Menu') }}
-                </button>
-
-                @isset($header)
-                    <header class="shell__header">{{ $header }}</header>
-                @endisset
-
-                <main class="shell__content">
-                    @if (session('status'))
-                        <x-alert variant="success">{{ session('status') }}</x-alert>
-                    @endif
-
-                    @if (session('error'))
-                        <x-alert variant="danger">{{ session('error') }}</x-alert>
-                    @endif
-
-                    {{ $slot }}
-                </main>
-            </div>
-        </div>
-    </body>
-</html>
+    <x-slot name="actions">
+        <x-theme-toggle />
+        … user menu dropdown …
+    </x-slot>
+</x-topbar>
 ```
 
-The `$header` / `$slot` contract is unchanged, so unconverted views keep rendering. The flash-message blocks are new — as Phases 2–5 convert views, delete each view's own duplicated flash markup.
+Admin groups stay behind `Auth::user()->is_admin`. Keep `aria-current="page"` on the active link.
 
-- [ ] **Step 4: Import**
+- [ ] **Step 7: Verify**
 
-```css
-@import "./2-layout/_shell-app.css";
-@import "./3-components/_nav.css";
-```
+- `npm run build` succeeds; new rules reach the bundle.
+- Admin sees Dashboard + three group menus; **non-admin sees zero `poker.*` / `users.*` links**.
+- The brand links to `/`, not `/dashboard`.
+- `$header` / `$slot` still work.
+- In a browser at 1400px, 900px and 500px: one row above `48rem`; below it the links are
+  hidden until the burger is pressed. Confirm the burger is `display: none` at 1400px.
+- With `data-theme="dark"` exactly one theme icon is visible, and with `"light"` the other.
+- `php artisan test` — 94 passed, 0 failed.
 
-- [ ] **Step 5: Verify**
+- [ ] **Step 8: Checkpoint — hand off for commit**
 
-Run: `npm run build` — expected: succeeds.
-Run: `php artisan test` — expected: all green, including `RouteSmokeTest`.
-
-In the browser, signed in as an admin:
-- The rail shows Dashboard, League, Play, Setup. The current section is highlighted.
-- Signed in as a non-admin: only Dashboard and the footer links appear.
-- Below 900px the rail collapses and the Menu button toggles it.
-- Tab through the rail — every link and button shows a focus ring.
-- The theme toggle flips the theme and its `aria-pressed` value.
-
-- [ ] **Step 6: Checkpoint — hand off for commit**
-
-Stage: `resources/css/ resources/views/layouts/`
-Suggested message: `feat: replace the admin top-bar dropdown with a left rail app shell`
-
----
+Stage: `resources/css/ resources/views/ resources/js/`
+Suggested message: `feat: add a shared top bar with mobile menu, brand mark and icon theme toggle`
 
 ## Task 9: Public and guest shells
 
 **Files:**
 - Create: `resources/css/2-layout/_shell-public.css`
 - Rewrite: `resources/views/layouts/public.blade.php`, `resources/views/layouts/guest.blade.php`
+
+**Consolidation requirement:** the public bar MUST be `<x-topbar>` with its own `links` and `actions` slots — the same component the authenticated bar uses. Do not build a second bar. `_shell-public.css` styles only what is genuinely public-specific (the page wrapper and footer), never the bar itself.
 - Modify: `resources/css/app.css`
 
 **Interfaces:**
@@ -2140,7 +2039,7 @@ Keep the existing nav links — Home, Events, Rules (Regulations, Conduct, Texas
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="csrf-token" content="{{ csrf_token() }}">
-        <title>{{ config('app.name', 'First To Act Poker') }}</title>
+        <title>{{ config('app.name', 'First to Act Poker') }}</title>
         <x-theme-script />
         @vite(['resources/css/app.css', 'resources/js/app.ts'])
         <link rel="icon" href="{{ asset('favicon.png') }}" type="image/png"/>

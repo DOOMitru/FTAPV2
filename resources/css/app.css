@@ -1,4 +1,4 @@
-/* First To Act Poker design system. Cascade order within the imports matters:
+/* First to Act Poker design system. Cascade order within the imports matters:
    tokens define the variables everything else reads, layout owns spacing,
    components own appearance, pages own the few one-off rules that belong
    nowhere else.
@@ -14,6 +14,7 @@
 @import "./1-base/_typography.css";
 @import "./2-layout/_primitives.css";
 @import "./2-layout/_shell-app.css";
+@import "./2-layout/_topbar.css";
 @import "./3-components/_btn.css";
 @import "./3-components/_card.css";
 @import "./3-components/_form.css";

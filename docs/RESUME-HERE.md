@@ -1,6 +1,6 @@
 # Resume here
 
-**Last worked: 2026-08-30.** Design-system project for First To Act Poker.
+**Last worked: 2026-08-30.** Design-system project for First to Act Poker.
 
 ## Where things stand
 

@@ -1,4 +1,4 @@
-# First To Act Poker — Design System & Redesign
+# First to Act Poker — Design System & Redesign
 
 **Date:** 2026-08-30
 **Status:** Approved for planning
@@ -127,7 +127,7 @@ Delete `Dashboard.vue` and `vue-shims.d.ts`; drop `vue`, `primevue`, `@primevue/
 
 ### 5.6 Cosmetics and dead code
 
-- `APP_NAME` → `"First To Act Poker"` in `.env` and `.env.example`.
+- `APP_NAME` → `"First to Act Poker"` in `.env` and `.env.example`.
 - Replace the stock Laravel `README.md` with a project readme.
 - Delete `welcome.blade.php`, `about/mission.blade.php`, `about/sponsors.blade.php` (zero references).
 
@@ -233,7 +233,9 @@ The 8 fixed rotation angles in `tournament-badge.blade.php:23` become 8 static `
 
 ### 6.5 Shells and navigation
 
-**App shell** (`layouts/app.blade.php`) — 240px left rail on `--c-surface`, 1px right border:
+**App shell** (`layouts/app.blade.php`) — a top bar on `--c-surface` with a 1px bottom border. *(Amended 2026-08-31: this originally specified a 240px left rail. The owner reviewed the built rail and rejected the concept — a permanent sidebar is the wrong shape for this app. The grouping it introduced is kept: eight admin destinations reached through three grouped menus rather than one flat dropdown.)*
+
+Brand: `header_logo.png` plus the wordmark "First to Act Poker", then Dashboard, then League / Play / Setup menus, then theme toggle and user menu:
 
 ```
 Dashboard

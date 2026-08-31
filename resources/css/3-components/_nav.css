@@ -1,33 +1,20 @@
-/* `.nav-group + .nav-group` sets outer margin, which components normally
-   don't. It's allowed here because the rail's groups have no layout
-   primitive between them — this was considered, not missed. */
-.nav-group + .nav-group {
-    margin-block-start: var(--space-5);
-}
-
-.nav-group__label {
-    display: block;
-    padding-inline: var(--space-3);
-    /* Outer margin, same exception as `.nav-group + .nav-group` above: the
-       label sits directly against its group's links with no layout
-       primitive between them. Flagged during Task 8 review as uncommented;
-       left as-is otherwise — out of scope for that fix. */
-    margin-block-end: var(--space-2);
+.nav-link {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-2) var(--space-3);
+    border: 0;
+    border-radius: var(--radius-sm);
+    background-color: transparent;
+    color: var(--c-text);
     font-family: var(--font-display);
     font-size: var(--step--2);
     font-weight: 600;
-    letter-spacing: 0.18em;
+    letter-spacing: 0.12em;
     text-transform: uppercase;
-    color: var(--c-text-muted);
-}
-
-.nav-link {
-    display: block;
-    padding: var(--space-2) var(--space-3);
-    border-radius: var(--radius-sm);
-    color: var(--c-text);
-    font-size: var(--step--1);
     text-decoration: none;
+    white-space: nowrap;
+    cursor: pointer;
     transition:
         background-color var(--transition-fast),
         color var(--transition-fast);
@@ -42,21 +29,26 @@
     outline-offset: 2px;
 }
 
-/* The only place a filled primary appears outside a button. It marks where you
-   are, which is worth the ink. */
 .nav-link--current {
     background-color: var(--c-primary);
     color: var(--c-primary-ink);
-    font-weight: 600;
 }
 
-/* The user-menu trigger needs avatar-beside-name layout, but `.nav-link
-   l-cluster` can't deliver it: both select at specificity (0,1,0) and
-   _nav.css imports after _primitives.css, so `.nav-link`'s `display: block`
-   always wins and the avatar stacks above the name. A dedicated class avoids
-   relying on import order to settle a tie it structurally cannot settle. */
+/* A hovered current link must keep its filled treatment. .nav-link:hover is
+   (0,2,0) and .nav-link--current only (0,1,0), so hover replaces the background
+   while the ink stays --c-primary-ink — measured at 1.29:1 in dark and 1.12:1 in
+   light, i.e. invisible. Matching the hover's specificity and keeping the fill
+   restores it to 10.6:1 / 10.4:1. */
+.nav-link--current:hover {
+    background-color: var(--c-primary-hover);
+    color: var(--c-primary-ink);
+}
+
+/* The user-menu trigger carries an avatar beside its label. It needs its own
+   class rather than composing .l-cluster, which loses the cascade to
+   .nav-link's own display because _nav.css is imported later. */
 .nav-link--user {
-    display: flex;
+    display: inline-flex;
     align-items: center;
-    gap: var(--space-3);
+    gap: var(--space-2);
 }

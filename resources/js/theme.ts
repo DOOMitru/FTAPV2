@@ -28,10 +28,6 @@ export function applyTheme(theme: Theme): void {
     } catch {
         // Nothing to do — the attribute still applies for this page view.
     }
-
-    document.querySelectorAll('[data-theme-toggle]').forEach((el) => {
-        el.setAttribute('aria-pressed', String(theme === 'dark'));
-    });
 }
 
 export function toggleTheme(): void {
@@ -39,11 +35,10 @@ export function toggleTheme(): void {
 }
 
 export function initTheme(): void {
-    // Sync aria-pressed with whatever the pre-paint script already applied.
-    const theme = currentTheme();
-
+    // [data-theme] is already correct from the pre-paint script; the toggle's
+    // icon and label swap off that attribute via CSS, so there is nothing
+    // here to sync — just wire up the click handler.
     document.querySelectorAll('[data-theme-toggle]').forEach((el) => {
-        el.setAttribute('aria-pressed', String(theme === 'dark'));
         el.addEventListener('click', toggleTheme);
     });
 }
