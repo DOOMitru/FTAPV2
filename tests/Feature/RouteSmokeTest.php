@@ -24,6 +24,8 @@ class RouteSmokeTest extends TestCase
 
     private User $admin;
 
+    private User $player;
+
     /** @var array<string, string> route parameter name => concrete value */
     private array $bindings = [];
 
@@ -35,11 +37,33 @@ class RouteSmokeTest extends TestCase
         'storage/{path}',           // static file serving
     ];
 
+    /**
+     * Literal Blade syntax that should never survive rendering. If any of
+     * these strings appear in a successful HTML response body, a directive
+     * leaked into the output instead of executing — a classic bug during a
+     * view rewrite that a "no 5xx" check alone cannot catch.
+     */
+    private const BLADE_ARTIFACTS = [
+        '@if',
+        '@else',
+        '@endif',
+        '@foreach',
+        '@endforeach',
+        '@forelse',
+        '@empty',
+        '@endforelse',
+        '@php',
+        '@endphp',
+        '@csrf',
+        '{{',
+    ];
+
     protected function setUp(): void
     {
         parent::setUp();
 
         $this->admin = User::factory()->create(['is_admin' => true]);
+        $this->player = User::factory()->create(['is_admin' => false]);
 
         $venue = Venue::create([
             'name' => 'The Grand Card Room',
@@ -104,15 +128,32 @@ class RouteSmokeTest extends TestCase
 
     public function test_every_get_route_responds_to_an_admin_without_a_server_error()
     {
-        $this->assertNoServerErrors(fn (string $uri) => $this->actingAs($this->admin)->get($uri));
+        $this->assertNoServerErrorsOrBladeArtifacts(fn (string $uri) => $this->actingAs($this->admin)->get($uri));
     }
 
     public function test_every_get_route_responds_to_a_guest_without_a_server_error()
     {
-        $this->assertNoServerErrors(fn (string $uri) => $this->get($uri));
+        $this->assertNoServerErrorsOrBladeArtifacts(fn (string $uri) => $this->get($uri));
     }
 
-    private function assertNoServerErrors(callable $request): void
+    /**
+     * The role the upcoming view rewrite most affects: a logged-in player
+     * with no admin rights. Many /poker and /users routes are expected to
+     * 403 for this role — that is correct behaviour and is not a failure,
+     * since 403 is well below the "no 5xx" threshold.
+     */
+    public function test_every_get_route_responds_to_a_non_admin_player_without_a_server_error()
+    {
+        $this->assertNoServerErrorsOrBladeArtifacts(fn (string $uri) => $this->actingAs($this->player)->get($uri));
+    }
+
+    /**
+     * Requests every registered GET route and asserts two things: the
+     * response is never a server error, and a successful HTML response
+     * never contains literal, unrendered Blade syntax (a directive that
+     * leaked into the output instead of executing).
+     */
+    private function assertNoServerErrorsOrBladeArtifacts(callable $request): void
     {
         $failures = [];
 
@@ -153,10 +194,31 @@ class RouteSmokeTest extends TestCase
                 continue;
             }
 
-            $status = $request('/'.ltrim($resolved, '/'))->getStatusCode();
+            $response = $request('/'.ltrim($resolved, '/'));
+            $status = $response->getStatusCode();
 
             if ($status >= 500) {
                 $failures[] = sprintf('%s — HTTP %d', $uri, $status);
+
+                continue;
+            }
+
+            // Only successful HTML responses are worth scanning for leaked
+            // Blade syntax — a redirect body or an error page isn't real
+            // rendered view output.
+            if ($status >= 200 && $status < 300
+                && str_contains((string) $response->headers->get('Content-Type'), 'text/html')) {
+                $body = $response->getContent();
+
+                foreach (self::BLADE_ARTIFACTS as $artifact) {
+                    if (str_contains($body, $artifact)) {
+                        $failures[] = sprintf(
+                            '%s — literal Blade artifact "%s" found in the rendered response body',
+                            $uri,
+                            $artifact
+                        );
+                    }
+                }
             }
         }
 
