@@ -58,14 +58,22 @@
    gradient and elevation tokens, and PublicRegisterTest keeps it here. */
 
 .p-hero {
-    max-width: 44rem;
-    margin-inline: auto;
     margin-block-end: var(--space-10);
+    padding: var(--space-8) var(--space-5);
+    border-radius: var(--radius-lg);
+    /* A band, not a card: --gradient-surface runs surface -> page ground, so it
+       fades out at the bottom edge instead of stopping at a border. */
+    background-image: var(--gradient-surface);
     text-align: center;
 }
 
+.p-hero__title,
+.p-hero__eyebrow {
+    max-width: 52rem;
+    margin-inline: auto;
+}
+
 .p-hero--start {
-    margin-inline: 0;
     text-align: start;
 }
 
@@ -150,9 +158,25 @@
 }
 
 .p-item {
+    position: relative;
     display: flex;
     gap: var(--space-4);
     padding: var(--space-5);
+    padding-inline-start: var(--space-6);
+    background-image: var(--gradient-raised);
+    /* Clips the rail below to the card's own corner radius. */
+    overflow: hidden;
+}
+
+/* The rail. A pseudo-element rather than a border, because border-image cannot
+   follow a border-radius and a gradient border would square off the corners. */
+.p-item::before {
+    content: "";
+    position: absolute;
+    inset-block: 0;
+    inset-inline-start: 0;
+    width: 3px;
+    background-image: var(--gradient-primary);
 }
 
 /* Mono and fixed-width so the titles line up down the column whatever the
@@ -219,15 +243,19 @@
     position: absolute;
     inset-block-start: -4rem;
     inset-inline-end: -4rem;
-    width: 16rem;
-    height: 16rem;
+    width: 12rem;
+    height: 12rem;
     border-radius: var(--radius-pill);
-    background-color: rgb(255 255 255 / 0.12);
-    filter: blur(48px);
+    background-color: rgb(255 255 255 / 0.18);
+    filter: blur(40px);
     pointer-events: none;
 }
 
-.p-panel > * {
+/* :not(.p-panel__glow) is load-bearing. Both selectors are (0,1,0), and this
+   one is declared later, so a bare `.p-panel > *` overrode the glow's own
+   `position: absolute` and laid it out in flow as a 16rem block -- 300px of
+   dead space above the panel's content. */
+.p-panel > *:not(.p-panel__glow) {
     position: relative;
 }
 
@@ -238,4 +266,98 @@
     margin-inline: auto;
     border: 0;
     background-image: linear-gradient(to right, transparent, var(--c-primary), transparent);
+}
+
+/* Two columns of rule sections, capped at two without a media query: 28rem
+   inside .l-container's 80rem measure fits twice and never three times. The
+   original used md:grid-cols-2, which snapped at one breakpoint; auto-fit
+   collapses to one column whenever the columns genuinely stop fitting. */
+/* Multi-column, not grid. A two-column grid makes every cell in a row as tall
+   as the tallest section in it, so a 2-rule section left a 300px hole beside a
+   5-rule one. Columns flow content continuously instead, and column-width
+   collapses to one column on its own when the space is not there. */
+.p-sections {
+    columns: 28rem 2;
+    column-gap: var(--space-8);
+}
+
+.p-sections__group {
+    break-inside: avoid-column;
+    margin-block-end: var(--space-8);
+}
+
+.p-sections__group > * + * {
+    margin-block-start: var(--space-4);
+}
+
+/* Inside a gradient panel: a translucent pill for a standing label. */
+.p-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-2) var(--space-4);
+    border: var(--border-width) solid rgb(255 255 255 / 0.25);
+    border-radius: var(--radius-pill);
+    background-color: rgb(255 255 255 / 0.12);
+    font-family: var(--font-body);
+    font-size: var(--step--2);
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+}
+
+.p-pill__dot {
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: var(--radius-pill);
+    background-color: currentColor;
+    /* The global prefers-reduced-motion block collapses this to 0.01ms. */
+    animation: p-pulse 2s ease-in-out infinite;
+}
+
+@keyframes p-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.35; }
+}
+
+/* The panel's two halves: copy on the start edge, the grid filling the rest. */
+.p-panel__split {
+    display: grid;
+    gap: var(--space-6);
+    grid-template-columns: repeat(auto-fit, minmax(min(18rem, 100%), 1fr));
+    align-items: center;
+}
+
+.p-panel__title {
+    font-family: var(--font-display);
+    font-size: var(--step-3);
+    font-weight: 400;
+    line-height: var(--leading-tight);
+    text-transform: uppercase;
+}
+
+.p-panel__text {
+    margin-block: var(--space-4) var(--space-6);
+    font-size: var(--step--1);
+    line-height: var(--leading-relaxed);
+    /* Inherits the panel's ink at reduced strength rather than a grey token,
+       which would be invisible on a saturated gradient. */
+    opacity: 0.85;
+}
+
+.p-chip-grid {
+    display: grid;
+    gap: var(--space-3);
+    grid-template-columns: repeat(auto-fit, minmax(min(7rem, 100%), 1fr));
+}
+
+/* Padding rather than a margin: this closes the page, and an outer margin on
+   a block that sits inside .l-stack would compound with the stack's own gap. */
+.p-page-foot {
+    padding-block-start: var(--space-8);
+    text-align: center;
+}
+
+.p-page-foot__caption {
+    margin-block-end: var(--space-4);
 }

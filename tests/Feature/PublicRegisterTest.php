@@ -28,6 +28,7 @@ class PublicRegisterTest extends TestCase
         '--gradient-accent',
         '--gradient-accent-ink',
         '--gradient-surface',
+        '--gradient-raised',
         '--shadow-raised',
         '--shadow-float',
         '--radius-lg',

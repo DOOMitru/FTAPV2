@@ -36,14 +36,22 @@
        Every stop is derived from --c-primary / --c-accent, so the two registers
        read as one product rather than two sites.
 
-       --gradient-primary carries --c-primary-ink: white measures 8.72:1 and
-       9.93:1 on its two light stops.
+       Two numbers matter for a gradient and the first draft only checked one.
+       INK vs each stop: white is 8.72:1 and 14.69:1 on the light pair, and
+       --c-primary-ink is 7.89:1 and 13.21:1 on the dark pair. STOP vs STOP:
+       1.68:1 light and 1.67:1 dark. The original pairs passed the ink check at
+       8.72/9.93 but sat 1.14:1 apart, so they rendered as flat fills -- the
+       same invisibility as the 1.02:1 border this system replaced.
        --gradient-accent carries --gradient-accent-ink, NOT white. White on coral is
        3.77:1 and on amber 2.15:1 — both fail AA. Dark ink gives 5.09:1 and
        8.92:1. This is the same trap --c-accent-text exists for. */
-    --gradient-primary: linear-gradient(135deg, #1E40AF 0%, #3730A3 100%);
+    --gradient-primary: linear-gradient(135deg, #1E40AF 0%, #172554 100%);
     --gradient-accent: linear-gradient(135deg, #EF4537 0%, #F59E0B 100%);
     --gradient-surface: linear-gradient(180deg, var(--c-surface) 0%, var(--c-bg) 100%);
+    /* Card-scale, and quiet on purpose: the hero and panel ramps carry 1.67:1
+       between stops, which is right for one moment and unbearable across 21
+       cards. Composed from the surface tokens, so it needs no dark twin. */
+    --gradient-raised: linear-gradient(160deg, var(--c-surface-raised) 0%, var(--c-surface) 100%);
     /* NOT --c-accent-ink, which is already white for --c-accent-strong fills.
        White fails on both stops of the accent gradient; this is the ink that
        passes. Shared by both themes, like the gradient itself. */
@@ -86,7 +94,7 @@
        so the gradient reads as the same idea in both. --c-primary-ink measures
        7.89:1 and 6.91:1 on the two stops. The accent gradient is shared — coral
        and amber sit on both grounds equally. */
-    --dark-gradient-primary: linear-gradient(135deg, #06B6D4 0%, #0EA5E9 100%);
+    --dark-gradient-primary: linear-gradient(135deg, #06B6D4 0%, #67E8F9 100%);
     --dark-shadow-raised: 0 1px 2px rgb(0 0 0 / 0.40), 0 4px 14px -2px rgb(0 0 0 / 0.45);
     --dark-shadow-float: 0 10px 30px -6px rgb(0 0 0 / 0.55);
 
