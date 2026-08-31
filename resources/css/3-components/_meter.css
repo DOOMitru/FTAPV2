@@ -1,0 +1,47 @@
+/* The signature element. Points read as a run of stacked chips rather than a
+   smooth bar: the fill is a repeating gradient of 6px segments separated by
+   1px gaps, so a longer bar is literally more chips. */
+.meter {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+}
+
+.meter__track {
+    flex: 1 1 auto;
+    height: 0.625rem;
+    min-width: 3rem;
+    border: var(--border-width) solid var(--c-border);
+    border-radius: var(--radius-sm);
+    background-color: var(--c-surface-raised);
+    overflow: hidden;
+}
+
+.meter__fill {
+    width: var(--meter-fill, 0%);
+    height: 100%;
+    background-image: repeating-linear-gradient(
+        to right,
+        var(--c-primary) 0,
+        var(--c-primary) 6px,
+        transparent 6px,
+        transparent 7px
+    );
+    /* No transition here: --meter-fill is baked into the element's inline `style`
+       server-side, so there is no prior painted state for a CSS transition to
+       animate from on first paint — it is dead code as written. An on-load reveal
+       would need a CSS @keyframes animation or a two-frame JS update instead, and
+       the design spec budgets motion thinly and names a different element as the
+       one orchestrated reveal. Whether this meter should animate is a design
+       decision for the repository owner at the Task 10 review gate, not this fix. */
+}
+
+.meter__value {
+    flex: 0 0 auto;
+    min-width: 4ch;
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    font-size: var(--step--1);
+    font-weight: 600;
+    text-align: right;
+}

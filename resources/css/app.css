@@ -18,6 +18,13 @@
 @import "./3-components/_form.css";
 @import "./3-components/_alert.css";
 @import "./3-components/_badge.css";
+@import "./3-components/_table.css";
+@import "./3-components/_stat.css";
+@import "./3-components/_meter.css";
+@import "./3-components/_rank.css";
+@import "./3-components/_empty.css";
+@import "./3-components/_avatar.css";
+@import "./3-components/_page-header.css";
 
 /* Tailwind — temporary. Removed at the end of Phase 5, once every view is
    converted. Until then it styles the views this phase has not reached.

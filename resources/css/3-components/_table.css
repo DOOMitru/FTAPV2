@@ -1,0 +1,58 @@
+.table-scroll {
+    overflow-x: auto;
+}
+
+.table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: var(--step--1);
+}
+
+.table__caption {
+    padding: var(--space-3) var(--space-5);
+    font-family: var(--font-display);
+    font-size: var(--step--2);
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    text-align: start;
+    color: var(--c-text-muted);
+}
+
+/* .table th and .table td are element selectors, which the single-class rule
+   otherwise forbids for components. Tables are the deliberate exception: the
+   alternative is a class on every one of several hundred cells across the
+   admin views. The selectors stay scoped under .table so they cannot leak. */
+.table th {
+    padding: var(--space-3) var(--space-4);
+    border-block-end: var(--border-width) solid var(--c-border);
+    font-family: var(--font-display);
+    font-size: var(--step--2);
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    text-align: start;
+    color: var(--c-text-muted);
+    white-space: nowrap;
+}
+
+.table td {
+    padding: var(--space-3) var(--space-4);
+    border-block-end: var(--border-width) solid var(--c-border);
+    vertical-align: middle;
+}
+
+.table tbody tr:last-child td {
+    border-block-end: 0;
+}
+
+.table tbody tr:hover {
+    background-color: var(--c-surface-raised);
+}
+
+/* Any cell holding a number. Right-aligned, tabular, so columns line up. */
+.table__num {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    text-align: end;
+}

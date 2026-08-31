@@ -23,6 +23,7 @@
 - Focus is never removed without replacement: `outline: 2px solid var(--c-primary); outline-offset: 2px`.
 - Copy follows spec §7: "Dashboard" not "Deck", "Standings" not "Chip count", active voice, errors state what happened and how to fix it.
 - **Deviation from spec §6.9, deliberate:** Tailwind is *not* uninstalled in this phase. See Task 1.
+- **Pagination styling is deferred to Phase 5, deliberately.** Eight admin index views call `->links()`, which renders Laravel's built-in pagination markup — it emits Tailwind classes, never `.pagination__link`. Shipping a `_pagination.css` in this phase would be dead CSS with no consumer, the same defect the Task 5 review flagged in `.field__checkbox`. Phase 5 converts those eight views and must, in the same task: publish the pagination view (`php artisan vendor:publish --tag=laravel-pagination`), rewrite it onto `.pagination` / `.pagination__link`, and add the stylesheet. Views affected: `users/index`, `poker/{seasons,venues,tournaments,results,registrants,venue-points,points-structure}/index`.
 - **Breakpoints are raw values, deliberately, and they collapse in a fixed order.** A CSS custom property cannot be used in a media query condition (`@media (max-width: var(--bp))` is invalid), so these values agree only by convention:
 
   | Value | Where | Collapses |
@@ -71,7 +72,7 @@ resources/css/
   3-components/
     _btn.css _card.css _form.css _table.css _badge.css _meter.css
     _stat.css _alert.css _nav.css _dropdown.css _modal.css
-    _pagination.css _empty.css _avatar.css _rank.css
+    _empty.css _avatar.css _rank.css   (_pagination.css deferred to Phase 5)
   4-pages/
     _season-show.css             first page converted; one file per page thereafter
 
@@ -1193,7 +1194,7 @@ Suggested message: `feat: add button, card, form, alert and badge components`
 The meter is the system's signature element (spec §6.6).
 
 **Files:**
-- Create: `resources/css/3-components/_table.css`, `_stat.css`, `_meter.css`, `_rank.css`, `_empty.css`, `_avatar.css`, `_pagination.css`
+- Create: `resources/css/3-components/_table.css`, `_stat.css`, `_meter.css`, `_rank.css`, `_empty.css`, `_avatar.css`
 - Create: `resources/views/components/table.blade.php`, `stat.blade.php`, `meter.blade.php`, `rank.blade.php`, `empty-state.blade.php`, `avatar.blade.php`, `page-header.blade.php`
 - Modify: `resources/css/app.css`
 
@@ -1468,53 +1469,6 @@ Create `resources/css/3-components/_avatar.css`:
 }
 ```
 
-Create `resources/css/3-components/_pagination.css`:
-
-```css
-.pagination {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: var(--space-1);
-    font-family: var(--font-mono);
-    font-size: var(--step--1);
-}
-
-.pagination__link {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-width: 2rem;
-    height: 2rem;
-    padding-inline: var(--space-2);
-    border: var(--border-width) solid var(--c-border);
-    border-radius: var(--radius-sm);
-    color: var(--c-text);
-    text-decoration: none;
-    transition: background-color var(--transition-fast);
-}
-
-.pagination__link:hover {
-    background-color: var(--c-surface-raised);
-}
-
-.pagination__link:focus-visible {
-    outline: 2px solid var(--c-primary);
-    outline-offset: 2px;
-}
-
-.pagination__link--current {
-    background-color: var(--c-primary);
-    border-color: var(--c-primary);
-    color: var(--c-primary-ink);
-}
-
-.pagination__link--disabled {
-    opacity: 0.4;
-    pointer-events: none;
-}
-```
-
 - [ ] **Step 4: The Blade components**
 
 `resources/views/components/stat.blade.php`:
@@ -1612,7 +1566,6 @@ Add to `resources/css/app.css`:
 @import "./3-components/_rank.css";
 @import "./3-components/_empty.css";
 @import "./3-components/_avatar.css";
-@import "./3-components/_pagination.css";
 @import "./3-components/_page-header.css";
 ```
 
@@ -1626,7 +1579,7 @@ Expected: exactly one match — `meter.blade.php`, setting `--meter-fill`. If `p
 - [ ] **Step 7: Checkpoint — hand off for commit**
 
 Stage: `resources/css/3-components/ resources/views/components/ resources/css/app.css`
-Suggested message: `feat: add table, stat, meter, rank, avatar and pagination components`
+Suggested message: `feat: add table, stat, meter, rank, empty-state and avatar components`
 
 ---
 
