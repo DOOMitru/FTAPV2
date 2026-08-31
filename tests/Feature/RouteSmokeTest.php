@@ -55,6 +55,14 @@ class RouteSmokeTest extends TestCase
         '@php',
         '@endphp',
         '@csrf',
+        '@include',
+        '@props',
+        '@auth',
+        '@endauth',
+        '@error',
+        '@enderror',
+        '@method',
+        '@isset',
         '{{',
     ];
 
