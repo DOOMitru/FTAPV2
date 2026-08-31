@@ -79,10 +79,19 @@ Route::prefix('rules')->name('rules.')->group(function () {
 });
 
 Route::get('/events', function () {
+    // Two at a time: an upcoming event card carries a map and is tall, so a
+    // long season scrolls forever otherwise. withQueryString keeps any future
+    // filters across page links.
     $upcomingTournaments = \App\Models\PokerTournament::with(['venue', 'season'])
+        // Lets the card show "You are registered" instead of offering a button
+        // the controller would reject. One exists() per row, not an N+1.
+        ->when(auth()->check(), fn ($query) => $query->withExists([
+            'registrants as viewer_registered' => fn ($r) => $r->where('user_id', auth()->id()),
+        ]))
         ->where('start_time', '>=', now())
         ->orderBy('start_time', 'asc')
-        ->get();
+        ->paginate(2)
+        ->withQueryString();
 
     $pastTournaments = \App\Models\PokerTournament::with(['venue', 'season', 'results'])
         ->where('start_time', '<', now())

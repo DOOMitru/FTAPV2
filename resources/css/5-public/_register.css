@@ -784,3 +784,176 @@
     gap: var(--space-6);
     grid-template-columns: repeat(auto-fit, minmax(min(14rem, 100%), 1fr));
 }
+
+/* An upcoming tournament: map beside the details, or details alone when the
+   venue has no address. auto-fit means the two-column form appears only when
+   there is room for it, and the no-map case needs no separate rule. */
+.p-event {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(22rem, 100%), 1fr));
+    overflow: hidden;
+}
+
+.p-event__body {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: var(--space-4);
+    padding: var(--space-6);
+}
+
+.p-event__title {
+    font-family: var(--font-display);
+    font-size: var(--step-2);
+    font-weight: 400;
+    line-height: var(--leading-tight);
+    text-transform: uppercase;
+}
+
+.p-event__facts {
+    display: grid;
+    gap: var(--space-4);
+    grid-template-columns: repeat(auto-fit, minmax(min(10rem, 100%), 1fr));
+}
+
+/* The embedded venue map. */
+.p-map {
+    position: relative;
+    min-height: 18rem;
+}
+
+.p-map iframe {
+    display: block;
+    width: 100%;
+    height: 100%;
+    border: 0;
+    filter: grayscale(1);
+}
+
+/* Inverted in DARK only. The original inverted in LIGHT and not in dark, which
+   put a dark map on a light page and a glaring light map on a dark one --
+   exactly backwards. hue-rotate puts the blues back after the invert. */
+:root[data-theme="dark"] .p-map iframe {
+    filter: grayscale(1) invert(0.92) hue-rotate(180deg);
+}
+
+@media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) .p-map iframe {
+        filter: grayscale(1) invert(0.92) hue-rotate(180deg);
+    }
+}
+
+.p-map__pin {
+    position: absolute;
+    inset-block-end: var(--space-4);
+    inset-inline: var(--space-4);
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-3) var(--space-4);
+    border-radius: var(--radius);
+    background-color: var(--c-surface);
+    box-shadow: var(--shadow-float);
+}
+
+.p-archive {
+    display: grid;
+    gap: var(--space-4);
+    grid-template-columns: repeat(auto-fit, minmax(min(18rem, 100%), 1fr));
+}
+
+.p-archive__card {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    padding: var(--space-5);
+    color: inherit;
+    text-decoration: none;
+}
+
+.p-archive__title {
+    font-size: var(--step-0);
+    font-weight: 600;
+}
+
+.p-archive__foot {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    margin-block-start: var(--space-4);
+    padding-block-start: var(--space-4);
+    border-block-start: var(--border-width) solid var(--c-border);
+}
+
+.p-archive__more {
+    font-family: var(--font-body);
+    font-size: var(--step--2);
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--c-text-muted);
+}
+
+/* The podium of a finished tournament, named rather than initialled. */
+.p-podium {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    margin: var(--space-2) 0 0;
+    padding: 0;
+    list-style: none;
+}
+
+.p-podium__row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+}
+
+.p-podium__name {
+    min-width: 0;
+    overflow: hidden;
+    font-size: var(--step--1);
+    font-weight: 600;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.p-archive__arrow {
+    width: 1rem;
+    height: 1rem;
+    color: var(--c-text-muted);
+    transition: transform var(--transition-fast);
+}
+
+.p-archive__card:hover .p-archive__arrow {
+    transform: translateX(3px);
+}
+
+.p-event__venue {
+    margin-block-start: var(--space-1);
+    font-size: var(--step--1);
+    font-weight: 600;
+    color: var(--c-text-muted);
+}
+
+/* Bottom right. margin-block-start:auto absorbs the free space before
+   .p-event__body's justify-content gets a say, so the actions sit on the floor
+   of the card whatever height the map forces. */
+.p-event__actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-end;
+    gap: var(--space-3);
+    margin-block-start: auto;
+    padding-block-start: var(--space-2);
+}
+
+/* One width for both, rather than letting "Details" and "Register" size
+   themselves to their own text -- a pair of actions that differ by 14px reads
+   as a mistake. 7.5rem clears the longer label with room for a translation. */
+.p-event__actions .btn {
+    min-width: 7.5rem;
+}
