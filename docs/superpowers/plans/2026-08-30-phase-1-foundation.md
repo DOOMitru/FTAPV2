@@ -23,6 +23,16 @@
 - Focus is never removed without replacement: `outline: 2px solid var(--c-primary); outline-offset: 2px`.
 - Copy follows spec §7: "Dashboard" not "Deck", "Standings" not "Chip count", active voice, errors state what happened and how to fix it.
 - **Deviation from spec §6.9, deliberate:** Tailwind is *not* uninstalled in this phase. See Task 1.
+- **Breakpoints are raw values, deliberately, and they collapse in a fixed order.** A CSS custom property cannot be used in a media query condition (`@media (max-width: var(--bp))` is invalid), so these values agree only by convention:
+
+  | Value | Where | Collapses |
+  |---|---|---|
+  | `60rem` (960px) | `.l-sidebar` (Task 4) | two-column content → one column |
+  | `56.25rem` (900px) | `.shell__rail` (Task 8) | left rail → off-canvas drawer |
+  | `48rem` (768px) | `.public__bar` (Task 9) | top bar row → stacked |
+
+  The order is intentional: `poker/seasons/show` nests a `.l-sidebar` inside the app shell, so the inner layout must simplify *before* the shell itself changes shape. Do not "tidy" these into one value — that would collapse both at once and produce a worse intermediate state. Do not add a breakpoint without extending this table.
+
 
 ### Palette (spec §6.1) — copy these values exactly
 
@@ -100,6 +110,8 @@ tests/Feature/
 npm install --save-dev postcss-import
 ```
 
+Note: `postcss-import` is already present at 15.1.0 as a transitive dependency, so this promotes it to a direct devDependency rather than downloading anything new.
+
 - [ ] **Step 2: Register it**
 
 Replace `postcss.config.js` entirely:
@@ -127,20 +139,32 @@ mkdir -p resources/css/1-base resources/css/2-layout resources/css/3-components 
 Replace `resources/css/app.css` entirely:
 
 ```css
+/* First To Act Poker design system. Cascade order within the imports matters:
+   tokens define the variables everything else reads, layout owns spacing,
+   components own appearance, pages own the few one-off rules that belong
+   nowhere else.
+
+   These @import statements MUST come before the @tailwind directives. CSS
+   requires @import to precede all other statements, and postcss-import
+   enforces it by SILENTLY SKIPPING any @import that follows one — it emits a
+   warning ("@import must precede all other statements") and the build still
+   succeeds. Putting these after @tailwind would therefore leave the entire
+   design system unloaded with a green build and no error. Verified
+   empirically before this plan was executed. */
+@import "./1-base/_tokens.css";
+@import "./1-base/_typography.css";
+
 /* Tailwind — temporary. Removed at the end of Phase 5, once every view is
-   converted. Until then it styles the views this phase has not reached. */
+   converted. Until then it styles the views this phase has not reached.
+   It loads after the design system, so on the rare selector both target,
+   a Tailwind utility wins. That is correct during the transition: unconverted
+   views must keep rendering exactly as they do today. */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
-/* First To Act Poker design system. Cascade order matters: tokens define the
-   variables everything else reads, layout owns spacing, components own
-   appearance, pages own the few one-off rules that belong nowhere else. */
-@import "./1-base/_tokens.css";
-@import "./1-base/_typography.css";
 ```
 
-`@import` statements must sit above every rule except `@charset` and `@layer`, so `postcss-import` inlines them where written.
+Every later task appends its `@import` to the block at the top of the file, never below the `@tailwind` directives.
 
 - [ ] **Step 5: Verify the build**
 
@@ -378,7 +402,6 @@ export function initTheme(): void {
 Replace `resources/js/app.ts`:
 
 ```ts
-import './bootstrap';
 import Alpine from 'alpinejs';
 import { initTheme, toggleTheme } from './theme';
 
@@ -392,19 +415,23 @@ window.toggleTheme = toggleTheme;
 document.addEventListener('DOMContentLoaded', initTheme);
 ```
 
-Add to `resources/js/types/global.d.ts`:
+There is deliberately no `import './bootstrap'` line: `resources/js/bootstrap.ts` existed
+only to put `axios` on `window`, and both it and the `axios` dependency were removed after
+this plan was written. `resources/js/` now contains exactly `app.ts` and `types/global.d.ts`.
+
+`resources/js/types/global.d.ts` already declares `window.Alpine`. **Add** `toggleTheme` to
+that existing interface — do not replace the file, or the Alpine declaration is lost:
 
 ```ts
+import type Alpine from 'alpinejs';
+
 declare global {
     interface Window {
+        Alpine: typeof Alpine;
         toggleTheme: () => void;
     }
 }
-
-export {};
 ```
-
-If the file already declares `Window`, add `toggleTheme` to the existing interface rather than redeclaring it.
 
 - [ ] **Step 4: Create the pre-paint script component**
 
@@ -485,19 +512,46 @@ Suggested message: `feat: add design tokens and move theming to data-theme`
 
 - [ ] **Step 1: Fetch the fonts**
 
-Three families, latin subset, woff2:
+**Corrected before dispatch — "Archivo Expanded" is not a real font family.** Requesting it
+returns `400: Font family not found`. Archivo is a *variable* font with a width (`wdth`) axis
+spanning 62%-125%, and "Expanded" is the top of that axis, not a separate family. So the
+display face is Archivo at `font-stretch: 125%` — the same typeface the design calls for,
+delivered from **one** file instead of two.
+
+Three files, latin subset, woff2:
 
 ```bash
 mkdir -p public/fonts
-# Archivo (variable, wght 100-900)      -> public/fonts/archivo.woff2
-# Archivo Expanded (variable, wght)     -> public/fonts/archivo-expanded.woff2
-# IBM Plex Mono 400 and 600             -> public/fonts/plex-mono-400.woff2
-#                                          public/fonts/plex-mono-600.woff2
+# Archivo variable (wght 100-900, wdth 62%-125%) -> public/fonts/archivo.woff2
+# IBM Plex Mono 400                              -> public/fonts/plex-mono-400.woff2
+# IBM Plex Mono 600                              -> public/fonts/plex-mono-600.woff2
 ```
 
-Source them from `https://fonts.bunny.net/css2?family=...` — request the CSS, read the `src: url(...)` values, download those files. All three are OFL licensed and may be self-hosted.
+Fetch them by requesting the Google Fonts CSS **with a modern browser User-Agent** — with an
+old or absent UA the API serves `.ttf` instead of `woff2`:
 
-**If the network is unavailable:** keep the existing `fonts.bunny.net` `<link>` in both layouts, request `archivo:400,500,600` and `ibm-plex-mono:400,600` instead of `figtree`, skip the `@font-face` block below, and record the deviation in the checkpoint message. Archivo Expanded is only reachable as a variable-width axis, so in that case set `--font-display: "Archivo", system-ui, sans-serif` and add `font-stretch: 125%` on `.u-display`. Everything else is unaffected.
+```bash
+UA="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
+curl -s -A "$UA" "https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,100..900&display=swap"
+curl -s -A "$UA" "https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&display=swap"
+```
+
+Each response contains several `@font-face` blocks, one per unicode subset. **Take the `latin`
+subset only** — the one whose `unicode-range` starts `U+0000-00FF`. Download that block's
+`src: url(...)` file. Both families are OFL licensed and may be self-hosted.
+
+Verify after downloading: `file public/fonts/*.woff2` should report `Web Open Font Format
+(Version 2)` for all three, and each should be non-empty.
+
+**Also update the display token.** Task 2 wrote `--font-display: "Archivo Expanded", "Archivo", system-ui, sans-serif;` into `resources/css/1-base/_tokens.css:66`. Since no such family exists, change it to:
+
+```css
+    --font-display: "Archivo", system-ui, sans-serif;
+```
+
+The expanded appearance now comes from `font-stretch` on `.u-display`, not from a family name.
+
+**If the network is unavailable:** keep the existing `fonts.bunny.net` `<link>` in the layouts, request `archivo:400,500,600` and `ibm-plex-mono:400,600` instead of `figtree`, skip the `@font-face` block, and record the deviation in your report. `.u-display`'s `font-stretch: 125%` still applies if the served Archivo is variable; if it is not, the display face falls back to normal width and the design gate at Task 10 should note it.
 
 - [ ] **Step 2: Write the typography layer**
 
@@ -506,18 +560,14 @@ Replace `resources/css/1-base/_typography.css`:
 ```css
 /* Self-hosted, OFL. font-display: swap keeps text visible during load. */
 
+/* One variable file carries both roles: body text at the default width, and the
+   display face at the top of the width axis. font-stretch here declares the
+   range the file supports; .u-display below selects 125% from it. */
 @font-face {
     font-family: "Archivo";
     src: url("/fonts/archivo.woff2") format("woff2-variations");
     font-weight: 100 900;
-    font-style: normal;
-    font-display: swap;
-}
-
-@font-face {
-    font-family: "Archivo Expanded";
-    src: url("/fonts/archivo-expanded.woff2") format("woff2-variations");
-    font-weight: 100 900;
+    font-stretch: 62% 125%;
     font-style: normal;
     font-display: swap;
 }
@@ -551,6 +601,10 @@ body {
    large sizes and loosely tracked at small ones. */
 .u-display {
     font-family: var(--font-display);
+    /* The expanded look. Archivo's width axis tops out at 125%; this is what
+       makes the display voice read as broadcast lower-third rather than as
+       ordinary body type set large. */
+    font-stretch: 125%;
     font-weight: 700;
     line-height: var(--leading-tight);
     text-transform: uppercase;
@@ -634,7 +688,7 @@ Spacing lives here and nowhere else. This is the rule that keeps components comp
 - Modify: `resources/css/app.css`
 
 **Interfaces:**
-- Consumes: `--space-*`, `--measure`, `--rail-width`
+- Consumes: `--space-*`, `--measure` (`--rail-width` is a token but is consumed by Task 8's app shell, not here)
 - Produces: `.l-container`, `.l-stack`, `.l-cluster`, `.l-grid`, `.l-sidebar`, `.l-prose`
 
 - [ ] **Step 1: Write the primitives**

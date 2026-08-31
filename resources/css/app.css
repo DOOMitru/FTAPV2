@@ -12,6 +12,7 @@
    empirically before this plan was executed. */
 @import "./1-base/_tokens.css";
 @import "./1-base/_typography.css";
+@import "./2-layout/_primitives.css";
 
 /* Tailwind — temporary. Removed at the end of Phase 5, once every view is
    converted. Until then it styles the views this phase has not reached.

@@ -1,0 +1,70 @@
+/* Layout primitives own every margin and gap in the system. Components set
+   their own padding and never their own outer spacing, so any component can be
+   dropped into any layout without dragging whitespace along with it. */
+
+.l-container {
+    width: 100%;
+    max-width: 80rem;
+    margin-inline: auto;
+    padding-inline: var(--space-4);
+}
+
+.l-container--narrow {
+    max-width: 48rem;
+}
+
+/* Vertical rhythm. The owl selector spaces siblings without a trailing gap. */
+.l-stack > * + * {
+    margin-block-start: var(--space-5);
+}
+
+.l-stack--tight > * + * {
+    margin-block-start: var(--space-3);
+}
+
+.l-stack--loose > * + * {
+    margin-block-start: var(--space-8);
+}
+
+/* Horizontal grouping that wraps rather than overflows. */
+.l-cluster {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-3);
+}
+
+.l-cluster--between {
+    justify-content: space-between;
+}
+
+.l-cluster--end {
+    justify-content: flex-end;
+}
+
+/* Responsive without media queries: columns collapse when they cannot fit. */
+.l-grid {
+    display: grid;
+    gap: var(--space-4);
+    grid-template-columns: repeat(auto-fit, minmax(min(16rem, 100%), 1fr));
+}
+
+.l-grid--wide {
+    grid-template-columns: repeat(auto-fit, minmax(min(22rem, 100%), 1fr));
+}
+
+.l-sidebar {
+    display: grid;
+    gap: var(--space-5);
+    grid-template-columns: minmax(0, 2fr) minmax(min(18rem, 100%), 1fr);
+}
+
+@media (max-width: 60rem) {
+    .l-sidebar {
+        grid-template-columns: 1fr;
+    }
+}
+
+.l-prose {
+    max-width: var(--measure);
+}
