@@ -15,6 +15,7 @@
 @import "./2-layout/_primitives.css";
 @import "./2-layout/_shell-app.css";
 @import "./2-layout/_topbar.css";
+@import "./2-layout/_shell-public.css";
 @import "./3-components/_btn.css";
 @import "./3-components/_card.css";
 @import "./3-components/_form.css";

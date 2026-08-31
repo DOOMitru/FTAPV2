@@ -39,6 +39,10 @@
 
 .field__error {
     margin-block-start: var(--space-2);
+    /* <x-input-error> renders a <ul>; strip the marker and indent so a single
+       message reads as a line of text rather than a bulleted list. */
+    list-style: none;
+    padding-inline-start: 0;
     color: var(--c-accent-text);
     font-size: var(--step--1);
     font-weight: 600;
