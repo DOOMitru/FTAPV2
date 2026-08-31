@@ -1,0 +1,29 @@
+.alert {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-3);
+    padding: var(--space-3) var(--space-4);
+    border: var(--border-width) solid var(--c-border);
+    border-inline-start-width: 3px;
+    border-radius: var(--radius-sm);
+    background-color: var(--c-surface);
+    font-size: var(--step--1);
+}
+
+/* .alert--info and .alert--success are deliberately pixel-identical: the
+   fixed, approved brand palette has no --c-success token, so both borrow
+   --c-primary. They stay distinguished by `role` and by message text, not
+   colour. Do not invent a success colour here — that needs palette
+   approval first. */
+.alert--info {
+    border-inline-start-color: var(--c-primary);
+}
+
+.alert--success {
+    border-inline-start-color: var(--c-primary);
+}
+
+/* Coral as a border, not a text ground — no contrast problem here. */
+.alert--danger {
+    border-inline-start-color: var(--c-accent);
+}

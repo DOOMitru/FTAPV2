@@ -1,0 +1,51 @@
+.field__label {
+    display: block;
+    font-family: var(--font-display);
+    font-size: var(--step--2);
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--c-text-muted);
+}
+
+.field__control {
+    display: block;
+    width: 100%;
+    margin-block-start: var(--space-2);
+    padding: var(--space-2) var(--space-3);
+    border: var(--border-width) solid var(--c-border);
+    border-radius: var(--radius-sm);
+    background-color: var(--c-bg);
+    color: var(--c-text);
+    font-family: var(--font-body);
+    font-size: var(--step-0);
+    transition: border-color var(--transition-fast);
+}
+
+.field__control:hover {
+    border-color: var(--c-text-muted);
+}
+
+.field__control:focus-visible {
+    outline: 2px solid var(--c-primary);
+    outline-offset: 1px;
+    border-color: var(--c-primary);
+}
+
+.field__control--mono {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+}
+
+.field__error {
+    margin-block-start: var(--space-2);
+    color: var(--c-accent-text);
+    font-size: var(--step--1);
+    font-weight: 600;
+}
+
+.field__hint {
+    margin-block-start: var(--space-2);
+    color: var(--c-text-muted);
+    font-size: var(--step--1);
+}

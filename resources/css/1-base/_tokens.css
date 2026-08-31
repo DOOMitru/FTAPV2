@@ -28,6 +28,13 @@
     --c-accent-strong: #D63A2C;
     --c-accent-hover: #B93225;
     --c-accent-ink: #FFFFFF;
+    /* Accent-coloured text set directly on a page or surface background
+       (error copy, accent badge labels) — distinct from --c-accent (fills
+       behind large/bold text, borders, icons) and --c-accent-strong (fills
+       that carry small white text). #D63A2C only clears 4.5:1 on white; it
+       fails on --c-bg/--c-surface-raised and on every dark surface, so this
+       token is themed and remapped in both dark blocks below. */
+    --c-accent-text: #C0311F;
 
     /* Dark — Cyber Navy. Declared here, applied below. */
     --dark-bg: #0B0F19;
@@ -39,6 +46,7 @@
     --dark-primary: #06B6D4;
     --dark-primary-hover: #22D3EE;
     --dark-primary-ink: #0B0F19;
+    --dark-accent-text: #F4685C;
 
     /* Spacing — 4px base */
     --space-1: 0.25rem;
@@ -98,6 +106,7 @@
         --c-primary: var(--dark-primary);
         --c-primary-hover: var(--dark-primary-hover);
         --c-primary-ink: var(--dark-primary-ink);
+        --c-accent-text: var(--dark-accent-text);
     }
 }
 
@@ -112,6 +121,7 @@
     --c-primary: var(--dark-primary);
     --c-primary-hover: var(--dark-primary-hover);
     --c-primary-ink: var(--dark-primary-ink);
+    --c-accent-text: var(--dark-accent-text);
 }
 
 /* Alpine hides these until it initialises. Replaces the style="display: none"

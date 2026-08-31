@@ -1,0 +1,73 @@
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-2);
+    padding: var(--space-2) var(--space-4);
+    border: var(--border-width) solid transparent;
+    border-radius: var(--radius);
+    background-color: transparent;
+    color: var(--c-text);
+    font-family: var(--font-display);
+    font-size: var(--step--1);
+    font-weight: 600;
+    line-height: 1;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    text-decoration: none;
+    white-space: nowrap;
+    cursor: pointer;
+    transition:
+        background-color var(--transition-fast),
+        border-color var(--transition-fast),
+        color var(--transition-fast);
+}
+
+.btn:focus-visible {
+    outline: 2px solid var(--c-primary);
+    outline-offset: 2px;
+}
+
+.btn:disabled,
+.btn[aria-disabled="true"] {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.btn--primary {
+    background-color: var(--c-primary);
+    color: var(--c-primary-ink);
+}
+
+.btn--primary:hover {
+    background-color: var(--c-primary-hover);
+}
+
+.btn--ghost {
+    border-color: var(--c-border);
+    color: var(--c-text);
+}
+
+.btn--ghost:hover {
+    background-color: var(--c-surface-raised);
+}
+
+/* --c-accent-strong, not --c-accent: a 13px uppercase label is normal-size
+   text, and white on #EF4537 is only 3.8:1. */
+.btn--danger {
+    background-color: var(--c-accent-strong);
+    color: var(--c-accent-ink);
+}
+
+.btn--danger:hover {
+    background-color: var(--c-accent-hover);
+}
+
+.btn--sm {
+    padding: var(--space-1) var(--space-3);
+    font-size: var(--step--2);
+}
+
+.btn--block {
+    width: 100%;
+}
