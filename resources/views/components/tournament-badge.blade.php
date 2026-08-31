@@ -20,7 +20,7 @@
     <!-- Token Marks (Poker Chip Style) -->
     <div class="absolute inset-0 flex items-center justify-center">
         @foreach([0, 45, 90, 135, 180, 225, 270, 315] as $angle)
-            <div class="absolute w-1 h-2 {{ $isChampionship ? 'bg-amber-200/40' : 'bg-slate-400/30' }}" style="transform: rotate({{ $angle }}deg) translateY(-11px);"></div>
+            <div class="chip-mark chip-mark--{{ $angle }} {{ $isChampionship ? 'bg-amber-200/40' : 'bg-slate-400/30' }}"></div>
         @endforeach
     </div>
 
@@ -42,12 +42,3 @@
     <div class="absolute inset-0 rounded-full opacity-0 hover:opacity-100 transition-opacity duration-300 {{ $isChampionship ? 'shadow-[0_0_25px_rgba(251,191,36,0.8)]' : 'shadow-[0_0_20px_rgba(99,102,241,0.4)]' }}"></div>
 </div>
 
-<style>
-    @keyframes token-rotate {
-        from { transform: rotate(0deg); }
-        to { transform: rotate(360deg); }
-    }
-    .token-spin {
-        animation: token-rotate 20s linear infinite;
-    }
-</style>

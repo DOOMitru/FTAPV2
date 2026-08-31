@@ -321,11 +321,4 @@
         </div>
     </div>
 
-    <style>
-        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(99, 102, 241, 0.1); border-radius: 10px; }
-        .custom-scrollbar:hover::-webkit-scrollbar-thumb { background: rgba(99, 102, 241, 0.3); }
-        .dark .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(99, 102, 241, 0.2); }
-    </style>
 </x-app-layout>

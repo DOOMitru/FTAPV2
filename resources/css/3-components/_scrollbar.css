@@ -1,0 +1,25 @@
+/* Opt-in slim scrollbar for panels that scroll inside a card. WebKit-only by
+   nature; browsers without ::-webkit-scrollbar keep their native one, which is
+   the correct fallback.
+
+   Lifted out of a <style> block in poker/tournaments/show.blade.php. The
+   hardcoded indigo rgba() values became border tokens, and the old
+   `.dark .custom-scrollbar` rule is gone: it keyed on a `.dark` class this
+   system stopped using when theming moved to [data-theme], so it had silently
+   been dead. The tokens flip themselves, so no theme-specific rule is needed. */
+.custom-scrollbar::-webkit-scrollbar {
+    width: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+    border-radius: var(--radius-pill);
+    background: var(--c-border);
+}
+
+.custom-scrollbar:hover::-webkit-scrollbar-thumb {
+    background: var(--c-text-muted);
+}
