@@ -29,7 +29,7 @@ $menuClasses = 'dropdown__menu'
 @endphp
 
 <div {{ $attributes->merge(['class' => 'dropdown']) }} x-data="{ open: false }" @click.outside="open = false" @close.stop="open = false">
-    <div @click="open = ! open" aria-haspopup="menu" x-bind:aria-expanded="open.toString()">
+    <div class="dropdown__trigger" @click="open = ! open" aria-haspopup="menu" x-bind:aria-expanded="open.toString()">
         {{ $trigger }}
     </div>
 

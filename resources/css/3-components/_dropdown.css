@@ -3,12 +3,27 @@
     display: inline-block;
 }
 
+/* Flex rather than the default block: a block box around the inline-level
+   trigger forms a line box, and its descender space made this wrapper 1.3px
+   taller than the trigger inside it -- enough to push the authenticated top bar
+   past the public one. A flex box has no line box, so it measures exactly its
+   child. Do NOT make .dropdown itself a flex container to achieve the same
+   thing: that turns the menu into a flex item, whose static position is the
+   container's corner rather than the flow position below the trigger, and the
+   menu lands on top of the bar. */
+.dropdown__trigger {
+    display: flex;
+}
+
 /* Dropdowns and modals are the system's only exception to borders-not-shadows.
    A floating layer separated by a 1px hairline alone reads as broken. Sized
    and grounded deliberately (raised surface, generous min-width) so the menu
    reads as a considered panel rather than a default browser popup. */
 .dropdown__menu {
     position: absolute;
+    /* Explicit rather than inherited from flow: the menu used to sit below the
+       trigger only because that was its static position. */
+    inset-block-start: 100%;
     inset-inline-end: 0;
     z-index: 50;
     min-width: 13rem;
@@ -61,7 +76,7 @@
     color: var(--c-text);
     /* Matches .nav-link exactly, so a menu item and a top-level link read as the
        same kind of thing — one navigation vocabulary, not two. */
-    font-family: var(--font-display);
+    font-family: var(--font-body);
     font-size: var(--step--2);
     font-weight: 600;
     letter-spacing: 0.12em;

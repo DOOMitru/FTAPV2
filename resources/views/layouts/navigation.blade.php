@@ -64,7 +64,7 @@
             <x-dropdown align="right" width="48">
                 <x-slot name="trigger">
                     <button type="button" class="nav-link nav-link--user">
-                        <x-avatar :user="auth()->user()" decorative />
+                        <x-avatar :user="auth()->user()" size="sm" decorative />
                         <span>{{ auth()->user()->display_name }}</span>
                     </button>
                 </x-slot>
@@ -96,7 +96,7 @@
                 <x-theme-toggle />
 
                 <a class="nav-link nav-link--user" href="{{ route('profile.edit') }}">
-                    <x-avatar :user="auth()->user()" decorative />
+                    <x-avatar :user="auth()->user()" size="sm" decorative />
                     <span>{{ auth()->user()->display_name }}</span>
                 </a>
             </div>

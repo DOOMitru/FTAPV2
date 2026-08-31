@@ -49,9 +49,8 @@
 /* Identity: wide, uppercase, tracked. */
 .brand__name {
     font-family: var(--font-display);
-    font-stretch: 125%;
     font-size: var(--step--1);
-    font-weight: 700;
+    font-weight: 400;
     letter-spacing: 0.06em;
     text-transform: uppercase;
 }
@@ -101,6 +100,24 @@
 .topbar__burger-icon {
     width: 1.5rem;
     height: 1.5rem;
+}
+
+/* Every control in the bar shares one 2.25rem height — brand logo, burger,
+   theme toggle, nav links and the user trigger alike — so the bar's height is
+   set by that constant and not by whichever child happens to be tallest. The
+   authenticated bar previously ran 20px taller than the public one because the
+   user trigger stacked a 2.5rem avatar inside .nav-link's block padding (56px);
+   with a matching min-height here and .avatar--sm on the trigger, both bars
+   measure the same. */
+.topbar .nav-link {
+    min-height: 2.25rem;
+}
+
+/* The avatar is taller than a nav link's text, so .nav-link's own block padding
+   would push this trigger past the shared height. Trimming it lets min-height
+   above govern instead, and the avatar stays optically centred. */
+.topbar .nav-link--user {
+    padding-block: var(--space-1);
 }
 
 /* Above 48rem: one flex row, links then actions pushed to the end. */
@@ -234,6 +251,10 @@
 
     .topbar__actions {
         display: flex;
+        /* Aligns the guest row (theme / log in / join), which has no
+           .topbar__actions-mobile wrapper of its own. The signed-in wrapper is
+           width:100% with its own space-between, so this does not reach it. */
+        justify-content: flex-end;
         width: 100%;
         margin-inline-start: 0;
         margin-block-start: var(--space-3);

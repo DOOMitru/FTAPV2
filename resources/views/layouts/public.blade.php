@@ -53,11 +53,35 @@
                 </x-slot>
 
                 <x-slot name="actions">
-                    <x-theme-toggle />
                     @auth
-                        <x-btn variant="ghost" size="sm" :href="route('dashboard')">{{ __('Dashboard') }}</x-btn>
+                        {{-- Signed in, the public bar carries the same two structures as
+                             the dashboard's own bar and reuses its classes: a plain row on
+                             desktop, a flat left/right row on mobile. Dashboard is a nav
+                             link, not a button -- it is another place to go, the same as
+                             Events or About. --}}
+                        <div class="topbar__actions-desktop">
+                            <x-theme-toggle />
+                            <a class="nav-link" href="{{ route('dashboard') }}">{{ __('Dashboard') }}</a>
+                        </div>
+
+                        {{-- Mobile: log out alone on the left where a destructive action is
+                             hard to hit by accident; theme and Dashboard group on the right,
+                             matching layouts/navigation.blade.php exactly. --}}
+                        <div class="topbar__actions-mobile">
+                            <form method="POST" action="{{ route('logout') }}">
+                                @csrf
+                                <x-btn variant="danger" size="sm">{{ __('Log out') }}</x-btn>
+                            </form>
+
+                            <div class="topbar__identity">
+                                <x-theme-toggle />
+                                <a class="nav-link" href="{{ route('dashboard') }}">{{ __('Dashboard') }}</a>
+                            </div>
+                        </div>
                     @else
+                        <x-theme-toggle />
                         <a class="nav-link" href="{{ route('login') }}">{{ __('Log in') }}</a>
+                        {{-- "Join" stays a button: it is the one call to action on the page. --}}
                         <x-btn variant="primary" size="sm" :href="route('register')">{{ __('Join') }}</x-btn>
                     @endauth
                 </x-slot>

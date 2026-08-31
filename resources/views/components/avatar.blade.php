@@ -7,12 +7,22 @@
 @props(['user', 'size' => 'md', 'decorative' => false])
 
 @php
-    $dimension = $size === 'lg' ? 64 : 40;
+    $dimension = match ($size) {
+        'lg' => 64,
+        'sm' => 24,
+        default => 40,
+    };
+
+    $sizeClass = match ($size) {
+        'lg' => ' avatar--lg',
+        'sm' => ' avatar--sm',
+        default => '',
+    };
 @endphp
 
 <img
     {{ $attributes->merge([
-        'class' => 'avatar'.($size === 'lg' ? ' avatar--lg' : ''),
+        'class' => 'avatar'.$sizeClass,
         'src' => $user->profile_image_url,
         'alt' => $decorative ? '' : $user->display_name,
         'width' => $dimension,
