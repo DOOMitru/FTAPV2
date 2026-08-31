@@ -4,15 +4,21 @@
 
 ## Where things stand
 
-Phase 0 (correctness + cleanup) and Phase 1 (the design system foundation) are both
-**complete and committed**. All 12 Phase 1 tasks are done and the exit criteria have been
-measured, not assumed — see `docs/PHASE-1-EXIT-AUDIT.md`.
+Phases 0, 1 and **2** are complete and committed. Phase 1's exit criteria were measured,
+not assumed — see `docs/PHASE-1-EXIT-AUDIT.md`. Phase 2 converted all eight public pages.
 
-Suite: **96 passed, 0 failed.** Run `php artisan test`.
+Suite: **107 passed, 0 failed.** Run `php artisan test`.
 
-**50 of 82 views still contain Tailwind.** That is Phases 2–5 and it is the bulk of the
-remaining work. The heaviest are `poker/tournaments/show` (519 utility classes), `home`
-(396), `dashboard` (313), `poker/venues/show` (285), `events` (266).
+**38 of 86 views still contain Tailwind — and that number is now a test, not a note.**
+`tests/Feature/ConvertedViewsTest.php` names every view still permitted to contain it and
+fails in both directions: a converted view picking Tailwind back up, AND an allowlist entry
+that has since been converted and should be removed. The second assertion is what stops the
+list rotting. Phase 3 removes the auth and profile entries, Phase 4 the three showcase
+pages, Phase 5 the admin CRUD — and when the array is empty, deleting Tailwind is a test
+going green rather than a judgement call.
+
+The heaviest remaining: `poker/tournaments/show` (553), `dashboard` (325),
+`poker/venues/show` (311), `auth/register` (179), `auth/login` (149).
 
 ### Read these first, in order
 
@@ -25,7 +31,25 @@ remaining work. The heaviest are `poker/tournaments/show` (519 utility classes),
 
 ### The next action
 
-Plan and execute Phase 2. Phase 1 built the system; Phases 2–5 apply it to the 50 views
+Plan and execute **Phase 3** (auth + profile, 10 views). Write
+`docs/superpowers/plans/2026-XX-XX-phase-3-auth.md` the way Phase 2's plan was written, and
+**pre-flight it** — the Phase 2 plan had three defects caught that way, one of which (the
+contact honeypot) would have silently disabled spam protection.
+
+Guards added during Phase 2 that Phase 3 inherits:
+
+| Test | What it catches |
+|---|---|
+| `ConvertedViewsTest` | the conversion ledger, in both directions |
+| `ModifierClassGuardTest` | `l-grid--wide` without `l-grid` — a modifier alone silently does nothing |
+| `PublicRegisterTest` | gradient/elevation tokens leaking into the dashboard |
+| `InlineStyleGuardTest` | inline CSS, both the attribute and `<style>` blocks |
+| `ContentPreservationTest` | now covers the rules pages, events, and the public empty states |
+
+The one lesson worth carrying: **computed-style checks pass while a page looks wrong.**
+Every bug the owner found in Phase 2 — invisible gradients, a double-escaped apostrophe, a
+300px hole from a specificity collision, an unreadable panel — passed every assertion I ran
+and was obvious in a screenshot. Screenshot each page before calling it converted. Phase 1 built the system; Phases 2–5 apply it to the 50 views
 that still carry Tailwind. Tailwind itself is removed at the end of Phase 5 — until then
 it loads *after* the design system in `app.css` so unconverted views keep rendering.
 
