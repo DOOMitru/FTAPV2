@@ -151,8 +151,15 @@ costs eight. The Phase 1 equivalent (Task 10) earned its cost.
 
 ## Task 3: `rules/tournament` and `rules/betting`
 
-Same shape as Task 2 — hero, section heads, numbered items — but the rules come from the
-controller rather than an inline array, and `betting` adds a penalties table.
+Same shape as Task 2 — hero, section heads, numbered items — plus a penalties/stakes block
+on each.
+
+> **Pre-flight correction (Task 1).** This plan originally said these pages' rules "come
+> from the controller". They do not. `routes/web.php:41–58` returns the bare view for all
+> three of `regulations`, `conduct` and `texas-holdem`; every rule lives in an inline `@php`
+> array **inside the view being rewritten**. That makes a dropped rule invisible to
+> everything except a text assertion, which is why Task 1's content tests assert all 21
+> Texas Hold'em rule titles individually rather than a sample.
 
 **Files:** both views. No new CSS expected; if a block is missing, that is a signal Task 1
 under-built, so add it to `5-public/` rather than inline to one page.
@@ -210,8 +217,10 @@ the same as "play has started" (`$isPast`, derived from `start_time`). There is 
 window where registration is closed but play has not begun. Whatever the current view does
 with those two conditions, preserve it exactly — this is behaviour, not styling.
 
-Both `@forelse` empty branches need the assertion described in Task 4 — the existing
-sweep would not notice if they vanished.
+`events` has **one** `@forelse` (upcoming tournaments), not two — past tournaments render
+through a plain `@foreach`. Its `@empty` arm is now asserted by
+`test_public_empty_states_still_say_something`; the existing sweep would not have noticed
+if it vanished.
 
 ---
 

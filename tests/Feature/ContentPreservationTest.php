@@ -278,4 +278,172 @@ class ContentPreservationTest extends TestCase
         $this->assertStringContainsString('Events Played 4', $text);
         $this->assertStringContainsString('Tournament Wins 2', $text);
     }
+
+    // -----------------------------------------------------------------
+    // Phase 2: the public pages.
+    //
+    // The rules pages are the sharpest risk in the whole conversion. All
+    // four hold their content in inline @php arrays inside the very view
+    // being rewritten -- the routes pass them nothing -- so a rewrite that
+    // drops a rule, or reorders the numbering, changes the league's
+    // published regulations and breaks no other test. RouteSmokeTest sees
+    // a 200. EmptyStateSmokeTest sees no Blade artifact. Only an assertion
+    // on the text notices.
+    //
+    // As with the methods above: assert on CONTENT, never on markup, so the
+    // conversion is free to change every tag.
+    // -----------------------------------------------------------------
+
+    /**
+     * 21 numbered rules across 5 sections, plus the 10 hand rankings.
+     */
+    public function test_texas_holdem_preserves_every_rule(): void
+    {
+        $response = $this->get('/rules/texas-holdem');
+        $response->assertOk();
+
+        foreach ([
+            'Structural Standards', 'The Dealing Phase', 'Wagering Intervals',
+            'The Showdown', 'Technical Provisions',
+        ] as $section) {
+            $response->assertSee($section);
+        }
+
+        // All 21, not a sample. A dropped rule is the exact failure this
+        // method exists to catch, and the titles are distinctive enough to
+        // assert individually.
+        foreach ([
+            'The Deck', 'The Blinds', 'The Shuffle', 'Hole Cards', 'Misdeals',
+            'Dead Hands', 'Pre-Flop Betting', 'The Flop', 'The Turn', 'The River',
+            'Burn Cards', 'Card Value', 'Order of Show', 'Cards Speak',
+            'Splitting Pots', 'Mucking', 'Side Pots', 'Rabbitting',
+            'Playing the Board', 'Chip Positioning', 'Director Finality',
+        ] as $rule) {
+            $response->assertSee($rule);
+        }
+
+        // The zero-padded numbering is content too -- rules get cited by
+        // number. Only the endpoints are asserted: every intermediate value
+        // is a two-digit string that would match somewhere by accident, so
+        // asserting all of them would be a check that cannot fail.
+        $text = preg_replace('/\s+/', ' ', strip_tags($response->getContent()));
+        $this->assertStringContainsString('01', $text);
+        $this->assertStringContainsString('21', $text);
+
+        foreach ([
+            'Royal Flush', 'Straight Flush', 'Four of a Kind', 'Full House', 'Flush',
+            'Straight', 'Three of a Kind', 'Two Pair', 'One Pair', 'High Card',
+        ] as $rank) {
+            $response->assertSee($rank);
+        }
+    }
+
+    public function test_conduct_rules_page_preserves_every_rule(): void
+    {
+        $response = $this->get('/rules/conduct');
+        $response->assertOk();
+
+        foreach ([
+            'Verbal Declarations', 'String Betting', 'Oversized Chips', 'Raise Limits',
+            'Ethical Play', 'Professional Courtesy', 'Table Communication', 'Electronic Devices',
+            'First Offense', 'Second Offense', 'Third Offense',
+        ] as $item) {
+            $response->assertSee($item);
+        }
+    }
+
+    public function test_regulations_page_preserves_every_rule(): void
+    {
+        $response = $this->get('/rules/regulations');
+        $response->assertOk();
+
+        foreach ([
+            'Standard Play', 'Blind Intervals', 'Re-Entry Policy', 'The Clock',
+            'Tournament Schedule', 'Points Accumulation', 'Seasonal Standings', 'Qualification',
+            'Point Multiplier', 'The Trophy',
+        ] as $item) {
+            $response->assertSee($item);
+        }
+    }
+
+    /**
+     * Live data rather than an inline array: the points table and the top
+     * three of the current season.
+     */
+    public function test_points_structure_page_preserves_the_table_and_the_leaders(): void
+    {
+        $season = PokerSeason::factory()->create(['name' => 'Season Verifiable', 'is_current' => true]);
+        $venue = Venue::factory()->create();
+        $tournament = PokerTournament::factory()->create([
+            'season_id' => $season->id,
+            'venue_id' => $venue->id,
+            'start_time' => now()->subWeek(),
+        ]);
+
+        $leader = User::factory()->create(['first_name' => 'Leadfoot', 'last_name' => 'Kowalczyk']);
+        PokerTournamentResult::factory()->create([
+            'tournament_id' => $tournament->id,
+            'user_id' => $leader->id,
+            'player_name' => 'Leadfoot Kowalczyk',
+            'place' => 1,
+            'points' => 391,
+        ]);
+
+        $response = $this->get('/rules/points-structure');
+        $response->assertOk();
+
+        // The season's NAME is never printed here -- it only reaches the page
+        // as a route parameter on the standings link. What is visible is the
+        // leader's name and their summed points.
+        $response->assertSee('Leadfoot');
+        $response->assertSee('Kowalczyk');
+        $response->assertSee('391');
+        $response->assertSee('Season Leaders Peak');
+
+        // Whatever the seeded structure holds, every place and point value in
+        // it has to survive the rewrite.
+        foreach (\App\Models\PointsStructure::orderBy('place')->get() as $row) {
+            $response->assertSee((string) $row->points);
+        }
+    }
+
+    public function test_events_page_preserves_upcoming_and_past_tournaments(): void
+    {
+        $season = PokerSeason::factory()->create(['is_current' => true]);
+        $venue = Venue::factory()->create(['name' => 'The Verifiable Room']);
+
+        PokerTournament::factory()->create([
+            'name' => 'Forthcoming Showdown', 'season_id' => $season->id,
+            'venue_id' => $venue->id, 'start_time' => now()->addWeek(),
+        ]);
+        PokerTournament::factory()->create([
+            'name' => 'Bygone Shootout', 'season_id' => $season->id,
+            'venue_id' => $venue->id, 'start_time' => now()->subWeek(),
+        ]);
+
+        $response = $this->get('/events');
+        $response->assertOk();
+
+        $response->assertSee('Forthcoming Showdown');
+        $response->assertSee('Bygone Shootout');
+        $response->assertSee('The Verifiable Room');
+    }
+
+    /**
+     * The @empty arms. EmptyStateSmokeTest only sweeps these two pages for
+     * 5xx and leaked Blade artifacts on an empty database -- a conversion
+     * that deleted the @empty arm outright would render a blank section,
+     * return 200 and pass. This is the assertion that notices.
+     */
+    public function test_public_empty_states_still_say_something(): void
+    {
+        $this->get('/events')
+            ->assertOk()
+            ->assertSee('No Scheduled Events')
+            ->assertSee('Check back soon for our next seasonal announcement.');
+
+        $this->get('/rules/points-structure')
+            ->assertOk()
+            ->assertSee('Standard league structure is being finalized.');
+    }
 }

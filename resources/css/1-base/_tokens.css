@@ -132,11 +132,12 @@
 
     --leading-tight: 1.15;
     --leading-normal: 1.55;
+    /* Long-form public copy — the rules pages are read, not scanned. */
+    --leading-relaxed: 1.7;
 
     --transition-fast: 140ms ease;
     --transition-reveal: 480ms cubic-bezier(0.2, 0.7, 0.3, 1);
 
-    --rail-width: 240px;
     --measure: 68ch;
 }
 
