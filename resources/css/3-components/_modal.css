@@ -23,6 +23,9 @@
     border-radius: var(--radius);
     background-color: var(--c-surface);
     box-shadow: var(--shadow-overlay);
+    /* Was mb-6 / overflow-hidden on the element. */
+    margin-block-end: var(--space-5);
+    overflow: hidden;
 }
 
 .modal__body {
@@ -35,4 +38,60 @@
     gap: var(--space-3);
     padding: var(--space-4) var(--space-5);
     border-block-start: var(--border-width) solid var(--c-border);
+}
+
+/* Scroll lock, set on <body> by the component's own JS. It used to add
+   Tailwind's .overflow-y-hidden -- a class named only inside a JS string, so it
+   would have vanished with Tailwind at the end of Phase 5 and taken the scroll
+   lock with it, silently. */
+body.is-modal-open {
+    overflow-y: hidden;
+}
+
+.modal__overlay {
+    position: fixed;
+    inset: 0;
+}
+
+/* Widths. The prop is honoured rather than ignored, and 2xl -- the default and
+   the only value any caller uses -- keeps .modal__panel's own 32rem so the one
+   live modal renders exactly as it did. */
+.modal__panel--sm  { max-width: 20rem; }
+.modal__panel--md  { max-width: 24rem; }
+.modal__panel--lg  { max-width: 26rem; }
+.modal__panel--xl  { max-width: 28rem; }
+.modal__panel--2xl { max-width: 32rem; }
+
+/* Motion, as class names for Alpine's x-transition. Same ordering caveat as
+   _dropdown.css: --leaving must follow the base rule to win on duration. */
+.modal__motion {
+    transition-property: opacity, transform;
+    transition-timing-function: cubic-bezier(0, 0, 0.2, 1);
+    transition-duration: 300ms;
+}
+
+.modal__motion--leaving {
+    transition-timing-function: cubic-bezier(0.4, 0, 1, 1);
+    transition-duration: 200ms;
+}
+
+.modal__fade-from { opacity: 0; }
+.modal__fade-to   { opacity: 1; }
+
+/* Below 40rem the panel rises; above it, it scales. That split is inherited
+   from the Tailwind classes this replaces (translate-y-4 / sm:scale-95). */
+.modal__rise-from {
+    opacity: 0;
+    transform: translateY(1rem);
+}
+
+@media (min-width: 40rem) {
+    .modal__rise-from {
+        transform: translateY(0) scale(0.95);
+    }
+}
+
+.modal__rise-to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
 }

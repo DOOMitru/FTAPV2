@@ -33,6 +33,7 @@
 @import "./3-components/_nav.css";
 @import "./3-components/_chip-token.css";
 @import "./3-components/_scrollbar.css";
+@import "./3-components/_section-badge.css";
 @import "./4-pages/_season-show.css";
 
 /* Tailwind — temporary. Removed at the end of Phase 5, once every view is

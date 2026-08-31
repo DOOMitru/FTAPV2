@@ -26,7 +26,7 @@
                        @if (request()->routeIs('events')) aria-current="page" @endif
                        href="{{ route('events') }}">{{ __('Events') }}</a>
 
-                    <x-dropdown align="left" width="48" :inline-mobile="true">
+                    <x-dropdown align="left" :inline-mobile="true">
                         <x-slot name="trigger">
                             <button type="button"
                                     class="nav-link {{ request()->routeIs('rules.*') ? 'nav-link--current' : '' }}"

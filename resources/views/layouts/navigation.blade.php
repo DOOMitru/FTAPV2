@@ -5,7 +5,7 @@
            href="{{ route('dashboard') }}">{{ __('Dashboard') }}</a>
 
         @if (Auth::user()->is_admin)
-            <x-dropdown align="left" width="48" :inline-mobile="true">
+            <x-dropdown align="left" :inline-mobile="true">
                 <x-slot name="trigger">
                     <button type="button"
                             class="nav-link {{ request()->routeIs('poker.seasons.*', 'poker.venues.*', 'poker.tournaments.*') ? 'nav-link--current' : '' }}"
@@ -21,7 +21,7 @@
                 </x-slot>
             </x-dropdown>
 
-            <x-dropdown align="left" width="48" :inline-mobile="true">
+            <x-dropdown align="left" :inline-mobile="true">
                 <x-slot name="trigger">
                     <button type="button"
                             class="nav-link {{ request()->routeIs('poker.results.*', 'poker.registrants.*', 'poker.venue-points.*') ? 'nav-link--current' : '' }}"
@@ -37,7 +37,7 @@
                 </x-slot>
             </x-dropdown>
 
-            <x-dropdown align="left" width="48" :inline-mobile="true">
+            <x-dropdown align="left" :inline-mobile="true">
                 <x-slot name="trigger">
                     <button type="button"
                             class="nav-link {{ request()->routeIs('poker.points-structure.*', 'users.*') ? 'nav-link--current' : '' }}"
@@ -61,7 +61,7 @@
         <div class="topbar__actions-desktop">
             <x-theme-toggle />
 
-            <x-dropdown align="right" width="48">
+            <x-dropdown align="right">
                 <x-slot name="trigger">
                     <button type="button" class="nav-link nav-link--user">
                         <x-avatar :user="auth()->user()" size="sm" decorative />
