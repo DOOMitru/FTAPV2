@@ -5,7 +5,10 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: var(--space-4);
+    /* Extra block-end padding, not a margin on .modal__panel: it lifts the
+       panel just above true centre (what Breeze's mb-6 did) while leaving the
+       component itself free of outer spacing. */
+    padding: var(--space-4) var(--space-4) calc(var(--space-4) + var(--space-5));
     overflow-y: auto;
 }
 
@@ -23,8 +26,6 @@
     border-radius: var(--radius);
     background-color: var(--c-surface);
     box-shadow: var(--shadow-overlay);
-    /* Was mb-6 / overflow-hidden on the element. */
-    margin-block-end: var(--space-5);
     overflow: hidden;
 }
 

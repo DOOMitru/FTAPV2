@@ -1,13 +1,18 @@
 # Resume here
 
-**Last worked: 2026-08-30.** Design-system project for First to Act Poker.
+**Last worked: 2026-08-31.** Design-system project for First to Act Poker.
 
 ## Where things stand
 
-Phase 0 (correctness + cleanup) is **complete and committed**. Phase 1 (the design
-system) is **planned but not started**.
+Phase 0 (correctness + cleanup) and Phase 1 (the design system foundation) are both
+**complete and committed**. All 12 Phase 1 tasks are done and the exit criteria have been
+measured, not assumed — see `docs/PHASE-1-EXIT-AUDIT.md`.
 
-Suite: **93 passed, 0 failed.** Run `php artisan test`.
+Suite: **96 passed, 0 failed.** Run `php artisan test`.
+
+**50 of 82 views still contain Tailwind.** That is Phases 2–5 and it is the bulk of the
+remaining work. The heaviest are `poker/tournaments/show` (519 utility classes), `home`
+(396), `dashboard` (313), `poker/venues/show` (285), `events` (266).
 
 ### Read these first, in order
 
@@ -20,13 +25,20 @@ Suite: **93 passed, 0 failed.** Run `php artisan test`.
 
 ### The next action
 
-Execute Phase 1 Task 1. The plan is written to be run task-by-task with a fresh
-implementer per task and a review after each — that process caught four defects in the
-plan itself during Phase 0, so it earned its cost.
+Plan and execute Phase 2. Phase 1 built the system; Phases 2–5 apply it to the 50 views
+that still carry Tailwind. Tailwind itself is removed at the end of Phase 5 — until then
+it loads *after* the design system in `app.css` so unconverted views keep rendering.
 
-**Phase 1 stops at Task 10** and presents `poker/seasons/show` in both themes for
-approval before the remaining ~60 views commit to Archivo Expanded. That gate is
-deliberate: rejecting the direction there costs one page, not sixty.
+Two things must happen during that removal, both already known:
+- Publish the pagination view and add `_pagination.css` (deferred out of Phase 1).
+- Nothing in a Blade `class` attribute may be the only reference to a Tailwind class.
+  Task 12 found one such case — the modal's scroll lock named `.overflow-y-hidden` from
+  inside a JS string — and it would have failed silently. Grep the JS and TS for class
+  names before deleting Tailwind.
+
+The plan is written to be run task-by-task with a fresh implementer per task and a review
+after each — that process caught four defects in the Phase 0 plan and three more in the
+Phase 1 plan, so it earned its cost.
 
 ## Standing constraints
 
@@ -99,9 +111,15 @@ review loop is for:
 4. The README claimed late self-registrations are flagged as late entries. They are refused;
    only admin-entered registrations get the flag.
 
-## Known bug, found during Phase 1, deliberately not fixed there
+## Known bug — FIXED in Phase 1 Task 12
 
-**The delete-account modal's focus trap and scroll lock never engage when it opens on load.**
+**The delete-account modal's focus trap and scroll lock never engaged when it opened on
+load.** Fixed on 2026-08-31 by replacing `x-init="$watch('show', ...)"` with `x-effect`,
+which runs immediately *and* on change. The scroll lock also stopped using Tailwind's
+`.overflow-y-hidden` (named only inside a JS string, so it would have died silently when
+Tailwind is removed) in favour of `body.is-modal-open` in `_modal.css`.
+
+The original diagnosis, kept because it explains the class of bug:
 
 `resources/views/components/modal.blade.php` drives both from
 `x-init="$watch('show', ...)"`. Alpine's `$watch` deliberately skips its callback on first
