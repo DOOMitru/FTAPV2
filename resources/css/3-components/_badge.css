@@ -5,7 +5,7 @@
     padding: var(--space-1) var(--space-2);
     border: var(--border-width) solid var(--c-border);
     border-radius: var(--radius-pill);
-    font-family: var(--font-display);
+    font-family: var(--font-body);
     font-size: var(--step--2);
     font-weight: 600;
     letter-spacing: 0.12em;

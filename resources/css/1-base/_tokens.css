@@ -14,7 +14,13 @@
     --c-bg: #F4F7FC;
     --c-surface: #FFFFFF;
     --c-surface-raised: #EEF2F9;
-    --c-border: #E2E8F0;
+    /* One step heavier than the #E2E8F0 the brief named. At #E2E8F0 the hairline
+       measured 1.23:1 against white and 1.10:1 against --c-surface-raised, i.e.
+       invisible on the very surfaces it is meant to divide. #C2CDDC reads as a
+       deliberate line (1.61:1 / 1.43:1) while staying a hairline, and is tuned
+       to sit at the same perceived weight as --dark-border in the other theme.
+       The width stays 1px; only the value moved. */
+    --c-border: #C2CDDC;
     --c-text: #0F172A;
     --c-text-muted: #475569;
     --c-primary: #1E40AF;
@@ -40,7 +46,10 @@
     --dark-bg: #0B0F19;
     --dark-surface: #161F33;
     --dark-surface-raised: #1C2740;
-    --dark-border: #1E293B;
+    /* Same reasoning as --c-border above: #1E293B was 1.12:1 on --c-surface and
+       1.02:1 on --c-surface-raised — mathematically present, optically absent.
+       #334155 gives 1.59:1 / 1.43:1, matching the light theme's hairline weight. */
+    --dark-border: #334155;
     --dark-text: #E2E8F0;
     --dark-text-muted: #94A3B8;
     --dark-primary: #06B6D4;
@@ -71,7 +80,7 @@
     --shadow-overlay: 0 12px 32px -8px rgb(11 15 25 / 0.28);
 
     /* Type */
-    --font-display: "Archivo", system-ui, sans-serif;
+    --font-display: "Archivo Black", "Archivo", system-ui, sans-serif;
     --font-body: "Archivo", system-ui, sans-serif;
     --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", monospace;
 

@@ -40,6 +40,28 @@
     font-display: swap;
 }
 
+/* The display face. A separate family, not an axis of Archivo — and it ships a
+   single weight (400) by design, so every rule using it must declare 400. Asking
+   for 600/700 here would make the browser synthesise bold on an already-black
+   face, which smears it. Interface labels stay on Archivo semibold instead. */
+@font-face {
+    font-family: "Archivo Black";
+    src: url("/fonts/archivo-black.woff2") format("woff2");
+    font-weight: 400;
+    font-style: normal;
+    font-display: swap;
+    unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+    font-family: "Archivo Black";
+    src: url("/fonts/archivo-black-latin-ext.woff2") format("woff2");
+    font-weight: 400;
+    font-style: normal;
+    font-display: swap;
+    unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
 @font-face {
     font-family: "IBM Plex Mono";
     src: url("/fonts/plex-mono-600.woff2") format("woff2");
@@ -68,11 +90,9 @@ html body {
    large sizes and loosely tracked at small ones. */
 .u-display {
     font-family: var(--font-display);
-    /* The expanded look. Archivo's width axis tops out at 125%; this is what
-       makes the display voice read as broadcast lower-third rather than as
-       ordinary body type set large. */
-    font-stretch: 125%;
-    font-weight: 700;
+    /* Archivo Black is a single-weight family with no width axis: 400 is its
+       only weight, and font-stretch would do nothing. */
+    font-weight: 400;
     line-height: var(--leading-tight);
     text-transform: uppercase;
     letter-spacing: -0.01em;
@@ -80,7 +100,9 @@ html body {
 
 /* Small capitalised labels need the opposite tracking to stay readable. */
 .u-eyebrow {
-    font-family: var(--font-display);
+    /* Interface label, not a heading — Archivo semibold. At 11px uppercase and
+       tracked, Archivo Black reads as a solid block of ink. */
+    font-family: var(--font-body);
     font-size: var(--step--2);
     font-weight: 600;
     letter-spacing: 0.18em;

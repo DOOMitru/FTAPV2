@@ -7,7 +7,7 @@
 .empty__title {
     font-family: var(--font-display);
     font-size: var(--step-1);
-    font-weight: 700;
+    font-weight: 400;
     text-transform: uppercase;
     color: var(--c-text);
 }
