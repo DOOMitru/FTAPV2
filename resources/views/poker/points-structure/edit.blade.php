@@ -1,8 +1,7 @@
 <x-app-layout>
     <x-slot name="header">
-        <h2 class="font-semibold text-xl text-gray-800 dark:text-gray-200 leading-tight">
-            {{ __('Edit Points Structure Entry') }}
-        </h2>
+        <x-page-header :eyebrow="__('Setup')" :title="__('Edit Points Structure Entry')">
+        </x-page-header>
     </x-slot>
 
     <div class="py-12">

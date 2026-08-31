@@ -16,7 +16,12 @@
     padding: var(--space-5) var(--space-4);
 }
 
+/* Asymmetric on purpose. The header already contributes --space-5 of its own
+   padding below the title, so a matching --space-6 here stacked 56px between the
+   header rule and the first card -- the page read as two documents. --space-4 on
+   top closes it to 40px and binds the content to its header; the bottom keeps
+   --space-6 so the page still ends on air rather than against the viewport. */
 .shell__content {
     flex: 1 1 auto;
-    padding-block: var(--space-6);
+    padding-block: var(--space-4) var(--space-6);
 }

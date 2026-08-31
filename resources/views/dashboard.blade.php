@@ -1,13 +1,7 @@
 <x-app-layout>
     <x-slot name="header">
-        <div class="flex justify-between items-center">
-            <h2 class="font-semibold text-xl text-gray-800 dark:text-gray-200 leading-tight">
-                {{ __('Player Command Center') }}
-            </h2>
-            <div class="px-3 py-1 bg-indigo-50 dark:bg-indigo-900/30 rounded-full border border-indigo-100 dark:border-indigo-800/50 text-[10px] font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-widest">
-                {{ Auth::user()->first_name }} {{ Auth::user()->last_name }}
-            </div>
-        </div>
+        <x-page-header :eyebrow="Auth::user()->first_name.' '.Auth::user()->last_name" :title="__('Dashboard')">
+        </x-page-header>
     </x-slot>
 
     <div class="py-12">

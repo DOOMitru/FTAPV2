@@ -1,8 +1,7 @@
 <x-app-layout>
     <x-slot name="header">
-        <h2 class="font-semibold text-xl text-gray-800 dark:text-gray-200 leading-tight">
-            {{ __('Edit Tournament Result') }}
-        </h2>
+        <x-page-header :eyebrow="__('Play')" :title="__('Edit Tournament Result')">
+        </x-page-header>
     </x-slot>
 
     <div class="py-12">

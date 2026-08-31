@@ -1,23 +1,11 @@
 <x-app-layout>
     <x-slot name="header">
-        <div class="flex justify-between items-center">
-            <h2 class="font-semibold text-xl text-gray-800 dark:text-gray-200 leading-tight">
-                {{ $venue->name }}
-                <span class="ml-2 px-2.5 py-0.5 bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-400 text-[10px] font-bold rounded-full uppercase tracking-widest border border-indigo-200 dark:border-indigo-800">
-                    {{ __('Venue Statistics') }}
-                </span>
-            </h2>
-            <div class="flex gap-3">
-                <a href="{{ route('poker.venues.index') }}" class="inline-flex items-center px-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg font-semibold text-xs text-gray-700 dark:text-gray-300 uppercase tracking-widest shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700 transition ease-in-out duration-150">
-                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
-                    {{ __('Back') }}
-                </a>
-                <a href="{{ route('poker.venues.edit', $venue) }}" class="inline-flex items-center px-4 py-2 bg-indigo-600 border border-transparent rounded-lg font-semibold text-xs text-white uppercase tracking-widest hover:bg-indigo-700 active:bg-indigo-900 transition ease-in-out duration-150 shadow-sm">
-                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-5M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
-                    {{ __('Edit') }}
-                </a>
-            </div>
-        </div>
+        <x-page-header :eyebrow="__('League')" :title="$venue->name">
+            <x-slot name="actions">
+                <x-btn variant="ghost" :href="route('poker.venues.index')">{{ __('Back') }}</x-btn>
+                <x-btn variant="primary" :href="route('poker.venues.edit', $venue)">{{ __('Edit') }}</x-btn>
+            </x-slot>
+        </x-page-header>
     </x-slot>
 
     <div class="py-12">
