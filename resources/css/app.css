@@ -25,6 +25,8 @@
 @import "./3-components/_empty.css";
 @import "./3-components/_avatar.css";
 @import "./3-components/_page-header.css";
+@import "./3-components/_dropdown.css";
+@import "./3-components/_modal.css";
 
 /* Tailwind — temporary. Removed at the end of Phase 5, once every view is
    converted. Until then it styles the views this phase has not reached.

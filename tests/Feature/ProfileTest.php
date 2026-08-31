@@ -99,4 +99,23 @@ class ProfileTest extends TestCase
 
         $this->assertNotNull($user->fresh());
     }
+
+    public function test_delete_account_modal_reopens_when_wrong_password_is_provided(): void
+    {
+        $user = User::factory()->create();
+
+        $response = $this
+            ->actingAs($user)
+            ->from('/profile')
+            ->followingRedirects()
+            ->delete('/profile', [
+                'password' => 'wrong-password',
+            ]);
+
+        $response
+            ->assertOk()
+            ->assertSee('show: true,', false);
+
+        $this->assertNotNull($user->fresh());
+    }
 }

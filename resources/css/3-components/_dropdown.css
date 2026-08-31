@@ -1,0 +1,42 @@
+.dropdown {
+    position: relative;
+    display: inline-block;
+}
+
+/* Dropdowns and modals are the system's only exception to borders-not-shadows.
+   A floating layer separated by a 1px hairline alone reads as broken. */
+.dropdown__menu {
+    position: absolute;
+    inset-inline-end: 0;
+    z-index: 50;
+    min-width: 12rem;
+    margin-block-start: var(--space-2);
+    padding-block: var(--space-1);
+    border: var(--border-width) solid var(--c-border);
+    border-radius: var(--radius);
+    background-color: var(--c-surface);
+    box-shadow: var(--shadow-overlay);
+}
+
+.dropdown__item {
+    display: block;
+    width: 100%;
+    padding: var(--space-2) var(--space-4);
+    border: 0;
+    background-color: transparent;
+    color: var(--c-text);
+    font-size: var(--step--1);
+    text-align: start;
+    text-decoration: none;
+    cursor: pointer;
+    transition: background-color var(--transition-fast);
+}
+
+.dropdown__item:hover {
+    background-color: var(--c-surface-raised);
+}
+
+.dropdown__item:focus-visible {
+    outline: 2px solid var(--c-primary);
+    outline-offset: -2px;
+}

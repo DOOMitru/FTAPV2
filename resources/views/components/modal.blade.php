@@ -5,13 +5,19 @@
 ])
 
 @php
-$maxWidth = [
+$maxWidthClasses = [
     'sm' => 'sm:max-w-sm',
     'md' => 'sm:max-w-md',
     'lg' => 'sm:max-w-lg',
     'xl' => 'sm:max-w-xl',
     '2xl' => 'sm:max-w-2xl',
 ][$maxWidth];
+
+// `.modal` / `.modal__panel` encode the shape used by the only call site in
+// the app today, which relies on the default maxWidth ('2xl'). Any other
+// maxWidth value keeps its original Tailwind sizing below and can be
+// converted once a real consumer exercises it.
+$usesDefaultMaxWidth = $maxWidth === '2xl';
 @endphp
 
 <div
@@ -46,8 +52,8 @@ $maxWidth = [
     x-on:keydown.tab.prevent="$event.shiftKey || nextFocusable().focus()"
     x-on:keydown.shift.tab.prevent="prevFocusable().focus()"
     x-show="show"
-    class="fixed inset-0 overflow-y-auto px-4 py-6 sm:px-0 z-50"
-    style="display: {{ $show ? 'block' : 'none' }};"
+    x-cloak
+    class="modal"
 >
     <div
         x-show="show"
@@ -60,12 +66,12 @@ $maxWidth = [
         x-transition:leave-start="opacity-100"
         x-transition:leave-end="opacity-0"
     >
-        <div class="absolute inset-0 bg-gray-500 dark:bg-gray-900 opacity-75"></div>
+        <div class="modal__backdrop"></div>
     </div>
 
     <div
         x-show="show"
-        class="mb-6 bg-white dark:bg-gray-800 rounded-lg overflow-hidden shadow-xl transform transition-all sm:w-full {{ $maxWidth }} sm:mx-auto"
+        class="{{ $usesDefaultMaxWidth ? 'modal__panel mb-6 overflow-hidden transform transition-all' : 'mb-6 bg-white dark:bg-gray-800 rounded-lg overflow-hidden shadow-xl transform transition-all sm:w-full '.$maxWidthClasses.' sm:mx-auto' }}"
         x-transition:enter="ease-out duration-300"
         x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
         x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100"

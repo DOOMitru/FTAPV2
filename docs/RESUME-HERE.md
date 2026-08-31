@@ -99,6 +99,27 @@ review loop is for:
 4. The README claimed late self-registrations are flagged as late entries. They are refused;
    only admin-entered registrations get the flag.
 
+## Known bug, found during Phase 1, deliberately not fixed there
+
+**The delete-account modal's focus trap and scroll lock never engage when it opens on load.**
+
+`resources/views/components/modal.blade.php` drives both from
+`x-init="$watch('show', ...)"`. Alpine's `$watch` deliberately skips its callback on first
+evaluation, so it only fires when `show` *changes*. On the wrong-password path,
+`profile/partials/delete-user-form.blade.php:17` renders the modal with `show: true`
+already set server-side — the watcher never runs, focus is never moved into the modal, and
+the body scroll lock never applies. A keyboard or screen-reader user has to hunt for the
+dialog that just appeared.
+
+This predates the design-system work and was not introduced by it. It was left alone during
+Phase 1 Task 7 because fixing it means changing Alpine wiring inside what was scoped as a
+CSS class swap. The fix is small — run the same logic once on init when `show` starts true,
+in addition to watching for changes — but it deserves its own change and its own test rather
+than being smuggled into an unrelated task.
+
+`tests/Feature/ProfileTest.php` covers the server-rendered `show: true`, so the reopen
+behaviour itself is guarded; only the focus/scroll side effects are missing.
+
 ## Open questions for the owner
 
 1. **Commit the three uncommitted test files?** `RouteSmokeTest.php` (modified),
