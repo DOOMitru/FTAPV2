@@ -63,7 +63,7 @@
     --shadow-overlay: 0 12px 32px -8px rgb(11 15 25 / 0.28);
 
     /* Type */
-    --font-display: "Archivo Expanded", "Archivo", system-ui, sans-serif;
+    --font-display: "Archivo", system-ui, sans-serif;
     --font-body: "Archivo", system-ui, sans-serif;
     --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", monospace;
 

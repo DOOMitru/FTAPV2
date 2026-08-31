@@ -13,7 +13,13 @@ export default {
     theme: {
         extend: {
             fontFamily: {
-                sans: ['Figtree', ...defaultTheme.fontFamily.sans],
+                // Aligned with --font-body (self-hosted Archivo, see
+                // resources/css/1-base/_typography.css). Unconverted views
+                // still carry Tailwind's font-sans class during the
+                // transition, so it must resolve to the same face as the
+                // design system's body rule. This whole file is removed in
+                // Phase 5 once Tailwind is fully replaced.
+                sans: ['Archivo', ...defaultTheme.fontFamily.sans],
             },
         },
     },

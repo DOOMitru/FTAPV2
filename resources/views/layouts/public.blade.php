@@ -7,9 +7,7 @@
 
         <title>{{ config('app.name', 'First to Act Poker') }}</title>
 
-        <!-- Fonts -->
-        <link rel="preconnect" href="https://fonts.bunny.net">
-        <link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet" />
+        <link rel="preload" href="{{ asset('fonts/archivo.woff2') }}" as="font" type="font/woff2" crossorigin>
 
         <!-- Scripts -->
         @vite(['resources/css/app.css', 'resources/js/app.ts'])
