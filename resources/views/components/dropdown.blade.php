@@ -1,4 +1,4 @@
-@props(['align' => 'right', 'width' => '48', 'contentClasses' => 'py-1 bg-white dark:bg-gray-700'])
+@props(['align' => 'right', 'width' => '48', 'contentClasses' => 'py-1 bg-white dark:bg-gray-700', 'up' => false])
 
 @php
 $alignmentClasses = match ($align) {
@@ -24,7 +24,7 @@ $usesDefaultShape = $align === 'right'
 @endphp
 
 <div class="dropdown" x-data="{ open: false }" @click.outside="open = false" @close.stop="open = false">
-    <div @click="open = ! open">
+    <div @click="open = ! open" aria-haspopup="menu" x-bind:aria-expanded="open.toString()">
         {{ $trigger }}
     </div>
 
@@ -35,7 +35,7 @@ $usesDefaultShape = $align === 'right'
             x-transition:leave="transition ease-in duration-75"
             x-transition:leave-start="opacity-100 scale-100"
             x-transition:leave-end="opacity-0 scale-95"
-            class="{{ $usesDefaultShape ? 'dropdown__menu' : 'absolute z-50 mt-2 '.$widthClasses.' rounded-md shadow-lg '.$alignmentClasses }}"
+            class="{{ $usesDefaultShape ? 'dropdown__menu'.($up ? ' dropdown__menu--up' : '') : 'absolute z-50 mt-2 '.$widthClasses.' rounded-md shadow-lg '.$alignmentClasses }}"
             x-cloak
             @click="open = false">
         <div class="{{ $usesDefaultShape ? '' : 'rounded-md ring-1 ring-black ring-opacity-5 '.$contentClasses }}">

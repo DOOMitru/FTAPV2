@@ -94,6 +94,12 @@
     --measure: 68ch;
 }
 
+/* Now a redundant safety net, not a load-bearing path: theme-script.blade.php
+   always stamps [data-theme] before first paint (falling back to this same
+   matchMedia query when nothing is stored), so :root[data-theme="dark"]
+   below normally applies before this block ever gets a chance to. Kept
+   deliberately for the no-JS case, where no attribute is ever stamped —
+   removing it would be a separate regression, not a cleanup. */
 @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) {
         color-scheme: dark;

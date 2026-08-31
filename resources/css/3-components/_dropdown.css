@@ -18,6 +18,18 @@
     box-shadow: var(--shadow-overlay);
 }
 
+/* For a trigger pinned to the bottom of a viewport-height container (the
+   rail footer's user menu), the default downward menu opens off the bottom
+   of the screen — on mobile the rail is `position: fixed` with no
+   scrollable ancestor, so "Log out" becomes unreachable. Opt in per call
+   site via <x-dropdown up>. */
+.dropdown__menu--up {
+    inset-block-end: 100%;
+    inset-block-start: auto;
+    margin-block-start: 0;
+    margin-block-end: var(--space-2);
+}
+
 .dropdown__item {
     display: block;
     width: 100%;

@@ -1,0 +1,133 @@
+.shell {
+    display: grid;
+    min-height: 100vh;
+    grid-template-columns: var(--rail-width) minmax(0, 1fr);
+    background-color: var(--c-bg);
+}
+
+.shell__rail {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-6);
+    padding: var(--space-5) var(--space-4);
+    border-inline-end: var(--border-width) solid var(--c-border);
+    background-color: var(--c-surface);
+}
+
+.shell__brand {
+    font-family: var(--font-display);
+    font-size: var(--step-1);
+    font-weight: 700;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--c-text);
+    text-decoration: none;
+}
+
+.shell__rail-footer {
+    margin-block-start: auto;
+    padding-block-start: var(--space-4);
+    border-block-start: var(--border-width) solid var(--c-border);
+}
+
+.shell__main {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.shell__header {
+    padding: var(--space-5) var(--space-6);
+    border-block-end: var(--border-width) solid var(--c-border);
+}
+
+/* Matches .l-container's max-width and centring (not its padding-inline,
+   which .shell__header already supplies) so the header's content lines up
+   with page content today, on all 29 unconverted views, and after they
+   convert — they'll use .l-container too, but the header stays full-bleed
+   for its border/background, so the two need to agree independently. */
+.shell__header-inner {
+    max-width: 80rem;
+    margin-inline: auto;
+}
+
+.shell__content {
+    flex: 1 1 auto;
+    padding: var(--space-6);
+}
+
+/* Two-class selector, not import order: `.btn` (from _btn.css, imported
+   AFTER this file — see app.css) also sets `display: inline-flex` at equal
+   specificity (0,1,0). Whichever rule is later in the cascade wins a tie,
+   which would be `.btn` here. Only a higher-specificity selector can beat
+   that deterministically without reordering imports, which the cascade
+   strategy depends on staying fixed. Matching two-class form below re-shows
+   it under the breakpoint. */
+.btn.shell__drawer-toggle {
+    display: none;
+}
+
+/* Hidden off-canvas by default, and dims the page while open. See
+   .shell__rail--open below for the visible state and .shell__backdrop for
+   the click-outside surface; both only exist under this breakpoint. */
+.shell__backdrop {
+    display: none;
+}
+
+@media (max-width: 56.25rem) {
+    .shell {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    /* Below the breakpoint the rail slides off-canvas and Alpine toggles
+       .shell__rail--open. Visibility is CSS's job at every width, so there is
+       no window.innerWidth check in the markup to go stale on resize. */
+    .shell__rail {
+        position: fixed;
+        inset-block: 0;
+        inset-inline-start: 0;
+        z-index: 90;
+        width: var(--rail-width);
+        overflow-y: auto;
+        box-shadow: var(--shadow-overlay);
+        transform: translateX(-100%);
+        /* Closed state is also removed from the tab order and accessibility
+           tree, not just moved off-screen — otherwise a keyboard/screen-reader
+           user traverses the whole rail (brand, up to 9 links, theme toggle,
+           user menu) before reaching the page content on every mobile load.
+           `visibility` is discretely animatable: transitioning it alongside
+           `transform` still lets the slide play (the browser flips visible
+           at the very start of the open transition, and hidden only at the
+           very end of the close transition — see CSS Transitions §"visibility"). */
+        visibility: hidden;
+        transition:
+            transform var(--transition-fast),
+            visibility var(--transition-fast);
+    }
+
+    .shell__rail--open {
+        transform: translateX(0);
+        visibility: visible;
+    }
+
+    .btn.shell__drawer-toggle {
+        display: inline-flex;
+    }
+
+    /* Dims the page and gives mouse/touch users a click-outside target,
+       since the fixed-position rail has no scrollable ancestor to supply
+       one on its own. Alpine's x-show toggles the inline `display` for
+       open/closed; this rule only governs *default* visibility below the
+       breakpoint (never shown above it, regardless of Alpine state). */
+    .shell__backdrop {
+        display: block;
+        position: fixed;
+        inset: 0;
+        z-index: 80;
+        background-color: rgb(11 15 25 / 0.5);
+    }
+
+    .shell__content {
+        padding: var(--space-4);
+    }
+}
