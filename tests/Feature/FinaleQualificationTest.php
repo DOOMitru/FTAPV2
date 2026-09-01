@@ -3,7 +3,11 @@
 namespace Tests\Feature;
 
 use App\Models\PokerSeason;
+use App\Models\PokerTournament;
+use App\Models\PokerTournamentResult;
 use App\Models\User;
+use App\Models\Venue;
+use App\Models\VenuePoints;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -236,5 +240,110 @@ class FinaleQualificationTest extends TestCase
             ])->assertForbidden();
 
         $this->assertNull($season->fresh()->finale_points_required);
+    }
+
+    /**
+     * A result for one player inside a season, via a tournament of its own.
+     *
+     * Results hang off tournaments, not seasons directly -- PokerSeason::results
+     * is a HasManyThrough -- so a standings fixture needs a tournament each time.
+     */
+    private function resultFor(PokerSeason $season, User $user, int $place, int $points): void
+    {
+        $tournament = PokerTournament::create([
+            'name' => 'Heat '.uniqid(),
+            'scheduled_at' => now()->subDays(5),
+            'start_time' => now()->subDays(5),
+            'venue_id' => Venue::create(['name' => 'Room '.uniqid(), 'address' => 'x'])->id,
+            'season_id' => $season->id,
+        ]);
+
+        PokerTournamentResult::create([
+            'tournament_id' => $tournament->id,
+            'user_id' => $user->id,
+            'player_name' => $user->first_name.' '.$user->last_name,
+            'place' => $place,
+            'points' => $points,
+        ]);
+    }
+
+    private function venuePointsFor(User $user, int $amount, string $when): void
+    {
+        VenuePoints::create([
+            'user_id' => $user->id,
+            'user_name' => $user->first_name,
+            'venue_id' => Venue::create(['name' => 'VP '.uniqid(), 'address' => 'x'])->id,
+            'amount' => $amount,
+            'event_date' => now()->modify($when)->toDateString(),
+        ]);
+    }
+
+    public function test_venue_points_are_counted_only_inside_the_season_dates(): void
+    {
+        // venue_points carries no season_id -- only an event_date -- so the
+        // season's own dates are the only attribution available. A row from
+        // before the season must not count toward it.
+        $season = $this->season(['finale_venue_points_required' => 10]);
+        $player = User::factory()->create();
+
+        $this->venuePointsFor($player, 30, '-3 days');     // inside
+        $this->venuePointsFor($player, 999, '-1 year');    // before it started
+        $this->venuePointsFor($player, 777, '+1 year');    // after it ends
+
+        $this->resultFor($season, $player, place: 1, points: 500);
+
+        $row = $this->leaderboardRowFor($season, $player);
+
+        $this->assertSame(30, $row['venue_points'], 'Only the in-season row counts.');
+    }
+
+    public function test_a_player_with_no_venue_points_scores_zero_not_null(): void
+    {
+        // The row is fed straight into unmetBy(), which is typed int.
+        $season = $this->season(['finale_venue_points_required' => 10]);
+        $player = User::factory()->create();
+
+        $this->resultFor($season, $player, place: 1, points: 500);
+
+        $this->assertSame(0, $this->leaderboardRowFor($season, $player)['venue_points']);
+    }
+
+    public function test_the_leaderboard_carries_the_verdict(): void
+    {
+        // Computed once in the controller so the view renders a result rather
+        // than re-implementing the comparison.
+        $season = $this->season([
+            'finale_points_required' => 100,
+            'finale_wins_required' => 1,
+            'finale_venue_points_required' => 10,
+        ]);
+
+        $qualifier = User::factory()->create();
+        $this->resultFor($season, $qualifier, place: 1, points: 500);
+        $this->venuePointsFor($qualifier, 20, '-3 days');
+
+        $shortOnWins = User::factory()->create();
+        $this->resultFor($season, $shortOnWins, place: 4, points: 500);
+        $this->venuePointsFor($shortOnWins, 20, '-3 days');
+
+        $this->assertTrue($this->leaderboardRowFor($season, $qualifier)['qualified']);
+        $this->assertSame([], $this->leaderboardRowFor($season, $qualifier)['unmet']);
+
+        $short = $this->leaderboardRowFor($season, $shortOnWins);
+        $this->assertFalse($short['qualified']);
+        $this->assertSame(['wins'], $short['unmet']);
+    }
+
+    private function leaderboardRowFor(PokerSeason $season, User $user): array
+    {
+        $response = $this->actingAs($this->admin())->get(route('seasons.show', $season));
+        $response->assertOk();
+
+        $row = collect($response->viewData('leaderboard'))
+            ->first(fn (array $r) => $r['user']?->id === $user->id);
+
+        $this->assertNotNull($row, 'The player should appear in the standings.');
+
+        return $row;
     }
 }

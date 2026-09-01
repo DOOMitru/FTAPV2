@@ -92,17 +92,50 @@ class PokerSeasonController extends Controller
         $totalPoints = $season->results->sum('points');
         $uniquePlayersCount = $season->results->pluck('user_id')->unique()->count();
 
+        // venue_points carries no season_id, only an event_date, so the
+        // season's own dates are the only attribution available.
+        //
+        // A consequence worth knowing rather than discovering: EDITING A
+        // SEASON'S DATES MOVES THIS FIGURE, and with it who qualifies. That is
+        // inherent to the schema, not a defect in this query.
+        //
+        // One grouped query rather than a lookup per player.
+        $venuePoints = \App\Models\VenuePoints::query()
+            ->whereBetween('event_date', [$season->start_date, $season->end_date])
+            ->groupBy('user_id')
+            ->selectRaw('user_id, SUM(amount) as total')
+            ->pluck('total', 'user_id');
+
         // Calculate Leaderboard
         $leaderboard = $season->results
             ->groupBy('user_id')
-            ->map(function ($results) {
+            ->map(function ($results) use ($venuePoints, $season) {
+                $points = $results->sum('points');
+                $wins = $results->where('place', 1)->count();
+                // Defensive, and deliberately untested: SQLite returns an int
+                // from SUM() so no assertion here can fail without it. Other
+                // drivers return a numeric STRING, and this project has
+                // already shipped one bug that existed only on MySQL (the
+                // is_active double-quote misfeature in Phase 0). unmetBy() is
+                // typed int, so the cast is what keeps that difference from
+                // becoming a TypeError on a driver nobody tested.
+                $venue = (int) ($venuePoints[$results->first()->user_id] ?? 0);
+
+                // The rule is evaluated HERE, once. A template that
+                // re-implements the comparison is a second definition waiting
+                // to drift from the model's.
+                $unmet = $season->unmetBy(points: $points, wins: $wins, venuePoints: $venue);
+
                 return [
                     'user' => $results->first()->user,
                     'player_name' => $results->first()->player_name,
-                    'points' => $results->sum('points'),
-                    'wins' => $results->where('place', 1)->count(),
+                    'points' => $points,
+                    'wins' => $wins,
                     'top3' => $results->where('place', '<=', 3)->count(),
                     'played' => $results->count(),
+                    'venue_points' => $venue,
+                    'unmet' => $unmet,
+                    'qualified' => $unmet === [],
                 ];
             })
             ->sortByDesc('points')
