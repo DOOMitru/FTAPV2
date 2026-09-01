@@ -1,11 +1,27 @@
 <x-app-layout>
     <x-slot name="header">
-        <x-page-header :eyebrow="__('Setup')" :title="__('User Management')" />
+        <x-page-header :eyebrow="__('Setup')" :title="__('User Management')">
+            <x-slot name="actions">
+                <x-btn variant="primary" :href="route('users.create')">{{ __('Register Player') }}</x-btn>
+            </x-slot>
+        </x-page-header>
     </x-slot>
 
     <div class="l-container l-stack">
         @if (session('status'))
             <x-alert variant="success">{{ session('status') }}</x-alert>
+        @endif
+
+        {{-- Shown as well as emailed. MAIL_MAILER is log, so a link that is
+             only sent reaches nobody; this keeps the Register Player button
+             from producing an account no one can get into. It stays useful
+             once a mailer exists, for when a player says it never arrived. --}}
+        @if (session('invite_url'))
+            <x-alert variant="info">
+                {{ __('Send this link to the player so they can set a password. It expires and can only be used once.') }}
+
+                <span class="u-mono">{{ session('invite_url') }}</span>
+            </x-alert>
         @endif
 
         {{-- Rendered only when non-empty. A heading over an empty table is

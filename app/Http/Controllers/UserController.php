@@ -3,8 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Password;
+use Illuminate\Support\Str;
 use Illuminate\View\View;
 
 class UserController extends Controller
@@ -23,6 +27,72 @@ class UserController extends Controller
         $pending = User::awaitingApproval()->orderBy('created_at')->get();
 
         return view('users.index', compact('users', 'pending'));
+    }
+
+    public function create(): View
+    {
+        return view('users.create');
+    }
+
+    /**
+     * Register a player directly.
+     *
+     * Approved on the spot: an administrator creating the account IS the
+     * decision, so recording anything else would be a fiction.
+     *
+     * There is no password field. The account gets an unusable random one and
+     * the player sets their own through a password-reset link -- a signed,
+     * expiring, single-use token the framework already issues, with the whole
+     * flow already in the app. A parallel invite-token system would mean a
+     * second table, a second expiry policy and a second set of security
+     * assumptions to do the same job.
+     */
+    public function store(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'first_name' => ['required', 'string', 'max:255'],
+            'last_name' => ['required', 'string', 'max:255'],
+            'nickname' => ['nullable', 'string', 'max:255'],
+            'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:'.User::class],
+            'is_admin' => ['nullable', 'boolean'],
+        ]);
+
+        $user = User::create([
+            'first_name' => $validated['first_name'],
+            'last_name' => $validated['last_name'],
+            'nickname' => $validated['nickname'] ?? null,
+            'email' => $validated['email'],
+            // Nobody chooses this and nobody is told it. The reset link below
+            // is the only way in.
+            'password' => Hash::make(Str::random(40)),
+            'is_admin' => (bool) ($validated['is_admin'] ?? false),
+        ]);
+
+        $user->forceFill([
+            'approval_status' => 'approved',
+            'approval_decided_at' => now(),
+            'approval_decided_by' => auth()->id(),
+        ])->save();
+
+        // Verification is NOT granted here. An administrator vouches for the
+        // person, not for the address.
+        event(new Registered($user));
+
+        // ONE token, used twice. Password::createToken deletes any existing
+        // token for the user, so calling sendResetLink() and then createToken()
+        // would email a link that the second call had already invalidated.
+        $token = Password::createToken($user);
+        $user->sendPasswordResetNotification($token);
+
+        return redirect()->route('users.index')
+            ->with('status', $user->first_name.' '.$user->last_name.' was registered and approved.')
+            // Surfaced as well as sent: MAIL_MAILER is log, so a link that is
+            // only emailed reaches nobody. It stays useful once a mailer exists,
+            // for when a player says the mail never arrived.
+            ->with('invite_url', route('password.reset', [
+                'token' => $token,
+                'email' => $user->email,
+            ]));
     }
 
     /**

@@ -139,7 +139,10 @@ Route::middleware('auth')->group(function () {
     });
 
     Route::middleware('admin')->group(function () {
-        Route::resource('users', \App\Http\Controllers\UserController::class)->except(['create', 'store']);
+        // create and store were removed in Phase 0 as dead routes: the
+        // controller had no matching methods and both returned HTTP 500. They
+        // return here with real ones, for the Register Player flow.
+        Route::resource('users', \App\Http\Controllers\UserController::class);
 
         // Admission to the league. Inside the admin group, which is what makes
         // a player's attempt a 403 without a separate check in the controller.

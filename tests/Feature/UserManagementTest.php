@@ -3,6 +3,9 @@
 namespace Tests\Feature;
 
 use App\Models\User;
+use Illuminate\Auth\Notifications\ResetPassword;
+use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\Password;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -152,5 +155,110 @@ class UserManagementTest extends TestCase
             ->assertOk()
             ->assertSee('Refusedly')
             ->assertSee('Rejected');
+    }
+
+    public function test_an_admin_can_register_a_player_who_is_approved_immediately()
+    {
+        Notification::fake();
+
+        $admin = User::factory()->create(['is_admin' => true]);
+
+        $this->actingAs($admin)->post(route('users.store'), [
+            'first_name' => 'Dana',
+            'last_name' => 'Whitlock',
+            'email' => 'dana@example.com',
+        ])->assertRedirect();
+
+        $player = User::where('email', 'dana@example.com')->first();
+
+        $this->assertNotNull($player);
+        $this->assertTrue($player->isApproved());
+        $this->assertSame($admin->id, $player->approval_decided_by);
+
+        // Approval only. An administrator creating the account vouches for the
+        // person, not for the address.
+        $this->assertFalse($player->hasVerifiedEmail());
+    }
+
+    public function test_an_admin_created_player_is_sent_an_invite_to_set_a_password()
+    {
+        Notification::fake();
+
+        $admin = User::factory()->create(['is_admin' => true]);
+
+        $this->actingAs($admin)->post(route('users.store'), [
+            'first_name' => 'Dana',
+            'last_name' => 'Whitlock',
+            'email' => 'dana@example.com',
+        ]);
+
+        Notification::assertSentTo(
+            User::where('email', 'dana@example.com')->first(),
+            ResetPassword::class
+        );
+    }
+
+    public function test_the_invite_link_shown_to_the_admin_is_the_one_that_works()
+    {
+        // MAIL_MAILER is log, so without a copyable link the button produces an
+        // account nobody can get into.
+        //
+        // This asserts the surfaced token is VALID, not merely present.
+        // Password::createToken deletes any existing token for the user, so an
+        // implementation that sent one link and surfaced a second would email a
+        // dead one -- and a test that only checked the session key would pass.
+        Notification::fake();
+
+        $admin = User::factory()->create(['is_admin' => true]);
+
+        $response = $this->actingAs($admin)->post(route('users.store'), [
+            'first_name' => 'Dana',
+            'last_name' => 'Whitlock',
+            'email' => 'dana@example.com',
+        ]);
+
+        $response->assertSessionHas('invite_url');
+
+        $player = User::where('email', 'dana@example.com')->first();
+        $url = session('invite_url');
+
+        parse_str(parse_url($url, PHP_URL_QUERY) ?? '', $query);
+        $token = basename(parse_url($url, PHP_URL_PATH));
+
+        $this->assertTrue(
+            Password::tokenExists($player, $token),
+            'The link handed to the administrator must carry a token that is still valid.'
+        );
+        $this->assertSame($player->email, $query['email'] ?? null);
+    }
+
+    public function test_an_admin_created_player_has_no_usable_password()
+    {
+        Notification::fake();
+
+        $admin = User::factory()->create(['is_admin' => true]);
+
+        $this->actingAs($admin)->post(route('users.store'), [
+            'first_name' => 'Dana',
+            'last_name' => 'Whitlock',
+            'email' => 'dana@example.com',
+        ]);
+
+        // Nobody chose it and nobody was told it, so it must not be guessable.
+        $this->assertFalse(auth()->attempt(['email' => 'dana@example.com', 'password' => 'password']));
+    }
+
+    public function test_a_player_cannot_register_a_player()
+    {
+        $player = User::factory()->create(['is_admin' => false]);
+
+        $this->actingAs($player)->get(route('users.create'))->assertForbidden();
+        $this->actingAs($player)->post(route('users.store'), [
+            'first_name' => 'Dana',
+            'last_name' => 'Whitlock',
+            'email' => 'dana@example.com',
+        ])->assertForbidden();
+
+        $this->assertNull(User::where('email', 'dana@example.com')->first());
     }
 }
