@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\PokerSeason;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -133,5 +134,107 @@ class FinaleQualificationTest extends TestCase
         $this->assertSame([], $season->unmetBy(points: 0, wins: 0, venuePoints: 0));
         $this->assertTrue($season->qualifies(points: 0, wins: 0, venuePoints: 0));
         $this->assertFalse($season->hasThresholds());
+    }
+
+    private function admin(): User
+    {
+        return User::factory()->create(['is_admin' => true]);
+    }
+
+    public function test_an_admin_can_set_the_thresholds(): void
+    {
+        $this->actingAs($this->admin())->post(route('poker.seasons.store'), [
+            'name' => 'Season 10',
+            'start_date' => now()->toDateString(),
+            'end_date' => now()->addMonths(6)->toDateString(),
+            'finale_points_required' => 300,
+            'finale_wins_required' => 2,
+            'finale_venue_points_required' => 50,
+        ])->assertRedirect();
+
+        $season = PokerSeason::where('name', 'Season 10')->first();
+
+        $this->assertNotNull($season);
+        $this->assertSame(300, $season->finale_points_required);
+        $this->assertSame(2, $season->finale_wins_required);
+        $this->assertSame(50, $season->finale_venue_points_required);
+        $this->assertTrue($season->hasThresholds());
+    }
+
+    public function test_thresholds_are_optional(): void
+    {
+        // A season can be created before its rules are decided.
+        $this->actingAs($this->admin())->post(route('poker.seasons.store'), [
+            'name' => 'Season 11',
+            'start_date' => now()->toDateString(),
+            'end_date' => now()->addMonths(6)->toDateString(),
+        ])->assertRedirect();
+
+        $this->assertFalse(PokerSeason::where('name', 'Season 11')->first()->hasThresholds());
+    }
+
+    public function test_a_negative_threshold_is_rejected(): void
+    {
+        $this->actingAs($this->admin())->post(route('poker.seasons.store'), [
+            'name' => 'Season 12',
+            'start_date' => now()->toDateString(),
+            'end_date' => now()->addMonths(6)->toDateString(),
+            'finale_points_required' => -5,
+        ])->assertSessionHasErrors('finale_points_required');
+
+        $this->assertNull(PokerSeason::where('name', 'Season 12')->first());
+    }
+
+    public function test_an_admin_can_change_the_thresholds_on_an_existing_season(): void
+    {
+        // The controller carries two identical validate blocks. Covering store
+        // alone would let an edit silently drop what create accepts.
+        $season = $this->season(['finale_points_required' => 100]);
+
+        $this->actingAs($this->admin())->put(route('poker.seasons.update', $season), [
+            'name' => $season->name,
+            'start_date' => $season->start_date->toDateString(),
+            'end_date' => $season->end_date->toDateString(),
+            'finale_points_required' => 400,
+            'finale_wins_required' => 3,
+        ])->assertRedirect();
+
+        $season->refresh();
+
+        $this->assertSame(400, $season->finale_points_required);
+        $this->assertSame(3, $season->finale_wins_required);
+    }
+
+    public function test_clearing_a_threshold_sets_it_back_to_null(): void
+    {
+        // Back to NOT PUBLISHED, not to a target of zero. An empty number input
+        // posts '' rather than null, and '' fails an integer rule -- so without
+        // normalising it, withdrawing a threshold is impossible.
+        $season = $this->season(['finale_points_required' => 300]);
+
+        $this->actingAs($this->admin())->put(route('poker.seasons.update', $season), [
+            'name' => $season->name,
+            'start_date' => $season->start_date->toDateString(),
+            'end_date' => $season->end_date->toDateString(),
+            'finale_points_required' => '',
+        ])->assertRedirect();
+
+        $this->assertNull($season->fresh()->finale_points_required);
+        $this->assertFalse($season->fresh()->hasThresholds());
+    }
+
+    public function test_a_player_cannot_set_thresholds(): void
+    {
+        $season = $this->season();
+
+        $this->actingAs(User::factory()->create(['is_admin' => false]))
+            ->put(route('poker.seasons.update', $season), [
+                'name' => $season->name,
+                'start_date' => $season->start_date->toDateString(),
+                'end_date' => $season->end_date->toDateString(),
+                'finale_points_required' => 999,
+            ])->assertForbidden();
+
+        $this->assertNull($season->fresh()->finale_points_required);
     }
 }

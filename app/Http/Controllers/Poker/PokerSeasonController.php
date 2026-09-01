@@ -27,18 +27,50 @@ class PokerSeasonController extends Controller
         return view('poker.seasons.create');
     }
 
+    /** The finale thresholds, named once so both writes and the reset below agree. */
+    private const THRESHOLDS = [
+        'finale_points_required',
+        'finale_wins_required',
+        'finale_venue_points_required',
+    ];
+
     /**
-     * Store a newly created resource in storage.
+     * One rule set for both writes.
+     *
+     * store() and update() carried byte-identical validate blocks, which is
+     * how an edit comes to silently drop what create accepts: a rule added to
+     * one and forgotten in the other fails only for the person editing.
      */
-    public function store(Request $request): RedirectResponse
+    private function validated(Request $request): array
     {
-        $validated = $request->validate([
+        // An empty number input posts '' rather than null, and '' fails an
+        // integer rule -- so without this, WITHDRAWING a threshold is
+        // impossible. '' means cleared, and cleared is null, not zero: a
+        // season whose target is 0 would read as one everybody has met.
+        foreach (self::THRESHOLDS as $field) {
+            if ($request->input($field) === '') {
+                $request->merge([$field => null]);
+            }
+        }
+
+        return $request->validate([
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
             'start_date' => 'required|date',
             'end_date' => 'required|date|after_or_equal:start_date',
             'is_current' => 'sometimes|boolean',
+            'finale_points_required' => 'nullable|integer|min:0',
+            'finale_wins_required' => 'nullable|integer|min:0',
+            'finale_venue_points_required' => 'nullable|integer|min:0',
         ]);
+    }
+
+    /**
+     * Store a newly created resource in storage.
+     */
+    public function store(Request $request): RedirectResponse
+    {
+        $validated = $this->validated($request);
 
         // If is_current is not provided, the model's booted method will handle it
         PokerSeason::create($validated);
@@ -111,13 +143,7 @@ class PokerSeasonController extends Controller
      */
     public function update(Request $request, PokerSeason $season): RedirectResponse
     {
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'description' => 'nullable|string',
-            'start_date' => 'required|date',
-            'end_date' => 'required|date|after_or_equal:start_date',
-            'is_current' => 'sometimes|boolean',
-        ]);
+        $validated = $this->validated($request);
 
         if (!$request->has('is_current')) {
             $validated['is_current'] = false;

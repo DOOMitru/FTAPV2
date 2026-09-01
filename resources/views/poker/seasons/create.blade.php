@@ -18,6 +18,33 @@
 
                 <x-field name="end_date" :label="__('End Date')" type="date" :value="old('end_date')" required />
 
+                {{-- The finale rules. Optional on purpose: a season is often
+                     created before its thresholds are decided, and an empty
+                     field means NOT PUBLISHED rather than a target of zero. --}}
+                <div>
+                    <h3 class="card__title">{{ __('Finale Qualification') }}</h3>
+
+                    <p class="field__hint">
+                        {{ __('A player must meet all three to reach the finale. Leave any of them empty while the number is still being decided — an empty field is not published, and is not enforced against anyone.') }}
+                    </p>
+                </div>
+
+                <x-field name="finale_points_required" type="number" min="0"
+                         :label="__('Season points required')"
+                         :value="old('finale_points_required')"
+                         :hint="__('Points accumulated across the season.')" />
+
+                <x-field name="finale_wins_required" type="number" min="0"
+                         :label="__('Tournament wins required')"
+                         :value="old('finale_wins_required')"
+                         :hint="__('Tournaments finished in first place.')" />
+
+                <x-field name="finale_venue_points_required" type="number" min="0"
+                         :label="__('Venue points required')"
+                         :value="old('finale_venue_points_required')"
+                         :hint="__('Venue points earned at events dated inside this season.')" />
+
+
                 <div>
                     <label class="field__check" for="is_current">
                         <input id="is_current" type="checkbox" name="is_current" value="1" {{ old('is_current') ? 'checked' : '' }}>
