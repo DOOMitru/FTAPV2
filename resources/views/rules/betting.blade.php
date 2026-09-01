@@ -1,5 +1,5 @@
 <x-public-layout>
-    <x-p-hero :eyebrow="__('Financial & Player Governance')" :title="__('Betting and Conduct')" :highlight="__('Conduct')">
+    <x-p-hero suit="club" :eyebrow="__('Financial & Player Governance')" :title="__('Betting and Conduct')" :highlight="__('Conduct')">
         {{ __('Fairness at the table is maintained through strict financial integrity and mutual respect. These regulations define our mechanical and behavioral standards.') }}
     </x-p-hero>
 

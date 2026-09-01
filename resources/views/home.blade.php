@@ -1,7 +1,7 @@
 <x-public-layout>
     <div class="p-split">
         <div>
-            <x-p-hero align="start"
+            <x-p-hero suit="spade" align="start"
                       :eyebrow="__('Regina, Saskatchewan')"
                       :title="__('First to Act Poker League')"
                       :highlight="__('Poker League')">
@@ -18,7 +18,7 @@
     </div>
 
     <section class="p-section">
-        <x-p-hero plain :level="2"
+        <x-p-hero plain :level="2" suit="diamond"
                   :eyebrow="__('League Schedule')"
                   :title="$currentSeason ? $currentSeason->name . ' ' . __('is Here') : __('Season Launching Soon')">
             {{ __('Track the latest seasonal progress, upcoming high-stakes tournaments, and the race to the championship finale.') }}
@@ -102,7 +102,7 @@
     </section>
 
     <section class="p-section">
-        <x-p-hero plain :level="2"
+        <x-p-hero plain :level="2" suit="heart"
                   :eyebrow="__('Our Sponsors')"
                   :title="__('Proudly Supported By')"
                   :highlight="__('Supported By')">

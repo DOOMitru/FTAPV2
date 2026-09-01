@@ -1,5 +1,5 @@
 <x-public-layout>
-    <x-p-hero :title="__('Our Mission')" :highlight="__('Mission')" />
+    <x-p-hero suit="heart" :title="__('Our Mission')" :highlight="__('Mission')" />
 
     <div class="p-split">
         <img class="p-figure" src="{{ asset('images/hero_logo.png') }}" alt="">

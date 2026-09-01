@@ -1,5 +1,5 @@
 <x-public-layout>
-    <x-p-hero :eyebrow="__('League Rules & Logic')"
+    <x-p-hero suit="diamond" :eyebrow="__('League Rules & Logic')"
               :title="__('Points Structure')"
               :highlight="__('Structure')">
         {{ __('Our proprietary scoring algorithms reward consistency, deep runs, and tournament dominance. Points form the backbone of our seasonal rankings.') }}

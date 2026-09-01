@@ -1,5 +1,5 @@
 <x-public-layout>
-    <x-p-hero :eyebrow="__('League Standards & Governance')" :title="__('Rules and Regulations')" :highlight="__('Regulations')">
+    <x-p-hero suit="spade" :eyebrow="__('League Standards & Governance')" :title="__('Rules and Regulations')" :highlight="__('Regulations')">
         {{ __('The First to Act league operates under a strict set of competitive standards. These rules ensure a consistent, fair, and professional environment for all participants.') }}
     </x-p-hero>
 

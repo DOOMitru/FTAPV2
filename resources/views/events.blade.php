@@ -1,5 +1,5 @@
 <x-public-layout>
-    <x-p-hero :eyebrow="__('League Schedule')"
+    <x-p-hero suit="diamond" :eyebrow="__('League Schedule')"
               :title="__('Upcoming Events')"
               :highlight="__('Events')">
         {{ __('Join us at our premier venues for high-stakes competition. Register early to secure your seat at the table.') }}

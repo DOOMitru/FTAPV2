@@ -57,6 +57,12 @@
    gradient and elevation tokens, and PublicRegisterTest keeps it here. */
 
 .p-hero {
+    /* Positioned and clipped for the watermark below. Safe on both counts:
+       .p-hero renders only an eyebrow, a title and a lede -- nothing focusable
+       and no dropdown -- so overflow: hidden clips decoration and nothing
+       else. The buttons on the home hero are siblings, not children. */
+    position: relative;
+    overflow: hidden;
     margin-block-end: var(--space-10);
     padding: var(--space-8) var(--space-5);
     border-radius: var(--radius-lg);
@@ -64,6 +70,59 @@
        fades out at the bottom edge instead of stopping at a border. */
     background-image: var(--gradient-surface);
     text-align: center;
+}
+
+/* One large suit behind the band. Atmosphere, not information: aria-hidden, so
+   it carries no contrast requirement and announces nothing.
+ *
+ * A GLYPH, not an image. The whole motif costs zero bytes over the wire and
+ * scales with the type rather than needing a second asset at 2x. */
+.p-hero__watermark {
+    position: absolute;
+    /* Centred on the band rather than pinned to its top edge. Hero bands vary
+       in height -- the rules pages run ~290px, the home hero taller -- and a
+       top-pinned glyph got sliced through its lobes on the short ones, which
+       reads as an accident rather than a crop. Centring makes any band height
+       look deliberate. */
+    inset-block-start: 50%;
+    inset-inline-end: -0.04em;
+    transform: translateY(-50%);
+    z-index: 0;
+    font-size: 13rem;
+    line-height: 1;
+    color: var(--c-text);
+    opacity: 0.04;
+    pointer-events: none;
+    user-select: none;
+}
+
+/* The transform above would animate on a theme change and jitter for anyone
+   who asked not to see motion; nothing here should move at all. */
+@media (prefers-reduced-motion: reduce) {
+    .p-hero__watermark {
+        transition: none;
+    }
+}
+
+/* The band's own children sit above the watermark. Without this the eyebrow
+   and title share a stacking context with it and the paint order is source
+   order -- which happens to be correct here, but only by accident. */
+.p-hero > :not(.p-hero__watermark) {
+    position: relative;
+    z-index: 1;
+}
+
+/* The eyebrow's suit mark. Scoped to .p-hero__eyebrow rather than the shared
+   .u-eyebrow utility on purpose: .u-eyebrow is also the dashboard's
+   page-header eyebrow and the date stamp on archived events, and a spade
+   belongs on neither. The dashboard is the flat register; the motif is the
+   shop window's. */
+.p-hero__suit {
+    margin-inline-end: var(--space-2);
+    /* Suits are drawn heavier than the letterforms beside them; a touch
+       smaller keeps the eyebrow reading as one line rather than a glyph with
+       text after it. */
+    font-size: 0.92em;
 }
 
 .p-hero__title,

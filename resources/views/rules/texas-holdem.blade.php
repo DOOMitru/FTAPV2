@@ -1,5 +1,5 @@
 <x-public-layout>
-    <x-p-hero :eyebrow="__('Official Gameplay Guide')"
+    <x-p-hero suit="heart" :eyebrow="__('Official Gameplay Guide')"
               :title="__('Texas Hold\'em Rules')"
               :highlight="__('Hold\'em')">
         {{ __('The definitive guide to the world\'s most popular poker variant. From the initial shuffle to the final showdown, these regulations govern every hand played in First to Act tournaments.') }}

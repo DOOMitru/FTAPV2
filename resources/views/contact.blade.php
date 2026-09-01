@@ -5,7 +5,7 @@
                  centred across the page. Uses <x-p-hero> like the other seven
                  public pages instead of hand-setting .p-hero__title, which was
                  borrowing a block's internals from outside the block. --}}
-            <x-p-hero align="start"
+            <x-p-hero suit="club" align="start"
                       :eyebrow="__('Connect with us')"
                       :title="__('Join the First to Act Circle')"
                       :highlight="__('First to Act')">
