@@ -4,21 +4,24 @@
 
 ## Where things stand
 
-Phases 0, 1, **2** and **3** are complete and committed. Phase 1's exit criteria were
+Phases 0, 1, **2**, **3** and **4** are complete and committed. Phase 1's exit criteria were
 measured, not assumed — see `docs/PHASE-1-EXIT-AUDIT.md`. Phase 2 converted the eight public
-pages; Phase 3 the six auth views and four profile views.
+pages; Phase 3 the six auth views and four profile views; Phase 4 the dashboard and the two
+showcase detail pages.
 
-Suite: **107 passed, 0 failed.** Run `php artisan test`.
+Suite: **108 passed, 0 failed.** Run `php artisan test`.
 
-**28 of 86 views still contain Tailwind — and that number is a test, not a note.**
+**25 of 86 views still contain Tailwind — and that number is a test, not a note.**
 `tests/Feature/ConvertedViewsTest.php` names every view still permitted to contain it and
 fails in both directions: a converted view picking Tailwind back up, AND an allowlist entry
 that has since been converted and should be removed. The second assertion is what stops the
-list rotting. Phase 4 removes the three showcase pages, Phase 5 the admin CRUD — and when
-the array is empty, deleting Tailwind is a test going green rather than a judgement call.
+list rotting. **Phase 5 empties it** — and when the array is empty, deleting Tailwind is a
+test going green rather than a judgement call.
 
-The heaviest remaining: `poker/tournaments/show` (553), `dashboard` (325),
-`poker/venues/show` (311), `users/index` (126), `poker/seasons/index` (124).
+Everything left is admin CRUD: seven `index` pages, twelve `create`/`edit` forms, three
+`users/*` views, and `components/tournament-badge` (which has zero callers — see below).
+The heaviest are `users/index` (126), `poker/seasons/index` (124),
+`poker/tournaments/index` (117), `poker/results/index` (113).
 
 ### Read these first, in order
 
@@ -31,14 +34,32 @@ The heaviest remaining: `poker/tournaments/show` (553), `dashboard` (325),
 
 ### The next action
 
-Plan and execute **Phase 4** — dashboard plus the two showcase detail pages
-(`poker/tournaments/show`, `poker/venues/show`). Three views, but they are the three
-heaviest in the app: **1,189 utility instances between them**, more than Phase 3's ten
-views combined. Write the plan and **pre-flight it**; that has found a defect in every
-plan so far, including one in Phase 3's that only surfaced because I checked which layout
-each view actually used rather than trusting my own summary.
+Plan and execute **Phase 5** — the admin CRUD, and then the removal of Tailwind itself.
 
-Guards the later phases inherit:
+The 24 remaining views are unusually uniform: seven index pages that are all
+`<x-page-header>` + `<x-table>` + pagination, and twelve create/edit forms that are all
+`<x-field>` + `<x-btn>`. **Expect the phase to be repetitive rather than difficult** — the
+components, the pagination view and the named-error-bag support all exist already.
+
+Two things Phase 5 owns that no earlier phase could:
+
+1. **Deleting the legacy Breeze components.** `input-label`, `text-input`, `input-error` and
+   `primary-button` each have ~20 remaining call sites, all in these admin forms. They stay
+   alive until the last one converts. `secondary-button`, `danger-button` and
+   `auth-session-status` are down to 1–2 callers.
+2. **Removing Tailwind.** `app.css` still ends with `@tailwind base/components/utilities`,
+   loading *after* the design system so unconverted views keep rendering. When
+   `ConvertedViewsTest`'s array is empty, delete those three lines, drop the dependency, and
+   confirm the suite stays green.
+
+**Before deleting Tailwind, grep the JS and TS for class names.** Phase 1 Task 12 found the
+modal adding Tailwind's `.overflow-y-hidden` to `<body>` from inside a JS string — nothing
+in a Blade class attribute named it, and it would have broken silently.
+
+`components/tournament-badge` is on the allowlist but has **zero callers**; it is a
+delete-or-redesign decision for the owner, not a conversion.
+
+Guards the phase inherits:
 
 | Test | What it catches |
 |---|---|
@@ -46,12 +67,10 @@ Guards the later phases inherit:
 | `ModifierClassGuardTest` | a layout modifier used without its base class |
 | `PublicRegisterTest` | gradient/elevation tokens outside the public register |
 | `InlineStyleGuardTest` | inline CSS, attribute and `<style>` block |
-| `ContentPreservationTest` | rules pages, events, dashboard, season and tournament shows |
+| `ContentPreservationTest` | rules pages, events, dashboard, season, tournament and venue shows |
 
 The one lesson worth carrying: **computed-style checks pass while a page looks wrong.**
-Every bug the owner found in Phase 2 — invisible gradients, a double-escaped apostrophe, a
-300px hole from a specificity collision, an unreadable panel — passed every assertion and
-was obvious in a screenshot. Screenshot each page before calling it converted.
+Screenshot each page before calling it converted.
 
 ## Outstanding — needs the owner, not code
 

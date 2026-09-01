@@ -55,7 +55,6 @@ class ConvertedViewsTest extends TestCase
         'poker/venues/create.blade.php',
         'poker/venues/edit.blade.php',
         'poker/venues/index.blade.php',
-        'poker/venues/show.blade.php',
         'users/edit.blade.php',
         'users/index.blade.php',
         'users/show.blade.php',

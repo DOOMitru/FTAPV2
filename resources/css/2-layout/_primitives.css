@@ -61,7 +61,13 @@
 
 @media (max-width: 60rem) {
     .l-sidebar {
-        grid-template-columns: 1fr;
+        /* minmax(0, 1fr), not 1fr. `1fr` means `minmax(auto, 1fr)`, and a grid
+           item's automatic minimum is its min-content width -- so a column
+           containing a wide table refuses to shrink and the page scrolls
+           sideways, even though .table-scroll is ready to scroll internally.
+           The two-column rule above already guards the main column this way;
+           the collapsed rule threw that away. */
+        grid-template-columns: minmax(0, 1fr);
     }
 }
 

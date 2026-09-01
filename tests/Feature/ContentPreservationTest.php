@@ -8,6 +8,7 @@ use App\Models\PokerTournamentRegistrant;
 use App\Models\PokerTournamentResult;
 use App\Models\User;
 use App\Models\Venue;
+use App\Models\VenuePoints;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -453,5 +454,94 @@ class ContentPreservationTest extends TestCase
         $this->get('/rules/points-structure')
             ->assertOk()
             ->assertSee('Standard league structure is being finalized.');
+    }
+
+    /**
+     * The venue report. Phase 4 found this page had no content test at all:
+     * EmptyStateSmokeTest proved it renders with nothing in the database, but
+     * nothing asserted that its leaderboard survives a rewrite. Written before
+     * the conversion, against the unconverted view, so it guards rather than
+     * describes.
+     */
+    public function test_venue_show_preserves_the_leaderboard_and_totals(): void
+    {
+        $admin = User::factory()->create(['is_admin' => true]);
+        $season = PokerSeason::factory()->create(['name' => 'Season Verifiable']);
+        $venue = Venue::factory()->create([
+            'name' => 'The Ironclad Room',
+            'address' => '1820 Scarth St, Regina SK',
+        ]);
+
+        // Two tournaments at this venue, so $totalTournaments is 2 and the
+        // side panel has something to list.
+        foreach (['Ironclad Opener', 'Ironclad Closer'] as $index => $name) {
+            $tournament = PokerTournament::factory()->create([
+                'name' => $name,
+                'season_id' => $season->id,
+                'venue_id' => $venue->id,
+                'start_time' => now()->subWeeks($index + 1),
+                'scheduled_at' => now()->subWeeks($index + 2),
+            ]);
+
+            PokerTournamentResult::factory()->create([
+                'tournament_id' => $tournament->id,
+                'user_id' => User::factory()->create()->id,
+                'player_name' => 'Scoring Player '.$index,
+                'place' => 1,
+                'points' => 300,
+            ]);
+        }
+
+        // Venue points: one player with two awards, one with a single larger
+        // one, so the leaderboard's ordering by total is actually exercised.
+        $regular = User::factory()->create(['first_name' => 'Perpetua', 'last_name' => 'Souza']);
+        $occasional = User::factory()->create(['first_name' => 'Baltazar', 'last_name' => 'Whitlock']);
+
+        foreach ([40, 35] as $amount) {
+            VenuePoints::factory()->create([
+                'venue_id' => $venue->id,
+                'user_id' => $regular->id,
+                'user_name' => 'Perpetua Souza',
+                'amount' => $amount,
+                'event_date' => now()->subMonth(),
+            ]);
+        }
+
+        VenuePoints::factory()->create([
+            'venue_id' => $venue->id,
+            'user_id' => $occasional->id,
+            'user_name' => 'Baltazar Whitlock',
+            'amount' => 50,
+            'event_date' => now()->subWeeks(3),
+        ]);
+
+        $response = $this->actingAs($admin)->get('/poker/venues/'.$venue->id);
+        $response->assertOk();
+
+        $response->assertSee('The Ironclad Room');
+        $response->assertSee('1820 Scarth St, Regina SK');
+
+        // Both leaderboard players, and their totals: 40 + 35 = 75 beats 50.
+        $response->assertSee('Perpetua Souza');
+        $response->assertSee('Baltazar Whitlock');
+        $response->assertSee('75');
+
+        // Ordering is the point of the leaderboard, so assert it rather than
+        // just membership.
+        $text = preg_replace('/\s+/', ' ', strip_tags($response->getContent()));
+        $this->assertLessThan(
+            strpos($text, 'Baltazar Whitlock'),
+            strpos($text, 'Perpetua Souza'),
+            'The venue leaderboard must order by total points, highest first.'
+        );
+
+        // Totals across the top: 2 tournaments, 2 unique earners, 125 venue
+        // points awarded, 600 tournament points scored.
+        $response->assertSee('125');
+        $response->assertSee('600');
+
+        // The side panel lists the tournaments held here.
+        $response->assertSee('Ironclad Opener');
+        $response->assertSee('Ironclad Closer');
     }
 }
