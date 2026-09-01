@@ -85,7 +85,10 @@
        reads as an accident rather than a crop. Centring makes any band height
        look deliberate. */
     inset-block-start: 50%;
-    inset-inline-end: -0.04em;
+    /* Inside the band, not bleeding off it. This was -0.04em, which pushed the
+       glyph past the right edge so overflow: hidden sliced it -- a mark cut
+       flat by the container reads as a clipping bug rather than as a crop. */
+    inset-inline-end: var(--space-5);
     transform: translateY(-50%);
     z-index: 0;
     font-size: 13rem;
