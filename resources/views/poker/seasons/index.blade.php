@@ -7,65 +7,66 @@
         </x-page-header>
     </x-slot>
 
-    <div class="py-12">
-        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
-            @if (session('status'))
-                <div class="mb-4 font-medium text-sm text-green-600 dark:text-green-400">
-                    {{ session('status') }}
-                </div>
-            @endif
+    <div class="l-container l-stack">
+        @if (session('status'))
+            <x-alert variant="success">{{ session('status') }}</x-alert>
+        @endif
 
-            <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
-                <div class="p-6 text-gray-900 dark:text-gray-100">
-                    <div class="overflow-x-auto">
-                        <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                            <thead>
-                                <tr>
-                                    <th class="px-6 py-3 bg-gray-50 dark:bg-gray-700 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">{{ __('Name') }}</th>
-                                    <th class="px-6 py-3 bg-gray-50 dark:bg-gray-700 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">{{ __('Current') }}</th>
-                                    <th class="px-6 py-3 bg-gray-50 dark:bg-gray-700 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">{{ __('Start Date') }}</th>
-                                    <th class="px-6 py-3 bg-gray-50 dark:bg-gray-700 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">{{ __('End Date') }}</th>
-                                    <th class="px-6 py-3 bg-gray-50 dark:bg-gray-700 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">{{ __('Actions') }}</th>
-                                </tr>
-                            </thead>
-                            <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                                @forelse ($seasons as $season)
-                                    <tr>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-100">{{ $season->name }}</td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-center text-sm">
-                                            @if ($season->is_current)
-                                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
-                                                    {{ __('Current') }}
-                                                </span>
-                                            @endif
-                                        </td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{{ $season->start_date }}</td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{{ $season->end_date }}</td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                            <a href="{{ route('seasons.show', $season) }}" class="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-amber-500 mr-4">{{ __('View Stats') }}</a>
-                                            <a href="{{ route('poker.seasons.edit', $season) }}" class="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300 mr-4">{{ __('Edit') }}</a>
-                                            <form action="{{ route('poker.seasons.destroy', $season) }}" method="POST" class="inline">
-                                                @csrf
-                                                @method('DELETE')
-                                                <button type="submit" class="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300" onclick="return confirm('Are you sure?')">
-                                                    {{ __('Delete') }}
-                                                </button>
-                                            </form>
-                                        </td>
-                                    </tr>
-                                @empty
-                                    <tr>
-                                        <td colspan="4" class="px-6 py-4 whitespace-nowrap text-sm text-center text-gray-500 dark:text-gray-400">{{ __('No seasons found.') }}</td>
-                                    </tr>
-                                @endforelse
-                            </tbody>
-                        </table>
-                    </div>
-                    <div class="mt-4">
-                        {{ $seasons->links() }}
-                    </div>
-                </div>
-            </div>
-        </div>
+        <x-card flush>
+            <x-table>
+                <x-slot name="head">
+                    <th scope="col">{{ __('Name') }}</th>
+                    <th scope="col">{{ __('Current') }}</th>
+                    <th scope="col">{{ __('Start Date') }}</th>
+                    <th scope="col">{{ __('End Date') }}</th>
+                    <th scope="col" class="table__actions">{{ __('Actions') }}</th>
+                </x-slot>
+
+                @forelse ($seasons as $season)
+                    <tr>
+                        <td>{{ $season->name }}</td>
+
+                        <td>
+                            @if ($season->is_current)
+                                <x-badge variant="primary">{{ __('Current') }}</x-badge>
+                            @endif
+                        </td>
+
+                        <td>{{ $season->start_date?->format('M d, Y') ?? '—' }}</td>
+                        <td>{{ $season->end_date?->format('M d, Y') ?? '—' }}</td>
+
+                        <td class="table__actions">
+                            <div class="l-cluster l-cluster--end">
+                                <a class="link" href="{{ route('seasons.show', $season) }}">{{ __('View Stats') }}</a>
+
+                                <a class="link" href="{{ route('poker.seasons.edit', $season) }}">{{ __('Edit') }}</a>
+
+                                {{-- The confirm names what is being deleted. A bare
+                                     "Are you sure?" on a destructive action tells the
+                                     reader nothing about what they are about to lose. --}}
+                                <form action="{{ route('poker.seasons.destroy', $season) }}" method="POST"
+                                      onsubmit="return confirm('{{ __('Delete :name? This cannot be undone.', ['name' => $season->name]) }}')">
+                                    @csrf
+                                    @method('DELETE')
+
+                                    <button type="submit" class="link link--danger">{{ __('Delete') }}</button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                @empty
+                    <tr>
+                        {{-- colspan was 4 on a five-column table. --}}
+                        <td colspan="5">
+                            <x-empty-state :title="__('No seasons found.')" />
+                        </td>
+                    </tr>
+                @endforelse
+            </x-table>
+
+            @if ($seasons->hasPages())
+                <div class="card__pager">{{ $seasons->links() }}</div>
+            @endif
+        </x-card>
     </div>
 </x-app-layout>

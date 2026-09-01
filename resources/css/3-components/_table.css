@@ -59,3 +59,9 @@
     font-variant-numeric: tabular-nums;
     text-align: end;
 }
+
+/* The row-actions column: end-aligned, and never the column that wraps. */
+.table .table__actions {
+    text-align: end;
+    white-space: nowrap;
+}

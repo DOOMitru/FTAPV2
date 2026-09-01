@@ -17,3 +17,24 @@
     outline-offset: 2px;
     border-radius: var(--radius-sm);
 }
+
+/* A destructive link. Used for row-level Delete controls, which are submit
+   buttons inside a form rather than anchors -- .link styles both. */
+.link--danger {
+    color: var(--c-accent-text);
+}
+
+.link--danger:hover {
+    color: var(--c-accent-hover);
+}
+
+/* A link that is really a <button>: strip the control chrome so it sits in a
+   line of links without announcing itself as a button. It keeps button
+   semantics, which is correct -- it submits a form. */
+button.link {
+    padding: 0;
+    border: 0;
+    background: none;
+    font: inherit;
+    cursor: pointer;
+}

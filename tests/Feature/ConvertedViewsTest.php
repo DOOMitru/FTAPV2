@@ -45,7 +45,6 @@ class ConvertedViewsTest extends TestCase
         'poker/results/index.blade.php',
         'poker/seasons/create.blade.php',
         'poker/seasons/edit.blade.php',
-        'poker/seasons/index.blade.php',
         'poker/tournaments/create.blade.php',
         'poker/tournaments/edit.blade.php',
         'poker/tournaments/index.blade.php',
