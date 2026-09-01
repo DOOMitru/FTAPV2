@@ -1002,15 +1002,82 @@
 .p-event {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(min(22rem, 100%), 1fr));
+    /* Taller than its contents. The map's own 18rem was setting the height, so
+       side by side the card was a letterbox and the body's material -- badges,
+       name, date, buttons -- sat squeezed in the middle of it. A floor only: a
+       details page passing a description and links grows past it. */
+    min-height: 24rem;
     overflow: hidden;
 }
 
 .p-event__body {
     display: flex;
     flex-direction: column;
-    justify-content: center;
+    /* Not centred. Against the 24rem floor the whole body floated in the middle
+       of the card, which took the menu with it -- and a menu halfway down is
+       not the card's top-end corner. .p-event__actions keeps its
+       margin-block-start:auto, so Register still sits on the floor. */
+    justify-content: flex-start;
     gap: var(--space-4);
     padding: var(--space-6);
+}
+
+/* The start date as a calendar leaf, beside the name it belongs to. It was a
+   line of text in a two-column fact grid, indistinguishable from the
+   registration cutoff next to it -- and of the two, the one a player needs is
+   when play starts. */
+.p-event__head {
+    display: flex;
+    align-items: center;
+    gap: var(--space-4);
+}
+
+.p-event__when {
+    display: flex;
+    flex: 0 0 auto;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 4.5rem;
+    padding: var(--space-3) var(--space-2);
+    border: var(--border-width) solid var(--c-border);
+    border-radius: var(--radius);
+    background-color: var(--c-surface-raised);
+    line-height: 1;
+}
+
+.p-event__month {
+    font-family: var(--font-body);
+    font-size: var(--step--2);
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--c-primary);
+}
+
+.p-event__day {
+    margin-block-start: var(--space-2);
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    font-size: var(--step-2);
+    font-weight: 600;
+}
+
+.p-event__weekday {
+    margin-block-start: var(--space-2);
+    font-family: var(--font-body);
+    font-size: var(--step--2);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--c-text-muted);
+}
+
+.p-event__time {
+    margin-block-start: var(--space-1);
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    font-size: var(--step-0);
+    font-weight: 600;
 }
 
 .p-event__title {
@@ -1110,25 +1177,33 @@
     color: var(--c-text-muted);
 }
 
-/* Bottom right. margin-block-start:auto absorbs the free space before
-   .p-event__body's justify-content gets a say, so the actions sit on the floor
-   of the card whatever height the map forces. */
-.p-event__actions {
+/* Two items: the badges, which wrap among themselves, and the menu, which does
+   not move. In a single cluster the menu's auto margin followed the badges onto
+   their second line on a narrow card. */
+.p-event__status {
     display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: flex-end;
+    align-items: flex-start;
+    justify-content: space-between;
     gap: var(--space-3);
-    margin-block-start: auto;
-    padding-block-start: var(--space-2);
 }
 
-/* One width for both, rather than letting "Details" and "Register" size
-   themselves to their own text -- a pair of actions that differ by 14px reads
-   as a mistake. 7.5rem clears the longer label with room for a translation. */
-.p-event__actions .btn {
-    min-width: 7.5rem;
+.p-event__menu {
+    flex: 0 0 auto;
 }
+
+/* Register, alone. The row is rendered only when there is something in it, so
+   this never draws a rule across an empty strip. */
+.p-event__actions {
+    display: grid;
+    /* Explicit, so the button's width is a decision rather than a side effect
+       of .btn being inline-flex inside a stretched grid item. */
+    justify-items: start;
+    margin-block-start: auto;
+    padding-block-start: var(--space-4);
+    border-block-start: var(--border-width) solid var(--c-border);
+}
+
+
 
 /* A section intro rather than a page hero: no band, no radius, tighter below,
    and a step down in size. Three washed bands stacked down one page would read

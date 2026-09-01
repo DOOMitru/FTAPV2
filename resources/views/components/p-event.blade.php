@@ -1,10 +1,10 @@
 @props(['tournament', 'details' => true])
 
-{{-- One upcoming-event card, shared by the events page and the home page.
-     Extracted rather than copied: the two would drift, and this card already
-     carries four conditional branches -- registration open, already
-     registered, awaiting approval, closed -- that must agree with the
-     controller wherever it is drawn. --}}
+{{-- One upcoming-event card, shared by the events page, the home page and the
+     tournament details page. Extracted rather than copied: the three would
+     drift, and this card already carries four conditional branches --
+     registration open, already registered, awaiting approval, closed -- that
+     must agree with the controller wherever it is drawn. --}}
 <article class="p-event p-raised">
     @if ($tournament->venue && $tournament->venue->address)
         <div class="map">
@@ -30,14 +30,23 @@
     @endif
 
     <div class="p-event__body">
-        <div class="l-cluster">
+        {{-- Every piece of STATUS sits here, together. "You're registered" and
+             "Awaiting approval" used to live down in the action row, where a
+             badge shared a line with buttons and had to be excluded from their
+             layout. They are states, like the two beside them. --}}
+        {{-- The badges wrap inside their own group; the menu is a separate
+             item pinned to the end. Sharing one cluster, the menu's auto margin
+             put it at the end of whatever line it happened to land on -- on a
+             phone the badges wrap and it slid down to the second one, which is
+             not the card's top-end corner. --}}
+        <div class="p-event__status">
+            <div class="l-cluster">
             {{-- Conditional, deliberately. This badge used to render
-                 unconditionally on every upcoming tournament, so a
-                 tournament whose registration had closed still
-                 announced "Registration Open" while showing no
-                 register button. registration_open is true only when
-                 scheduled_at is set AND not past -- which is not the
-                 same as "play has not started". --}}
+                 unconditionally on every upcoming tournament, so a tournament
+                 whose registration had closed still announced "Registration
+                 Open" while showing no register button. registration_open is
+                 true only when scheduled_at is set AND not past -- which is not
+                 the same as "play has not started". --}}
             @if ($tournament->registration_open)
                 <x-badge variant="open">{{ __('Registration Open') }}</x-badge>
             @else
@@ -45,14 +54,113 @@
             @endif
 
             <x-badge>{{ $tournament->season->name }}</x-badge>
+
+            @auth
+                @if ($tournament->viewer_registered ?? false)
+                    {{-- The controller rejects a second registration anyway;
+                         saying so is kinder than offering a button that
+                         fails. --}}
+                    <x-badge variant="open">{{ __("You're registered") }}</x-badge>
+                @elseif (! auth()->user()->isApproved())
+                    {{-- Same reasoning: the controller refuses this case too,
+                         and a button that vanishes with no explanation reads as
+                         a bug rather than as a decision pending on you. Both
+                         this and the guard call isApproved(), so what is
+                         offered and what is refused cannot disagree. --}}
+                    <x-badge>{{ __('Awaiting approval') }}</x-badge>
+                @endif
+            @endauth
+
+            </div>
+
+            {{-- Everything except Register lives in here now. In the card's
+                 top-end corner, in flow beside the badges rather than
+                 positioned over them -- .p-event has overflow:hidden to clip
+                 the map to the card's corners, and an absolutely placed panel
+                 would be cut off by it. --}}
+            <x-dropdown class="p-event__menu">
+                <x-slot name="trigger">
+                    {{-- type="button": this sits inside the card and, on the
+                         details page, inside nothing that submits -- but the
+                         Register form is a sibling and a bare <button> defaults
+                         to submit. --}}
+                    <button type="button" class="action" title="{{ __('More actions') }}">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <circle cx="12" cy="5" r="1"/>
+                            <circle cx="12" cy="12" r="1"/>
+                            <circle cx="12" cy="19" r="1"/>
+                        </svg>
+
+                        <span class="u-visually-hidden">{{ __('More actions') }}</span>
+                    </button>
+                </x-slot>
+
+                <x-slot name="content">
+                    {{-- The details page draws this same card and IS the
+                         destination; an entry pointing at the page you are on
+                         is noise. --}}
+                    @if ($details)
+                        <x-dropdown-link :href="route('tournaments.show', $tournament)">
+                            {{ __('Details') }}
+                        </x-dropdown-link>
+                    @endif
+
+                    {{-- Signed in only, and not for tidiness: seasons.show is
+                         behind the auth middleware, so a guest offered this
+                         would be bounced to the login screen by the very next
+                         request. --}}
+                    @auth
+                        <x-dropdown-link :href="route('seasons.show', $tournament->season)">
+                            {{ __('Season Standings') }}
+                        </x-dropdown-link>
+
+                        {{-- poker.venues.show is inside the admin-only /poker
+                             prefix. Offering it to a player is offering a 403. --}}
+                        @if (auth()->user()->is_admin && $tournament->venue)
+                            <x-dropdown-link :href="route('poker.venues.show', $tournament->venue)">
+                                {{ __('Venue Report') }}
+                            </x-dropdown-link>
+                        @endif
+                    @endauth
+
+                    {{-- A consumer's own entry -- the details page's Unregister,
+                         which exists nowhere else. It styles its control as a
+                         .dropdown__item, which the component supports for both
+                         links and buttons. --}}
+                    @isset($actions)
+                        {{ $actions }}
+                    @endisset
+                </x-slot>
+            </x-dropdown>
         </div>
 
-        <div>
-            <h2 class="p-event__title">{{ $tournament->name }}</h2>
+        {{-- The date as a calendar leaf, beside the name it belongs to. It was
+             a line of text in a two-column fact grid, indistinguishable from
+             the registration cutoff next to it -- and the one date a player
+             actually needs is when play starts. --}}
+        <div class="p-event__head">
+            <div class="p-event__when" aria-hidden="true">
+                <span class="p-event__month">{{ $tournament->start_time->format('M') }}</span>
+                <span class="p-event__day">{{ $tournament->start_time->format('j') }}</span>
+                <span class="p-event__weekday">{{ $tournament->start_time->format('D') }}</span>
+            </div>
 
-            {{-- Directly under the name: the venue is part of what the
-                 event IS, not one of the two dates beside it. --}}
-            <p class="p-event__venue">{{ $tournament->venue->name ?? __('Location TBD') }}</p>
+            <div>
+                <h2 class="p-event__title">{{ $tournament->name }}</h2>
+
+                {{-- Directly under the name: the venue is part of what the
+                     event IS, not one of the dates beside it. --}}
+                <p class="p-event__venue">{{ $tournament->venue->name ?? __('Location TBD') }}</p>
+
+                {{-- The calendar leaf is aria-hidden, so this line carries the
+                     whole date for a screen reader rather than the time alone. --}}
+                <p class="p-event__time">
+                    <span class="u-visually-hidden">{{ __('Starts') }}:</span>
+                    <span aria-hidden="true">{{ $tournament->start_time->format('g:i A') }}</span>
+                    <span class="u-visually-hidden">{{ $tournament->start_time->format('l j F Y, g:i A') }}</span>
+                </p>
+            </div>
         </div>
 
         <div class="p-event__facts">
@@ -60,87 +168,34 @@
                 <span class="p-contact__label">{{ __('Registration Closes') }}</span>
                 <span class="p-contact__value">
                     {{ ($tournament->scheduled_at ?? $tournament->start_time)->format('M d, Y') }}
-                    &middot; {{ ($tournament->scheduled_at ?? $tournament->start_time)->format('h:i A') }}
-                </span>
-            </div>
-
-            <div>
-                <span class="p-contact__label">{{ __('Starts') }}</span>
-                <span class="p-contact__value">
-                    {{ $tournament->start_time->format('M d, Y') }}
-                    &middot; {{ $tournament->start_time->format('h:i A') }}
+                    &middot; {{ ($tournament->scheduled_at ?? $tournament->start_time)->format('g:i A') }}
                 </span>
             </div>
         </div>
 
-
-        {{-- Anything a consumer wants between the facts and the actions --
-             the tournament's own description, contextual links. Empty on the
-             events and home pages, which pass no slot. --}}
+        {{-- Anything a consumer wants between the facts and the actions -- the
+             tournament's own description, contextual links. Empty on the events
+             and home pages, which pass no slot. --}}
         @if (trim($slot) !== '')
             {{ $slot }}
         @endif
 
-        <div class="p-event__actions">
-            {{-- The details page draws this same card and IS the destination;
-                 a button linking to the page you are on is noise. --}}
-            @if ($details)
-                <x-btn variant="primary" :href="route('tournaments.show', $tournament)">
-                    {{ __('Details') }}
-                </x-btn>
-            @endif
-
-            @auth
-                @if ($tournament->viewer_registered ?? false)
-                    {{-- The controller rejects a second registration
-                         anyway; saying so here is kinder than
-                         offering a button that will fail. --}}
-                    <x-badge variant="open">{{ __("You're registered") }}</x-badge>
-                @elseif (! auth()->user()->isApproved())
-                    {{-- Same reasoning as the branch above: the
-                         controller refuses this case anyway, and a
-                         button that vanishes with no explanation
-                         reads as a bug rather than as a decision
-                         pending on you. Both this and the guard
-                         call isApproved(), so what is offered and
-                         what is refused cannot disagree. --}}
-                    <x-badge>{{ __('Awaiting approval') }}</x-badge>
-                @elseif ($tournament->registration_open)
+        {{-- Register alone, and the row only exists when it does. Everything
+             else moved into the menu above, so an empty row here would be a
+             rule and a gap under every card that cannot be registered for. --}}
+        @auth
+            @if (! ($tournament->viewer_registered ?? false)
+                && auth()->user()->isApproved()
+                && $tournament->registration_open)
+                <div class="p-event__actions">
                     <form action="{{ route('tournaments.register', $tournament) }}" method="POST">
                         @csrf
-                        <x-btn variant="ghost" type="submit">{{ __('Register') }}</x-btn>
+                        {{-- Primary now that it stands alone: it was ghost
+                             because Details was the primary beside it. --}}
+                        <x-btn variant="primary" type="submit">{{ __('Register') }}</x-btn>
                     </form>
-                @endif
-            @endauth
-
-            {{-- Straight after the state it belongs with, so a consumer can add
-                 a control the shared card has no business knowing about -- the
-                 details page's Unregister, which exists nowhere else. --}}
-            @isset($actions)
-                {{ $actions }}
-            @endisset
-
-            {{-- Last in the cluster, and that is the whole reason they are here
-                 rather than beside Details. The row is justify-content: flex-end
-                 and wraps; whatever comes last is what drops to a second line,
-                 and it should be a way of navigating away, never Register.
-
-                 Signed in only, and not for tidiness: seasons.show is behind the
-                 auth middleware, so a guest offered this would be bounced to the
-                 login screen by the very next request. --}}
-            @auth
-                <x-btn variant="ghost" :href="route('seasons.show', $tournament->season)">
-                    {{ __('Season Standings') }}
-                </x-btn>
-
-                {{-- poker.venues.show is inside the admin-only /poker prefix.
-                     Offering it to a player is offering a 403. --}}
-                @if (auth()->user()->is_admin && $tournament->venue)
-                    <x-btn variant="ghost" :href="route('poker.venues.show', $tournament->venue)">
-                        {{ __('Venue Report') }}
-                    </x-btn>
-                @endif
-            @endauth
-        </div>
+                </div>
+            @endif
+        @endauth
     </div>
 </article>

@@ -172,4 +172,92 @@ class EventCardTest extends TestCase
             ->assertSee('Venue Report')
             ->assertSee($venueReport, false);
     }
+
+    public function test_the_start_date_renders_as_a_calendar_leaf(): void
+    {
+        $tournament = $this->tournament();
+        $starts = $tournament->start_time;
+
+        $this->actingAs(User::factory()->create())->get('/')->assertOk()
+            ->assertSee('<span class="p-event__month">'.$starts->format('M').'</span>', false)
+            ->assertSee('<span class="p-event__day">'.$starts->format('j').'</span>', false)
+            ->assertSee('<span class="p-event__weekday">'.$starts->format('D').'</span>', false)
+            ->assertSee($starts->format('g:i A'));
+    }
+
+    public function test_the_whole_start_date_is_still_announced(): void
+    {
+        // The leaf is aria-hidden -- three fragments read out as "Nov 30 Tue"
+        // is worse than nothing -- so the full date lives in a visually-hidden
+        // line beside it. Drop that and a screen reader gets no date at all
+        // while the page looks completely correct.
+        $tournament = $this->tournament();
+
+        $this->actingAs(User::factory()->create())->get('/')->assertOk()
+            ->assertSee($tournament->start_time->format('l j F Y, g:i A'));
+    }
+
+    public function test_a_registered_player_sees_a_badge_and_no_action_row(): void
+    {
+        // "You're registered" is a status, and it sits with the other status
+        // badges. The action row holds Register alone now, so for someone
+        // already registered there is nothing to put in it -- and rendering it
+        // empty would draw a rule and a gap across the bottom of the card.
+        $tournament = $this->tournament();
+        $player = User::factory()->create();
+        $this->register($tournament, $player);
+
+        $this->actingAs($player)->get('/')->assertOk()
+            ->assertSee("You're registered")
+            ->assertDontSee('p-event__actions', false);
+    }
+
+    public function test_the_action_row_holds_register_alone(): void
+    {
+        $this->tournament();
+
+        $html = $this->actingAs(User::factory()->create())->get('/')
+            ->assertOk()->getContent();
+
+        $this->assertStringContainsString('p-event__actions', $html);
+
+        // The row is the last thing in the card body, so everything from it
+        // onwards is the row and the closing tags.
+        $row = substr($html, strpos($html, 'p-event__actions'));
+
+        $this->assertStringContainsString('Register', $row);
+        $this->assertStringNotContainsString('Season Standings', $row);
+        $this->assertStringNotContainsString('Details', $row);
+    }
+
+    public function test_the_other_actions_moved_into_the_card_menu(): void
+    {
+        // Details and Season Standings are menu entries now, not buttons.
+        $tournament = $this->tournament();
+
+        $html = $this->actingAs(User::factory()->create())->get('/')
+            ->assertOk()->getContent();
+
+        $this->assertStringContainsString('More actions', $html);
+        $this->assertStringContainsString(
+            '<a class="dropdown__item" href="'.route('tournaments.show', $tournament).'">Details</a>',
+            $html
+        );
+        $this->assertStringContainsString(
+            '<a class="dropdown__item" href="'.route('seasons.show', $tournament->season).'">Season Standings</a>',
+            $html
+        );
+    }
+
+    public function test_unregister_is_a_menu_entry_on_the_details_page(): void
+    {
+        // It arrives through the card's slot, which now lands inside the menu,
+        // so the control has to be a .dropdown__item rather than a button.
+        $tournament = $this->tournament();
+        $player = User::factory()->create();
+        $this->register($tournament, $player);
+
+        $this->actingAs($player)->get(route('tournaments.show', $tournament))->assertOk()
+            ->assertSee('<button type="submit" class="dropdown__item">Unregister</button>', false);
+    }
 }

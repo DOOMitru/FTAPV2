@@ -34,29 +34,38 @@
 
             <x-slot name="actions">
                 {{-- Unregister lives only here, so the shared card does not
-                     carry it. Both conditions are the controller's: it refuses
-                     an unregister once registration has closed. --}}
+                     carry it. It renders inside that card's menu now, so the
+                     control is a .dropdown__item rather than a button -- the
+                     component styles both links and buttons with it.
+
+                     Both conditions are the controller's: it refuses an
+                     unregister once registration has closed. --}}
                 @if ($isUserRegistered && $tournament->registration_open)
                     <form action="{{ route('tournaments.unregister', $tournament) }}" method="POST"
                           data-confirm="{{ __('Are you sure you want to unregister from this tournament?') }}">
                         @csrf
                         @method('DELETE')
-                        <x-btn variant="ghost" type="submit">{{ __('Unregister') }}</x-btn>
+                        <button type="submit" class="dropdown__item">{{ __('Unregister') }}</button>
                     </form>
                 @endif
             </x-slot>
         </x-p-event>
 
-        <div class="l-grid">
-            <x-stat :label="__('Registrants')" :value="$registrantsCount" />
+        {{-- No Registrants tile: the Registered Players card below carries the
+             same count in its header badge, and a KPI that restates a number
+             already on the page spends a quarter of the row saying nothing new.
 
-            @if ($isPast)
+             The whole row is conditional now. With that tile gone an upcoming
+             tournament has no figures at all, and the grid would have rendered
+             as an empty band above the panels. --}}
+        @if ($isPast)
+            <div class="l-grid l-grid--tight">
                 <x-stat :label="__('Final Results')" :value="$resultsCount" />
                 <x-stat :label="__('Avg Points')"
                         :value="$resultsCount ? number_format($totalPoints / $resultsCount) : '0'" />
                 <x-stat :label="__('Points Pot')" :value="number_format($totalPoints)" />
-            @endif
-        </div>
+            </div>
+        @endif
 
         <div class="l-sidebar">
             <div class="l-stack">
