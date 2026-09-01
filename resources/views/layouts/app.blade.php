@@ -36,9 +36,11 @@
                 </header>
             @endisset
 
-            <main class="shell__content">
-                <div class="l-container">{{ $slot }}</div>
-            </main>
+            {{-- No .l-container here. Every view supplies its own, and this
+                 one nested inside it -- .l-container sets padding-inline, so
+                 two of them meant the gutter was applied twice: 32px a side on
+                 a phone, where the content had the least room to give. --}}
+            <main class="shell__content">{{ $slot }}</main>
 
             {{-- .shell is a flex column with min-height: 100vh and
                  .shell__content takes flex: 1, so this sits at the bottom of

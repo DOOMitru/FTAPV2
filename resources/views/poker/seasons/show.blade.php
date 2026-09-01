@@ -9,7 +9,7 @@
         </x-page-header>
     </x-slot>
 
-    <div class="l-stack">
+    <div class="l-container l-stack">
         <div class="l-grid">
             <x-stat :label="__('Tournaments')" :value="number_format($totalTournaments)" />
             <x-stat :label="__('Points awarded')" :value="number_format($totalPoints)" />
