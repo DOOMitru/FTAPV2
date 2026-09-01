@@ -5,6 +5,7 @@
     'value' => null,
     'required' => false,
     'hint' => null,
+    'bag' => 'default',
 ])
 
 <div>
@@ -34,7 +35,10 @@
         <p class="field__hint">{{ $hint }}</p>
     @endif
 
-    @error($name)
+    {{-- The bag matters. profile/edit renders three forms on one page and two
+         of them use named bags, so that a failure in one does not light up the
+         fields of another. @error's second argument is how that reaches here. --}}
+    @error($name, $bag)
         <p class="field__error">{{ $message }}</p>
     @enderror
 </div>
