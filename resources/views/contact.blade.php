@@ -23,7 +23,13 @@
 
                     <div>
                         <span class="p-contact__label">{{ __('Email Us') }}</span>
-                        <span class="p-contact__value">steward@firsttoact.com</span>
+                        {{-- Rendered from config, not hardcoded. The page used
+                             to display steward@firsttoact.com while the form
+                             below delivered to LEAGUE_CONTACT_EMAIL, so the
+                             site told people one address and used another.
+                             One source now, and it cannot drift again. --}}
+                        <a class="p-contact__value link"
+                           href="mailto:{{ config('mail.league_contact') }}">{{ config('mail.league_contact') }}</a>
                     </div>
                 </div>
 

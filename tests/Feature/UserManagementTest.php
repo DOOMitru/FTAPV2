@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\User;
 use Illuminate\Auth\Notifications\ResetPassword;
+use App\Notifications\PlayerApproved;
 use Illuminate\Auth\Notifications\VerifyEmail;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Password;
@@ -333,5 +334,48 @@ class UserManagementTest extends TestCase
         $this->actingAs($player)->post(route('users.invite', $other))->assertForbidden();
 
         $this->assertFalse($other->fresh()->hasVerifiedEmail());
+    }
+
+    public function test_approving_a_player_tells_them()
+    {
+        Notification::fake();
+
+        $admin = User::factory()->create(['is_admin' => true]);
+        $player = User::factory()->pending()->create();
+
+        $this->actingAs($admin)->patch(route('users.approve', $player));
+
+        Notification::assertSentTo($player, PlayerApproved::class);
+    }
+
+    public function test_rejecting_a_player_sends_nothing()
+    {
+        // Deliberate. An automated refusal invites a reply the league has no
+        // process to field, and a rejection is often about a duplicate account
+        // rather than the person. An administrator can explain directly.
+        Notification::fake();
+
+        $admin = User::factory()->create(['is_admin' => true]);
+        $player = User::factory()->pending()->create();
+
+        $this->actingAs($admin)->patch(route('users.reject', $player));
+
+        Notification::assertNothingSentTo($player);
+    }
+
+    public function test_re_approving_an_already_approved_player_does_not_notify_again()
+    {
+        // The approve action doubles as the route back for a rejected account,
+        // so it can be reached for someone who is already approved. Sending a
+        // fresh "you're in"每 time an administrator opens that page would be
+        // noise.
+        Notification::fake();
+
+        $admin = User::factory()->create(['is_admin' => true]);
+        $player = User::factory()->create();
+
+        $this->actingAs($admin)->patch(route('users.approve', $player));
+
+        Notification::assertNothingSentTo($player);
     }
 }

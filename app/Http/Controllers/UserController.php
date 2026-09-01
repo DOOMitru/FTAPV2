@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use App\Notifications\PlayerApproved;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -156,11 +157,21 @@ class UserController extends Controller
      */
     public function approve(User $user): RedirectResponse
     {
+        // Captured before the write: this method is also the route back for a
+        // rejected account, so it can be reached for someone already approved.
+        // Notifying on every visit to that control would be noise, and the
+        // player has learned nothing new.
+        $wasAlreadyApproved = $user->isApproved();
+
         $user->forceFill([
             'approval_status' => 'approved',
             'approval_decided_at' => now(),
             'approval_decided_by' => auth()->id(),
         ])->save();
+
+        if (! $wasAlreadyApproved) {
+            $user->notify(new PlayerApproved());
+        }
 
         return back()->with('status', $user->first_name.' '.$user->last_name.' can now enter tournaments.');
     }
