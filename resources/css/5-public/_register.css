@@ -1153,6 +1153,45 @@
     color: var(--c-text-muted);
 }
 
+/* The published finale thresholds, inside the gradient panel.
+ *
+ * A definition list rather than three .p-stat tiles: a tile brings its own
+ * surface and hairline, which would fight the ground it is drawn on here.
+ *
+ * Contrast measured against BOTH stops of --gradient-panel in BOTH themes,
+ * because a ramp is two colours and text sits on all of it. The label's 0.85
+ * gives 5.21:1 at worst, which clears AA -- this project has twice shipped
+ * panel text that lost AA to an opacity, so it was computed rather than
+ * assumed. */
+.p-finale__row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--space-4);
+    padding-block: var(--space-2);
+}
+
+/* Between rows only -- a trailing rule would draw a line against the panel's
+   own padding and read as a cut-off row.
+ *
+ * 0.22, not 0.18: at 0.18 the rule measured 1.38:1 on the lightest stop of the
+   light-theme ramp, under the 1.4 floor this system uses for a hairline that
+   has to be seen. 0.22 clears it on all four stops. */
+.p-finale__row + .p-finale__row {
+    border-block-start: var(--border-width) solid rgb(255 255 255 / 0.22);
+}
+
+.p-finale__label {
+    font-size: var(--step--1);
+    opacity: 0.85;
+}
+
+.p-finale__value {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+}
+
 /* ── The home lead ────────────────────────────────────────────────────────
    The opening block on the home page: mark, name, tagline, lede. Its own block
    rather than a variant of .p-hero, which eight other pages share and which

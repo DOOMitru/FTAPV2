@@ -104,12 +104,49 @@
                     {{ __('Three things decide who plays: the points you accumulate over the season, how many tournaments you win, and the venue points you pick up along the way.') }}
                 </p>
 
-                {{-- Said plainly rather than left vague. The thresholds are not
-                     set yet, and a page that implies a number nobody has chosen
-                     is worse than one that admits the number is coming. --}}
-                <p class="p-panel__text">
-                    {{ __('The exact thresholds are still being set and will be published here once they are.') }}
-                </p>
+                {{-- The numbers once they exist, the admission until they do.
+                     This page promised to publish them here, so it is the page
+                     that has to keep that promise.
+
+                     Each figure is guarded on its own, not just the block:
+                     hasThresholds() is true when ANY one is set, so a season
+                     with only a points target reaches this branch, and
+                     number_format(null) renders 0 -- a target nobody chose and
+                     that everybody has already met. --}}
+                @if ($currentSeason && $currentSeason->hasThresholds())
+                    <dl class="p-finale">
+                        <div class="p-finale__row">
+                            <dt class="p-finale__label">{{ __('Season points') }}</dt>
+                            <dd class="p-finale__value">
+                                {{ $currentSeason->finale_points_required !== null
+                                    ? number_format($currentSeason->finale_points_required)
+                                    : __('not set yet') }}
+                            </dd>
+                        </div>
+
+                        <div class="p-finale__row">
+                            <dt class="p-finale__label">{{ __('Tournament wins') }}</dt>
+                            <dd class="p-finale__value">
+                                {{ $currentSeason->finale_wins_required !== null
+                                    ? $currentSeason->finale_wins_required
+                                    : __('not set yet') }}
+                            </dd>
+                        </div>
+
+                        <div class="p-finale__row">
+                            <dt class="p-finale__label">{{ __('Venue points') }}</dt>
+                            <dd class="p-finale__value">
+                                {{ $currentSeason->finale_venue_points_required !== null
+                                    ? number_format($currentSeason->finale_venue_points_required)
+                                    : __('not set yet') }}
+                            </dd>
+                        </div>
+                    </dl>
+                @else
+                    <p class="p-panel__text">
+                        {{ __('The exact thresholds are still being set and will be published here once they are.') }}
+                    </p>
+                @endif
 
                 <a class="p-panel__link" href="{{ route('rules.points-structure') }}">
                     {{ __('View Point System') }}

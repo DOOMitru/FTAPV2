@@ -180,4 +180,39 @@ class HomePageTest extends TestCase
             'points' => $points,
         ]);
     }
+
+    public function test_the_home_page_publishes_the_thresholds_once_they_are_set(): void
+    {
+        $this->season()->update([
+            'finale_points_required' => 300,
+            'finale_wins_required' => 2,
+            'finale_venue_points_required' => 50,
+        ]);
+
+        $this->get('/')->assertOk()
+            ->assertSee('300')
+            ->assertDontSee('still being set', false);
+    }
+
+    public function test_the_home_page_admits_when_the_thresholds_are_not_set(): void
+    {
+        // The honest state, and the one every season is in until an
+        // administrator fills the numbers in.
+        $this->season();
+
+        $this->get('/')->assertOk()->assertSee('still being set', false);
+    }
+
+    public function test_a_partially_set_season_shows_only_the_numbers_it_has(): void
+    {
+        // hasThresholds() is ANY, so this season reaches the published branch.
+        // Rendering 0 for the two undecided figures would state a target nobody
+        // chose and that everybody has already met.
+        $this->season()->update(['finale_points_required' => 300]);
+
+        $this->get('/')->assertOk()
+            ->assertSee('300')
+            ->assertSee('not set yet')
+            ->assertDontSee('still being set', false);
+    }
 }
