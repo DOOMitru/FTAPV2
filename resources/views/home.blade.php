@@ -27,23 +27,23 @@
         <div class="l-grid l-grid--wide">
             <x-card :title="__('Season Status')" class="p-raised">
                 @if ($currentSeason)
-                    <dl class="p-rows">
-                        <div class="p-row">
-                            <dt class="p-row__label">{{ __('Active') }}</dt>
-                            <dd class="p-row__value">{{ $currentSeason->name }}</dd>
+                    <dl class="rows">
+                        <div class="row">
+                            <dt class="row__label">{{ __('Active') }}</dt>
+                            <dd class="row__value">{{ $currentSeason->name }}</dd>
                         </div>
 
-                        <div class="p-row">
-                            <dt class="p-row__label">{{ __('Duration') }}</dt>
-                            <dd class="p-row__value">
+                        <div class="row">
+                            <dt class="row__label">{{ __('Duration') }}</dt>
+                            <dd class="row__value">
                                 {{ $currentSeason->start_date?->format('M Y') ?? '?' }} &ndash;
                                 {{ $currentSeason->end_date?->format('M Y') ?? '?' }}
                             </dd>
                         </div>
 
-                        <div class="p-row">
-                            <dt class="p-row__label">{{ __('Prize Pool') }}</dt>
-                            <dd class="p-row__value">{{ __('Dynamic') }}</dd>
+                        <div class="row">
+                            <dt class="row__label">{{ __('Prize Pool') }}</dt>
+                            <dd class="row__value">{{ __('Dynamic') }}</dd>
                         </div>
                     </dl>
                 @else
@@ -53,15 +53,15 @@
 
             <x-card :title="__('Next Event')" class="p-raised">
                 @if ($nextTournament)
-                    <dl class="p-rows">
-                        <div class="p-row">
-                            <dt class="p-row__label">{{ __('Event') }}</dt>
-                            <dd class="p-row__value">{{ $nextTournament->name }}</dd>
+                    <dl class="rows">
+                        <div class="row">
+                            <dt class="row__label">{{ __('Event') }}</dt>
+                            <dd class="row__value">{{ $nextTournament->name }}</dd>
                         </div>
 
-                        <div class="p-row">
-                            <dt class="p-row__label">{{ __('Starts') }}</dt>
-                            <dd class="p-row__value">
+                        <div class="row">
+                            <dt class="row__label">{{ __('Starts') }}</dt>
+                            <dd class="row__value">
                                 {{ $nextTournament->start_time?->format('F d, Y') ?? __('TBD') }}
                                 @if ($nextTournament->start_time)
                                     &middot; {{ $nextTournament->start_time->format('h:i A') }}
@@ -69,9 +69,9 @@
                             </dd>
                         </div>
 
-                        <div class="p-row">
-                            <dt class="p-row__label">{{ __('Venue') }}</dt>
-                            <dd class="p-row__value">{{ $nextTournament->venue?->name ?? __('Location TBD') }}</dd>
+                        <div class="row">
+                            <dt class="row__label">{{ __('Venue') }}</dt>
+                            <dd class="row__value">{{ $nextTournament->venue?->name ?? __('Location TBD') }}</dd>
                         </div>
                     </dl>
                 @else

@@ -1,0 +1,118 @@
+/* A label-and-value list. .p-fact is the public register's panel equivalent;
+   this one uses muted text, which a saturated ground cannot carry. Shared:
+   both the dashboard and the public pages want it, and it references no fenced
+   token, so it does not belong in 5-public. */
+.rows {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    margin: 0;
+}
+
+.row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--space-3);
+}
+
+.row__label {
+    font-family: var(--font-body);
+    font-size: var(--step--2);
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--c-text-muted);
+}
+
+.row__value {
+    font-size: var(--step--1);
+    font-weight: 600;
+    text-align: end;
+}
+
+/* A calendar chip: month above day. Used where a date has to be scannable in a
+   list rather than read as a sentence. */
+.date-chip {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    width: 3rem;
+    height: 3rem;
+    border: var(--border-width) solid var(--c-border);
+    border-radius: var(--radius);
+    background-color: var(--c-surface-raised);
+    line-height: 1;
+}
+
+.date-chip__month {
+    font-family: var(--font-body);
+    font-size: var(--step--2);
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--c-primary);
+}
+
+.date-chip__day {
+    margin-block-start: var(--space-1);
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    font-size: var(--step-1);
+    font-weight: 600;
+}
+
+/* One entry in a list of things inside a card: a leading chip, a body that
+   grows, and actions at the end. The card's own divider separates them. */
+.entry {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-4);
+    padding: var(--space-4) var(--space-5);
+}
+
+.entry + .entry {
+    border-block-start: var(--border-width) solid var(--c-border);
+}
+
+.entry__body {
+    flex: 1 1 12rem;
+    min-width: 0;
+}
+
+.entry__title {
+    font-size: var(--step-0);
+    font-weight: 600;
+}
+
+.entry__meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-1) var(--space-4);
+    margin-block-start: var(--space-1);
+    font-size: var(--step--2);
+    color: var(--c-text-muted);
+}
+
+.entry__actions {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    margin-inline-start: auto;
+}
+
+/* A footnote under a card's body, inside its border. */
+.card__note {
+    padding: var(--space-3) var(--space-5);
+    border-block-start: var(--border-width) solid var(--c-border);
+    font-family: var(--font-body);
+    font-size: var(--step--2);
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    text-align: center;
+    color: var(--c-text-muted);
+}
