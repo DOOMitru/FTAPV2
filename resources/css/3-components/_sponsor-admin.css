@@ -21,6 +21,25 @@
     padding: var(--space-1);
 }
 
+/* The thumbnail as a link to the sponsor's site.
+ *
+ * inline-flex so the anchor is exactly the size of the image it wraps: an
+ * inline anchor also contains the line box's descender space, which shows up
+ * as a stripe of outline hanging below the logo on focus. */
+.sponsor-thumb-link {
+    display: inline-flex;
+    border-radius: var(--radius-sm);
+}
+
+.sponsor-thumb-link:focus-visible {
+    outline: 2px solid var(--c-primary);
+    outline-offset: 2px;
+}
+
+.sponsor-thumb-link:hover .sponsor-thumb {
+    border-color: var(--c-primary);
+}
+
 .sponsor-preview {
     width: 100%;
     max-width: 18rem;

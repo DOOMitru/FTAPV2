@@ -270,4 +270,58 @@ class SponsorTest extends TestCase
 
         $this->get('/')->assertOk()->assertSee('alt="Ace High"', false);
     }
+
+    public function test_the_admin_table_links_the_logo_and_drops_the_website_column(): void
+    {
+        // The website reached the row twice before -- a "Visit" link in its own
+        // column, and a sort_order column nobody reads. It is now the logo's
+        // href, with the address itself under the name.
+        Sponsor::create([
+            'name' => 'Linked Sponsor',
+            'logo_path' => 'sponsor-logos/a.png',
+            'website_url' => 'https://linked.example',
+        ]);
+
+        $response = $this->actingAs($this->admin())->get(route('sponsors.index'))->assertOk();
+
+        $response->assertSee('sponsor-thumb-link', false);
+        $response->assertSee('href="https://linked.example"', false);
+        // The address, under the name, as stored.
+        $response->assertSee('https://linked.example');
+
+        // Both columns are gone: their headers and the old link's text.
+        $response->assertDontSee('>Website<', false);
+        $response->assertDontSee('>Order<', false);
+        $response->assertDontSee('>Visit<', false);
+    }
+
+    public function test_the_admin_table_leaves_a_logo_unlinked_without_a_website(): void
+    {
+        Sponsor::create(['name' => 'No Site Sponsor', 'logo_path' => 'sponsor-logos/b.png']);
+
+        $response = $this->actingAs($this->admin())->get(route('sponsors.index'))->assertOk();
+
+        $response->assertSee('No Site Sponsor');
+        $response->assertDontSee('sponsor-thumb-link', false);
+    }
+
+    public function test_the_linked_logo_carries_a_name_and_the_unlinked_one_does_not(): void
+    {
+        // An image is the accessible NAME of a link that contains nothing else,
+        // so the linked logo's alt has to be the sponsor. Unlinked it is
+        // decoration -- the name is in the very next cell -- and repeating it
+        // there would have a screen reader say it twice.
+        Sponsor::create([
+            'name' => 'Named Alt',
+            'logo_path' => 'sponsor-logos/a.png',
+            'website_url' => 'https://named.example',
+        ]);
+        Sponsor::create(['name' => 'Empty Alt', 'logo_path' => 'sponsor-logos/b.png']);
+
+        $response = $this->actingAs($this->admin())->get(route('sponsors.index'))->assertOk();
+
+        $response->assertSee('alt="Named Alt"', false);
+        $response->assertDontSee('alt="Empty Alt"', false);
+        $response->assertSee('alt=""', false);
+    }
 }
