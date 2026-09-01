@@ -53,6 +53,26 @@
     grid-template-columns: repeat(auto-fit, minmax(min(22rem, 100%), 1fr));
 }
 
+/* Two abreast on a phone rather than one.
+ *
+ * The base tracks want 16rem. At 375px the container leaves 343px of usable
+ * width, so exactly one fits and a row of four stat tiles renders as four
+ * full-width cards -- a screenful of numbers that should have been a glance.
+ * Above this width the base rule takes over again and the row grows back out.
+ *
+ * A fixed pair, not a smaller auto-fit track: 9rem tracks would let a THIRD
+ * column in at around 500px and split four tiles three-and-one, and 10rem
+ * clears 375px by seven pixels, which is not a margin worth shipping.
+ *
+ * minmax(0, 1fr), not 1fr: a track's automatic minimum is its content's
+ * min-content width, so a label like "Podium Finishes" would refuse to shrink
+ * and push the pair wider than the screen instead of wrapping inside a tile. */
+@media (max-width: 48rem) {
+    .l-grid--tight {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
 .l-sidebar {
     display: grid;
     gap: var(--space-5);

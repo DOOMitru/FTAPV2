@@ -8,7 +8,9 @@
         {{-- Labels are asserted by test_dashboard_preserves_career_figures on the
              collapsed text, e.g. "Career Points 645". <x-stat> renders label then
              value, which keeps that adjacency. --}}
-        <div class="l-grid">
+        {{-- --tight so the four tiles are two abreast on a phone instead of
+             four stacked cards. --}}
+        <div class="l-grid l-grid--tight">
             <x-stat :label="__('Career Points')" :value="number_format($totalPoints)" />
             <x-stat :label="__('Events Played')" :value="$tournamentsPlayed" />
             <x-stat :label="__('Podium Finishes')" :value="$podiums" />

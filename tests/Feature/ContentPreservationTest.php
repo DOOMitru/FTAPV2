@@ -278,6 +278,10 @@ class ContentPreservationTest extends TestCase
         $this->assertStringContainsString('Career Points 645', $text);
         $this->assertStringContainsString('Events Played 4', $text);
         $this->assertStringContainsString('Tournament Wins 2', $text);
+
+        // The fourth tile, which was the only one of the row not asserted --
+        // places 1, 1, 3, 4 put three of the four inside the top three.
+        $this->assertStringContainsString('Podium Finishes 3', $text);
     }
 
     // -----------------------------------------------------------------
