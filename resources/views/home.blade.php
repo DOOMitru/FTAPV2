@@ -1,21 +1,60 @@
 <x-public-layout>
-    <div class="p-split">
-        <div>
-            <x-p-hero suit="spade" align="start"
-                      :eyebrow="__('Regina, Saskatchewan')"
-                      :title="__('First to Act Poker League')"
-                      :highlight="__('Poker League')">
-                {{ __("Free Texas Hold'em every week across Regina. Play the season, earn points at every table, and the top 20 play the finale — for a prize pool funded entirely by local sponsors.") }}
-            </x-p-hero>
+    {{-- The home lead is its own block rather than <x-p-hero>: it is the only
+         hero carrying a mark, a tagline and a call to action, and bolting three
+         optional props onto a component eight other pages share, to serve one
+         page, is how a shared component rots. It reuses .p-hero__highlight and
+         .p-hero__suit, both of which are standalone classes. --}}
+    <section class="p-lead">
+        {{-- Decorative: the title beside it says the name. First in the DOM
+             because that is its mobile position; CSS order moves it right on a
+             wide screen. --}}
+        <img class="p-lead__mark" src="{{ asset('images/hero_logo.png') }}" alt="">
 
-            <div class="l-cluster">
-                <x-btn variant="primary" :href="route('register')">{{ __('Join Now') }}</x-btn>
-                <x-btn variant="ghost" :href="route('about.index')">{{ __('Learn More') }}</x-btn>
-            </div>
+        <div class="p-lead__body">
+            <p class="u-eyebrow p-lead__eyebrow">
+                <span class="p-hero__suit" aria-hidden="true">&spades;</span>{{ __('Regina, Saskatchewan') }}
+            </p>
+
+            <h1 class="p-lead__title">
+                {{ __('First to Act') }} <span class="p-hero__highlight">{{ __('Poker League') }}</span>
+            </h1>
+
+            {{-- Three spans, as in the footer: the motto may only break BETWEEN
+                 clauses. text-wrap: balance was tried and is wrong here -- it
+                 balances line lengths, which split "Play hard. Play / smart."
+                 straight through the middle of a clause. --}}
+            <p class="p-lead__tagline">
+                <span>{{ __('Play hard.') }}</span>
+                <span>{{ __('Play smart.') }}</span>
+                <span>{{ __('Be first to act.') }}</span>
+            </p>
+
+            <p class="p-lead__lede">
+                {{ __("Free Texas Hold'em every week, hosted by bars and lounges around Regina — turn up and you are backing them too. Season points, tournament wins and venue points all decide who plays the season finale, for a prize pool funded entirely by local sponsors.") }}
+            </p>
+
+            @auth
+                {{-- A signed-in player has already joined; offering them "Join Now" is
+                     asking for something they have done. --}}
+                <div class="p-lead__welcome p-lead__actions">
+                    <p class="p-lead__welcome-line">
+                        {{ __('Welcome back,') }} <span class="p-hero__highlight">{{ auth()->user()->first_name }}</span>.
+                    </p>
+
+                    <p class="p-lead__welcome-note">
+                        <a class="link" href="{{ route('dashboard') }}">{{ __('Your dashboard') }}</a>
+                        {{ __('has your points, your results and what is coming up next.') }}
+                    </p>
+                </div>
+            @else
+                <div class="l-cluster p-lead__actions">
+                    <x-btn variant="primary" :href="route('register')">{{ __('Join Now') }}</x-btn>
+                    <x-btn variant="ghost" :href="route('about.index')">{{ __('Learn More') }}</x-btn>
+                </div>
+            @endauth
         </div>
+    </section>
 
-        <img class="p-figure" src="{{ asset('images/hero_logo.png') }}" alt="">
-    </div>
 
     <section class="p-section">
         <x-p-hero plain :level="2" suit="diamond"
@@ -85,7 +124,7 @@
                 <h3 class="p-panel__eyebrow">{{ __('Season Finale') }}</h3>
 
                 <p class="p-panel__text">
-                    {{ __('The top 20 players on the leaderboard at the end of the season qualify for the Grand Championship.') }}
+                    {{ __('Season points, tournament wins and venue points decide who plays the Grand Championship at the end of the season.') }}
                 </p>
 
                 {{-- Was href="#". The points structure page is what "View Point

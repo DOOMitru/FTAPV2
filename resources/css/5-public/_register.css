@@ -1093,6 +1093,144 @@
 /* The aside on the auth pages: the mark, the league name, and what the league
    is. Sits beside the form rather than above it, so a visitor arriving from
    the marketing site still sees why they are signing up. */
+/* ── The home lead ────────────────────────────────────────────────────────
+   The opening block on the home page: mark, name, tagline, lede. Its own block
+   rather than a variant of .p-hero, which eight other pages share and which
+   carries none of these parts.
+
+   No watermark here, unlike every other hero. The mark IS the graphic on this
+   page; a ghost suit behind an actual logo is noise. */
+.p-lead {
+    display: flex;
+    align-items: center;
+    gap: var(--space-8);
+    padding: var(--space-8);
+    border-radius: var(--radius-lg);
+    background-image: var(--gradient-surface);
+}
+
+.p-lead__body {
+    /* Takes the leftover width, and may shrink: without a min-width of 0 a
+       flex item refuses to go below its longest unbreakable word, which for a
+       display heading is most of the row. */
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+/* order: 2 puts the mark to the RIGHT of the words on a wide screen while it
+   stays first in the DOM, where it belongs for the mobile layout. */
+.p-lead__mark {
+    order: 2;
+    flex: 0 0 auto;
+    width: 16rem;
+    height: auto;
+}
+
+.p-lead__eyebrow {
+    margin-block-end: var(--space-3);
+    color: var(--c-primary);
+}
+
+.p-lead__title {
+    font-family: var(--font-display);
+    font-size: var(--step-4);
+    font-weight: 400;
+    line-height: var(--leading-tight);
+    letter-spacing: -0.02em;
+    text-transform: uppercase;
+}
+
+/* The tagline. Display face and brand red so it reads as a motto rather than
+   as another sentence -- it sits between a title and a paragraph and has to
+   hold its own against both. Flat colour rather than the clipped gradient the
+   title uses: at this size a two-stop ramp across a short line reads as a
+   printing fault. */
+/* Each clause is unbreakable, so the line can only wrap at a full stop. */
+.p-lead__tagline > span {
+    white-space: nowrap;
+}
+
+.p-lead__tagline {
+    margin-block-start: var(--space-4);
+    font-family: var(--font-display);
+    font-size: var(--step-1);
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    color: var(--c-primary);
+}
+
+/* The call to action lives inside the card, which is what makes centring the
+   mark against the card mean anything: with the buttons outside it they read
+   as orphaned below a block the mark was aligned to. */
+.p-lead__actions {
+    margin-block-start: var(--space-5);
+}
+
+.p-lead__lede {
+    max-width: 44rem;
+    margin-block-start: var(--space-4);
+    font-size: var(--step-1);
+    line-height: var(--leading-relaxed);
+    color: var(--c-text-muted);
+}
+
+/* Shown to a signed-in player in place of the Join / Learn more buttons: they
+   have already joined, and offering to sign them up again is asking for
+   something they have done. */
+.p-lead__welcome-line {
+    font-family: var(--font-display);
+    font-size: var(--step-3);
+    line-height: var(--leading-tight);
+    text-transform: uppercase;
+}
+
+.p-lead__welcome-note {
+    margin-block-start: var(--space-2);
+    color: var(--c-text-muted);
+}
+
+/* On a phone the mark goes above the words, centred, and comes down to a size
+   that does not push the heading off the first screen. */
+@media (max-width: 48rem) {
+    .p-lead {
+        flex-direction: column;
+        /* The base rule centres on the cross axis, which in a column is the
+           HORIZONTAL one -- it would shrink the text block to its longest line
+           and centre that. stretch keeps the words full width; the mark opts
+           out of it on its own. */
+        align-items: stretch;
+        gap: var(--space-4);
+        padding: var(--space-5);
+    }
+
+    .p-lead__mark {
+        /* order is reset: in a column, 2 would put the mark below the text. */
+        order: 0;
+        align-self: center;
+        width: 6rem;
+    }
+
+    /* Both strand a word when left to wrap: "FIRST TO ACT POKER / LEAGUE" and
+       "PLAY HARD. PLAY SMART. BE FIRST TO / ACT." balance splits them evenly,
+       and on the tagline that also lands the break between two clauses rather
+       than inside one. Ignored where unsupported, which leaves today's
+       behaviour. */
+    .p-lead__title {
+        font-size: var(--step-2);
+        text-wrap: balance;
+    }
+
+    .p-lead__tagline {
+        margin-block-start: var(--space-3);
+        font-size: var(--step--1);
+    }
+
+    .p-lead__lede {
+        margin-block-start: var(--space-3);
+        font-size: var(--step-0);
+    }
+}
+
 /* The auth pages are a mark, a name and one form. Nothing else, so the column
    is centred rather than left-aligned: with the lede and the reason cards gone
    there is no second column and no long text to anchor a left edge, and a
