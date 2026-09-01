@@ -139,6 +139,11 @@
              a line of text in a two-column fact grid, indistinguishable from
              the registration cutoff next to it -- and the one date a player
              actually needs is when play starts. --}}
+        {{-- The name spans the card on its own line. Beside the calendar leaf
+             it had only the width left over, so a long tournament name wrapped
+             to two or three lines against a leaf that is four rem wide. --}}
+        <h2 class="p-event__title">{{ $tournament->name }}</h2>
+
         <div class="p-event__head">
             <div class="p-event__when" aria-hidden="true">
                 <span class="p-event__month">{{ $tournament->start_time->format('M') }}</span>
@@ -146,16 +151,30 @@
                 <span class="p-event__weekday">{{ $tournament->start_time->format('D') }}</span>
             </div>
 
+            {{-- Where and when, and nothing else: the two things that go with
+                 a date. --}}
             <div>
-                <h2 class="p-event__title">{{ $tournament->name }}</h2>
+                {{-- The same pin the map overlay uses, so the two marks agree.
+                     aria-hidden: it is a picture of the word beside it. --}}
+                <p class="p-event__venue">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                         stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+                        <path d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+                    </svg>
 
-                {{-- Directly under the name: the venue is part of what the
-                     event IS, not one of the dates beside it. --}}
-                <p class="p-event__venue">{{ $tournament->venue->name ?? __('Location TBD') }}</p>
+                    {{ $tournament->venue->name ?? __('Location TBD') }}
+                </p>
 
                 {{-- The calendar leaf is aria-hidden, so this line carries the
                      whole date for a screen reader rather than the time alone. --}}
                 <p class="p-event__time">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                         stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <circle cx="12" cy="12" r="10"/>
+                        <polyline points="12 6 12 12 16 14"/>
+                    </svg>
+
                     <span class="u-visually-hidden">{{ __('Starts') }}:</span>
                     <span aria-hidden="true">{{ $tournament->start_time->format('g:i A') }}</span>
                     <span class="u-visually-hidden">{{ $tournament->start_time->format('l j F Y, g:i A') }}</span>
