@@ -33,7 +33,6 @@ class ConvertedViewsTest extends TestCase
      * @var list<string>
      */
     private const NOT_YET_CONVERTED = [
-        'auth/register.blade.php',
         'components/tournament-badge.blade.php',
         'dashboard.blade.php',
         'poker/points-structure/create.blade.php',
