@@ -13,7 +13,7 @@
         @endif
 
         <x-card flush>
-            <x-table>
+            <x-table class="venues-table">
                 <x-slot name="head">
                     <th scope="col">{{ __('Name') }}</th>
                     <th scope="col">{{ __('Description') }}</th>
@@ -21,14 +21,17 @@
                 </x-slot>
 
                 @forelse ($venues as $venue)
-                    <tr>
-                        <td>{{ $venue->name }}</td>
+                    <tr class="venue-row">
+                        <td class="venue-row__name">{{ $venue->name }}</td>
 
-                        <td>{{ $venue->description }}</td>
+                        {{-- No whitespace inside: the mobile rule hides this
+                             cell with :empty, and a stray newline would make it
+                             a cell with content as far as CSS is concerned. --}}
+                        <td class="venue-row__desc">{{ $venue->description }}</td>
 
-                        <td class="table__actions">
+                        <td class="table__actions venue-row__actions">
                             <div class="l-cluster l-cluster--end">
-                            <x-action icon="stats" :label="__('View Stats')" :href="route('poker.venues.show', $venue)" />
+                                <x-action icon="stats" :label="__('View Stats')" :href="route('poker.venues.show', $venue)" />
 
                                 <x-action icon="edit" :label="__('Edit')" :href="route('poker.venues.edit', $venue)" />
 

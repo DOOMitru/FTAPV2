@@ -1,0 +1,66 @@
+/* The venue list's narrow layout.
+ *
+ * Not the .table--stacked treatment: that prints every cell as a labelled
+ * label/value line, and a venue has only three, two of which need no naming.
+ * Here the row becomes the name on the start edge, its actions on the end
+ * edge, and the description across both beneath them.
+ *
+ * The header row is hidden with it. Once the cells are rearranged, a
+ * "Name | Description | Actions" strip sits above columns that no longer
+ * correspond to it and reads as a misalignment.
+ */
+@media (max-width: 48rem) {
+    .venues-table thead {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        margin: -1px;
+        padding: 0;
+        overflow: hidden;
+        clip-path: inset(50%);
+        white-space: nowrap;
+    }
+
+    .venue-row {
+        display: grid;
+        /* The name takes the room; the actions hug the end edge. */
+        grid-template-columns: 1fr auto;
+        align-items: center;
+        gap: var(--space-2) var(--space-4);
+        padding: var(--space-3) var(--space-3);
+        border-block-end: var(--border-width) solid var(--c-border);
+    }
+
+    /* The row owns the padding and the rule now, so the cells give up both --
+       otherwise every cell draws its own line across the grid. */
+    .venue-row td {
+        padding: 0;
+        border-block-end: 0;
+    }
+
+    .venue-row__name {
+        grid-column: 1;
+        grid-row: 1;
+        font-weight: 600;
+    }
+
+    .venue-row__actions {
+        grid-column: 2;
+        grid-row: 1;
+    }
+
+    /* Under both, across the full width. */
+    .venue-row__desc {
+        grid-column: 1 / -1;
+        grid-row: 2;
+        font-size: var(--step--2);
+        line-height: var(--leading-relaxed);
+        color: var(--c-text-muted);
+    }
+
+    /* A venue with no description must not leave a blank line under its name.
+       This is why the cell is rendered with nothing at all inside it. */
+    .venue-row__desc:empty {
+        display: none;
+    }
+}
