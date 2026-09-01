@@ -7,9 +7,9 @@
                  borrowing a block's internals from outside the block. --}}
             <x-p-hero suit="club" align="start"
                       :eyebrow="__('Connect with us')"
-                      :title="__('Join the First to Act Circle')"
+                      :title="__('Get in touch')"
                       :highlight="__('First to Act')">
-                {{ __("Whether you're looking to join the league, discuss partnership opportunities, or need technical assistance, our stewards are ready to connect.") }}
+                {{ __("Questions about joining, sponsoring, or something not working on the site — this reaches us either way.") }}
             </x-p-hero>
 
             <div class="p-contacts">

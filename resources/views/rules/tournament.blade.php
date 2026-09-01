@@ -75,13 +75,13 @@
 
             <div class="p-panel__split">
                 <div>
-                    <h3 class="p-panel__title">{{ __('The Final Stakes') }}</h3>
+                    <h3 class="p-panel__title">{{ __('The Season Finale') }}</h3>
 
-                    <p class="p-panel__text">{{ __('The ultimate test of skill and endurance. The season culminates in a high-stakes finale where the league champion is crowned.') }}</p>
+                    <p class="p-panel__text">{{ __('The season ends with a finale for the top 20 players on the leaderboard. Every night before it counts toward getting there.') }}</p>
 
                     <p class="p-pill">
                         <span class="p-pill__dot" aria-hidden="true"></span>
-                        {{ __('Championship Protocols Active') }}
+                        {{ __('One finale per season') }}
                     </p>
                 </div>
 

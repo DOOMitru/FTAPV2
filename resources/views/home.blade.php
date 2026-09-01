@@ -5,7 +5,7 @@
                       :eyebrow="__('Regina, Saskatchewan')"
                       :title="__('First to Act Poker League')"
                       :highlight="__('Poker League')">
-                {{ __('Join the most exciting amateur poker league. Compete in tournaments, climb the leaderboard, and become the champion.') }}
+                {{ __("Free Texas Hold'em every week across Regina. Play the season, earn points at every table, and the top 20 play the finale — for a prize pool funded entirely by local sponsors.") }}
             </x-p-hero>
 
             <div class="l-cluster">
@@ -21,7 +21,7 @@
         <x-p-hero plain :level="2" suit="diamond"
                   :eyebrow="__('League Schedule')"
                   :title="$currentSeason ? $currentSeason->name . ' ' . __('is Here') : __('Season Launching Soon')">
-            {{ __('Track the latest seasonal progress, upcoming high-stakes tournaments, and the race to the championship finale.') }}
+            {{ __('Where the season stands, what is scheduled next, and who is in front.') }}
         </x-p-hero>
 
         <div class="l-grid l-grid--wide">
@@ -106,7 +106,7 @@
                   :eyebrow="__('Our Sponsors')"
                   :title="__('Proudly Supported By')"
                   :highlight="__('Supported By')">
-            {{ __('Thank you to our amazing sponsors who make this league possible.') }}
+            {{ __('These businesses pay for the finale prize pool. That is what keeps the games free.') }}
         </x-p-hero>
 
         @php

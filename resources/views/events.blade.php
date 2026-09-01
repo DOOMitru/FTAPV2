@@ -2,7 +2,7 @@
     <x-p-hero suit="diamond" :eyebrow="__('League Schedule')"
               :title="__('Upcoming Events')"
               :highlight="__('Events')">
-        {{ __('Join us at our premier venues for high-stakes competition. Register early to secure your seat at the table.') }}
+        {{ __('Every league night, in one place. Each card carries its venue, its start time, and the deadline to register.') }}
     </x-p-hero>
 
     @if (session('status'))
@@ -107,7 +107,7 @@
             </article>
         @empty
             <x-empty-state :title="__('No Scheduled Events')">
-                {{ __('Check back soon for our next seasonal announcement.') }}
+                {{ __('No events are scheduled yet. Dates for the next season go up here first.') }}
             </x-empty-state>
         @endforelse
     </div>

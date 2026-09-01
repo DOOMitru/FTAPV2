@@ -5,11 +5,11 @@
         <img class="p-figure" src="{{ asset('images/hero_logo.png') }}" alt="">
 
         <div class="l-prose">
-            <p class="p-lede"><strong>First to Act Poker</strong> is dedicated to providing high-quality, free-to-play poker events for the social player in Regina. We believe that the excitement of Texas Hold'em should be accessible to everyone in a fun, safe, and competitive environment.</p>
+            <p class="p-lede"><strong>First to Act Poker</strong> runs free-to-play poker nights for social players in Regina. No buy-in, no experience required, and someone will happily explain the rules at the table.</p>
 
-            <p>We run weekly events where players can sharpen their skills, socialize with the local community, and accumulate points that lead toward exclusive special events and rewards.</p>
+            <p>We run events every week. Points carry across the whole season, and the top 20 on the leaderboard play the finale.</p>
 
-            <p>Our league creates a win-win ecosystem: host venues are introduced to new customers, and local businesses gain a platform for focused exposure. We also proudly host charity tournaments, ensuring that our love for the game also helps support meaningful causes.</p>
+            <p>The arrangement works both ways: host venues meet new customers, and local businesses reach a room full of regulars. We also run charity tournaments.</p>
         </div>
     </div>
 
@@ -24,9 +24,9 @@
         <div class="p-split">
             <div class="l-stack">
                 <div class="l-prose">
-                    <p class="p-lede"><strong>First to Act Poker</strong> is a growing Regina-based start-up dedicated to hosting vibrant, community-focused free-to-play poker leagues. We are currently bringing the excitement of the game to multiple venues across the city, providing a fun and social environment for local players.</p>
+                    <p class="p-lede"><strong>First to Act Poker</strong> is a Regina poker league. We play at several venues around the city, most weeks of the year, and the games are free to enter.</p>
 
-                    <p>We are inviting local businesses to partner with us as league sponsors. For a modest annual contribution, your brand will gain consistent exposure to our dedicated and engaged community. This is a highly cost-effective way to advertise your business both on our official website and on our event posters displayed at all our partner venues.</p>
+                    <p>We are inviting local businesses to partner with us as league sponsors. One annual fee puts your name in front of every player, at every table, all season. Your logo goes on the posters in every partner venue, and on this site.</p>
                 </div>
 
                 <section class="p-panel p-panel--accent">
@@ -34,7 +34,7 @@
 
                     <h3 class="p-panel__eyebrow">{{ __('Where does the money go?') }}</h3>
 
-                    <p class="p-panel__text">100% of sponsorship fees are pooled to fund a substantial grand prize for our annual Season Finale Tournament. By becoming a sponsor, you’re not just advertising—you’re directly supporting the Regina poker community and helping us reward the skill and sportsmanship of our top players.</p>
+                    <p class="p-panel__text">Every dollar of that fee goes into the prize pool for the Season Finale. That is what keeps the games free to play.</p>
                 </section>
 
                 <div>
@@ -43,17 +43,17 @@
                     <ul class="p-benefits">
                         <li class="p-benefit">
                             <svg class="p-benefit__tick" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 13l4 4L19 7"/></svg>
-                            <span>High-visibility logo placement on our league posters in partner venues.</span>
+                            <span>Your logo on the posters in every partner venue.</span>
                         </li>
 
                         <li class="p-benefit">
                             <svg class="p-benefit__tick" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 13l4 4L19 7"/></svg>
-                            <span>Dedicated brand logo and backlink on our official website.</span>
+                            <span>Your logo and a link on this site.</span>
                         </li>
 
                         <li class="p-benefit">
                             <svg class="p-benefit__tick" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 13l4 4L19 7"/></svg>
-                            <span>Recognition and verbal "shout-outs" during our weekly poker events.</span>
+                            <span>A mention from the front of the room at every league night.</span>
                         </li>
                     </ul>
                 </div>

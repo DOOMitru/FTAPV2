@@ -449,11 +449,11 @@ class ContentPreservationTest extends TestCase
         $this->get('/events')
             ->assertOk()
             ->assertSee('No Scheduled Events')
-            ->assertSee('Check back soon for our next seasonal announcement.');
+            ->assertSee('No events are scheduled yet. Dates for the next season go up here first.');
 
         $this->get('/rules/points-structure')
             ->assertOk()
-            ->assertSee('Standard league structure is being finalized.');
+            ->assertSee('The points structure for this season is not published yet.');
     }
 
     /**

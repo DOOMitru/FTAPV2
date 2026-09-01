@@ -79,7 +79,7 @@
         @empty
             <tr>
                 <td colspan="3">
-                    <x-empty-state :title="__('Standard league structure is being finalized.')" />
+                    <x-empty-state :title="__('The points structure for this season is not published yet.')" />
                 </td>
             </tr>
         @endforelse
@@ -87,7 +87,7 @@
 
     <footer class="p-page-foot">
         <p class="p-note">
-            {{ __('Points are verified by the league steward. In the event of ties, prize pools are split but points are awarded to the higher finishing position in the official bracket.') }}
+            {{ __('Points are verified by the league organizers. In the event of ties, prize pools are split but points are awarded to the higher finishing position in the official bracket.') }}
         </p>
     </footer>
 </x-public-layout>
