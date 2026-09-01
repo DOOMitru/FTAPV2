@@ -29,6 +29,18 @@ class User extends Authenticatable implements MustVerifyEmail
      *
      * @var list<string>
      */
+    /**
+     * The database defaults approval_status to 'pending', but a database
+     * default is applied on INSERT and never hydrated back, so a freshly
+     * created instance held in memory had a null status. isApproved() failed
+     * closed on that, which is correct, but isPendingApproval() also returned
+     * false -- an account that was in no state at all until it was reloaded.
+     * Declaring it here makes the in-memory model agree with the row.
+     */
+    protected $attributes = [
+        'approval_status' => 'pending',
+    ];
+
     protected $fillable = [
         'first_name',
         'last_name',
@@ -58,9 +70,42 @@ class User extends Authenticatable implements MustVerifyEmail
     {
         return [
             'email_verified_at' => 'datetime',
+            'approval_decided_at' => 'datetime',
             'password' => 'hashed',
             'is_admin' => 'boolean',
         ];
+    }
+
+    /**
+     * The single expression of the approval rule.
+     *
+     * Every gate and every view calls this rather than comparing the column,
+     * so the control that OFFERS an action and the guard that REFUSES it can
+     * never disagree about what approved means. A player seeing a button that
+     * then fails is worse than a player seeing no button at all.
+     *
+     * Note that approval is not email verification. They answer different
+     * questions -- "should this person play?" and "is this address real?" --
+     * and a player can be blocked by either, or both.
+     */
+    public function isApproved(): bool
+    {
+        return $this->approval_status === 'approved';
+    }
+
+    public function isPendingApproval(): bool
+    {
+        return $this->approval_status === 'pending';
+    }
+
+    public function scopeApproved($query)
+    {
+        return $query->where('approval_status', 'approved');
+    }
+
+    public function scopeAwaitingApproval($query)
+    {
+        return $query->where('approval_status', 'pending');
     }
 
     /**
