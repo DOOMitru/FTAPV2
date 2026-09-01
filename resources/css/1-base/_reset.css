@@ -1,0 +1,80 @@
+/* The reset.
+ *
+ * This file exists because removing Tailwind removed Preflight, and the design
+ * system had been quietly relying on it the whole time. The symptom was
+ * box-sizing reverting to content-box, which makes padding ADD to every
+ * declared width -- .l-container's 80rem measure plus its own padding then
+ * overflowed a 1280px viewport, and every card, field and table in the app was
+ * subtly wider than it asked to be.
+ *
+ * Deliberately small. It normalises what a design system has to be able to
+ * assume, and nothing else -- this is not a general-purpose reset and should
+ * not grow into one.
+ */
+
+/* The one that mattered. Every measurement in this system -- container widths,
+   field widths, grid minima -- is written assuming padding is inside the box. */
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+}
+
+/* Headings and copy take their spacing from the layout primitives (.l-stack,
+   .l-prose) rather than from user-agent margins, which vary by element and
+   collapse unpredictably. */
+h1, h2, h3, h4, h5, h6,
+p, figure, blockquote, dl, dd {
+    margin: 0;
+}
+
+/* Lists that carry their own list-style set it explicitly; the default bullets
+   and padding belong to prose, not to a nav or a leaderboard. */
+ul[class],
+ol[class] {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+/* Media should never be the reason a layout scrolls sideways. */
+img,
+picture,
+video,
+canvas {
+    display: block;
+    max-width: 100%;
+}
+
+/* Form controls do not inherit type by default -- they fall back to a
+   platform font, which is why every framework resets this. */
+button,
+input,
+select,
+textarea {
+    font: inherit;
+    color: inherit;
+}
+
+/* `border: 1px solid var(--c-border)` is written all over this system. Without
+   a default style of solid, a `border-width` on its own does nothing. */
+*,
+*::before,
+*::after {
+    border-style: solid;
+    border-width: 0;
+}
+
+/* Tables in this system draw their own hairlines. */
+table {
+    border-collapse: collapse;
+}
+
+/* An <a> with no href is a placeholder, not a link. */
+a {
+    color: inherit;
+}
