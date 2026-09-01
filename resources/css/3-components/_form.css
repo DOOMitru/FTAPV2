@@ -53,3 +53,33 @@
     color: var(--c-text-muted);
     font-size: var(--step--1);
 }
+
+/* A checkbox with its label beside it. <x-field> renders a labelled control in
+   a column, which is wrong for a checkbox: the label belongs on the same line
+   and the whole thing is one hit target. */
+.field__check {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    cursor: pointer;
+}
+
+.field__check input[type="checkbox"] {
+    width: 1rem;
+    height: 1rem;
+    /* accent-color styles the native control's fill in every current browser,
+       which keeps the checkbox a real checkbox -- no faked box, no lost
+       keyboard behaviour, no lost forced-colors rendering. */
+    accent-color: var(--c-primary);
+    cursor: pointer;
+}
+
+.field__check input[type="checkbox"]:focus-visible {
+    outline: 2px solid var(--c-primary);
+    outline-offset: 2px;
+}
+
+.field__check span {
+    font-size: var(--step--1);
+    color: var(--c-text-muted);
+}

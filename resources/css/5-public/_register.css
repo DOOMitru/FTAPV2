@@ -1064,3 +1064,13 @@
 .p-section {
     padding-block-start: var(--space-8);
 }
+
+/* The aside on the auth pages: the mark, the league name, and what the league
+   is. Sits beside the form rather than above it, so a visitor arriving from
+   the marketing site still sees why they are signing up. */
+.p-auth-logo {
+    display: block;
+    width: 100%;
+    max-width: 9rem;
+    height: auto;
+}

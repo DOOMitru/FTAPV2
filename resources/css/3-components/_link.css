@@ -1,0 +1,19 @@
+/* An inline text link. The system had no such thing until now: every link so
+   far was a button, a nav item, or a panel link. Shared by both registers, so
+   it carries no gradient. */
+.link {
+    color: var(--c-primary);
+    text-decoration: underline;
+    text-underline-offset: 0.2em;
+    transition: color var(--transition-fast);
+}
+
+.link:hover {
+    color: var(--c-primary-hover);
+}
+
+.link:focus-visible {
+    outline: 2px solid var(--c-primary);
+    outline-offset: 2px;
+    border-radius: var(--radius-sm);
+}
