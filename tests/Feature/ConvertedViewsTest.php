@@ -34,8 +34,6 @@ class ConvertedViewsTest extends TestCase
      */
     private const NOT_YET_CONVERTED = [
         'components/tournament-badge.blade.php',
-        'users/edit.blade.php',
-        'users/show.blade.php',
     ];
 
     /**
