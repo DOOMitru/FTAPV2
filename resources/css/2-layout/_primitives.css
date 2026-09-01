@@ -53,6 +53,18 @@
     grid-template-columns: repeat(auto-fit, minmax(min(22rem, 100%), 1fr));
 }
 
+/* Three abreast at every width. auto-fit sizes tracks against a minimum and
+   drops to one column on a phone, which is right for cards and wrong for a set
+   of three figures that belong read together: a season's tournaments, points
+   and players are one sentence, not three rows.
+
+   minmax(0, 1fr), not 1fr: a track's automatic minimum is its content's
+   min-content width, so a long stat label would refuse to shrink and push the
+   row wider than the screen instead of wrapping inside its own tile. */
+.l-grid--trio {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
 /* Two abreast on a phone rather than one.
  *
  * The base tracks want 16rem. At 375px the container leaves 343px of usable

@@ -28,11 +28,16 @@
     outline-offset: -2px;
 }
 
-/* Why a player has not qualified. Deliberately not a .badge: a badge is a
-   short state, and this is a phrase -- at the badge's uppercase tracking
-   "Needs points, wins and venue points" wrapped to three lines in the
-   standings column, which .l-sidebar keeps narrow. */
-.season-show__unmet {
-    font-size: var(--step--1);
-    color: var(--c-text-muted);
+/* The qualified mark in the standings. --c-open is the system's one semantic
+   colour -- registration open, registered, paid, won -- and this is the same
+   kind of statement, so it does not get a colour of its own. */
+.season-show__qualified {
+    display: inline-flex;
+    color: var(--c-open);
 }
+
+.season-show__qualified svg {
+    width: 1.125rem;
+    height: 1.125rem;
+}
+

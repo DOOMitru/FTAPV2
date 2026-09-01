@@ -10,7 +10,7 @@
     </x-slot>
 
     <div class="l-container l-stack">
-        <div class="l-grid">
+        <div class="l-grid l-grid--trio">
             <x-stat :label="__('Tournaments')" :value="number_format($totalTournaments)" />
             <x-stat :label="__('Points awarded')" :value="number_format($totalPoints)" />
             <x-stat :label="__('Players')" :value="number_format($uniquePlayersCount)" />
@@ -23,7 +23,7 @@
             @if ($season->hasThresholds())
                 <p class="field__hint">{{ __('A player must meet all three to reach the finale.') }}</p>
 
-                <div class="l-grid">
+                <div class="l-grid l-grid--trio">
                     {{-- Each figure guarded on its own, not just the block.
                          hasThresholds() is true when ANY one is set, so a
                          partly decided season lands here -- and
@@ -34,7 +34,7 @@
                                 ? number_format($season->finale_points_required)
                                 : __('Not set')" />
 
-                    <x-stat :label="__('Tournament wins')"
+                    <x-stat :label="__('Wins')"
                             :value="$season->finale_wins_required !== null
                                 ? (string) $season->finale_wins_required
                                 : __('Not set')" />
@@ -107,26 +107,31 @@
 
                                 <td class="table__num">{{ $row['venue_points'] }}</td>
 
+                                {{-- A mark when they are in, and nothing when they are
+                                     not. This column used to name what a player was
+                                     short on; the thresholds are published on this same
+                                     page, in the panel above, so the standings can just
+                                     answer the question they are asked.
+
+                                     Neither branch is silent to a screen reader: an
+                                     empty cell reads as "blank", which does not say
+                                     whether the row failed or the column is not in
+                                     use. --}}
                                 <td>
                                     @if (! $season->hasThresholds())
                                         &mdash;
                                     @elseif ($row['qualified'])
-                                        <x-badge variant="open">{{ __('Qualified') }}</x-badge>
+                                        <span class="season-show__qualified" title="{{ __('Qualified') }}">
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                                 stroke-width="3" stroke-linecap="round"
+                                                 stroke-linejoin="round" aria-hidden="true">
+                                                <path d="M20 6L9 17l-5-5"/>
+                                            </svg>
+
+                                            <span class="u-visually-hidden">{{ __('Qualified') }}</span>
+                                        </span>
                                     @else
-                                        {{-- Plain text, not a badge. A badge is a short
-                                             state; this is a sentence, and the badge's
-                                             uppercase tracking made "Needs points, wins
-                                             and venue points" wrap to three lines in a
-                                             column this narrow. The reason still gets
-                                             named -- a bare cross tells a player they
-                                             failed without telling them what to fix. --}}
-                                        <span class="season-show__unmet">{{ __('Needs :what', [
-                                            'what' => collect($row['unmet'])->map(fn ($k) => match ($k) {
-                                                'points' => __('points'),
-                                                'wins' => __('wins'),
-                                                'venue_points' => __('venue points'),
-                                            })->join(', ', ' '.__('and').' '),
-                                        ]) }}</span>
+                                        <span class="u-visually-hidden">{{ __('Not qualified') }}</span>
                                     @endif
                                 </td>
                             </tr>

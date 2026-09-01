@@ -384,17 +384,22 @@ class FinaleQualificationTest extends TestCase
             ->assertSee('Not set');
     }
 
-    public function test_the_standings_name_what_a_player_is_short_on(): void
+    public function test_the_standings_leave_a_short_player_unmarked(): void
     {
-        // A bare cross tells a player they failed without telling them what to
-        // do about it.
+        // The column used to name what a player was missing. It marks the
+        // qualified and says nothing about the rest; the thresholds themselves
+        // are published in the panel above on this same page.
         $season = $this->season(['finale_wins_required' => 5]);
         $player = User::factory()->create();
         $this->resultFor($season, $player, place: 2, points: 100);
 
         $this->actingAs($this->admin())->get(route('seasons.show', $season))
             ->assertOk()
-            ->assertSee('Needs wins');
+            ->assertDontSee('season-show__qualified', false)
+            ->assertDontSee('Needs')
+            // Not silent, though: an empty cell reads as "blank", which does
+            // not distinguish a failing row from a column that is not in use.
+            ->assertSee('Not qualified');
     }
 
     public function test_a_qualifying_player_is_marked_qualified(): void
@@ -405,6 +410,10 @@ class FinaleQualificationTest extends TestCase
 
         $this->actingAs($this->admin())->get(route('seasons.show', $season))
             ->assertOk()
+            // The mark itself, not just the word: the word is in its title and
+            // its visually-hidden label, so asserting only that would pass on a
+            // cell that rendered no mark at all.
+            ->assertSee('season-show__qualified', false)
             ->assertSee('Qualified');
     }
 
