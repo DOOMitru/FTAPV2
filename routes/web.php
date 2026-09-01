@@ -138,7 +138,14 @@ Route::middleware('auth')->group(function () {
         Route::resource('points-structure', \App\Http\Controllers\Poker\PointsStructureController::class)->except(['show']);
     });
 
-    Route::resource('users', \App\Http\Controllers\UserController::class)->except(['create', 'store'])->middleware('admin');
+    Route::middleware('admin')->group(function () {
+        Route::resource('users', \App\Http\Controllers\UserController::class)->except(['create', 'store']);
+
+        // Admission to the league. Inside the admin group, which is what makes
+        // a player's attempt a 403 without a separate check in the controller.
+        Route::patch('users/{user}/approve', [\App\Http\Controllers\UserController::class, 'approve'])->name('users.approve');
+        Route::patch('users/{user}/reject', [\App\Http\Controllers\UserController::class, 'reject'])->name('users.reject');
+    });
 });
 
 require __DIR__.'/auth.php';

@@ -8,6 +8,52 @@
             <x-alert variant="success">{{ session('status') }}</x-alert>
         @endif
 
+        {{-- Rendered only when non-empty. A heading over an empty table is
+             furniture: it costs attention on every visit and says nothing. --}}
+        @if ($pending->isNotEmpty())
+            <x-card :title="__('Awaiting approval')" flush>
+                <x-table>
+                    <x-slot name="head">
+                        <th scope="col">{{ __('Name') }}</th>
+                        <th scope="col">{{ __('Email') }}</th>
+                        <th scope="col">{{ __('Registered') }}</th>
+                        <th scope="col" class="table__actions">{{ __('Actions') }}</th>
+                    </x-slot>
+
+                    @foreach ($pending as $candidate)
+                        <tr>
+                            <td>{{ $candidate->first_name }} {{ $candidate->last_name }}</td>
+
+                            <td>{{ $candidate->email }}</td>
+
+                            <td>{{ $candidate->created_at?->format('M d, Y') ?? '—' }}</td>
+
+                            <td class="table__actions">
+                                <div class="l-cluster l-cluster--end">
+                                    <a class="link" href="{{ route('users.show', $candidate) }}">{{ __('View') }}</a>
+
+                                    <form action="{{ route('users.approve', $candidate) }}" method="POST">
+                                        @csrf
+                                        @method('PATCH')
+
+                                        <button type="submit" class="link">{{ __('Approve') }}</button>
+                                    </form>
+
+                                    <form action="{{ route('users.reject', $candidate) }}" method="POST"
+                                          data-confirm="{{ __('Reject :name? They keep their account but cannot enter tournaments.', ['name' => $candidate->first_name.' '.$candidate->last_name]) }}">
+                                        @csrf
+                                        @method('PATCH')
+
+                                        <button type="submit" class="link link--danger">{{ __('Reject') }}</button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                    @endforeach
+                </x-table>
+            </x-card>
+        @endif
+
         <x-card flush>
             <x-table>
                 <x-slot name="head">
@@ -16,6 +62,7 @@
                     <th scope="col">{{ __('Nickname') }}</th>
                     <th scope="col">{{ __('Email') }}</th>
                     <th scope="col">{{ __('Role') }}</th>
+                    <th scope="col">{{ __('Approval') }}</th>
                     <th scope="col" class="table__actions">{{ __('Actions') }}</th>
                 </x-slot>
 
@@ -40,6 +87,20 @@
                             @endif
                         </td>
 
+                        {{-- What makes rejection reversible in fact rather
+                             than in principle: a rejected account has left the
+                             queue above, so without a status here there is no
+                             route back to it. --}}
+                        <td>
+                            @if ($user->isApproved())
+                                <x-badge variant="open">{{ __('Approved') }}</x-badge>
+                            @elseif ($user->isPendingApproval())
+                                <x-badge>{{ __('Pending') }}</x-badge>
+                            @else
+                                <x-badge variant="primary">{{ __('Rejected') }}</x-badge>
+                            @endif
+                        </td>
+
                         <td class="table__actions">
                             <div class="l-cluster l-cluster--end">
                                 <a class="link" href="{{ route('users.show', $user) }}">{{ __('View') }}</a>
@@ -58,7 +119,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="6">
+                        <td colspan="7">
                             <x-empty-state :title="__('No users found.')" />
                         </td>
                     </tr>
