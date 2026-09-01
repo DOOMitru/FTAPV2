@@ -66,7 +66,7 @@
 
                             @if ($tournament->registration_open)
                                 <form action="{{ route('tournaments.unregister', $tournament) }}" method="POST"
-                                      onsubmit="return confirm('{{ __('Are you sure you want to unregister from this tournament?') }}')">
+                                      data-confirm="{{ __('Are you sure you want to unregister from this tournament?') }}">
                                     @csrf
                                     @method('DELETE')
                                     <x-btn variant="ghost" type="submit">{{ __('Unregister') }}</x-btn>

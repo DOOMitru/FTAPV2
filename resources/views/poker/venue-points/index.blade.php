@@ -7,58 +7,57 @@
         </x-page-header>
     </x-slot>
 
-    <div class="py-12">
-        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
-            @if (session('status'))
-                <div class="mb-4 font-medium text-sm text-green-600 dark:text-green-400">
-                    {{ session('status') }}
-                </div>
-            @endif
+    <div class="l-container l-stack">
+        @if (session('status'))
+            <x-alert variant="success">{{ session('status') }}</x-alert>
+        @endif
 
-            <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
-                <div class="p-6 text-gray-900 dark:text-gray-100">
-                    <div class="overflow-x-auto">
-                        <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                            <thead>
-                                <tr>
-                                    <th class="px-6 py-3 bg-gray-50 dark:bg-gray-700 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">{{ __('Date') }}</th>
-                                    <th class="px-6 py-3 bg-gray-50 dark:bg-gray-700 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">{{ __('Player') }}</th>
-                                    <th class="px-6 py-3 bg-gray-50 dark:bg-gray-700 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">{{ __('Venue') }}</th>
-                                    <th class="px-6 py-3 bg-gray-50 dark:bg-gray-700 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">{{ __('Amount') }}</th>
-                                    <th class="px-6 py-3 bg-gray-50 dark:bg-gray-700 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">{{ __('Actions') }}</th>
-                                </tr>
-                            </thead>
-                            <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                                @forelse ($venue_points as $point)
-                                    <tr>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{{ $point->event_date }}</td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-100">{{ $point->user_name }} ({{ $point->user?->email }})</td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{{ $point->venue->name }}</td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{{ number_format($point->amount) }}</td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                            <a href="{{ route('poker.venue-points.edit', $point) }}" class="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300 mr-4">{{ __('Edit') }}</a>
-                                            <form action="{{ route('poker.venue-points.destroy', $point) }}" method="POST" class="inline">
-                                                @csrf
-                                                @method('DELETE')
-                                                <button type="submit" class="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300" onclick="return confirm('Are you sure?')">
-                                                    {{ __('Delete') }}
-                                                </button>
-                                            </form>
-                                        </td>
-                                    </tr>
-                                @empty
-                                    <tr>
-                                        <td colspan="5" class="px-6 py-4 whitespace-nowrap text-sm text-center text-gray-500 dark:text-gray-400">{{ __('No venue points found.') }}</td>
-                                    </tr>
-                                @endforelse
-                            </tbody>
-                        </table>
-                    </div>
-                    <div class="mt-4">
-                        {{ $venue_points->links() }}
-                    </div>
-                </div>
-            </div>
-        </div>
+        <x-card flush>
+            <x-table>
+                <x-slot name="head">
+                    <th scope="col">{{ __('Date') }}</th>
+                    <th scope="col">{{ __('Player') }}</th>
+                    <th scope="col">{{ __('Venue') }}</th>
+                    <th scope="col" class="table__num">{{ __('Amount') }}</th>
+                    <th scope="col" class="table__actions">{{ __('Actions') }}</th>
+                </x-slot>
+
+                @forelse ($venue_points as $point)
+                    <tr>
+                        <td>{{ $point->event_date ? \Illuminate\Support\Carbon::parse($point->event_date)->format('M d, Y') : '—' }}</td>
+
+                        <td>{{ $point->user_name }}</td>
+
+                        <td>{{ $point->venue->name ?? __('TBD') }}</td>
+
+                        <td class="table__num">{{ number_format($point->amount) }}</td>
+
+                        <td class="table__actions">
+                            <div class="l-cluster l-cluster--end">
+                                <a class="link" href="{{ route('poker.venue-points.edit', $point) }}">{{ __('Edit') }}</a>
+
+                                <form action="{{ route('poker.venue-points.destroy', $point) }}" method="POST"
+                                      data-confirm="{{ __('Delete :name? This cannot be undone.', ['name' => $point->user_name]) }}">
+                                    @csrf
+                                    @method('DELETE')
+
+                                    <button type="submit" class="link link--danger">{{ __('Delete') }}</button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                @empty
+                    <tr>
+                        <td colspan="5">
+                            <x-empty-state :title="__('No venue points found.')" />
+                        </td>
+                    </tr>
+                @endforelse
+            </x-table>
+
+            @if ($venue_points->hasPages())
+                <div class="card__pager">{{ $venue_points->links() }}</div>
+            @endif
+        </x-card>
     </div>
 </x-app-layout>

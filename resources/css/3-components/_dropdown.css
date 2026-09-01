@@ -66,9 +66,13 @@
 
 }
 
+/* Both <a> and <button> carry this class: the profile links navigate, log out
+   performs an action. A button needs the control chrome stripped to match. */
 .dropdown__item {
     display: block;
     width: 100%;
+    font-family: inherit;
+    cursor: pointer;
     padding: var(--space-2) var(--space-4);
     border: 0;
     border-inline-start: 3px solid transparent;
