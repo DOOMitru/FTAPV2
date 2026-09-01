@@ -148,6 +148,13 @@ Route::middleware('auth')->group(function () {
         // a player's attempt a 403 without a separate check in the controller.
         Route::patch('users/{user}/approve', [\App\Http\Controllers\UserController::class, 'approve'])->name('users.approve');
         Route::patch('users/{user}/reject', [\App\Http\Controllers\UserController::class, 'reject'])->name('users.reject');
+
+        // Re-issuing the two links a player needs to get in. Separate from
+        // verification.send, which acts on the authenticated user: an
+        // administrator acting on someone else's account is a different
+        // operation and cannot reuse it.
+        Route::post('users/{user}/invite', [\App\Http\Controllers\UserController::class, 'sendInvite'])->name('users.invite');
+        Route::post('users/{user}/verification', [\App\Http\Controllers\UserController::class, 'sendVerification'])->name('users.verification');
     });
 });
 

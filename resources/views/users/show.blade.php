@@ -9,6 +9,34 @@
         </x-page-header>
     </x-slot>
 
+    {{-- Its own container, above the sidebar grid rather than inside it: a
+         direct child of .l-sidebar becomes one of its two columns, so an alert
+         placed there would render as a sidebar rather than as a notice. --}}
+    @if (session('status') || session('error') || session('invite_url') || session('verification_url'))
+        <div class="l-container l-stack">
+            @if (session('status'))
+                <x-alert variant="success">{{ session('status') }}</x-alert>
+            @endif
+
+            @if (session('error'))
+                <x-alert variant="danger">{{ session('error') }}</x-alert>
+            @endif
+
+            {{-- Shown as well as sent. MAIL_MAILER is log, so a link that is
+                 only emailed reaches nobody; these stay useful once a mailer
+                 exists, for when a player says it never arrived. --}}
+            @foreach (['invite_url' => __('Password link'), 'verification_url' => __('Verification link')] as $key => $label)
+                @if (session($key))
+                    <x-alert variant="info">
+                        {{ $label }} &mdash; {{ __('expires, and can only be used once.') }}
+
+                        <span class="u-mono">{{ session($key) }}</span>
+                    </x-alert>
+                @endif
+            @endforeach
+        </div>
+    @endif
+
     <div class="l-container l-sidebar">
         <x-card :title="__('Personal Information')">
             <dl class="rows">
@@ -48,6 +76,7 @@
                 </div>
             </div>
 
+            <div class="l-stack">
             <dl class="rows">
                 <div class="row">
                     <dt class="row__label">{{ __('Role') }}</dt>
@@ -96,8 +125,34 @@
 
             {{-- This page, not only the queue, is the full control surface.
                  A rejected account has left the queue, so this is the only
-                 place the decision can be reversed. --}}
+                 place the decision can be reversed.
+
+                 The card content is an l-stack so the gap lands BETWEEN the
+                 <dl> and this cluster. Putting l-stack ON the cluster would
+                 have been wrong: it sets margin-block-start on CHILDREN, so in
+                 a flex row it offsets each button instead of spacing the
+                 group. --}}
             <div class="l-cluster">
+                <form action="{{ route('users.invite', $user) }}" method="POST">
+                    @csrf
+
+                    {{-- Offered unconditionally: whether this account has ever
+                         set a password is not knowable from the schema. Every
+                         account has a hash, and the random one a new player
+                         starts with is indistinguishable from a chosen one. --}}
+                    <x-btn variant="ghost" type="submit">{{ __('Send password link') }}</x-btn>
+                </form>
+
+                @unless ($user->hasVerifiedEmail())
+                    {{-- Only while it can do something. An action that cannot
+                         act should not be drawn. --}}
+                    <form action="{{ route('users.verification', $user) }}" method="POST">
+                        @csrf
+
+                        <x-btn variant="ghost" type="submit">{{ __('Send verification link') }}</x-btn>
+                    </form>
+                @endunless
+
                 @unless ($user->isApproved())
                     <form action="{{ route('users.approve', $user) }}" method="POST">
                         @csrf
@@ -116,6 +171,7 @@
                         <x-btn variant="danger" type="submit">{{ __('Reject') }}</x-btn>
                     </form>
                 @endif
+                </div>
             </div>
         </x-card>
     </div>

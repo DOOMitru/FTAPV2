@@ -8,6 +8,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Password;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
 
@@ -93,6 +94,57 @@ class UserController extends Controller
                 'token' => $token,
                 'email' => $user->email,
             ]));
+    }
+
+    /**
+     * Re-issue the password link for a player.
+     *
+     * Offered unconditionally: whether an account has ever set a password is
+     * not knowable from the schema -- every account has a hash, and the random
+     * one a new player starts with is indistinguishable from a chosen one.
+     */
+    public function sendInvite(User $user): RedirectResponse
+    {
+        // One token, used twice: createToken() deletes any existing token, so
+        // issuing a second to surface a copy would invalidate the one sent.
+        $token = Password::createToken($user);
+        $user->sendPasswordResetNotification($token);
+
+        return back()
+            ->with('status', 'A password link was sent to '.$user->email.'.')
+            ->with('invite_url', route('password.reset', [
+                'token' => $token,
+                'email' => $user->email,
+            ]));
+    }
+
+    /**
+     * Re-issue the email verification link for a player.
+     *
+     * EmailVerificationNotificationController cannot serve this: it acts on
+     * $request->user(), the authenticated actor, and an administrator acting on
+     * someone else's account is a different operation.
+     *
+     * Unlike the password token, a verification link is a stateless signed URL,
+     * so the sent one and the surfaced one are independently valid. The expiry
+     * below is read from the same config the notification uses, so the copy an
+     * administrator hands over cannot outlive the one in the email.
+     */
+    public function sendVerification(User $user): RedirectResponse
+    {
+        if ($user->hasVerifiedEmail()) {
+            return back()->with('error', $user->email.' is already verified.');
+        }
+
+        $user->sendEmailVerificationNotification();
+
+        return back()
+            ->with('status', 'A verification link was sent to '.$user->email.'.')
+            ->with('verification_url', URL::temporarySignedRoute(
+                'verification.verify',
+                now()->addMinutes(config('auth.verification.expire', 60)),
+                ['id' => $user->getKey(), 'hash' => sha1($user->getEmailForVerification())]
+            ));
     }
 
     /**

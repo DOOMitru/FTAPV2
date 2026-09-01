@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\User;
 use Illuminate\Auth\Notifications\ResetPassword;
+use Illuminate\Auth\Notifications\VerifyEmail;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -260,5 +261,77 @@ class UserManagementTest extends TestCase
         ])->assertForbidden();
 
         $this->assertNull(User::where('email', 'dana@example.com')->first());
+    }
+
+    public function test_an_admin_can_resend_a_verification_link()
+    {
+        Notification::fake();
+
+        $admin = User::factory()->create(['is_admin' => true]);
+        $player = User::factory()->unverified()->create();
+
+        $this->actingAs($admin)->post(route('users.verification', $player))
+            ->assertRedirect()
+            ->assertSessionHas('verification_url');
+
+        Notification::assertSentTo($player, VerifyEmail::class);
+    }
+
+    public function test_the_surfaced_verification_link_actually_verifies_the_account()
+    {
+        // Asserts the link WORKS, not merely that a session key is set. A
+        // signed URL with the wrong expiry or a mistyped hash looks identical
+        // in the session and fails only when someone clicks it.
+        Notification::fake();
+
+        $admin = User::factory()->create(['is_admin' => true]);
+        $player = User::factory()->unverified()->create();
+
+        $this->actingAs($admin)->post(route('users.verification', $player));
+
+        $this->actingAs($player)->get(session('verification_url'));
+
+        $this->assertTrue($player->fresh()->hasVerifiedEmail());
+    }
+
+    public function test_resending_verification_is_refused_for_a_verified_account()
+    {
+        // An action that cannot do anything should not pretend it did.
+        $admin = User::factory()->create(['is_admin' => true]);
+        $player = User::factory()->create();
+
+        $this->actingAs($admin)->post(route('users.verification', $player))
+            ->assertSessionHas('error');
+    }
+
+    public function test_an_admin_can_reissue_an_invite_link_that_works()
+    {
+        Notification::fake();
+
+        $admin = User::factory()->create(['is_admin' => true]);
+        $player = User::factory()->create();
+
+        $this->actingAs($admin)->post(route('users.invite', $player))
+            ->assertSessionHas('invite_url');
+
+        Notification::assertSentTo($player, ResetPassword::class);
+
+        $token = basename(parse_url(session('invite_url'), PHP_URL_PATH));
+
+        $this->assertTrue(
+            Password::tokenExists($player, $token),
+            'The reissued link must carry a token that is still valid.'
+        );
+    }
+
+    public function test_a_player_cannot_send_links_for_anyone()
+    {
+        $player = User::factory()->create(['is_admin' => false]);
+        $other = User::factory()->unverified()->create();
+
+        $this->actingAs($player)->post(route('users.verification', $other))->assertForbidden();
+        $this->actingAs($player)->post(route('users.invite', $other))->assertForbidden();
+
+        $this->assertFalse($other->fresh()->hasVerifiedEmail());
     }
 }
