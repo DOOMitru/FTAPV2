@@ -20,6 +20,19 @@
     padding-block: var(--space-8);
 }
 
+/* 48rem is where the topbar becomes two rows -- brand and burger, then the nav
+   panel beneath. That taller bar leaves less room for the page, and the 48px
+   gap below it that reads as generous on a desktop reads as wasted on a phone,
+   where it can push the first heading most of the way down the fold.
+ *
+ * Only the TOP is reduced. The bottom gap separates content from the footer,
+ * which is a different relationship and still wants the room. */
+@media (max-width: 48rem) {
+    .public__main {
+        padding-block-start: var(--space-5);
+    }
+}
+
 /* A hairline, a mark, a line of copy and the name. Nothing else.
  *
  * Sized to its contents: the padding is one space unit rather than the
