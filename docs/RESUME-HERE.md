@@ -25,10 +25,18 @@ but only an approved account may enter a tournament. See
 
 Suite: **169 passed.**
 
-Open items are listed at the end of `docs/PLAYER-APPROVAL-AUDIT.md` and
-`docs/RED-BLACK-EXIT-AUDIT.md`. The most consequential: **MAIL_MAILER is still
-`log`**, so invite and verification emails reach nobody -- the admin-facing
-copyable links cover it for now, but a real mailer is needed before this ships.
+Also added: mail configuration guarding (`php artisan mail:check`), an approval
+notification, and **sponsor management** -- sponsors are now a managed resource
+under Setup rather than a hardcoded array. See `docs/SPONSOR-MANAGEMENT-AUDIT.md`.
+
+Suite: **196 passed.**
+
+Open items are listed at the end of `docs/SPONSOR-MANAGEMENT-AUDIT.md`,
+`docs/PLAYER-APPROVAL-AUDIT.md` and `docs/RED-BLACK-EXIT-AUDIT.md`. The most
+consequential: **MAIL_MAILER is still `log`**, so invite and verification emails
+reach nobody -- the admin-facing copyable links cover it for now, but a real
+mailer is needed before this ships. The sponsor wall is also empty until real
+sponsors are added.
 
 ## Standing constraints
 
