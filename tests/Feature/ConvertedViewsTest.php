@@ -61,7 +61,6 @@ class ConvertedViewsTest extends TestCase
         'profile/edit.blade.php',
         'profile/partials/delete-user-form.blade.php',
         'profile/partials/update-password-form.blade.php',
-        'profile/partials/update-profile-information-form.blade.php',
         'users/edit.blade.php',
         'users/index.blade.php',
         'users/show.blade.php',

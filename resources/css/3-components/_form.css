@@ -83,3 +83,53 @@
     font-size: var(--step--1);
     color: var(--c-text-muted);
 }
+
+/* A file input. The control itself cannot be restyled -- only its button can,
+   through ::file-selector-button, and the default there is an OS-native widget
+   that ignores every token in this system. */
+.field__file {
+    display: block;
+    width: 100%;
+    font-family: var(--font-body);
+    font-size: var(--step--1);
+    color: var(--c-text-muted);
+}
+
+.field__file::file-selector-button {
+    margin-inline-end: var(--space-4);
+    padding: var(--space-2) var(--space-4);
+    border: var(--border-width) solid var(--c-border);
+    border-radius: var(--radius);
+    background-color: var(--c-surface-raised);
+    color: var(--c-text);
+    font-family: var(--font-body);
+    font-size: var(--step--2);
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: background-color var(--transition-fast), border-color var(--transition-fast);
+}
+
+.field__file::file-selector-button:hover {
+    border-color: var(--c-primary);
+    background-color: var(--c-surface);
+}
+
+/* Focus lands on the input, not the pseudo-element, so the ring goes here. */
+.field__file:focus-visible {
+    outline: 2px solid var(--c-primary);
+    outline-offset: 2px;
+    border-radius: var(--radius-sm);
+}
+
+/* The current image beside its file picker. */
+.field__media {
+    display: flex;
+    align-items: center;
+    gap: var(--space-4);
+}
+
+.field__media > .field__file {
+    min-width: 0;
+}
