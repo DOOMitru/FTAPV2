@@ -1,4 +1,4 @@
-@props(['tournament'])
+@props(['tournament', 'details' => true])
 
 {{-- One upcoming-event card, shared by the events page and the home page.
      Extracted rather than copied: the two would drift, and this card already
@@ -74,10 +74,21 @@
         </div>
 
 
+        {{-- Anything a consumer wants between the facts and the actions --
+             the tournament's own description, contextual links. Empty on the
+             events and home pages, which pass no slot. --}}
+        @if (trim($slot) !== '')
+            {{ $slot }}
+        @endif
+
         <div class="p-event__actions">
-            <x-btn variant="primary" :href="route('tournaments.show', $tournament)">
-                {{ __('Details') }}
-            </x-btn>
+            {{-- The details page draws this same card and IS the destination;
+                 a button linking to the page you are on is noise. --}}
+            @if ($details)
+                <x-btn variant="primary" :href="route('tournaments.show', $tournament)">
+                    {{ __('Details') }}
+                </x-btn>
+            @endif
 
             @auth
                 @if ($tournament->viewer_registered ?? false)
@@ -99,6 +110,35 @@
                         @csrf
                         <x-btn variant="ghost" type="submit">{{ __('Register') }}</x-btn>
                     </form>
+                @endif
+            @endauth
+
+            {{-- Straight after the state it belongs with, so a consumer can add
+                 a control the shared card has no business knowing about -- the
+                 details page's Unregister, which exists nowhere else. --}}
+            @isset($actions)
+                {{ $actions }}
+            @endisset
+
+            {{-- Last in the cluster, and that is the whole reason they are here
+                 rather than beside Details. The row is justify-content: flex-end
+                 and wraps; whatever comes last is what drops to a second line,
+                 and it should be a way of navigating away, never Register.
+
+                 Signed in only, and not for tidiness: seasons.show is behind the
+                 auth middleware, so a guest offered this would be bounced to the
+                 login screen by the very next request. --}}
+            @auth
+                <x-btn variant="ghost" :href="route('seasons.show', $tournament->season)">
+                    {{ __('Season Standings') }}
+                </x-btn>
+
+                {{-- poker.venues.show is inside the admin-only /poker prefix.
+                     Offering it to a player is offering a 403. --}}
+                @if (auth()->user()->is_admin && $tournament->venue)
+                    <x-btn variant="ghost" :href="route('poker.venues.show', $tournament->venue)">
+                        {{ __('Venue Report') }}
+                    </x-btn>
                 @endif
             @endauth
         </div>

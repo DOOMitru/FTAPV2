@@ -19,92 +19,33 @@
             <x-alert variant="danger">{{ session('error') }}</x-alert>
         @endif
 
-        <x-card flush>
-            <div class="l-sidebar">
-                @if ($tournament->venue->address)
-                    <div class="map">
-                        <iframe title="{{ __('Map of :venue', ['venue' => $tournament->venue->name]) }}"
-                                loading="lazy" referrerpolicy="no-referrer-when-downgrade"
-                                src="https://maps.google.com/maps?q={{ urlencode($tournament->venue->address) }}&t=&z=13&ie=UTF8&iwloc=&output=embed"></iframe>
+        {{-- The same card the events and home pages draw, so the three cannot
+             drift. This was a bespoke <x-card flush> laid out with .l-sidebar,
+             which handed the map two thirds of the width and left the details
+             in the remaining third with no padding at all: the registration
+             time sat hard against the card's edge and, on a past event, the
+             podium was clipped off the bottom.
 
-                        <div class="map__pin">
-                            <span class="p-contact__label">{{ __('Venue Address') }}</span>
-                            <span class="p-contact__value">{{ $tournament->venue->address }}</span>
-                        </div>
-                    </div>
+             No Details button -- this IS the details page. --}}
+        <x-p-event :tournament="$tournament" :details="false">
+            @if ($tournament->description)
+                <p class="u-muted">{{ $tournament->description }}</p>
+            @endif
+
+            <x-slot name="actions">
+                {{-- Unregister lives only here, so the shared card does not
+                     carry it. Both conditions are the controller's: it refuses
+                     an unregister once registration has closed. --}}
+                @if ($isUserRegistered && $tournament->registration_open)
+                    <form action="{{ route('tournaments.unregister', $tournament) }}" method="POST"
+                          data-confirm="{{ __('Are you sure you want to unregister from this tournament?') }}">
+                        @csrf
+                        @method('DELETE')
+                        <x-btn variant="ghost" type="submit">{{ __('Unregister') }}</x-btn>
+                    </form>
                 @endif
-
-                <div class="l-stack">
-                    <div class="l-cluster">
-                        <x-badge>{{ \Illuminate\Support\Carbon::parse($tournament->start_time)->format('M d, Y · h:i A') }}</x-badge>
-
-                        @if (auth()->user()->is_admin)
-                            <a class="link" href="{{ route('poker.venues.show', $tournament->venue) }}">
-                                {{ $tournament->venue->name ?? __('TBD') }}
-                            </a>
-                        @else
-                            <x-badge>{{ $tournament->venue->name ?? __('TBD') }}</x-badge>
-                        @endif
-
-                        <a class="link" href="{{ route('seasons.show', $tournament->season) }}">
-                            {{ $tournament->season->name }}
-                        </a>
-                    </div>
-
-                    <dl class="rows">
-                        <div class="row">
-                            <dt class="row__label">{{ __('Registration Closes') }}</dt>
-                            <dd class="row__value">
-                                {{ \Illuminate\Support\Carbon::parse($tournament->scheduled_at)->format('M d, Y · h:i A') }}
-                            </dd>
-                        </div>
-                    </dl>
-
-                    <div class="l-cluster">
-                        @if ($isUserRegistered)
-                            <x-badge variant="open">{{ __('Registered') }}</x-badge>
-
-                            @if ($tournament->registration_open)
-                                <form action="{{ route('tournaments.unregister', $tournament) }}" method="POST"
-                                      data-confirm="{{ __('Are you sure you want to unregister from this tournament?') }}">
-                                    @csrf
-                                    @method('DELETE')
-                                    <x-btn variant="ghost" type="submit">{{ __('Unregister') }}</x-btn>
-                                </form>
-                            @endif
-                        @elseif (! auth()->user()->isApproved())
-                            {{-- Explained, not hidden. The controller refuses
-                                 this case anyway, and a control that vanishes
-                                 without a reason reads as a bug rather than as
-                                 a decision pending on you. --}}
-                            <x-badge>{{ __('Awaiting approval') }}</x-badge>
-                        @elseif ($tournament->registration_open)
-                            <form action="{{ route('tournaments.register', $tournament) }}" method="POST">
-                                @csrf
-                                <x-btn variant="primary">{{ __('Register Now') }}</x-btn>
-                            </form>
-                        @endif
-                    </div>
-
-                    @if ($tournament->description)
-                        <p class="field__hint">{{ $tournament->description }}</p>
-                    @endif
-
-                    @if ($isPast && $podium->isNotEmpty())
-                        {{-- 1-2-3 in the DOM, 2-1-3 on screen. See .podium. --}}
-                        <ol class="podium">
-                            @foreach ($podium as $index => $winner)
-                                <li class="podium__place podium__place--{{ $index + 1 }}">
-                                    <span class="podium__seat">{{ strtoupper(substr($winner->player_name, 0, 1)) }}</span>
-                                    <span class="podium__name">{{ $winner->player_name }}</span>
-                                    <span class="podium__step">{{ $index + 1 }}</span>
-                                </li>
-                            @endforeach
-                        </ol>
-                    @endif
-                </div>
-            </div>
-        </x-card>
+            </x-slot>
+        </x-p-event>
 
         <div class="l-grid">
             <x-stat :label="__('Registrants')" :value="$registrantsCount" />
@@ -119,6 +60,21 @@
 
         <div class="l-sidebar">
             <div class="l-stack">
+                @if ($isPast && $podium->isNotEmpty())
+                    <x-card :title="__('Podium')">
+                        {{-- 1-2-3 in the DOM, 2-1-3 on screen. See .podium. --}}
+                        <ol class="podium">
+                            @foreach ($podium as $index => $winner)
+                                <li class="podium__place podium__place--{{ $index + 1 }}">
+                                    <span class="podium__seat">{{ strtoupper(substr($winner->player_name, 0, 1)) }}</span>
+                                    <span class="podium__name">{{ $winner->player_name }}</span>
+                                    <span class="podium__step">{{ $index + 1 }}</span>
+                                </li>
+                            @endforeach
+                        </ol>
+                    </x-card>
+                @endif
+
                 @if ($isPast)
                     <x-card :title="__('Final Standings')" flush>
                         <x-table>

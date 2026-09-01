@@ -79,6 +79,12 @@ class PokerTournamentController extends Controller
         $podium = $orderedResults->take(3);
 
         $isUserRegistered = $tournament->registrants()->where('user_id', auth()->id())->exists();
+
+        // The shared event card reads viewer_registered -- the attribute the
+        // events and home pages load with withExists. Set it from the value
+        // already computed here so the card and the page around it cannot
+        // disagree about whether you are in this tournament.
+        $tournament->viewer_registered = $isUserRegistered;
         // "Past" means play has begun, which is start_time — not the
         // registration cutoff held in scheduled_at.
         $isPast = \Illuminate\Support\Carbon::parse($tournament->start_time)->isPast();
