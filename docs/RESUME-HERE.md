@@ -4,18 +4,21 @@
 
 ## Where things stand
 
-**The design system project is complete.** All six phases are done and committed; Tailwind
-is removed. See `docs/PHASE-5-EXIT-AUDIT.md` for the measured result and
-`docs/PHASE-1-EXIT-AUDIT.md` for the foundation's.
+**Two projects are complete.** The design-system conversion (Phases 0-5) moved
+all 86 views off Tailwind onto hand-built CSS — see `docs/PHASE-5-EXIT-AUDIT.md`.
+The red-and-black aesthetic refresh then moved the whole app onto the logo's
+palette — see `docs/RED-BLACK-EXIT-AUDIT.md`, with its spec and plan in
+`docs/superpowers/specs/2026-08-31-red-black-redesign-design.md` and
+`docs/superpowers/plans/2026-08-31-red-black-refresh.md`.
 
-Suite: **108 passed, 0 failed.** Run `php artisan test`.
+Suite: **135 passed, 0 failed.** Run `php artisan test`.
 
-**86 of 86 views render on the design system.** `ConvertedViewsTest`'s allowlist is empty, so
-its two assertions now cover the whole codebase and Tailwind cannot return unnoticed.
+The site was 27x more blue than red while wearing a red logo; it now measures
+4.1% red and 0.1% blue across the public pages. Colour is enforced rather than
+asserted: `TokenContrastTest` parses the real token file and fails the suite on
+any pair that drops below AA.
 
-Four things remain open, all recorded at the end of `docs/PHASE-5-EXIT-AUDIT.md`: the
-delete-account modal's focus trap (needs hand verification in a browser), email verification
-being half-wired, the accent gradient's hue drift, and `tournament-badge` having no callers.
+Four items remain open, all listed at the end of `docs/RED-BLACK-EXIT-AUDIT.md`.
 
 ## Standing constraints
 

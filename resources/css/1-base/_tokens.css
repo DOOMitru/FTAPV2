@@ -82,7 +82,7 @@
     /* Its inverse, for the rare element that flips the pairing -- a chip whose
        GROUND is --gradient-panel-ink. Fixed in both themes because the ground
        it sits on is fixed too; using --c-text there gave near-white on white. */
-    --gradient-panel-ink-inverse: #0E1014;
+    --gradient-panel-ink-inverse: #0F0F10;
 
     /* Retained rather than deleted: PublicRegisterTest pins these names, and
        with red as the primary there is no second brand hue left for a separate
@@ -112,19 +112,25 @@
        (badge, alert, form error) and --c-primary-fill (the danger button). */
 
     /* Dark — the table at night. Declared here, applied below.
-       #0B0F19 was a BLUE black; #0E1014 is neutral, which is the other half of
-       why the logo red now looks native rather than applied. */
-    --dark-bg: #0E1014;
-    --dark-surface: #181B22;
-    --dark-surface-raised: #212530;
-    /* 1.66:1 on --dark-surface and 1.48:1 on --dark-surface-raised, matching
+       NEUTRAL, and measurably so. The first pass of this refresh replaced
+       #0B0F19 with #0E1014 and called it neutral; it was not. That family sat
+       at hue 222deg and 16-19% saturation -- still blue-grey, just less of it
+       -- and a colour sweep of the rendered pages found 7% of painted pixels
+       still classifying blue, 20% on the rules pages, which are full of raised
+       cards. The logo's charcoal is #303030: EXACTLY 0% saturation. These
+       values sit within one point of neutral, a hair warm to match the light
+       theme, so the two themes lean the same way. */
+    --dark-bg: #0F0F10;
+    --dark-surface: #1A1A1C;
+    --dark-surface-raised: #26262A;
+    /* 1.67:1 on --dark-surface and 1.44:1 on --dark-surface-raised, matching
        the light theme's hairline weight. #333845 was the first draft and
        measured 1.31:1 against raised. */
-    --dark-border: #3A4050;
-    --dark-text: #ECEEF2;
-    --dark-text-muted: #99A1AF;
+    --dark-border: #403F44;
+    --dark-text: #EDECEB;
+    --dark-text-muted: #A2A0A0;
 
-    /* The logo red, used exactly: 4.58:1 as text on --dark-surface. This is
+    /* The logo red, used exactly: 4.61:1 as text on --dark-surface. This is
        the one place in the system where a brand value is not approximated. */
     --dark-primary: #EF4537;
     --dark-primary-hover: #F4685C;
