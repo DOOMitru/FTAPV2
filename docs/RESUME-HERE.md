@@ -115,7 +115,7 @@ review loop is for:
 4. The README claimed late self-registrations are flagged as late entries. They are refused;
    only admin-entered registrations get the flag.
 
-## Known bug — fixed in Phase 1 Task 12, **still unverified in a browser**
+## Known bug — fixed in Phase 1 Task 12, **verified by hand 2026-09-01**
 
 **The delete-account modal's focus trap and scroll lock never engaged when it opened on
 load.** Fixed on 2026-08-31 by replacing `x-init="$watch('show', ...)"` with `x-effect`,
@@ -140,8 +140,11 @@ in addition to watching for changes — but it deserves its own change and its o
 than being smuggled into an unrelated task.
 
 `tests/Feature/ProfileTest.php` covers the server-rendered `show: true`, so the reopen
-behaviour itself is guarded; only the focus/scroll side effects are missing. **They have
-never been exercised by a human.** This is open item 1 in `docs/PHASE-5-EXIT-AUDIT.md`.
+behaviour itself is guarded. The focus and scroll side effects cannot be asserted --
+headless Chromium does not meaningfully drive Alpine's `x-show` -- and were **verified by
+hand on 2026-09-01**: focus lands inside the dialog, Tab cycles within it, Escape closes
+it, and the page behind does not scroll, on both the plain open and the wrong-password
+path that renders the modal already open.
 
 ## Open question for the owner
 

@@ -73,11 +73,13 @@ JavaScript parsing context, where Blade's escaping no longer applies:
 
 ## Still open — these need the owner, not code
 
-1. **The delete-account modal's focus trap has never run in a browser.** Phase 1 fixed it
-   (`x-init` + `$watch` never fired on a modal rendered already-open); `ProfileTest` covers
-   the server-side reopen, but headless Chromium cannot drive Alpine's `x-show`.
-   On `/profile`: Delete Account → wrong password → submit. Check the modal reopens with the
-   error, focus lands inside it, Escape closes it, and the page behind does not scroll.
+1. ~~**The delete-account modal's focus trap has never run in a browser.**~~
+   **Verified by hand on 2026-09-01.** Phase 1 fixed it (`x-init` + `$watch` never fired on
+   a modal rendered already-open) and `ProfileTest` covers the server-side reopen, but
+   headless Chromium cannot drive Alpine's `x-show`, so the focus and scroll effects needed
+   a person. Both paths check out: focus lands inside the dialog, Tab cycles within it,
+   Escape closes it, and the page behind does not scroll — including on the wrong-password
+   path that renders the modal already open, which is the case that was broken.
 
 2. **Email verification is half-wired, and predates this project.**
    `routes/web.php:113` gates the dashboard on `->middleware(['auth', 'verified'])` and

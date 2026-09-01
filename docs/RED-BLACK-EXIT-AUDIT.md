@@ -104,9 +104,10 @@ has watched fail is an assumption.**
 
 ## Still open — unchanged by this work
 
-1. **The delete-account modal's focus trap has never been driven by a human.**
-   Headless Chromium cannot drive Alpine's `x-show`. On `/profile`: Delete
-   Account → wrong password → submit; check focus, Escape, and the scroll lock.
+1. ~~**The delete-account modal's focus trap has never been driven by a
+   human.**~~ **Verified by hand on 2026-09-01**, including the wrong-password
+   path where the modal renders already open — the case Phase 1 Task 12 fixed
+   and the one that was actually broken.
 2. **Email verification is half-wired and predates all of this.** `User` does
    not implement `MustVerifyEmail`; the import is commented at
    `app/Models/User.php:5`, so no verification mail is ever sent.
