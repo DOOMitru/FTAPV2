@@ -37,9 +37,9 @@
 
                         <td class="table__actions">
                             <div class="l-cluster l-cluster--end">
-                                <a class="link" href="{{ route('seasons.show', $season) }}">{{ __('View Stats') }}</a>
+                                <x-action icon="stats" :label="__('View Stats')" :href="route('seasons.show', $season)" />
 
-                                <a class="link" href="{{ route('poker.seasons.edit', $season) }}">{{ __('Edit') }}</a>
+                                <x-action icon="edit" :label="__('Edit')" :href="route('poker.seasons.edit', $season)" />
 
                                 {{-- data-confirm, never an inline onsubmit. Blade escapes
                                      the name for HTML, but the browser HTML-decodes an
@@ -51,7 +51,7 @@
                                     @csrf
                                     @method('DELETE')
 
-                                    <button type="submit" class="link link--danger">{{ __('Delete') }}</button>
+                                    <x-action icon="delete" :label="__('Delete')" danger />
                                 </form>
                             </div>
                         </td>

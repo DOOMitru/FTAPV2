@@ -28,14 +28,14 @@
 
                         <td class="table__actions">
                             <div class="l-cluster l-cluster--end">
-                                <a class="link" href="{{ route('poker.points-structure.edit', $structure) }}">{{ __('Edit') }}</a>
+                                <x-action icon="edit" :label="__('Edit')" :href="route('poker.points-structure.edit', $structure)" />
 
                                 <form action="{{ route('poker.points-structure.destroy', $structure) }}" method="POST"
                                       data-confirm="{{ __('Delete :name? This cannot be undone.', ['name' => $structure->place.__(' place')]) }}">
                                     @csrf
                                     @method('DELETE')
 
-                                    <button type="submit" class="link link--danger">{{ __('Delete') }}</button>
+                                    <x-action icon="delete" :label="__('Delete')" danger />
                                 </form>
                             </div>
                         </td>

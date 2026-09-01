@@ -28,7 +28,7 @@
              furniture: it costs attention on every visit and says nothing. --}}
         @if ($pending->isNotEmpty())
             <x-card :title="__('Awaiting approval')" flush>
-                <x-table>
+                <x-table stacked>
                     <x-slot name="head">
                         <th scope="col">{{ __('Name') }}</th>
                         <th scope="col">{{ __('Email') }}</th>
@@ -38,21 +38,21 @@
 
                     @foreach ($pending as $candidate)
                         <tr>
-                            <td>{{ $candidate->first_name }} {{ $candidate->last_name }}</td>
+                            <td data-label="{{ __('Name') }}">{{ $candidate->first_name }} {{ $candidate->last_name }}</td>
 
-                            <td>{{ $candidate->email }}</td>
+                            <td data-label="{{ __('Email') }}">{{ $candidate->email }}</td>
 
-                            <td>{{ $candidate->created_at?->format('M d, Y') ?? '—' }}</td>
+                            <td data-label="{{ __('Registered') }}">{{ $candidate->created_at?->format('M d, Y') ?? '—' }}</td>
 
                             <td class="table__actions">
                                 <div class="l-cluster l-cluster--end">
-                                    <a class="link" href="{{ route('users.show', $candidate) }}">{{ __('View') }}</a>
+                                    <x-action icon="view" :label="__('View')" :href="route('users.show', $candidate)" />
 
                                     <form action="{{ route('users.approve', $candidate) }}" method="POST">
                                         @csrf
                                         @method('PATCH')
 
-                                        <button type="submit" class="link">{{ __('Approve') }}</button>
+                                        <x-action icon="approve" :label="__('Approve')" />
                                     </form>
 
                                     <form action="{{ route('users.reject', $candidate) }}" method="POST"
@@ -60,7 +60,7 @@
                                         @csrf
                                         @method('PATCH')
 
-                                        <button type="submit" class="link link--danger">{{ __('Reject') }}</button>
+                                        <x-action icon="reject" :label="__('Reject')" danger />
                                     </form>
                                 </div>
                             </td>
@@ -112,7 +112,7 @@
         </form>
 
         <x-card flush>
-            <x-table>
+            <x-table stacked>
                 <x-slot name="head">
                     <th scope="col">{{ __('Photo') }}</th>
                     <th scope="col">{{ __('Name') }}</th>
@@ -128,15 +128,15 @@
                      table says less than one that says it is empty. --}}
                 @forelse ($users as $user)
                     <tr>
-                        <td><x-avatar :user="$user" size="sm" decorative /></td>
+                        <td class="table__thumb"><x-avatar :user="$user" size="sm" decorative /></td>
 
-                        <td>{{ $user->first_name }} {{ $user->last_name }}</td>
+                        <td data-label="{{ __('Name') }}">{{ $user->first_name }} {{ $user->last_name }}</td>
 
-                        <td>{{ $user->nickname ?? '—' }}</td>
+                        <td data-label="{{ __('Nickname') }}">{{ $user->nickname ?? '—' }}</td>
 
-                        <td>{{ $user->email }}</td>
+                        <td data-label="{{ __('Email') }}">{{ $user->email }}</td>
 
-                        <td>
+                        <td data-label="{{ __('Role') }}">
                             @if ($user->is_admin)
                                 <x-badge variant="primary">{{ __('Admin') }}</x-badge>
                             @else
@@ -148,7 +148,7 @@
                              than in principle: a rejected account has left the
                              queue above, so without a status here there is no
                              route back to it. --}}
-                        <td>
+                        <td data-label="{{ __('Approval') }}">
                             @if ($user->isApproved())
                                 <x-badge variant="open">{{ __('Approved') }}</x-badge>
                             @elseif ($user->isPendingApproval())
@@ -160,16 +160,16 @@
 
                         <td class="table__actions">
                             <div class="l-cluster l-cluster--end">
-                                <a class="link" href="{{ route('users.show', $user) }}">{{ __('View') }}</a>
+                                <x-action icon="view" :label="__('View')" :href="route('users.show', $user)" />
 
-                                <a class="link" href="{{ route('users.edit', $user) }}">{{ __('Edit') }}</a>
+                                <x-action icon="edit" :label="__('Edit')" :href="route('users.edit', $user)" />
 
                                 <form action="{{ route('users.destroy', $user) }}" method="POST"
                                       data-confirm="{{ __('Delete :name? This cannot be undone.', ['name' => $user->first_name.' '.$user->last_name]) }}">
                                     @csrf
                                     @method('DELETE')
 
-                                    <button type="submit" class="link link--danger">{{ __('Delete') }}</button>
+                                    <x-action icon="delete" :label="__('Delete')" danger />
                                 </form>
                             </div>
                         </td>

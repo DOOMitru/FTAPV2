@@ -40,14 +40,14 @@
 
                         <td class="table__actions">
                             <div class="l-cluster l-cluster--end">
-                                <a class="link" href="{{ route('poker.results.edit', $result) }}">{{ __('Edit') }}</a>
+                                <x-action icon="edit" :label="__('Edit')" :href="route('poker.results.edit', $result)" />
 
                                 <form action="{{ route('poker.results.destroy', $result) }}" method="POST"
                                       data-confirm="{{ __('Delete :name? This cannot be undone.', ['name' => $result->player_name]) }}">
                                     @csrf
                                     @method('DELETE')
 
-                                    <button type="submit" class="link link--danger">{{ __('Delete') }}</button>
+                                    <x-action icon="delete" :label="__('Delete')" danger />
                                 </form>
                             </div>
                         </td>

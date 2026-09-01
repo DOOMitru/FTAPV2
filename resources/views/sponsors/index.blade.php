@@ -71,14 +71,14 @@
 
                         <td class="table__actions">
                             <div class="l-cluster l-cluster--end">
-                                <a class="link" href="{{ route('sponsors.edit', $sponsor) }}">{{ __('Edit') }}</a>
+                                <x-action icon="edit" :label="__('Edit')" :href="route('sponsors.edit', $sponsor)" />
 
                                 <form action="{{ route('sponsors.destroy', $sponsor) }}" method="POST"
                                       data-confirm="{{ __('Delete :name? Their uploaded logo is deleted too, and that cannot be undone.', ['name' => $sponsor->name]) }}">
                                     @csrf
                                     @method('DELETE')
 
-                                    <button type="submit" class="link link--danger">{{ __('Delete') }}</button>
+                                    <x-action icon="delete" :label="__('Delete')" danger />
                                 </form>
                             </div>
                         </td>

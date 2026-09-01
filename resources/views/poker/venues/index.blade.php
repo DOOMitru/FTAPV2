@@ -28,16 +28,16 @@
 
                         <td class="table__actions">
                             <div class="l-cluster l-cluster--end">
-                            <a class="link" href="{{ route('poker.venues.show', $venue) }}">{{ __('View Stats') }}</a>
+                            <x-action icon="stats" :label="__('View Stats')" :href="route('poker.venues.show', $venue)" />
 
-                                <a class="link" href="{{ route('poker.venues.edit', $venue) }}">{{ __('Edit') }}</a>
+                                <x-action icon="edit" :label="__('Edit')" :href="route('poker.venues.edit', $venue)" />
 
                                 <form action="{{ route('poker.venues.destroy', $venue) }}" method="POST"
                                       data-confirm="{{ __('Delete :name? This cannot be undone.', ['name' => $venue->name]) }}">
                                     @csrf
                                     @method('DELETE')
 
-                                    <button type="submit" class="link link--danger">{{ __('Delete') }}</button>
+                                    <x-action icon="delete" :label="__('Delete')" danger />
                                 </form>
                             </div>
                         </td>

@@ -34,16 +34,16 @@
 
                         <td class="table__actions">
                             <div class="l-cluster l-cluster--end">
-                            <a class="link" href="{{ route('tournaments.show', $tournament) }}">{{ __('View') }}</a>
+                            <x-action icon="view" :label="__('View')" :href="route('tournaments.show', $tournament)" />
 
-                                <a class="link" href="{{ route('poker.tournaments.edit', $tournament) }}">{{ __('Edit') }}</a>
+                                <x-action icon="edit" :label="__('Edit')" :href="route('poker.tournaments.edit', $tournament)" />
 
                                 <form action="{{ route('poker.tournaments.destroy', $tournament) }}" method="POST"
                                       data-confirm="{{ __('Delete :name? This cannot be undone.', ['name' => $tournament->name]) }}">
                                     @csrf
                                     @method('DELETE')
 
-                                    <button type="submit" class="link link--danger">{{ __('Delete') }}</button>
+                                    <x-action icon="delete" :label="__('Delete')" danger />
                                 </form>
                             </div>
                         </td>
