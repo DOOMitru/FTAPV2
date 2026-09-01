@@ -2,11 +2,17 @@
    this one uses muted text, which a saturated ground cannot carry. Shared:
    both the dashboard and the public pages want it, and it references no fenced
    token, so it does not belong in 5-public. */
+/* No `margin: 0` here. The reset already zeroes dl, and .rows is only ever
+   worn by a dl -- so the declaration bought nothing, while its single-class
+   specificity landed later in the cascade than `.l-stack > * + *` and silently
+   cancelled it. A .rows dropped into a stack got no spacing above it and the
+   heading above it collided with its first label. Layout primitives own the
+   gaps; a component setting its own outer spacing is what this file's own
+   header warns against. */
 .rows {
     display: flex;
     flex-direction: column;
     gap: var(--space-3);
-    margin: 0;
 }
 
 .row {

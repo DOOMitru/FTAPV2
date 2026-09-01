@@ -215,4 +215,30 @@ class HomePageTest extends TestCase
             ->assertSee('not set yet')
             ->assertDontSee('still being set', false);
     }
+
+    public function test_the_card_says_so_when_there_is_no_season_at_all(): void
+    {
+        // Only reachable with an empty seasons table. The home route takes the
+        // season covering today and otherwise falls back to the most recent one
+        // by start_date, so a league that has ever run a season never sees this
+        // -- but a fresh install opens on it, and it is the one branch that
+        // cannot be screenshotted without deleting real data.
+        $this->get('/')->assertOk()
+            ->assertSee('No season is running at the moment.')
+            ->assertDontSee('Where It Stands');
+    }
+
+    public function test_the_two_halves_are_one_card(): void
+    {
+        // The season facts and the finale thresholds now share a single card.
+        // Both headings must be present, and the retired card title must not be
+        // -- if the merge were reverted this is what would catch it.
+        $this->season();
+
+        $this->get('/')->assertOk()
+            ->assertSee('Where It Stands')
+            ->assertSee('What It Takes')
+            ->assertDontSee('Season Status')
+            ->assertDontSee('No season is running at the moment.');
+    }
 }

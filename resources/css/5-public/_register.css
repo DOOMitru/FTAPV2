@@ -418,6 +418,28 @@
        below AA. Hierarchy here comes from size, not from opacity. */
 }
 
+/* An arrow link closing a card, the card-surface counterpart of
+   .p-panel__link. Worn together with .link, which supplies the colour and the
+   underline; this adds only what differs. .p-panel__link cannot be reused: its
+   ink is `inherit` and its rule is white-on-gradient, both of which vanish on
+   a neutral surface. */
+.p-cardlink {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    font-family: var(--font-body);
+    font-size: var(--step--2);
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    text-underline-offset: 0.25em;
+}
+
+.p-cardlink svg {
+    width: 0.875rem;
+    height: 0.875rem;
+}
+
 .p-chip-grid {
     display: grid;
     gap: var(--space-3);
@@ -850,6 +872,130 @@
     grid-template-columns: repeat(auto-fit, minmax(min(14rem, 100%), 1fr));
 }
 
+/* The season block. The same surface as the .p-event card below it:
+   .p-raised's large radius and float shadow, and no border.
+
+   It was built on <x-card>, which was wrong here -- .card draws a 1px border,
+   because the dashboard separates surfaces with a border and never a shadow.
+   Worn together with .p-raised the block got the hard outline AND the float
+   shadow, so it sat on the page as a different kind of object from the event
+   card it is stacked with. Padding matches .p-event__body. */
+.p-seasoncard {
+    padding: var(--space-6);
+}
+
+/* Its two column headings. Full-strength ink above muted .row__labels.
+   .u-eyebrow cannot do this job: it is step--2 / 600 / uppercase / muted,
+   which is .row__label almost exactly, so the heading and the labels beneath
+   it came out indistinguishable. */
+.p-seasoncard__head {
+    font-family: var(--font-body);
+    font-size: var(--step--1);
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+}
+
+/* The two columns, and the link that has to line up with them.
+ *
+ * A subgrid, not two independent stacks. The link sits at the card's start
+ * edge -- under the left column -- but has to sit on the SAME LINE as the
+ * sentence at the foot of the right column, and two independent stacks share
+ * no rows for it to be placed into. Here both columns take their rows from the
+ * parent, so the parent has a real third row and the link is placed into it.
+ *
+ * The left column spans two rows and the right spans three, rather than both
+ * spanning three: if the left spanned three it would still occupy the cell the
+ * link is placed in, and two grid items in one cell overlap. Spanning two
+ * leaves that cell genuinely free.
+ *
+ * The link stays LAST in the DOM. Below the breakpoint the columns stack and
+ * it belongs at the end of the card, which is where source order already puts
+ * it -- no reordering, and a screen reader meets it last in both layouts. */
+.p-seasoncard__cols {
+    display: grid;
+    /* Stacked: bigger than the --space-5 inside a column, so the seam between
+       the two groups is never tighter than the seams within one. */
+    gap: var(--space-6);
+}
+
+.p-seasoncard__col {
+    display: grid;
+    gap: var(--space-5);
+    align-content: start;
+}
+
+@media (min-width: 48rem) {
+    .p-seasoncard__cols {
+        grid-template-columns: 1fr 1fr;
+        column-gap: var(--space-6);
+        row-gap: var(--space-5);
+    }
+
+    /* Rows are shared only when both columns are the same shape -- a heading
+       over a facts list. With no thresholds published the right column is a
+       single line of copy while the left is still a three-row list, and a
+       shared row 2 is as tall as the taller of them: it opened a hole under
+       that line about as deep as the list beside it. Unaligned, the link
+       simply auto-places below the left column, which is where it began. */
+    .p-seasoncard__cols--aligned {
+        grid-template-rows: auto auto auto;
+    }
+
+    .p-seasoncard__cols--aligned .p-seasoncard__col {
+        grid-row: span 2;
+        grid-template-rows: subgrid;
+    }
+
+    /* Three rows: heading, facts, and the sentence the link levels with. */
+    .p-seasoncard__cols--aligned .p-seasoncard__col--tall {
+        grid-row: span 3;
+    }
+
+    .p-seasoncard__cols--aligned .p-seasoncard__link {
+        grid-column: 1;
+        grid-row: 3;
+        /* Baseline, not the default stretch. Stretched, the link's box fills a
+           row as tall as the two-line sentence beside it, and .p-cardlink
+           centres its own content -- so the label sank to the middle of that
+           row and sat visibly below the sentence's first line. */
+        align-self: baseline;
+    }
+}
+
+/* The fact lists inside it.
+ *
+ * Each pair is one flex row spanning the full width, not two cells of a
+ * two-track grid. Two things force that. Right-aligned values align on their
+ * own by sitting at the row's end edge -- no shared track needed. And the
+ * hairline has to cross the whole row: with dt and dd as separate grid items
+ * the rule would break at the column gap and read as two dashes. */
+.p-seasoncard__facts {
+    display: flex;
+    flex-direction: column;
+}
+
+.p-seasoncard__row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--space-4);
+    padding-block: var(--space-3);
+}
+
+/* Between rows only. A trailing rule would sit against the block's own
+   padding and read as a cut-off row. --c-border is the same hairline .card
+   and .entry use, so it is already measured for both themes. */
+.p-seasoncard__row + .p-seasoncard__row {
+    border-block-start: var(--border-width) solid var(--c-border);
+}
+
+.p-seasoncard__value {
+    font-size: var(--step--1);
+    font-weight: 600;
+    text-align: end;
+}
+
 /* An upcoming tournament: map beside the details, or details alone when the
    venue has no address. auto-fit means the two-column form appears only when
    there is room for it, and the no-map case needs no separate rule. */
@@ -1151,45 +1297,6 @@
     font-variant-numeric: tabular-nums;
     font-size: var(--step--1);
     color: var(--c-text-muted);
-}
-
-/* The published finale thresholds, inside the gradient panel.
- *
- * A definition list rather than three .p-stat tiles: a tile brings its own
- * surface and hairline, which would fight the ground it is drawn on here.
- *
- * Contrast measured against BOTH stops of --gradient-panel in BOTH themes,
- * because a ramp is two colours and text sits on all of it. The label's 0.85
- * gives 5.21:1 at worst, which clears AA -- this project has twice shipped
- * panel text that lost AA to an opacity, so it was computed rather than
- * assumed. */
-.p-finale__row {
-    display: flex;
-    align-items: baseline;
-    justify-content: space-between;
-    gap: var(--space-4);
-    padding-block: var(--space-2);
-}
-
-/* Between rows only -- a trailing rule would draw a line against the panel's
-   own padding and read as a cut-off row.
- *
- * 0.22, not 0.18: at 0.18 the rule measured 1.38:1 on the lightest stop of the
-   light-theme ramp, under the 1.4 floor this system uses for a hairline that
-   has to be seen. 0.22 clears it on all four stops. */
-.p-finale__row + .p-finale__row {
-    border-block-start: var(--border-width) solid rgb(255 255 255 / 0.22);
-}
-
-.p-finale__label {
-    font-size: var(--step--1);
-    opacity: 0.85;
-}
-
-.p-finale__value {
-    font-family: var(--font-mono);
-    font-variant-numeric: tabular-nums;
-    font-weight: 600;
 }
 
 /* ── The home lead ────────────────────────────────────────────────────────

@@ -66,96 +66,141 @@
             {{ __('Where the season stands, and what it takes to reach the finale.') }}
         </x-p-hero>
 
-        <div class="l-grid l-grid--wide">
-            <x-card :title="__('Season Status')" class="p-raised">
-                @if ($currentSeason)
-                    <dl class="rows">
-                        <div class="row">
-                            <dt class="row__label">{{ __('Active') }}</dt>
-                            <dd class="row__value">{{ $currentSeason->name }}</dd>
-                        </div>
+        {{-- One card, not a card beside a gradient panel. "Season Status" and
+             "Season Finale" ask the same question from two sides -- where the
+             season is now, and what it takes to finish it -- and splitting them
+             across two registers made the pair read as unrelated.
 
-                        <div class="row">
-                            <dt class="row__label">{{ __('Runs') }}</dt>
-                            <dd class="row__value">
-                                {{ $currentSeason->start_date?->format('M j, Y') ?? '?' }} &ndash;
-                                {{ $currentSeason->end_date?->format('M j, Y') ?? '?' }}
-                            </dd>
-                        </div>
+             The neutral register, not the panel's: merging into the gradient
+             doubled the red field to the section's full width and made this
+             block, rather than the hero, the loudest thing on the page. Red
+             stays as accent here.
 
-                        <div class="row">
-                            <dt class="row__label">{{ __('Entry') }}</dt>
-                            <dd class="row__value">{{ __('Free') }}</dd>
-                        </div>
-                    </dl>
-                @else
-                    <x-empty-state :title="__('No active season found.')">
-                        {{ __('The next season will appear here as soon as its dates are set.') }}
-                    </x-empty-state>
-                @endif
-            </x-card>
+             .p-raised rather than the card component, so this matches the
+             event card below it: shadow and a large radius, no hard border. --}}
+        <div class="p-seasoncard p-raised">
+            @if ($currentSeason)
+                {{-- Rows are shared between the columns only when both hold a
+                     facts list; see .p-seasoncard__cols--aligned. --}}
+                <div class="p-seasoncard__cols{{ $currentSeason->hasThresholds() ? ' p-seasoncard__cols--aligned' : '' }}">
+                    <div class="p-seasoncard__col">
+                        <h3 class="p-seasoncard__head">{{ __('Where It Stands') }}</h3>
 
-            <section class="p-panel">
-                <div class="p-panel__glow" aria-hidden="true"></div>
+                        <dl class="p-seasoncard__facts">
+                            <div class="p-seasoncard__row">
+                                <dt class="p-contact__label">{{ __('Active') }}</dt>
+                                <dd class="p-seasoncard__value">{{ $currentSeason->name }}</dd>
+                            </div>
 
-                <h3 class="p-panel__eyebrow">{{ __('Season Finale') }}</h3>
+                            <div class="p-seasoncard__row">
+                                <dt class="p-contact__label">{{ __('Runs') }}</dt>
+                                <dd class="p-seasoncard__value">
+                                    {{ $currentSeason->start_date?->format('M j, Y') ?? '?' }} &ndash;
+                                    {{ $currentSeason->end_date?->format('M j, Y') ?? '?' }}
+                                </dd>
+                            </div>
 
-                <p class="p-panel__text">
-                    {{ __('Three things decide who plays: the points you accumulate over the season, how many tournaments you win, and the venue points you pick up along the way.') }}
-                </p>
+                            <div class="p-seasoncard__row">
+                                <dt class="p-contact__label">{{ __('Entry') }}</dt>
+                                <dd class="p-seasoncard__value">{{ __('Free') }}</dd>
+                            </div>
+                        </dl>
+                    </div>
 
-                {{-- The numbers once they exist, the admission until they do.
-                     This page promised to publish them here, so it is the page
-                     that has to keep that promise.
+                    <div class="p-seasoncard__col p-seasoncard__col--tall">
+                        <h3 class="p-seasoncard__head">{{ __('What It Takes') }}</h3>
 
-                     Each figure is guarded on its own, not just the block:
-                     hasThresholds() is true when ANY one is set, so a season
-                     with only a points target reaches this branch, and
-                     number_format(null) renders 0 -- a target nobody chose and
-                     that everybody has already met. --}}
-                @if ($currentSeason && $currentSeason->hasThresholds())
-                    <dl class="p-finale">
-                        <div class="p-finale__row">
-                            <dt class="p-finale__label">{{ __('Season points') }}</dt>
-                            <dd class="p-finale__value">
-                                {{ $currentSeason->finale_points_required !== null
-                                    ? number_format($currentSeason->finale_points_required)
-                                    : __('not set yet') }}
-                            </dd>
-                        </div>
+                        {{-- Each figure is guarded on its own, not just the
+                             block: hasThresholds() is true when ANY one is set,
+                             so a season with only a points target reaches this
+                             branch, and number_format(null) renders 0 -- a
+                             target nobody chose and everybody has cleared. --}}
+                        @if ($currentSeason->hasThresholds())
+                            <dl class="p-seasoncard__facts">
+                                <div class="p-seasoncard__row">
+                                    <dt class="p-contact__label">{{ __('Season points') }}</dt>
+                                    <dd class="p-seasoncard__value u-mono">
+                                        {{ $currentSeason->finale_points_required !== null
+                                            ? number_format($currentSeason->finale_points_required)
+                                            : __('not set yet') }}
+                                    </dd>
+                                </div>
 
-                        <div class="p-finale__row">
-                            <dt class="p-finale__label">{{ __('Tournament wins') }}</dt>
-                            <dd class="p-finale__value">
-                                {{ $currentSeason->finale_wins_required !== null
-                                    ? $currentSeason->finale_wins_required
-                                    : __('not set yet') }}
-                            </dd>
-                        </div>
+                                <div class="p-seasoncard__row">
+                                    <dt class="p-contact__label">{{ __('Tournament wins') }}</dt>
+                                    <dd class="p-seasoncard__value u-mono">
+                                        {{ $currentSeason->finale_wins_required !== null
+                                            ? $currentSeason->finale_wins_required
+                                            : __('not set yet') }}
+                                    </dd>
+                                </div>
 
-                        <div class="p-finale__row">
-                            <dt class="p-finale__label">{{ __('Venue points') }}</dt>
-                            <dd class="p-finale__value">
-                                {{ $currentSeason->finale_venue_points_required !== null
-                                    ? number_format($currentSeason->finale_venue_points_required)
-                                    : __('not set yet') }}
-                            </dd>
-                        </div>
-                    </dl>
-                @else
-                    <p class="p-panel__text">
-                        {{ __('The exact thresholds are still being set and will be published here once they are.') }}
+                                <div class="p-seasoncard__row">
+                                    <dt class="p-contact__label">{{ __('Venue points') }}</dt>
+                                    <dd class="p-seasoncard__value u-mono">
+                                        {{ $currentSeason->finale_venue_points_required !== null
+                                            ? number_format($currentSeason->finale_venue_points_required)
+                                            : __('not set yet') }}
+                                    </dd>
+                                </div>
+                            </dl>
+                        @else
+                            <p class="u-muted">
+                                {{ __('The exact thresholds are still being set and will be published here once they are.') }}
+                            </p>
+                        @endif
+
+                        {{-- Below the figures, not above them. Anything between
+                             this heading and this list offsets the list from the
+                             one in the column beside it, and the two stop
+                             reading as one table.
+
+                             Kept at all because the rows give three numbers and
+                             never say you need all three, and "any one of these"
+                             is a different competition. --}}
+                        <p class="u-muted">
+                            {{ __('Three things decide who plays: the points you accumulate over the season, how many tournaments you win, and the venue points you pick up along the way.') }}
+                        </p>
+                    </div>
+
+                    {{-- Last in the DOM on purpose. Stacked, the link belongs at
+                         the end of the card, which is where source order puts it;
+                         side by side, CSS lifts it into the left column's third
+                         row so it sits level with the sentence opposite. Nothing
+                         is reordered, so it is last for a screen reader either
+                         way. --}}
+                    <a class="link p-cardlink p-seasoncard__link" href="{{ route('rules.points-structure') }}">
+                        {{ __('View Point System') }}
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <path d="M17 8l4 4m0 0l-4 4m4-4H3"/>
+                        </svg>
+                    </a>
+                </div>
+            @else
+                {{-- No columns to level anything with, so the link is simply
+                     last. x-empty-state is not used here: .empty is built on
+                     the muted tokens, which is the register this card left. --}}
+                <div class="p-seasoncard__col">
+                    <h3 class="p-seasoncard__head">{{ __('Season Finale') }}</h3>
+
+                    <p class="u-muted">
+                        {{ __('Three things decide who plays: the points you accumulate over the season, how many tournaments you win, and the venue points you pick up along the way.') }}
                     </p>
-                @endif
 
-                <a class="p-panel__link" href="{{ route('rules.points-structure') }}">
-                    {{ __('View Point System') }}
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                         stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                        <path d="M17 8l4 4m0 0l-4 4m4-4H3"/>
-                    </svg>
-                </a>
-            </section>
+                    <p class="u-muted">
+                        {{ __('No season is running at the moment. The next one will appear here as soon as its dates are set.') }}
+                    </p>
+
+                    <a class="link p-cardlink" href="{{ route('rules.points-structure') }}">
+                        {{ __('View Point System') }}
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <path d="M17 8l4 4m0 0l-4 4m4-4H3"/>
+                        </svg>
+                    </a>
+                </div>
+            @endif
         </div>
 
         @auth
