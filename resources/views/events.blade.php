@@ -17,12 +17,12 @@
         @forelse ($upcomingTournaments as $tournament)
             <article class="p-event p-raised">
                 @if ($tournament->venue && $tournament->venue->address)
-                    <div class="p-map">
+                    <div class="map">
                         <iframe title="{{ __('Map of :venue', ['venue' => $tournament->venue->name]) }}"
                                 loading="lazy" referrerpolicy="no-referrer-when-downgrade"
                                 src="https://maps.google.com/maps?q={{ urlencode($tournament->venue->address) }}&t=&z=13&ie=UTF8&iwloc=&output=embed"></iframe>
 
-                        <div class="p-map__pin">
+                        <div class="map__pin">
                             <span class="p-icon-tile">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                                      stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
