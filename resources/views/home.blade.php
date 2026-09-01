@@ -101,42 +101,55 @@
         </div>
     </section>
 
-    <section class="p-section">
-        <x-p-hero plain :level="2" suit="heart"
-                  :eyebrow="__('Our Sponsors')"
-                  :title="__('Proudly Supported By')"
-                  :highlight="__('Supported By')">
-            {{ __('These businesses pay for the finale prize pool. That is what keeps the games free.') }}
-        </x-p-hero>
+    {{-- The whole section, heading included, only exists when there are
+         sponsors. A "Proudly Supported By" heading over an empty grid
+         advertises that nobody sponsors the league. --}}
+    @if ($sponsors->isNotEmpty())
+        <section class="p-section">
+            <x-p-hero plain :level="2" suit="heart"
+                      :eyebrow="__('Our Sponsors')"
+                      :title="__('Proudly Supported By')"
+                      :highlight="__('Supported By')">
+                {{ __('These businesses pay for the finale prize pool. That is what keeps the games free.') }}
+            </x-p-hero>
 
-        @php
-            $sponsors = [
-                ['mark' => 'A♥',   'name' => 'Ace High',     'trade' => 'Beverages'],
-                ['mark' => '🏠',    'name' => 'Full House',   'trade' => 'Hospitality'],
-                ['mark' => '⚡',    'name' => 'Straight Tech', 'trade' => 'Solutions'],
-                ['mark' => '💪',    'name' => 'All-In',       'trade' => 'Athletics'],
-                ['mark' => 'K♠K♣', 'name' => 'Pocket Kings', 'trade' => 'Financial'],
-            ];
-        @endphp
+            <div class="p-sponsors">
+                @foreach ($sponsors as $sponsor)
+                    @php
+                        $classes = 'p-sponsor p-raised p-lift'.($sponsor->isPremium() ? ' p-sponsor--premium' : '');
+                    @endphp
 
-        <div class="p-sponsors">
-            @foreach ($sponsors as $sponsor)
-                <div class="p-sponsor p-raised p-lift">
-                    <span class="p-sponsor__mark" aria-hidden="true">{{ $sponsor['mark'] }}</span>
-                    <span class="p-sponsor__name">{{ $sponsor['name'] }}</span>
-                    <span class="p-sponsor__trade">{{ $sponsor['trade'] }}</span>
-                </div>
-            @endforeach
-        </div>
+                    {{-- The card is a link only when there is somewhere to go.
+                         An <a> without an href is not a link, and a card that
+                         looks clickable and is not is worse than a plain one. --}}
+                    @if ($sponsor->website_url)
+                        <a class="{{ $classes }}" href="{{ $sponsor->website_url }}"
+                           target="_blank" rel="noopener noreferrer">
+                            {{-- alt is the sponsor's NAME, not empty: the logo
+                                 is the content here, and empty alt would leave
+                                 a screen reader with nothing where a sponsor
+                                 should be. --}}
+                            <img class="p-sponsor__logo" src="{{ $sponsor->logoUrl() }}" alt="{{ $sponsor->name }}">
+                            <span class="p-sponsor__name">{{ $sponsor->name }}</span>
+                            <span class="u-visually-hidden">{{ __('(opens in a new tab)') }}</span>
+                        </a>
+                    @else
+                        <div class="{{ $classes }}">
+                            <img class="p-sponsor__logo" src="{{ $sponsor->logoUrl() }}" alt="{{ $sponsor->name }}">
+                            <span class="p-sponsor__name">{{ $sponsor->name }}</span>
+                        </div>
+                    @endif
+                @endforeach
+            </div>
 
-        <div class="p-cta">
-            <p class="p-cta__lede">{{ __('Interested in becoming a sponsor?') }}</p>
+            <div class="p-cta">
+                <p class="p-cta__lede">{{ __('Interested in becoming a sponsor?') }}</p>
 
-            {{-- The about page has a real sponsorship form; a mailto: link was
-                 sending people to their mail client instead. --}}
-            <x-btn variant="primary" :href="route('about.index') . '#become-a-sponsor'">
-                {{ __('Become a Sponsor') }}
-            </x-btn>
-        </div>
-    </section>
+                <x-btn variant="primary" :href="route('about.index') . '#become-a-sponsor'">
+                    {{ __('Become a Sponsor') }}
+                </x-btn>
+            </div>
+        </section>
+    @endif
+
 </x-public-layout>

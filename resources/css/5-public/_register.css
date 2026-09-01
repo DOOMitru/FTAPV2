@@ -1014,14 +1014,32 @@
     text-align: center;
 }
 
-/* The mark. These are typographic stand-ins, not artwork, so they take the
-   page's own ink rather than five different brand colours -- five accents in a
-   one-accent system is what the rest of this phase has been removing. */
-.p-sponsor__mark {
-    font-family: var(--font-display);
-    font-size: var(--step-2);
-    line-height: 1;
-    color: var(--c-text);
+/* The card is an <a> when the sponsor has a website and a <div> when it does
+   not, so the text decoration and colour have to be reset either way -- an
+   inherited underline across a logo card reads as damage. */
+.p-sponsor {
+    color: inherit;
+    text-decoration: none;
+}
+
+/* Real artwork now, uploaded by an administrator, rather than the typographic
+   stand-ins this wall used to carry.
+ *
+ * contain, never cover: a sponsor's logo arrives at whatever aspect ratio the
+ * business uses, and cropping a paying sponsor's mark to fit a box is not a
+ * thing to do to them.
+ *
+ * The white plate is fixed rather than themed. Logos are usually transparent
+ * PNGs drawn in the business's own dark ink, and a dark transparent logo on a
+ * dark surface is an empty rectangle -- the one case where the theme must not
+ * win. */
+.p-sponsor__logo {
+    width: 100%;
+    height: 3.5rem;
+    object-fit: contain;
+    background-color: #FFFFFF;
+    border-radius: var(--radius-sm);
+    padding: var(--space-2);
 }
 
 .p-sponsor__name {
@@ -1030,9 +1048,23 @@
     font-weight: 600;
 }
 
-.p-sponsor__trade {
-    font-size: var(--step--2);
-    color: var(--c-text-muted);
+/* Premium sponsors take two columns wherever two exist, and a taller logo.
+ *
+ * Below this width the grid is already a single column and the span is a
+ * no-op, which is why the wider-card option needed no mobile special case:
+ * `span 2` in a one-column grid is clamped to the one column that exists. */
+@media (min-width: 40rem) {
+    .p-sponsor--premium {
+        grid-column: span 2;
+    }
+
+    .p-sponsor--premium .p-sponsor__logo {
+        height: 5.5rem;
+    }
+
+    .p-sponsor--premium .p-sponsor__name {
+        font-size: var(--step-0);
+    }
 }
 
 /* A closing call to action, centred under a section. */

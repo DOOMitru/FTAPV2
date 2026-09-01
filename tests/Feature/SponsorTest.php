@@ -207,4 +207,67 @@ class SponsorTest extends TestCase
 
         $this->assertSame(0, Sponsor::count());
     }
+
+    public function test_the_home_page_renders_sponsors_from_the_database(): void
+    {
+        Sponsor::factory()->create(['name' => 'Regularly']);
+        Sponsor::factory()->premium()->create(['name' => 'Premiumly']);
+
+        $response = $this->get('/');
+        $response->assertOk()->assertSee('Premiumly')->assertSee('Regularly');
+
+        // Premium first in the RENDERED MARKUP, not merely in a collection.
+        // Nothing else pins this wall -- the hardcoded array it replaces was
+        // never covered -- so if the view stopped calling ordered() no other
+        // test would notice.
+        $body = $response->getContent();
+        $this->assertLessThan(strpos($body, 'Regularly'), strpos($body, 'Premiumly'));
+    }
+
+    public function test_a_premium_sponsor_is_marked_so_in_the_markup(): void
+    {
+        Sponsor::factory()->premium()->create(['name' => 'Premiumly']);
+
+        $this->get('/')->assertOk()->assertSee('p-sponsor--premium', false);
+    }
+
+    public function test_the_sponsor_section_is_absent_when_there_are_none(): void
+    {
+        // A "Proudly Supported By" heading over an empty grid advertises that
+        // nobody sponsors the league.
+        //
+        // Asserted on the grid class, not the heading text. The heading is
+        // rendered through x-p-hero's `highlight` prop, which wraps part of it
+        // in a span -- so the literal words never appear contiguously in the
+        // markup and assertDontSee on them passes whether the section renders
+        // or not.
+        $this->get('/')->assertOk()->assertDontSee('p-sponsors', false);
+    }
+
+    public function test_a_sponsor_with_a_website_links_out_safely(): void
+    {
+        Sponsor::factory()->create(['name' => 'Linked', 'website_url' => 'https://example.com']);
+
+        $this->get('/')->assertOk()
+            ->assertSee('rel="noopener noreferrer"', false)
+            ->assertSee('https://example.com', false);
+    }
+
+    public function test_a_sponsor_without_a_website_renders_no_link(): void
+    {
+        Sponsor::factory()->create(['name' => 'Unlinked']);
+
+        $this->get('/')->assertOk()
+            ->assertSee('Unlinked')
+            ->assertDontSee('rel="noopener noreferrer"', false);
+    }
+
+    public function test_the_logo_carries_the_sponsor_name_as_alt_text(): void
+    {
+        // The logo IS the content here, not decoration, so empty alt would
+        // leave a screen reader with nothing where a sponsor should be.
+        Sponsor::factory()->create(['name' => 'Ace High']);
+
+        $this->get('/')->assertOk()->assertSee('alt="Ace High"', false);
+    }
 }

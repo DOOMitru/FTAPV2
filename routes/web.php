@@ -24,7 +24,11 @@ Route::get('/', function () {
         ->orderBy('start_time', 'asc')
         ->first();
 
-    return view('home', compact('currentSeason', 'nextTournament'));
+    // ordered() -- the same scope the admin list uses, so what an
+    // administrator arranges is what this page renders.
+    $sponsors = \App\Models\Sponsor::ordered()->get();
+
+    return view('home', compact('currentSeason', 'nextTournament', 'sponsors'));
 })->name('home');
 
 Route::prefix('about')->name('about.')->group(function () {
