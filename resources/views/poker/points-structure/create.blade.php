@@ -1,35 +1,23 @@
 <x-app-layout>
     <x-slot name="header">
-        <x-page-header :eyebrow="__('Setup')" :title="__('Add Place to Points Structure')">
-        </x-page-header>
+        <x-page-header :eyebrow="__('Setup')" :title="__('Add Place to Points Structure')" />
     </x-slot>
 
-    <div class="py-12">
-        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
-            <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
-                <div class="p-6 text-gray-900 dark:text-gray-100">
-                    <form method="POST" action="{{ route('poker.points-structure.store') }}" class="space-y-6">
-                        @csrf
+    <div class="l-container">
+        <x-card>
+            <form method="POST" action="{{ route('poker.points-structure.store') }}" class="l-stack">
+                @csrf
 
-                        <div>
-                            <x-input-label for="place" :value="__('Place')" />
-                            <x-text-input id="place" name="place" type="number" class="mt-1 block w-full" :value="old('place')" required autofocus min="1" />
-                            <x-input-error class="mt-2" :messages="$errors->get('place')" />
-                        </div>
+                <x-field name="place" :label="__('Place')" type="number" :value="old('place')" required autofocus />
 
-                        <div>
-                            <x-input-label for="points" :value="__('Points')" />
-                            <x-text-input id="points" name="points" type="number" class="mt-1 block w-full" :value="old('points')" required min="0" />
-                            <x-input-error class="mt-2" :messages="$errors->get('points')" />
-                        </div>
+                <x-field name="points" :label="__('Points')" type="number" :value="old('points')" required />
 
-                        <div class="flex items-center gap-4">
-                            <x-primary-button>{{ __('Save') }}</x-primary-button>
-                            <a href="{{ route('poker.points-structure.index') }}" class="text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100">{{ __('Cancel') }}</a>
-                        </div>
-                    </form>
+                <div class="l-cluster">
+                    <x-btn variant="primary">{{ __('Save') }}</x-btn>
+
+                    <a class="link" href="{{ route('poker.points-structure.index') }}">{{ __('Cancel') }}</a>
                 </div>
-            </div>
-        </div>
+            </form>
+        </x-card>
     </div>
 </x-app-layout>
