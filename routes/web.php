@@ -20,15 +20,45 @@ Route::get('/', function () {
         ->first() ?? \App\Models\PokerSeason::orderBy('start_date', 'desc')->first();
 
     $nextTournament = \App\Models\PokerTournament::with(['venue', 'season'])
+        // Same withExists the events page uses, so the shared card can say
+        // "You're registered" instead of offering a button the controller
+        // would refuse. One exists() rather than loading every registrant.
+        ->when(auth()->check(), fn ($query) => $query->withExists([
+            'registrants as viewer_registered' => fn ($r) => $r->where('user_id', auth()->id()),
+        ]))
         ->where('start_time', '>=', now())
         ->orderBy('start_time', 'asc')
         ->first();
+
+    // Season standings, for signed-in players only. Grouped the same way
+    // PokerSeasonController@show groups them -- points summed, a win being
+    // place 1 -- so the home page and the season page cannot disagree about
+    // what either word means.
+    $topByPoints = collect();
+    $topByWins = collect();
+
+    if (auth()->check() && $currentSeason) {
+        $standings = $currentSeason->results()->get()
+            ->groupBy('user_id')
+            ->map(fn ($rows) => [
+                'name' => $rows->first()->player_name,
+                'points' => $rows->sum('points'),
+                'wins' => $rows->where('place', 1)->count(),
+            ])
+            ->values();
+
+        $topByPoints = $standings->sortByDesc('points')->take(3)->values();
+
+        // Anyone on nil wins is not "leading on wins"; an empty list says that
+        // honestly, where three names on zero would not.
+        $topByWins = $standings->where('wins', '>', 0)->sortByDesc('wins')->take(3)->values();
+    }
 
     // ordered() -- the same scope the admin list uses, so what an
     // administrator arranges is what this page renders.
     $sponsors = \App\Models\Sponsor::ordered()->get();
 
-    return view('home', compact('currentSeason', 'nextTournament', 'sponsors'));
+    return view('home', compact('currentSeason', 'nextTournament', 'sponsors', 'topByPoints', 'topByWins'));
 })->name('home');
 
 Route::prefix('about')->name('about.')->group(function () {

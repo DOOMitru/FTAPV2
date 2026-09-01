@@ -56,11 +56,14 @@
     </section>
 
 
+    {{-- Two sections, not one. "League Schedule" mixed the state of the season
+         with the next date on the calendar -- two different questions, and a
+         reader wanting either had to pick their card out of a row of three. --}}
     <section class="p-section">
         <x-p-hero plain :level="2" suit="diamond"
-                  :eyebrow="__('League Schedule')"
+                  :eyebrow="__('The Season')"
                   :title="$currentSeason ? $currentSeason->name . ' ' . __('is Here') : __('Season Launching Soon')">
-            {{ __('Where the season stands, what is scheduled next, and who is in front.') }}
+            {{ __('Where the season stands, and what it takes to reach the finale.') }}
         </x-p-hero>
 
         <div class="l-grid l-grid--wide">
@@ -73,48 +76,22 @@
                         </div>
 
                         <div class="row">
-                            <dt class="row__label">{{ __('Duration') }}</dt>
+                            <dt class="row__label">{{ __('Runs') }}</dt>
                             <dd class="row__value">
-                                {{ $currentSeason->start_date?->format('M Y') ?? '?' }} &ndash;
-                                {{ $currentSeason->end_date?->format('M Y') ?? '?' }}
+                                {{ $currentSeason->start_date?->format('M j, Y') ?? '?' }} &ndash;
+                                {{ $currentSeason->end_date?->format('M j, Y') ?? '?' }}
                             </dd>
                         </div>
 
                         <div class="row">
-                            <dt class="row__label">{{ __('Prize Pool') }}</dt>
-                            <dd class="row__value">{{ __('Dynamic') }}</dd>
+                            <dt class="row__label">{{ __('Entry') }}</dt>
+                            <dd class="row__value">{{ __('Free') }}</dd>
                         </div>
                     </dl>
                 @else
-                    <x-empty-state :title="__('No active season found.')" />
-                @endif
-            </x-card>
-
-            <x-card :title="__('Next Event')" class="p-raised">
-                @if ($nextTournament)
-                    <dl class="rows">
-                        <div class="row">
-                            <dt class="row__label">{{ __('Event') }}</dt>
-                            <dd class="row__value">{{ $nextTournament->name }}</dd>
-                        </div>
-
-                        <div class="row">
-                            <dt class="row__label">{{ __('Starts') }}</dt>
-                            <dd class="row__value">
-                                {{ $nextTournament->start_time?->format('F d, Y') ?? __('TBD') }}
-                                @if ($nextTournament->start_time)
-                                    &middot; {{ $nextTournament->start_time->format('h:i A') }}
-                                @endif
-                            </dd>
-                        </div>
-
-                        <div class="row">
-                            <dt class="row__label">{{ __('Venue') }}</dt>
-                            <dd class="row__value">{{ $nextTournament->venue?->name ?? __('Location TBD') }}</dd>
-                        </div>
-                    </dl>
-                @else
-                    <x-empty-state :title="__('No upcoming events scheduled.')" />
+                    <x-empty-state :title="__('No active season found.')">
+                        {{ __('The next season will appear here as soon as its dates are set.') }}
+                    </x-empty-state>
                 @endif
             </x-card>
 
@@ -124,11 +101,16 @@
                 <h3 class="p-panel__eyebrow">{{ __('Season Finale') }}</h3>
 
                 <p class="p-panel__text">
-                    {{ __('Season points, tournament wins and venue points decide who plays the Grand Championship at the end of the season.') }}
+                    {{ __('Three things decide who plays: the points you accumulate over the season, how many tournaments you win, and the venue points you pick up along the way.') }}
                 </p>
 
-                {{-- Was href="#". The points structure page is what "View Point
-                     System" has always meant. --}}
+                {{-- Said plainly rather than left vague. The thresholds are not
+                     set yet, and a page that implies a number nobody has chosen
+                     is worse than one that admits the number is coming. --}}
+                <p class="p-panel__text">
+                    {{ __('The exact thresholds are still being set and will be published here once they are.') }}
+                </p>
+
                 <a class="p-panel__link" href="{{ route('rules.points-structure') }}">
                     {{ __('View Point System') }}
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
@@ -138,6 +120,63 @@
                 </a>
             </section>
         </div>
+
+        @auth
+            @if ($topByPoints->isNotEmpty())
+                {{-- Signed-in players only. A leaderboard is for people playing
+                     in it; to a stranger it is a list of names. --}}
+                <div class="l-grid p-season-standings">
+                    <x-card :title="__('Most Points')" class="p-raised">
+                        <ol class="p-standing">
+                            @foreach ($topByPoints as $i => $row)
+                                <li class="p-standing__row">
+                                    <x-rank :place="$i + 1" />
+                                    <span class="p-standing__name">{{ $row['name'] }}</span>
+                                    <span class="p-standing__value">{{ number_format($row['points']) }} {{ __('pts') }}</span>
+                                </li>
+                            @endforeach
+                        </ol>
+                    </x-card>
+
+                    <x-card :title="__('Most Wins')" class="p-raised">
+                        @if ($topByWins->isNotEmpty())
+                            <ol class="p-standing">
+                                @foreach ($topByWins as $i => $row)
+                                    <li class="p-standing__row">
+                                        <x-rank :place="$i + 1" />
+                                        <span class="p-standing__name">{{ $row['name'] }}</span>
+                                        <span class="p-standing__value">{{ $row['wins'] }} {{ trans_choice('win|wins', $row['wins']) }}</span>
+                                    </li>
+                                @endforeach
+                            </ol>
+                        @else
+                            <x-empty-state :title="__('No wins yet this season.')" />
+                        @endif
+                    </x-card>
+                </div>
+            @endif
+        @endauth
+    </section>
+
+    <section class="p-section">
+        <x-p-hero plain :level="2" suit="club"
+                  :eyebrow="__('Next Up')"
+                  :title="$nextTournament ? __('The Next Event') : __('Nothing Scheduled Yet')">
+            {{ $nextTournament
+                ? __('The next league night, with everything you need to turn up.')
+                : __('The calendar is empty for the moment.') }}
+        </x-p-hero>
+
+        @if ($nextTournament)
+            {{-- The same card the events page draws, so the two cannot drift
+                 apart -- including its register control, which is why the home
+                 route loads viewer_registered the same way. --}}
+            <x-p-event :tournament="$nextTournament" />
+        @else
+            <x-empty-state :title="__('No events on the calendar')">
+                {{ __('Nothing is scheduled right now. Check back in a few days — new league nights go up here first, and the season page has everything played so far.') }}
+            </x-empty-state>
+        @endif
     </section>
 
     {{-- The whole section, heading included, only exists when there are

@@ -1093,6 +1093,53 @@
 /* The aside on the auth pages: the mark, the league name, and what the league
    is. Sits beside the form rather than above it, so a visitor arriving from
    the marketing site still sees why they are signing up. */
+/* The standings sit below the season's status and finale cards, and .p-section
+   gives its children no spacing of its own -- so without this the two groups
+   are separated by nothing but the grid's own 1rem gap and read as one block
+   of four unrelated cards. Wider than that gap on purpose: the distance
+   between GROUPS has to beat the distance within one. */
+.p-season-standings {
+    margin-block-start: var(--space-6);
+}
+
+/* A short standings list -- three rows of rank, name and figure. Not .table:
+   that is the dashboard's dense many-column grid, and this is three lines
+   inside a card.
+
+   The list reset in 1-base/_reset.css already strips the marker and padding
+   from ol[class], so nothing here repeats that. */
+.p-standing__row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    padding-block: var(--space-3);
+}
+
+/* Between rows only. A trailing rule under the last name would draw a line
+   against the card's own padding and read as a cut-off row. */
+.p-standing__row + .p-standing__row {
+    border-block-start: var(--border-width) solid var(--c-border);
+}
+
+.p-standing__name {
+    /* min-width: 0 so a long name ellipsises inside the row rather than
+       forcing the figure beside it off the card. */
+    flex: 1 1 auto;
+    min-width: 0;
+    font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.p-standing__value {
+    flex: 0 0 auto;
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    font-size: var(--step--1);
+    color: var(--c-text-muted);
+}
+
 /* ── The home lead ────────────────────────────────────────────────────────
    The opening block on the home page: mark, name, tagline, lede. Its own block
    rather than a variant of .p-hero, which eight other pages share and which
