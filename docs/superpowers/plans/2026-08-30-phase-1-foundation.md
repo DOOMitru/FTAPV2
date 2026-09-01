@@ -1924,20 +1924,59 @@ Suggested message: `feat: add a shared top bar with mobile menu, brand mark and 
 
 ## Task 9: Public and guest shells
 
+**This task builds no bar.** Task 8 produced `<x-topbar>`, `<x-brand>` and `<x-theme-toggle>`,
+and the owner has approved them. The public site consumes those; `_shell-public.css` styles
+only what is genuinely public-specific — the page wrapper and the footer. An earlier draft of
+this task defined `.public__bar` / `.public__brand` / `.public__links`; that draft is void.
+Building a second bar would defeat the consolidation the owner asked for and duplicate the
+mobile-menu logic that must exist exactly once.
+
 **Files:**
 - Create: `resources/css/2-layout/_shell-public.css`
 - Rewrite: `resources/views/layouts/public.blade.php`, `resources/views/layouts/guest.blade.php`
-
-**Consolidation requirement:** the public bar MUST be `<x-topbar>` with its own `links` and `actions` slots — the same component the authenticated bar uses. Do not build a second bar. `_shell-public.css` styles only what is genuinely public-specific (the page wrapper and footer), never the bar itself.
 - Modify: `resources/css/app.css`
 
+**Do NOT touch:** `components/topbar.blade.php`, `brand.blade.php`, `theme-toggle.blade.php`,
+`_topbar.css`, `_nav.css`, `_dropdown.css`, `theme-script.blade.php`, `_tokens.css`. All are
+approved and in use by the authenticated shell.
+
 **Interfaces:**
-- Consumes: components from Tasks 5–7
+- Consumes: `<x-topbar>`, `<x-brand>`, `<x-theme-toggle>`, `<x-dropdown>`, `<x-dropdown-link>`, `.l-container`
 - Produces: the public `$slot` contract, unchanged
 
-- [ ] **Step 1: Write the CSS**
+### Two problems this task also closes
 
-Create `resources/css/2-layout/_shell-public.css`:
+1. **The guest layout has never restored a stored theme choice.** `guest.blade.php` has no
+   `<x-theme-script />`, so login and register ignore an explicit light/dark preference and
+   fall back to the OS. Tracked since Task 2. Add it.
+2. **`public.blade.php` holds the last inline `style` outside the components directory**
+   (line ~58) and the app's only 16 uses of `x-nav-link` / `x-responsive-nav-link`. Rewriting
+   it removes both; Task 12 then deletes or restyles that component pair based on what is left.
+
+### The public link set — group the rules pages
+
+The current bar lists Home, Events and four separate rules pages, then About and Contact —
+eight top-level items, duplicated again for mobile. Group the rules pages behind one menu, the
+same pattern the admin bar uses:
+
+```
+[logo] FIRST TO ACT POKER   Home  Events  Rules ⌄  About  Contact     ◐  [Log in] [Join]
+                                           Rules ⌄ → Regulations
+                                                     Conduct
+                                                     How to play
+                                                     Points
+```
+
+Five top-level items instead of eight, and the grouping vocabulary matches the authenticated
+bar. Use `<x-dropdown align="left" width="48" :inline-mobile="true">` for Rules so it becomes
+an inline disclosure on mobile exactly like League / Play / Setup.
+
+When a visitor is signed in, the actions slot shows a link to the dashboard instead of
+Log in / Join.
+
+- [ ] **Step 1: `_shell-public.css`**
+
+Only the wrapper and footer. No bar rules.
 
 ```css
 .public {
@@ -1947,41 +1986,13 @@ Create `resources/css/2-layout/_shell-public.css`:
     background-color: var(--c-bg);
 }
 
-.public__bar {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: var(--space-5);
-    padding: var(--space-4) var(--space-6);
-    border-block-end: var(--border-width) solid var(--c-border);
-    background-color: var(--c-surface);
-}
-
-.public__brand {
-    font-family: var(--font-display);
-    font-size: var(--step-1);
-    font-weight: 700;
-    letter-spacing: 0.22em;
-    text-transform: uppercase;
-    color: var(--c-text);
-    text-decoration: none;
-    white-space: nowrap;
-}
-
-.public__links {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: var(--space-4);
-}
-
 .public__main {
     flex: 1 1 auto;
     padding-block: var(--space-8);
 }
 
 .public__footer {
-    padding: var(--space-6);
+    padding: var(--space-6) var(--space-4);
     border-block-start: var(--border-width) solid var(--c-border);
     color: var(--c-text-muted);
     font-size: var(--step--1);
@@ -2007,69 +2018,35 @@ Create `resources/css/2-layout/_shell-public.css`:
 }
 
 .guest__brand {
-    display: block;
+    display: flex;
+    justify-content: center;
     margin-block-end: var(--space-6);
-    font-family: var(--font-display);
-    font-size: var(--step-1);
-    font-weight: 700;
-    letter-spacing: 0.22em;
-    text-transform: uppercase;
-    text-align: center;
-    color: var(--c-text);
-    text-decoration: none;
-}
-
-@media (max-width: 48rem) {
-    .public__bar {
-        flex-direction: column;
-        align-items: flex-start;
-        padding: var(--space-4);
-    }
 }
 ```
 
-- [ ] **Step 2: Rewrite `public.blade.php`**
+- [ ] **Step 2: `public.blade.php`**
 
-Keep the existing nav links — Home, Events, Rules (Regulations, Conduct, Texas Hold'em, Points structure), About, Contact — plus Log in and Join. Structure:
+Keep the `<head>` structure the authenticated layout uses — `<x-theme-script />`, the font
+preload, `@vite`. Body:
 
 ```blade
-<!DOCTYPE html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
-    <head>
-        <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1">
-        <meta name="csrf-token" content="{{ csrf_token() }}">
-        <title>{{ config('app.name', 'First to Act Poker') }}</title>
-        <x-theme-script />
-        @vite(['resources/css/app.css', 'resources/js/app.ts'])
-        <link rel="icon" href="{{ asset('favicon.png') }}" type="image/png"/>
-    </head>
     <body>
         <div class="public">
-            <header class="public__bar">
-                <a class="public__brand" href="{{ route('home') }}">{{ __('First To Act') }}</a>
+            <x-topbar>
+                <x-slot name="links">
+                    … Home, Events, the Rules dropdown, About, Contact …
+                </x-slot>
 
-                <nav class="public__links" aria-label="{{ __('Main') }}">
-                    <a class="nav-link {{ request()->routeIs('events') ? 'nav-link--current' : '' }}" href="{{ route('events') }}">{{ __('Events') }}</a>
-                    <a class="nav-link {{ request()->routeIs('rules.tournament') ? 'nav-link--current' : '' }}" href="{{ route('rules.tournament') }}">{{ __('Regulations') }}</a>
-                    <a class="nav-link {{ request()->routeIs('rules.betting') ? 'nav-link--current' : '' }}" href="{{ route('rules.betting') }}">{{ __('Conduct') }}</a>
-                    <a class="nav-link {{ request()->routeIs('rules.texas-holdem') ? 'nav-link--current' : '' }}" href="{{ route('rules.texas-holdem') }}">{{ __('How to play') }}</a>
-                    <a class="nav-link {{ request()->routeIs('rules.points-structure') ? 'nav-link--current' : '' }}" href="{{ route('rules.points-structure') }}">{{ __('Points') }}</a>
-                    <a class="nav-link {{ request()->routeIs('about.index') ? 'nav-link--current' : '' }}" href="{{ route('about.index') }}">{{ __('About') }}</a>
-                    <a class="nav-link {{ request()->routeIs('contact') ? 'nav-link--current' : '' }}" href="{{ route('contact') }}">{{ __('Contact') }}</a>
-                </nav>
-
-                <div class="l-cluster">
-                    <button type="button" class="nav-link" data-theme-toggle aria-pressed="false">{{ __('Switch theme') }}</button>
-
+                <x-slot name="actions">
+                    <x-theme-toggle />
                     @auth
                         <x-btn variant="ghost" size="sm" :href="route('dashboard')">{{ __('Dashboard') }}</x-btn>
                     @else
                         <a class="nav-link" href="{{ route('login') }}">{{ __('Log in') }}</a>
                         <x-btn variant="primary" size="sm" :href="route('register')">{{ __('Join') }}</x-btn>
                     @endauth
-                </div>
-            </header>
+                </x-slot>
+            </x-topbar>
 
             <main class="public__main">
                 <div class="l-container l-stack">{{ $slot }}</div>
@@ -2080,25 +2057,29 @@ Keep the existing nav links — Home, Events, Rules (Regulations, Conduct, Texas
             </footer>
         </div>
     </body>
-</html>
 ```
 
-This removes the `x-data="{ mobileMenuOpen: false }"` block and the `style="display: none;"` at line 77 — the link row now wraps instead of collapsing into a toggle.
+Apply `.nav-link--current` with `aria-current="page"` using `request()->routeIs()`, as the
+authenticated bar does.
 
-- [ ] **Step 3: Rewrite `guest.blade.php`**
+- [ ] **Step 3: `guest.blade.php`**
 
-Same `<head>`. Body:
+Same `<head>`, including `<x-theme-script />` — this is the gap being closed. Body:
 
 ```blade
     <body>
         <div class="guest">
             <div class="guest__panel l-stack">
-                <a class="guest__brand" href="{{ route('home') }}">{{ __('First To Act') }}</a>
+                <div class="guest__brand"><x-brand /></div>
                 {{ $slot }}
             </div>
         </div>
     </body>
 ```
+
+`<x-brand>` links to the public site, which is the right destination from a login screen. This
+makes `application-logo.blade.php` unused — say so in your report; Task 12 deletes it rather
+than restyling it.
 
 - [ ] **Step 4: Import and verify**
 
@@ -2106,18 +2087,19 @@ Same `<head>`. Body:
 @import "./2-layout/_shell-public.css";
 ```
 
-Run: `npm run build` — expected: succeeds.
-Run: `php artisan test` — expected: all green.
-Run: `grep -rn 'style="' resources/views/layouts/` — expected: no output.
-
-In the browser: load `/`, `/events`, `/about`, `/contact`, `/login`. Check both themes and a 375px-wide viewport. Confirm the page never scrolls horizontally.
+- `npm run build` succeeds and the rules reach the bundle.
+- `grep -rn 'style="' resources/views/layouts/` returns nothing.
+- `grep -rn 'x-nav-link\|x-responsive-nav-link' resources/views/` returns nothing.
+- Every public page renders: `/`, `/events`, `/about`, `/contact`, all four `/rules/*`.
+- `/login` and `/register` render, and `guest.blade.php` carries `<x-theme-script />`.
+- One bar only: `grep -c 'x-topbar' resources/views/layouts/*.blade.php` shows both layouts
+  consuming it and no bar markup of their own.
+- `php artisan test` — 94 passed, 0 failed.
 
 - [ ] **Step 5: Checkpoint — hand off for commit**
 
-Stage: `resources/css/2-layout/_shell-public.css resources/views/layouts/ resources/css/app.css`
-Suggested message: `feat: rebuild the public and guest shells on the design system`
-
----
+Stage: `resources/css/ resources/views/`
+Suggested message: `feat: rebuild the public and guest shells on the shared top bar`
 
 ## Task 10: Convert the season page — the direction validation
 
@@ -2133,6 +2115,12 @@ Its controller (`PokerSeasonController::show`) provides `$season`, `$totalTourna
 **Interfaces:**
 - Consumes: every component built in Tasks 5–8
 - Produces: the reference pattern all later page conversions copy
+
+**Every `<x-meter>` MUST pass a `label`.** `role="meter"` requires an accessible name — ARIA
+mandates it and axe-core enforces it as `aria-meter-name`. The component has a never-empty
+fallback ("Progress: 860 of 1,000"), but that is a safety net, not a substitute: it drops the
+player's name, and "Progress" is the wrong word for a points total. Both call sites below pass
+a real label; any meter added later must too.
 
 - [ ] **Step 1: Rewrite the view**
 
@@ -2181,7 +2169,8 @@ Replace `resources/views/poker/seasons/show.blade.php`. Structure:
                                 <td><x-rank :place="$index + 1" /></td>
                                 <td>{{ $row['user']?->display_name ?? $row['player_name'] }}</td>
                                 <td class="season-show__meter-cell">
-                                    <x-meter :value="$row['points']" :max="$leaderPoints" />
+                                    <x-meter :value="$row['points']" :max="$leaderPoints"
+                                             :label="__('Points for :name', ['name' => $row['user']?->display_name ?? $row['player_name']])" />
                                 </td>
                                 <td class="table__num">{{ $row['played'] }}</td>
                                 <td class="table__num">{{ $row['wins'] }}</td>
@@ -2199,7 +2188,8 @@ Replace `resources/views/poker/seasons/show.blade.php`. Structure:
                                 <span>{{ $venue['name'] }}</span>
                                 <span class="u-mono u-muted">{{ $venue['count'] }}</span>
                             </div>
-                            <x-meter :value="$venue['count']" :max="$venueStats->max('count')" :show-value="false" />
+                            <x-meter :value="$venue['count']" :max="$venueStats->max('count')" :show-value="false"
+                                :label="__('Tournaments at :venue', ['venue' => $venue['name']])" />
                         </div>
                     @empty
                         <x-empty-state :title="__('No venues yet')">

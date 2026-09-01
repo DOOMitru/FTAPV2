@@ -4,107 +4,33 @@
 
 ## Where things stand
 
-Phases 0, 1, **2**, **3** and **4** are complete and committed. Phase 1's exit criteria were
-measured, not assumed — see `docs/PHASE-1-EXIT-AUDIT.md`. Phase 2 converted the eight public
-pages; Phase 3 the six auth views and four profile views; Phase 4 the dashboard and the two
-showcase detail pages.
+**The design system project is complete.** All six phases are done and committed; Tailwind
+is removed. See `docs/PHASE-5-EXIT-AUDIT.md` for the measured result and
+`docs/PHASE-1-EXIT-AUDIT.md` for the foundation's.
 
 Suite: **108 passed, 0 failed.** Run `php artisan test`.
 
-**25 of 86 views still contain Tailwind — and that number is a test, not a note.**
-`tests/Feature/ConvertedViewsTest.php` names every view still permitted to contain it and
-fails in both directions: a converted view picking Tailwind back up, AND an allowlist entry
-that has since been converted and should be removed. The second assertion is what stops the
-list rotting. **Phase 5 empties it** — and when the array is empty, deleting Tailwind is a
-test going green rather than a judgement call.
+**86 of 86 views render on the design system.** `ConvertedViewsTest`'s allowlist is empty, so
+its two assertions now cover the whole codebase and Tailwind cannot return unnoticed.
 
-Everything left is admin CRUD: seven `index` pages, twelve `create`/`edit` forms, three
-`users/*` views, and `components/tournament-badge` (which has zero callers — see below).
-The heaviest are `users/index` (126), `poker/seasons/index` (124),
-`poker/tournaments/index` (117), `poker/results/index` (113).
-
-### Read these first, in order
-
-1. `docs/superpowers/specs/2026-08-30-design-system-design.md` — the approved design:
-   "Under the Gun" direction, the full token palette, typography, CSS architecture,
-   component inventory, both shells, the chip-stack meter signature element, and the
-   6-phase breakdown.
-2. `docs/superpowers/plans/2026-08-30-phase-1-foundation.md` — 12 tasks, ready to execute.
-3. `docs/PHASE-0-HANDOFF.md` — what Phase 0 changed and why.
-
-### The next action
-
-Plan and execute **Phase 5** — the admin CRUD, and then the removal of Tailwind itself.
-
-The 24 remaining views are unusually uniform: seven index pages that are all
-`<x-page-header>` + `<x-table>` + pagination, and twelve create/edit forms that are all
-`<x-field>` + `<x-btn>`. **Expect the phase to be repetitive rather than difficult** — the
-components, the pagination view and the named-error-bag support all exist already.
-
-Two things Phase 5 owns that no earlier phase could:
-
-1. **Deleting the legacy Breeze components.** `input-label`, `text-input`, `input-error` and
-   `primary-button` each have ~20 remaining call sites, all in these admin forms. They stay
-   alive until the last one converts. `secondary-button`, `danger-button` and
-   `auth-session-status` are down to 1–2 callers.
-2. **Removing Tailwind.** `app.css` still ends with `@tailwind base/components/utilities`,
-   loading *after* the design system so unconverted views keep rendering. When
-   `ConvertedViewsTest`'s array is empty, delete those three lines, drop the dependency, and
-   confirm the suite stays green.
-
-**Before deleting Tailwind, grep the JS and TS for class names.** Phase 1 Task 12 found the
-modal adding Tailwind's `.overflow-y-hidden` to `<body>` from inside a JS string — nothing
-in a Blade class attribute named it, and it would have broken silently.
-
-`components/tournament-badge` is on the allowlist but has **zero callers**; it is a
-delete-or-redesign decision for the owner, not a conversion.
-
-Guards the phase inherits:
-
-| Test | What it catches |
-|---|---|
-| `ConvertedViewsTest` | the conversion ledger, in both directions |
-| `ModifierClassGuardTest` | a layout modifier used without its base class |
-| `PublicRegisterTest` | gradient/elevation tokens outside the public register |
-| `InlineStyleGuardTest` | inline CSS, attribute and `<style>` block |
-| `ContentPreservationTest` | rules pages, events, dashboard, season, tournament and venue shows |
-
-The one lesson worth carrying: **computed-style checks pass while a page looks wrong.**
-Screenshot each page before calling it converted.
-
-## Outstanding — needs the owner, not code
-
-1. **The delete-account modal's focus trap has never run in a browser.** Phase 1 fixed it
-   (`x-init` + `$watch` never fired on a modal rendered already-open); `ProfileTest` covers
-   the server-side reopen, but headless Chromium cannot drive Alpine's `x-show`. On
-   `/profile`: Delete Account → wrong password → submit, then check the modal reopens with
-   the error, focus lands inside it, Escape closes it, and the page behind does not scroll.
-
-2. **Email verification is half-wired, and predates this project.**
-   `routes/web.php:113` gates the dashboard on `->middleware(['auth', 'verified'])` and
-   `RegisteredUserController:46` fires `Registered`, but **`User` does not implement
-   `MustVerifyEmail`** — the import is commented out at `app/Models/User.php:5`. So Laravel
-   never sends the verification mail, and the profile page's "your email is unverified"
-   block is unreachable. `EmailVerificationTest` passes because it calls
-   `markEmailAsVerified()` and signed URLs directly, never exercising the send.
-   Uncommenting line 5 is the likely fix and would switch both back on — but it changes
-   behaviour for existing users, so it is the owner's call, not a styling change.
-
-3. **The accent gradient's hue drift**, deferred to after Phase 5 — see the section at the
-   end of this file.
+Four things remain open, all recorded at the end of `docs/PHASE-5-EXIT-AUDIT.md`: the
+delete-account modal's focus trap (needs hand verification in a browser), email verification
+being half-wired, the accent gradient's hue drift, and `tournament-badge` having no callers.
 
 ## Standing constraints
 
 - **Never run git commands.** The repository owner runs every git operation manually.
   Convert every commit step into a hand-off. Two subagents breached this in Phase 0 by
   running read-only `git show`/`git diff`; dispatch prompts must name those explicitly.
-- **No inline CSS in Phase 1.** The only permitted `style` attribute is one setting only
-  custom properties (`style="--meter-fill: 86%"`). Enforced by a test the plan adds.
-- The app has no browser-based tests. Alpine dropdowns, the modal focus trap, the theme
-  toggle and responsive breakpoints are verified **by hand at the Phase 1 review gate** —
-  the owner declined Laravel Dusk. Phase 1 rewrites all four, so that manual pass matters.
+- **No inline CSS, anywhere.** The only permitted `style` attribute is one setting only
+  custom properties (`style="--meter-fill: 86%"`). Enforced by `InlineStyleGuardTest`,
+  which also rejects `<style>` blocks. There is likewise no inline JavaScript left.
+- **The app has no browser-based tests** — the owner declined Laravel Dusk. Alpine
+  dropdowns, the modal focus trap, the theme toggle and responsive breakpoints are verified
+  by hand. Headless Chromium was used throughout for screenshots and computed-style
+  measurement, but it cannot drive Alpine's `x-show`.
 
-## The safety net Phase 1 relies on
+## The safety net the whole conversion ran on
 
 | Test | What it guards |
 |---|---|
@@ -115,9 +41,13 @@ Screenshot each page before calling it converted.
 The Blade-artifact detector was proven to fire by injecting a literal `@if` into a view
 and confirming the sweeps failed. It is not an assumption.
 
-## Deferred minor findings — Phase 1 should decide on these
+Five more guards were added as the conversion went on; all eight are listed in
+`docs/PHASE-5-EXIT-AUDIT.md`.
 
-Triaged as LEAVE during Phase 0's final review, but several land in files Phase 1 rewrites:
+## Deferred minor findings from Phase 0 — never actioned
+
+Triaged as LEAVE during Phase 0's final review and still open. None blocks anything; they
+are recorded so they are not rediscovered as if new:
 
 - Task 1: minor (deferred): both tests assert only HTTP 200; a regression that broke
 - Task 1: minor (deferred): inline \App\Models\... FQCNs in the route closure vs `use`
@@ -164,7 +94,7 @@ review loop is for:
 4. The README claimed late self-registrations are flagged as late entries. They are refused;
    only admin-entered registrations get the flag.
 
-## Known bug — FIXED in Phase 1 Task 12
+## Known bug — fixed in Phase 1 Task 12, **still unverified in a browser**
 
 **The delete-account modal's focus trap and scroll lock never engaged when it opened on
 load.** Fixed on 2026-08-31 by replacing `x-init="$watch('show', ...)"` with `x-effect`,
@@ -189,24 +119,20 @@ in addition to watching for changes — but it deserves its own change and its o
 than being smuggled into an unrelated task.
 
 `tests/Feature/ProfileTest.php` covers the server-rendered `show: true`, so the reopen
-behaviour itself is guarded; only the focus/scroll side effects are missing.
+behaviour itself is guarded; only the focus/scroll side effects are missing. **They have
+never been exercised by a human.** This is open item 1 in `docs/PHASE-5-EXIT-AUDIT.md`.
 
-## Open questions for the owner
+## Open question for the owner
 
-1. **Commit the three uncommitted test files?** `RouteSmokeTest.php` (modified),
-   `EmptyStateSmokeTest.php` and `ContentPreservationTest.php` (new).
-2. **Should the 10 new hardening tests get a review pass?** They pass and the Blade detector
-   is proven, but they have not had the per-task scrutiny every Phase 0 task received, and
-   Phase 1 leans on them.
-3. **`.superpowers/sdd/` may be deleted.** It holds the 539-line decision ledger and 17
+**`.superpowers/sdd/` may be deleted.** It holds the 539-line decision ledger and 17
    agent reports, all gitignored. Everything with forward value has been copied into this
-   file. Delete it whenever convenient.
+file. Delete it whenever convenient.
 
-## Deferred to after Phase 5 — the accent gradient's hue drift
+## The accent gradient's hue drift — now unblocked
 
-**Decision (owner, 2026-08-31): do not change the accent until Phase 5 is done.**
-Changing it now would leave 14 unconverted admin views on the old colour while the
-public site moved, so the app would be visibly two-toned until the conversion finishes.
+The owner deferred this until Phase 5 was done, because changing it mid-conversion would
+have left unconverted admin views on the old colour and made the app visibly two-toned.
+**Phase 5 is done, so this is now a single-file change plus a rebuild whenever wanted.**
 
 The facts, so this does not have to be re-derived:
 
@@ -235,5 +161,3 @@ Two ways to resolve, both costed:
 No accent hex is hardcoded anywhere else in `resources/`.** The work is not the
 substitution, it is re-deriving the contrast family -- three separate AA failures were
 found around the accent during Phases 1-2, which is why there are six values and not one.
-
-After Phase 5 this is a single-file change plus a rebuild.

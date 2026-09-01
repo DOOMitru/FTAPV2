@@ -1,4 +1,4 @@
-# First To Act Poker
+# First to Act Poker
 
 League management for a recreational poker league: seasons, venues, tournaments,
 registrations, results and standings.
