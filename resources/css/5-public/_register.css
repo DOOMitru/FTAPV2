@@ -1010,7 +1010,10 @@
     align-items: center;
     justify-content: center;
     gap: var(--space-1);
-    padding: var(--space-6) var(--space-4);
+    /* Uniform. It was --space-6 block / --space-4 inline, so the gap above the
+       logo plate was twice the gap beside it and the plate sat visibly low in
+       its card. */
+    padding: var(--space-4);
     text-align: center;
 }
 
@@ -1038,14 +1041,21 @@
     height: 3.5rem;
     object-fit: contain;
     background-color: #FFFFFF;
-    border-radius: var(--radius-sm);
+    /* --radius-lg, matching the card it sits in rather than the 3px it used to
+       carry: at that size the plate read as a different kind of object stuck
+       onto the card instead of part of it. */
+    border-radius: var(--radius-lg);
     padding: var(--space-2);
 }
 
+/* The sponsor's name, not a caption. These businesses pay to be named, so the
+   name is set to be read rather than to sit quietly under the artwork. */
 .p-sponsor__name {
-    margin-block-start: var(--space-2);
-    font-size: var(--step--1);
-    font-weight: 600;
+    margin-block-start: var(--space-3);
+    font-size: var(--step-0);
+    font-weight: 700;
+    letter-spacing: 0.01em;
+    color: var(--c-text);
 }
 
 /* Premium sponsors take two columns wherever two exist, and a taller logo.
@@ -1063,7 +1073,7 @@
     }
 
     .p-sponsor--premium .p-sponsor__name {
-        font-size: var(--step-0);
+        font-size: var(--step-1);
     }
 }
 

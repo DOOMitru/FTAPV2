@@ -188,7 +188,12 @@
                       :eyebrow="__('Our Sponsors')"
                       :title="__('Proudly Supported By')"
                       :highlight="__('Supported By')">
-                {{ __('These businesses pay for the finale prize pool. That is what keeps the games free.') }}
+                {{-- Warm on purpose, and the one place on this site where that
+                     is right. Overclaiming to players costs credibility;
+                     thanking the businesses who fund the prize pool is simply
+                     owed, and every flourish here still maps to something
+                     true. --}}
+                {{ __('A heartfelt thank you to the local businesses standing behind this league. Their backing is what puts cards on the table every week, and we could not be prouder to have them in our corner. Please support the businesses that support us — tell them First to Act sent you.') }}
             </x-p-hero>
 
             <div class="p-sponsors">
