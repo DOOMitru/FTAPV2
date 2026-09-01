@@ -4,21 +4,21 @@
 
 ## Where things stand
 
-Phases 0, 1 and **2** are complete and committed. Phase 1's exit criteria were measured,
-not assumed — see `docs/PHASE-1-EXIT-AUDIT.md`. Phase 2 converted all eight public pages.
+Phases 0, 1, **2** and **3** are complete and committed. Phase 1's exit criteria were
+measured, not assumed — see `docs/PHASE-1-EXIT-AUDIT.md`. Phase 2 converted the eight public
+pages; Phase 3 the six auth views and four profile views.
 
 Suite: **107 passed, 0 failed.** Run `php artisan test`.
 
-**38 of 86 views still contain Tailwind — and that number is now a test, not a note.**
+**28 of 86 views still contain Tailwind — and that number is a test, not a note.**
 `tests/Feature/ConvertedViewsTest.php` names every view still permitted to contain it and
 fails in both directions: a converted view picking Tailwind back up, AND an allowlist entry
 that has since been converted and should be removed. The second assertion is what stops the
-list rotting. Phase 3 removes the auth and profile entries, Phase 4 the three showcase
-pages, Phase 5 the admin CRUD — and when the array is empty, deleting Tailwind is a test
-going green rather than a judgement call.
+list rotting. Phase 4 removes the three showcase pages, Phase 5 the admin CRUD — and when
+the array is empty, deleting Tailwind is a test going green rather than a judgement call.
 
 The heaviest remaining: `poker/tournaments/show` (553), `dashboard` (325),
-`poker/venues/show` (311), `auth/register` (179), `auth/login` (149).
+`poker/venues/show` (311), `users/index` (126), `poker/seasons/index` (124).
 
 ### Read these first, in order
 
@@ -31,38 +31,48 @@ The heaviest remaining: `poker/tournaments/show` (553), `dashboard` (325),
 
 ### The next action
 
-Plan and execute **Phase 3** (auth + profile, 10 views). Write
-`docs/superpowers/plans/2026-XX-XX-phase-3-auth.md` the way Phase 2's plan was written, and
-**pre-flight it** — the Phase 2 plan had three defects caught that way, one of which (the
-contact honeypot) would have silently disabled spam protection.
+Plan and execute **Phase 4** — dashboard plus the two showcase detail pages
+(`poker/tournaments/show`, `poker/venues/show`). Three views, but they are the three
+heaviest in the app: **1,189 utility instances between them**, more than Phase 3's ten
+views combined. Write the plan and **pre-flight it**; that has found a defect in every
+plan so far, including one in Phase 3's that only surfaced because I checked which layout
+each view actually used rather than trusting my own summary.
 
-Guards added during Phase 2 that Phase 3 inherits:
+Guards the later phases inherit:
 
 | Test | What it catches |
 |---|---|
 | `ConvertedViewsTest` | the conversion ledger, in both directions |
-| `ModifierClassGuardTest` | `l-grid--wide` without `l-grid` — a modifier alone silently does nothing |
-| `PublicRegisterTest` | gradient/elevation tokens leaking into the dashboard |
-| `InlineStyleGuardTest` | inline CSS, both the attribute and `<style>` blocks |
-| `ContentPreservationTest` | now covers the rules pages, events, and the public empty states |
+| `ModifierClassGuardTest` | a layout modifier used without its base class |
+| `PublicRegisterTest` | gradient/elevation tokens outside the public register |
+| `InlineStyleGuardTest` | inline CSS, attribute and `<style>` block |
+| `ContentPreservationTest` | rules pages, events, dashboard, season and tournament shows |
 
 The one lesson worth carrying: **computed-style checks pass while a page looks wrong.**
 Every bug the owner found in Phase 2 — invisible gradients, a double-escaped apostrophe, a
-300px hole from a specificity collision, an unreadable panel — passed every assertion I ran
-and was obvious in a screenshot. Screenshot each page before calling it converted. Phase 1 built the system; Phases 2–5 apply it to the 50 views
-that still carry Tailwind. Tailwind itself is removed at the end of Phase 5 — until then
-it loads *after* the design system in `app.css` so unconverted views keep rendering.
+300px hole from a specificity collision, an unreadable panel — passed every assertion and
+was obvious in a screenshot. Screenshot each page before calling it converted.
 
-Two things must happen during that removal, both already known:
-- Publish the pagination view and add `_pagination.css` (deferred out of Phase 1).
-- Nothing in a Blade `class` attribute may be the only reference to a Tailwind class.
-  Task 12 found one such case — the modal's scroll lock named `.overflow-y-hidden` from
-  inside a JS string — and it would have failed silently. Grep the JS and TS for class
-  names before deleting Tailwind.
+## Outstanding — needs the owner, not code
 
-The plan is written to be run task-by-task with a fresh implementer per task and a review
-after each — that process caught four defects in the Phase 0 plan and three more in the
-Phase 1 plan, so it earned its cost.
+1. **The delete-account modal's focus trap has never run in a browser.** Phase 1 fixed it
+   (`x-init` + `$watch` never fired on a modal rendered already-open); `ProfileTest` covers
+   the server-side reopen, but headless Chromium cannot drive Alpine's `x-show`. On
+   `/profile`: Delete Account → wrong password → submit, then check the modal reopens with
+   the error, focus lands inside it, Escape closes it, and the page behind does not scroll.
+
+2. **Email verification is half-wired, and predates this project.**
+   `routes/web.php:113` gates the dashboard on `->middleware(['auth', 'verified'])` and
+   `RegisteredUserController:46` fires `Registered`, but **`User` does not implement
+   `MustVerifyEmail`** — the import is commented out at `app/Models/User.php:5`. So Laravel
+   never sends the verification mail, and the profile page's "your email is unverified"
+   block is unreachable. `EmailVerificationTest` passes because it calls
+   `markEmailAsVerified()` and signed URLs directly, never exercising the send.
+   Uncommenting line 5 is the likely fix and would switch both back on — but it changes
+   behaviour for existing users, so it is the owner's call, not a styling change.
+
+3. **The accent gradient's hue drift**, deferred to after Phase 5 — see the section at the
+   end of this file.
 
 ## Standing constraints
 
