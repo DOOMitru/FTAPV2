@@ -177,7 +177,7 @@
     color: var(--c-text-muted);
 }
 
-.podium__place--1 .podium__step { height: 3rem; background-color: var(--c-primary); color: var(--c-primary-ink); }
+.podium__place--1 .podium__step { height: 3rem; background-color: var(--c-primary-fill); color: var(--c-primary-ink); }
 .podium__place--2 .podium__step { height: 2rem; }
 .podium__place--3 .podium__step { height: 1.25rem; }
 

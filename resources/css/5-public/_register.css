@@ -9,7 +9,7 @@
  * --shadow-raised / --shadow-float are referenced from 5-public/ and the public
  * shell alone, so the licence cannot quietly leak into the dashboard. Two
  * registers, one product: every gradient stop derives from --c-primary or
- * --c-accent, so the public pages are louder, not different.
+ * --c-primary, so the public pages are louder, not different.
  */
 
 /* The primary panel. Hero blocks, CTA bands, the "highlight" sections. */
@@ -145,8 +145,11 @@
     width: 2.5rem;
     height: 2.5rem;
     border-radius: var(--radius);
-    background-image: var(--gradient-primary);
-    color: var(--c-primary-ink);
+    /* --gradient-panel, not --gradient-primary: the primary ramp is clipped onto
+       the hero title and has to stay bright, and its bright stop carries a
+       white icon at only 2.54:1. The panel ramp carries it at 7.61:1. */
+    background-image: var(--gradient-panel);
+    color: var(--gradient-panel-ink);
 }
 
 .p-icon-tile svg {

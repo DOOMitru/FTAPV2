@@ -19,13 +19,11 @@
     color: var(--c-primary);
 }
 
-/* Coral as text on the page ground, not white on coral. --c-accent-text is
-   the themed, AA-safe text variant (measured 4.94:1-6.37:1 across all six
-   light/dark surface backgrounds); --c-accent-strong only clears 4.5:1 on
-   white and fails on every other surface, so it stays reserved for white
-   text on a coral fill (see .btn--danger). The border only needs 3:1, so it
-   keeps the shared, non-themed --c-accent. */
+/* Formerly .badge--accent, when the accent was a second brand hue distinct
+   from the blue primary. Red IS the primary now, so this and .badge--primary
+   would be the same badge; the name stays only because points-structure calls
+   it, and it resolves to the same treatment. */
 .badge--accent {
-    border-color: var(--c-accent);
-    color: var(--c-accent-text);
+    border-color: var(--c-primary);
+    color: var(--c-primary);
 }

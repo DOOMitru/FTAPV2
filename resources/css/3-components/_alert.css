@@ -25,5 +25,5 @@
 
 /* Coral as a border, not a text ground — no contrast problem here. */
 .alert--danger {
-    border-inline-start-color: var(--c-accent);
+    border-inline-start-color: var(--c-primary);
 }

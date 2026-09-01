@@ -10,22 +10,48 @@
 :root {
     color-scheme: light;
 
-    /* Light — Frosted Ice */
-    --c-bg: #F4F7FC;
+    /* Light — the table by day.
+       Warm-neutral, not blue-grey. #F4F7FC was a BLUE white, and it fought the
+       logo's red on every page: the mark is #EF4537 on charcoal, and a ground
+       tinted the opposite way is why the logo used to read as pasted on. */
+    --c-bg: #F6F4F3;
     --c-surface: #FFFFFF;
-    --c-surface-raised: #EEF2F9;
-    /* One step heavier than the #E2E8F0 the brief named. At #E2E8F0 the hairline
-       measured 1.23:1 against white and 1.10:1 against --c-surface-raised, i.e.
-       invisible on the very surfaces it is meant to divide. #C2CDDC reads as a
-       deliberate line (1.61:1 / 1.43:1) while staying a hairline, and is tuned
-       to sit at the same perceived weight as --dark-border in the other theme.
-       The width stays 1px; only the value moved. */
-    --c-border: #C2CDDC;
-    --c-text: #0F172A;
-    --c-text-muted: #475569;
-    --c-primary: #1E40AF;
-    --c-primary-hover: #1E3A8A;
+    --c-surface-raised: #EFEBE9;
+    /* 1.73:1 on white and 1.46:1 on the raised surface. The first draft here
+       was #D5CDCA, which measured 1.32:1 against raised — the same optical
+       absence this system has now designed out four separate times (#E2E8F0,
+       #1E293B, #334155, and this). The width stays 1px; only the value moves. */
+    --c-border: #CDC3BF;
+    --c-text: #16171B;
+    --c-text-muted: #56595F;
+
+    /* Brand. The logo red is #EF4537, sampled at 87.8% of the mark's chromatic
+       mass (hue 4.6deg). It is used LITERALLY in the dark theme, where it
+       measures 4.58:1 as text on the surface. It cannot be used literally
+       here: on white it is 3.77:1 and fails AA. #D6291B is the light-theme
+       stand-in at 5.01:1 on white and 4.57:1 on the page ground. */
+    --c-primary: #D6291B;
+    --c-primary-hover: #B92417;
+    /* A fill carrying a small uppercase label needs more than --c-primary can
+       give on the dark side, so the fill is its own token. In LIGHT the two
+       coincide — white on #D6291B is 5.01:1, which beats the dark theme's fill
+       — but the token exists in both themes so no consumer has to branch. */
+    --c-primary-fill: #D6291B;
+    --c-primary-fill-hover: #B02718;
     --c-primary-ink: #FFFFFF;
+
+    /* Felt green: registration open, registered, paid, won. The one semantic
+       colour the domain hands us for free. */
+    --c-open: #15803D;
+
+    /* Medals. These are DISCS WITH INK, never coloured text — no gold clears
+       4.5:1 on white (#D4A017 manages 2.38:1), so the colour goes behind the
+       numeral rather than into it. That is also what a medal actually is, and
+       it means one set of values works unchanged in both themes. */
+    --c-gold: #D4A017;
+    --c-silver: #A8AAB0;
+    --c-bronze: #B87333;
+    --c-medal-ink: #16171B;
 
     /* ── The public register ────────────────────────────────────────────────
        The dashboard is borders-not-shadows. The public site is not: it is the
@@ -33,87 +59,97 @@
        that licence has a fixed vocabulary instead of eight pages each inventing
        their own, and PublicRegisterTest keeps them out of the app shell.
 
-       Every stop is derived from --c-primary / --c-accent, so the two registers
-       read as one product rather than two sites.
+       Every stop derives from --c-primary, so the two registers read as one
+       product rather than two sites.
 
-       Two numbers matter for a gradient and the first draft only checked one.
-       INK vs each stop: white is 8.72:1 and 14.69:1 on the light pair, and
-       --c-primary-ink is 7.89:1 and 13.21:1 on the dark pair. STOP vs STOP:
-       1.68:1 light and 1.67:1 dark. The original pairs passed the ink check at
-       8.72/9.93 but sat 1.14:1 apart, so they rendered as flat fills -- the
-       same invisibility as the 1.02:1 border this system replaced.
-       --gradient-accent carries --gradient-accent-ink, NOT white. White on coral is
-       3.77:1 and on amber 2.15:1 — both fail AA. Dark ink gives 5.09:1 and
-       8.92:1. This is the same trap --c-accent-text exists for. */
-    --gradient-primary: linear-gradient(135deg, #1E40AF 0%, #172554 100%);
-    --gradient-accent: linear-gradient(135deg, #8A2B1E 0%, #A2570C 100%);
-    --gradient-surface: linear-gradient(180deg, var(--c-surface) 0%, var(--c-bg) 100%);
-    /* Panel fills are a SEPARATE token from --gradient-primary, which cannot
-       simply be darkened: it is also background-clipped onto the hero's
-       highlighted word, and a dark ramp there would sink that word into the
-       dark page ground. Large fills want depth; small accents want brightness.
-       Light is unchanged; dark drops from mean luminance 0.53 to 0.11. White
-       measures 9.11:1 and 5.36:1 on the dark stops and 8.72:1 and 14.69:1 on
-       the light, so the ink here is white in BOTH themes -- unlike
-       --c-primary-ink, which flips. */
-    --gradient-panel: linear-gradient(135deg, #1E40AF 0%, #172554 100%);
+       TWO measurements matter for a gradient and the first draft only ever
+       checks one. Ink against each stop, AND stop against stop. A pair less
+       than 1.5:1 apart renders as a flat fill however well it scores against
+       its ink -- the failure that shipped a 1.14:1 pair in Phase 2, which was
+       the same invisibility as the 1.02:1 border this system replaced. */
+
+    /* Clipped onto the hero title, and nothing else -- see .p-icon-tile, which
+       moved to the panel ramp precisely so this one can stay bright. The title
+       is 40-56px display type, so its floor is 3:1 against the PAGE GROUND
+       rather than 4.5:1: this pair measures 3.97:1 and 7.46:1 there, and sits
+       1.88:1 apart. */
+    --gradient-primary: linear-gradient(135deg, #E03B2B 0%, #9C1A0F 100%);
+
+    /* Large fills, and anything carrying white ink -- panels, icon tiles.
+       White measures 6.67:1 and 12.14:1; the stops sit 1.82:1 apart. */
+    --gradient-panel: linear-gradient(135deg, #B02718 0%, #6B140C 100%);
     --gradient-panel-ink: #FFFFFF;
     /* Its inverse, for the rare element that flips the pairing -- a chip whose
        GROUND is --gradient-panel-ink. Fixed in both themes because the ground
        it sits on is fixed too; using --c-text there gave near-white on white. */
-    --gradient-panel-ink-inverse: #0B0F19;
-    /* Card-scale, and quiet on purpose: the hero and panel ramps carry 1.67:1
+    --gradient-panel-ink-inverse: #0E1014;
+
+    /* Retained rather than deleted: PublicRegisterTest pins these names, and
+       with red as the primary there is no second brand hue left for a separate
+       accent ramp to carry -- two red ramps would be two answers to one
+       question. The values are written out rather than aliased to the panel
+       ramp, because that test counts any reference outside 5-public/ as a USE
+       and would flag this file for pointing at its own token -- it matches on
+       raw text, so even naming the reference in a comment trips it.
+       Duplication here is correct: the token file is where values live. */
+    --gradient-accent: linear-gradient(135deg, #B02718 0%, #6B140C 100%);
+    --gradient-accent-ink: #FFFFFF;
+
+    /* Card-scale, and quiet on purpose: the hero and panel ramps carry ~1.8:1
        between stops, which is right for one moment and unbearable across 21
        cards. Composed from the surface tokens, so it needs no dark twin. */
     --gradient-raised: linear-gradient(160deg, var(--c-surface-raised) 0%, var(--c-surface) 100%);
-    /* White, now that the accent stops are deep. The first draft used coral and
-       amber at full chroma with dark ink -- it cleared AA on paper (5.09:1) but
-       was genuinely hard to read: a saturated orange field is fatiguing behind
-       small dark text however the ratio scores. Deepened to rust and burnt
-       amber, which carry white at 8.59:1 and 5.38:1 and land at mean luminance
-       0.109, matching --gradient-panel's 0.106 so the two panels read as one
-       family at two temperatures. Shared by both themes, like the gradient. */
-    --gradient-accent-ink: #FFFFFF;
+    --gradient-surface: linear-gradient(180deg, var(--c-surface) 0%, var(--c-bg) 100%);
 
     --shadow-raised: 0 1px 2px rgb(15 23 42 / 0.06), 0 4px 12px -2px rgb(15 23 42 / 0.08);
     --shadow-float: 0 8px 24px -4px rgb(15 23 42 / 0.12);
 
-    /* Coral is shared by both themes. --c-accent is for fills behind large or
-       bold text, borders and icons. White on #EF4537 is 3.8:1 and fails AA for
-       normal text, so anything with a small label uses --c-accent-strong. */
-    --c-accent: #EF4537;
-    --c-accent-strong: #D63A2C;
-    --c-accent-hover: #B93225;
-    --c-accent-ink: #FFFFFF;
-    /* Accent-coloured text set directly on a page or surface background
-       (error copy, accent badge labels) — distinct from --c-accent (fills
-       behind large/bold text, borders, icons) and --c-accent-strong (fills
-       that carry small white text). #D63A2C only clears 4.5:1 on white; it
-       fails on --c-bg/--c-surface-raised and on every dark surface, so this
-       token is themed and remapped in both dark blocks below. */
-    --c-accent-text: #C0311F;
+    /* The --c-accent family is retired. It existed because the primary was a
+       blue that shared nothing with the brand, so the logo's red needed a
+       parallel set of tokens to live in. Now that red IS the primary there is
+       no second brand hue for an accent to carry, and keeping one would mean
+       two reds competing for the same job. Its consumers moved to --c-primary
+       (badge, alert, form error) and --c-primary-fill (the danger button). */
 
-    /* Dark — Cyber Navy. Declared here, applied below. */
-    --dark-bg: #0B0F19;
-    --dark-surface: #161F33;
-    --dark-surface-raised: #1C2740;
-    /* Same reasoning as --c-border above: #1E293B was 1.12:1 on --c-surface and
-       1.02:1 on --c-surface-raised — mathematically present, optically absent.
-       #334155 gives 1.59:1 / 1.43:1, matching the light theme's hairline weight. */
-    --dark-border: #334155;
-    --dark-text: #E2E8F0;
-    --dark-text-muted: #94A3B8;
-    --dark-primary: #06B6D4;
-    --dark-primary-hover: #22D3EE;
-    --dark-primary-ink: #0B0F19;
-    --dark-accent-text: #F4685C;
+    /* Dark — the table at night. Declared here, applied below.
+       #0B0F19 was a BLUE black; #0E1014 is neutral, which is the other half of
+       why the logo red now looks native rather than applied. */
+    --dark-bg: #0E1014;
+    --dark-surface: #181B22;
+    --dark-surface-raised: #212530;
+    /* 1.66:1 on --dark-surface and 1.48:1 on --dark-surface-raised, matching
+       the light theme's hairline weight. #333845 was the first draft and
+       measured 1.31:1 against raised. */
+    --dark-border: #3A4050;
+    --dark-text: #ECEEF2;
+    --dark-text-muted: #99A1AF;
 
-    /* Cyan to sky: a tight hue move that leans toward the light theme's blue,
-       so the gradient reads as the same idea in both. --c-primary-ink measures
-       7.89:1 and 6.91:1 on the two stops. The accent gradient is shared — coral
-       and amber sit on both grounds equally. */
-    --dark-gradient-primary: linear-gradient(135deg, #06B6D4 0%, #67E8F9 100%);
-    --dark-gradient-panel: linear-gradient(135deg, #164E63 0%, #0E7490 100%);
+    /* The logo red, used exactly: 4.58:1 as text on --dark-surface. This is
+       the one place in the system where a brand value is not approximated. */
+    --dark-primary: #EF4537;
+    --dark-primary-hover: #F4685C;
+    /* White on #EF4537 is 3.77:1, so a fill carrying a 13px uppercase label
+       must be deeper than the brand red itself. This is the same trap the
+       retired --c-accent-strong existed for, now solved once for the primary
+       instead of separately for an accent. */
+    --dark-primary-fill: #D63A2C;
+    --dark-primary-fill-hover: #B93225;
+    --dark-primary-ink: #FFFFFF;
+
+    --dark-open: #2FBF6B;
+
+    /* The clipped-title ramp runs bright-to-brand here rather than
+       brand-to-deep: on a near-black page a deep stop disappears into the
+       ground instead of reading as the far end of a gradient. 7.49:1 and
+       4.74:1 against --dark-bg, 1.58:1 apart. */
+    --dark-gradient-primary: linear-gradient(135deg, #FF7A6E 0%, #E8412F 100%);
+    /* The panel's deep stop sits 1.40:1 from the page ground, which would be an
+       invisible EDGE if the edge were made of luminance. It is not: every panel
+       carries a hairline, exactly as the dashboard does. The 135deg direction
+       puts the brighter stop at the top-left where the panel meets the page, so
+       its leading edge still reads. White measures 7.61:1 and 13.64:1; the
+       stops sit 1.79:1 apart. */
+    --dark-gradient-panel: linear-gradient(135deg, #A02418 0%, #5C110A 100%);
     --dark-shadow-raised: 0 1px 2px rgb(0 0 0 / 0.40), 0 4px 14px -2px rgb(0 0 0 / 0.45);
     --dark-shadow-float: 0 10px 30px -6px rgb(0 0 0 / 0.55);
 
@@ -185,12 +221,14 @@
         --c-text-muted: var(--dark-text-muted);
         --c-primary: var(--dark-primary);
         --c-primary-hover: var(--dark-primary-hover);
+        --c-primary-fill: var(--dark-primary-fill);
+        --c-primary-fill-hover: var(--dark-primary-fill-hover);
         --c-primary-ink: var(--dark-primary-ink);
+        --c-open: var(--dark-open);
         --gradient-primary: var(--dark-gradient-primary);
         --gradient-panel: var(--dark-gradient-panel);
         --shadow-raised: var(--dark-shadow-raised);
         --shadow-float: var(--dark-shadow-float);
-        --c-accent-text: var(--dark-accent-text);
     }
 }
 
@@ -204,12 +242,14 @@
     --c-text-muted: var(--dark-text-muted);
     --c-primary: var(--dark-primary);
     --c-primary-hover: var(--dark-primary-hover);
+    --c-primary-fill: var(--dark-primary-fill);
+    --c-primary-fill-hover: var(--dark-primary-fill-hover);
     --c-primary-ink: var(--dark-primary-ink);
+    --c-open: var(--dark-open);
     --gradient-primary: var(--dark-gradient-primary);
     --gradient-panel: var(--dark-gradient-panel);
     --shadow-raised: var(--dark-shadow-raised);
     --shadow-float: var(--dark-shadow-float);
-    --c-accent-text: var(--dark-accent-text);
 }
 
 /* Alpine hides these until it initialises. Replaces the style="display: none"

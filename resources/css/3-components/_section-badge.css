@@ -27,7 +27,7 @@
     width: 1.5rem;
     height: 1.5rem;
     border-radius: var(--radius-pill);
-    background-color: var(--c-primary);
+    background-color: var(--c-primary-fill);
     color: var(--c-primary-ink);
 }
 

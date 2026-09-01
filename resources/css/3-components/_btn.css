@@ -34,13 +34,16 @@
     cursor: not-allowed;
 }
 
+/* --c-primary-fill, not --c-primary: a 13px uppercase label is normal-size
+   text, and white on the brand red #EF4537 is only 3.77:1. The fill token is
+   the deeper red that carries it at 4.67:1. */
 .btn--primary {
-    background-color: var(--c-primary);
+    background-color: var(--c-primary-fill);
     color: var(--c-primary-ink);
 }
 
 .btn--primary:hover {
-    background-color: var(--c-primary-hover);
+    background-color: var(--c-primary-fill-hover);
 }
 
 .btn--ghost {
@@ -52,15 +55,27 @@
     background-color: var(--c-surface-raised);
 }
 
-/* --c-accent-strong, not --c-accent: a 13px uppercase label is normal-size
-   text, and white on #EF4537 is only 3.8:1. */
+/* Quiet destructive.
+ *
+ * When red is the BRAND colour it can no longer also mean "danger" by itself:
+ * a red Delete beside a red Save is distinguishable only on inspection, and
+ * peripheral vision is exactly where a misclick on Delete happens.
+ *
+ * So a destructive button rests neutral -- visually a ghost -- and commits to
+ * red only on hover and focus, at the moment the pointer is actually on it.
+ * The rule this buys: A FILLED RED BUTTON ALWAYS MEANS GO, with no exceptions,
+ * and exactly one of them rests on any view. .link--danger follows the same
+ * rule for row-level Delete controls. */
 .btn--danger {
-    background-color: var(--c-accent-strong);
-    color: var(--c-accent-ink);
+    border-color: var(--c-border);
+    color: var(--c-text);
 }
 
-.btn--danger:hover {
-    background-color: var(--c-accent-hover);
+.btn--danger:hover,
+.btn--danger:focus-visible {
+    background-color: var(--c-primary-fill);
+    border-color: var(--c-primary-fill);
+    color: var(--c-primary-ink);
 }
 
 .btn--sm {

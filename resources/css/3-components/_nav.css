@@ -30,7 +30,7 @@
 }
 
 .nav-link--current {
-    background-color: var(--c-primary);
+    background-color: var(--c-primary-fill);
     color: var(--c-primary-ink);
 }
 
@@ -40,7 +40,7 @@
    light, i.e. invisible. Matching the hover's specificity and keeping the fill
    restores it to 10.6:1 / 10.4:1. */
 .nav-link--current:hover {
-    background-color: var(--c-primary-hover);
+    background-color: var(--c-primary-fill-hover);
     color: var(--c-primary-ink);
 }
 
