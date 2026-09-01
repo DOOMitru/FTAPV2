@@ -18,7 +18,17 @@ The site was 27x more blue than red while wearing a red logo; it now measures
 asserted: `TokenContrastTest` parses the real token file and fails the suite on
 any pair that drops below AA.
 
-Four items remain open, all listed at the end of `docs/RED-BLACK-EXIT-AUDIT.md`.
+Since then: email verification was switched on and enforced (existing accounts
+grandfathered), and a **player approval gate** was added -- anyone may register,
+but only an approved account may enter a tournament. See
+`docs/PLAYER-APPROVAL-AUDIT.md`.
+
+Suite: **169 passed.**
+
+Open items are listed at the end of `docs/PLAYER-APPROVAL-AUDIT.md` and
+`docs/RED-BLACK-EXIT-AUDIT.md`. The most consequential: **MAIL_MAILER is still
+`log`**, so invite and verification emails reach nobody -- the admin-facing
+copyable links cover it for now, but a real mailer is needed before this ships.
 
 ## Standing constraints
 
