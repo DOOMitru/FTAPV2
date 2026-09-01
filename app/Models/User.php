@@ -2,7 +2,7 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
+use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -10,7 +10,16 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
-class User extends Authenticatable
+/**
+ * Implements MustVerifyEmail, which is what activates the `verified` middleware
+ * already guarding the dashboard route. Without it that middleware is a no-op
+ * and the profile page's "resend verification" block is unreachable, so the app
+ * looked protected while letting everyone through.
+ *
+ * Accounts created before this was switched on are grandfathered by the
+ * 2026_09_01 migration; the requirement applies to new registrations only.
+ */
+class User extends Authenticatable implements MustVerifyEmail
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
     use HasUlids, HasFactory, Notifiable;

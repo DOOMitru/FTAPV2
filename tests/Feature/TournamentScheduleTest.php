@@ -88,6 +88,43 @@ class TournamentScheduleTest extends TestCase
         $this->assertEquals(0, PokerTournament::count());
     }
 
+    /**
+     * The store path has been guarded since Phase 0; update was not, and it
+     * carries the same rule. A seeder bug produced tournaments whose
+     * registration closed up to two hours after play began, which is data this
+     * validation exists to prevent -- but nothing proved the rule still fired
+     * on the edit form, which is where an existing tournament gets broken.
+     */
+    public function test_start_time_cannot_be_moved_before_registration_close_on_update()
+    {
+        $admin = User::factory()->create(['is_admin' => true]);
+
+        $tournament = $this->makeTournament(
+            scheduledAt: now()->addDays(6),
+            startTime: now()->addDays(7),
+        );
+
+        $response = $this->actingAs($admin)->put(
+            route('poker.tournaments.update', $tournament),
+            [
+                'name' => $tournament->name,
+                // Pulled back a day, so play would begin before registration closes.
+                'scheduled_at' => now()->addDays(6)->format('Y-m-d H:i:s'),
+                'start_time' => now()->addDays(5)->format('Y-m-d H:i:s'),
+                'venue_id' => $tournament->venue_id,
+                'season_id' => $tournament->season_id,
+            ]
+        );
+
+        $response->assertSessionHasErrors('start_time');
+
+        // And the stored row is untouched.
+        $this->assertTrue(
+            $tournament->fresh()->start_time->greaterThanOrEqualTo($tournament->fresh()->scheduled_at),
+            'The persisted tournament must still start at or after its registration close.'
+        );
+    }
+
     private function makeTournament(\DateTimeInterface $scheduledAt, \DateTimeInterface $startTime): PokerTournament
     {
         $venue = Venue::create(['name' => 'The Grand Card Room', 'address' => '100 Casino Blvd']);
