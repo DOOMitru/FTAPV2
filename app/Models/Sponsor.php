@@ -5,7 +5,6 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Facades\Storage;
 
 class Sponsor extends Model
 {
@@ -45,8 +44,17 @@ class Sponsor extends Model
         return $this->tier === 'premium';
     }
 
+    /**
+     * asset(), not Storage::disk('public')->url().
+     *
+     * The disk's url() is built from APP_URL, so it hardcodes a host into an
+     * in-page image: any mismatch -- a dev port, a staging domain, a proxy,
+     * http versus https -- gives a broken image and no error. asset() resolves
+     * against the actual request host instead, which is why the avatars have
+     * always worked. This matches how User::profileImageUrl() already does it.
+     */
     public function logoUrl(): string
     {
-        return Storage::disk('public')->url($this->logo_path);
+        return asset('storage/'.$this->logo_path);
     }
 }

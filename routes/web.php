@@ -147,6 +147,10 @@ Route::middleware('auth')->group(function () {
         // Admission to the league. Inside the admin group, which is what makes
         // a player's attempt a 403 without a separate check in the controller.
         Route::patch('users/{user}/approve', [\App\Http\Controllers\UserController::class, 'approve'])->name('users.approve');
+        // Sponsors shown on the home page. Not under /poker: that prefix is
+        // league operations, and this is site content.
+        Route::resource('sponsors', \App\Http\Controllers\SponsorController::class)->except(['show']);
+
         Route::patch('users/{user}/reject', [\App\Http\Controllers\UserController::class, 'reject'])->name('users.reject');
 
         // Re-issuing the two links a player needs to get in. Separate from

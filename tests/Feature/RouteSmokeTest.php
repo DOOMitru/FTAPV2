@@ -119,6 +119,11 @@ class RouteSmokeTest extends TestCase
             'amount' => 50,
         ]);
 
+        $sponsor = \App\Models\Sponsor::create([
+            'name' => 'Smoke Test Sponsor',
+            'logo_path' => 'sponsor-logos/smoke.png',
+        ]);
+
         $this->bindings = [
             'user' => $this->admin->id,
             'venue' => $venue->id,
@@ -128,6 +133,7 @@ class RouteSmokeTest extends TestCase
             'registrant' => $registrant->id,
             'result' => $result->id,
             'venue_point' => $venuePoints->id,
+            'sponsor' => $sponsor->id,
             'token' => 'smoke-test-token',
             'id' => $this->admin->id,
             'hash' => sha1($this->admin->email),

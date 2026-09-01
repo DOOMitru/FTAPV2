@@ -1,0 +1,33 @@
+/* Sponsor logo previews on the admin screens.
+ *
+ * These live in the DASHBOARD register, so no gradients and no elevation --
+ * a hairline does the separating, as it does everywhere behind the login.
+ * The public wall's treatment is in 5-public/_register.css.
+ *
+ * object-fit: contain on both: a sponsor's artwork arrives at whatever aspect
+ * ratio the business happens to use, and cropping someone's logo to fit a box
+ * is not a thing to do to a paying sponsor. */
+.sponsor-thumb {
+    width: 3rem;
+    height: 2rem;
+    object-fit: contain;
+    /* A logo is usually transparent, and a transparent dark logo on a dark
+       surface is an empty box. The plate is fixed rather than themed for the
+       same reason a medal disc is: the artwork cannot be relied on to have
+       contrast against both grounds. */
+    background-color: #FFFFFF;
+    border: var(--border-width) solid var(--c-border);
+    border-radius: var(--radius-sm);
+    padding: var(--space-1);
+}
+
+.sponsor-preview {
+    width: 100%;
+    max-width: 18rem;
+    height: 8rem;
+    object-fit: contain;
+    background-color: #FFFFFF;
+    border: var(--border-width) solid var(--c-border);
+    border-radius: var(--radius);
+    padding: var(--space-3);
+}

@@ -3,6 +3,9 @@
 namespace Tests\Feature;
 
 use App\Models\Sponsor;
+use App\Models\User;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -71,5 +74,137 @@ class SponsorTest extends TestCase
         Sponsor::create(['name' => 'Prem', 'logo_path' => 'x.png', 'tier' => 'premium']);
 
         $this->assertSame(['Prem', 'Unknown Tier'], Sponsor::ordered()->pluck('name')->all());
+    }
+
+    private function admin(): User
+    {
+        return User::factory()->create(['is_admin' => true]);
+    }
+
+    public function test_creating_a_sponsor_stores_the_logo(): void
+    {
+        Storage::fake('public');
+
+        $this->actingAs($this->admin())->post(route('sponsors.store'), [
+            'name' => 'Ace High',
+            'logo' => UploadedFile::fake()->image('ace.png'),
+            'tier' => 'premium',
+        ])->assertRedirect();
+
+        $sponsor = Sponsor::first();
+
+        $this->assertNotNull($sponsor);
+        $this->assertTrue($sponsor->isPremium());
+        Storage::disk('public')->assertExists($sponsor->logo_path);
+    }
+
+    public function test_a_sponsor_cannot_be_created_without_a_logo(): void
+    {
+        Storage::fake('public');
+
+        $this->actingAs($this->admin())->post(route('sponsors.store'), [
+            'name' => 'Ace High',
+            'tier' => 'regular',
+        ])->assertSessionHasErrors('logo');
+
+        $this->assertSame(0, Sponsor::count());
+    }
+
+    public function test_a_non_image_is_rejected(): void
+    {
+        Storage::fake('public');
+
+        $this->actingAs($this->admin())->post(route('sponsors.store'), [
+            'name' => 'Ace High',
+            'logo' => UploadedFile::fake()->create('accounts.pdf', 100, 'application/pdf'),
+            'tier' => 'regular',
+        ])->assertSessionHasErrors('logo');
+
+        $this->assertSame(0, Sponsor::count());
+    }
+
+    public function test_replacing_a_logo_deletes_the_old_file(): void
+    {
+        // Otherwise every edit leaves an orphan on disk that nothing will ever
+        // reference, notice, or clean up.
+        Storage::fake('public');
+        $admin = $this->admin();
+
+        $this->actingAs($admin)->post(route('sponsors.store'), [
+            'name' => 'Ace High',
+            'logo' => UploadedFile::fake()->image('first.png'),
+            'tier' => 'regular',
+        ]);
+
+        $sponsor = Sponsor::first();
+        $original = $sponsor->logo_path;
+
+        $this->actingAs($admin)->put(route('sponsors.update', $sponsor), [
+            'name' => 'Ace High',
+            'logo' => UploadedFile::fake()->image('second.png'),
+            'tier' => 'regular',
+        ]);
+
+        Storage::disk('public')->assertMissing($original);
+        Storage::disk('public')->assertExists($sponsor->fresh()->logo_path);
+    }
+
+    public function test_editing_without_a_new_logo_keeps_the_existing_one(): void
+    {
+        // An edit that only changes the name must not demand the artwork again,
+        // and must not lose it.
+        Storage::fake('public');
+        $admin = $this->admin();
+
+        $this->actingAs($admin)->post(route('sponsors.store'), [
+            'name' => 'Ace High',
+            'logo' => UploadedFile::fake()->image('only.png'),
+            'tier' => 'regular',
+        ]);
+
+        $sponsor = Sponsor::first();
+        $original = $sponsor->logo_path;
+
+        $this->actingAs($admin)->put(route('sponsors.update', $sponsor), [
+            'name' => 'Ace High Beverages',
+            'tier' => 'regular',
+        ])->assertRedirect();
+
+        $this->assertSame('Ace High Beverages', $sponsor->fresh()->name);
+        $this->assertSame($original, $sponsor->fresh()->logo_path);
+        Storage::disk('public')->assertExists($original);
+    }
+
+    public function test_deleting_a_sponsor_deletes_its_logo(): void
+    {
+        Storage::fake('public');
+        $admin = $this->admin();
+
+        $this->actingAs($admin)->post(route('sponsors.store'), [
+            'name' => 'Ace High',
+            'logo' => UploadedFile::fake()->image('gone.png'),
+            'tier' => 'regular',
+        ]);
+
+        $sponsor = Sponsor::first();
+        $path = $sponsor->logo_path;
+
+        $this->actingAs($admin)->delete(route('sponsors.destroy', $sponsor));
+
+        $this->assertSame(0, Sponsor::count());
+        Storage::disk('public')->assertMissing($path);
+    }
+
+    public function test_a_player_cannot_reach_sponsor_administration(): void
+    {
+        $player = User::factory()->create(['is_admin' => false]);
+
+        $this->actingAs($player)->get(route('sponsors.index'))->assertForbidden();
+        $this->actingAs($player)->get(route('sponsors.create'))->assertForbidden();
+        $this->actingAs($player)->post(route('sponsors.store'), [
+            'name' => 'Sneaky', 'tier' => 'regular',
+        ])->assertForbidden();
+
+        $this->assertSame(0, Sponsor::count());
     }
 }

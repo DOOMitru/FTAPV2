@@ -49,6 +49,7 @@
                 <x-slot name="content">
                     <x-dropdown-link :href="route('poker.points-structure.index')">{{ __('Points structure') }}</x-dropdown-link>
                     <x-dropdown-link :href="route('users.index')">{{ __('Players') }}</x-dropdown-link>
+                    <x-dropdown-link :href="route('sponsors.index')">{{ __('Sponsors') }}</x-dropdown-link>
                 </x-slot>
             </x-dropdown>
         @endif
