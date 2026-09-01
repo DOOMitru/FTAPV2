@@ -41,11 +41,13 @@
 
                                 <a class="link" href="{{ route('poker.seasons.edit', $season) }}">{{ __('Edit') }}</a>
 
-                                {{-- The confirm names what is being deleted. A bare
-                                     "Are you sure?" on a destructive action tells the
-                                     reader nothing about what they are about to lose. --}}
+                                {{-- data-confirm, never an inline onsubmit. Blade escapes
+                                     the name for HTML, but the browser HTML-decodes an
+                                     attribute before parsing its contents as JS, so a name
+                                     containing an apostrophe would break out of the string
+                                     literal. See resources/js/confirm.ts. --}}
                                 <form action="{{ route('poker.seasons.destroy', $season) }}" method="POST"
-                                      onsubmit="return confirm('{{ __('Delete :name? This cannot be undone.', ['name' => $season->name]) }}')">
+                                      data-confirm="{{ __('Delete :name? This cannot be undone.', ['name' => $season->name]) }}">
                                     @csrf
                                     @method('DELETE')
 
