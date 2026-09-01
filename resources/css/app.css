@@ -40,6 +40,7 @@
 @import "./3-components/_scrollbar.css";
 @import "./3-components/_section-badge.css";
 @import "./4-pages/_season-show.css";
+@import "./4-pages/_venue-show.css";
 
 /* The public register — gradients and elevation, allowed here and nowhere
    else. Guarded by PublicRegisterTest. */

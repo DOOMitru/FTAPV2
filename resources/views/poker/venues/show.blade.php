@@ -9,8 +9,13 @@
     </x-slot>
 
     <div class="l-container l-stack">
+        {{-- Equal halves, and the body brings back the padding the flush card
+             gives up for the map. This was .l-sidebar inside a flush card:
+             2fr 1fr, so the map took two thirds and the name rendered hard
+             against the card's top border with the stats in a single tall
+             column beside it. --}}
         <x-card flush>
-            <div class="l-sidebar">
+            <div class="venue-show__split">
                 @if ($venue->address)
                     <div class="map">
                         <iframe title="{{ __('Map of :venue', ['venue' => $venue->name]) }}"
@@ -24,14 +29,14 @@
                     </div>
                 @endif
 
-                <div class="l-stack">
-                    <h2 class="entry__title">{{ $venue->name }}</h2>
+                <div class="venue-show__body">
+                    <h2 class="venue-show__name">{{ $venue->name }}</h2>
 
                     @if ($venue->description)
-                        <p class="field__hint">{{ $venue->description }}</p>
+                        <p class="venue-show__lede">{{ $venue->description }}</p>
                     @endif
 
-                    <div class="l-grid">
+                    <div class="venue-show__stats">
                         <x-stat :label="__('Tournaments')" :value="$totalTournaments" />
                         <x-stat :label="__('Point Earners')" :value="$uniqueVenuePointPlayers" />
                         <x-stat :label="__('Venue Points')" :value="number_format($totalVenuePoints)" />
@@ -41,7 +46,9 @@
             </div>
         </x-card>
 
-        <div class="l-sidebar">
+        {{-- align-items: start, so an empty leaderboard does not stretch to
+             match a list of nineteen tournaments beside it. --}}
+        <div class="l-sidebar venue-show__panels">
             <x-card :title="__('Venue Points Leaderboard')" flush>
                 <x-table>
                     <x-slot name="head">

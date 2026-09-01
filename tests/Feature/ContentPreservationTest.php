@@ -540,6 +540,15 @@ class ContentPreservationTest extends TestCase
         $response->assertSee('125');
         $response->assertSee('600');
 
+        // All four tiles, by label. The two sums above already fail if their
+        // own tile goes, but Tournaments and Point Earners both read "2" here
+        // and "2" survives almost any edit -- so those two were unguarded.
+        // Matched as stat markup, because "Tournaments" on its own also
+        // appears in the Recent Tournaments heading.
+        foreach (['Tournaments', 'Point Earners', 'Venue Points', 'Tournament Points'] as $label) {
+            $response->assertSee('<span class="stat__label">'.$label.'</span>', false);
+        }
+
         // The side panel lists the tournaments held here.
         $response->assertSee('Ironclad Opener');
         $response->assertSee('Ironclad Closer');
