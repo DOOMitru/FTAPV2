@@ -153,13 +153,27 @@
     font-weight: 600;
 }
 
+/* The seats carry the medals. Previously only 1st was distinguished and it
+   used --c-primary, so the podium said "first" but never "second" or "third".
+   Ink is fixed rather than themed because the medal grounds are: #16171B on
+   gold is 7.54:1, on silver 7.71:1, on bronze 4.72:1, in both themes. */
+.podium__place--1 .podium__seat,
+.podium__place--2 .podium__seat,
+.podium__place--3 .podium__seat {
+    border-color: transparent;
+    color: var(--c-medal-ink);
+    font-weight: 700;
+}
+
 .podium__place--1 .podium__seat {
     width: 3.25rem;
     height: 3.25rem;
-    border-color: var(--c-primary);
-    color: var(--c-primary);
+    background-color: var(--c-gold);
     font-size: var(--step-1);
 }
+
+.podium__place--2 .podium__seat { background-color: var(--c-silver); }
+.podium__place--3 .podium__seat { background-color: var(--c-bronze); }
 
 /* The riser. Height carries the ranking; the numeral repeats it for anyone who
    cannot see the heights. */
@@ -177,7 +191,11 @@
     color: var(--c-text-muted);
 }
 
-.podium__place--1 .podium__step { height: 3rem; background-color: var(--c-primary-fill); color: var(--c-primary-ink); }
+/* The step below each seat echoes its medal, quietly -- the seat is the loud
+   element and spending the colour twice at full strength would flatten both. */
+.podium__place--1 .podium__step { height: 3rem; background-color: var(--c-gold); color: var(--c-medal-ink); }
+.podium__place--2 .podium__step { background-color: var(--c-silver); color: var(--c-medal-ink); }
+.podium__place--3 .podium__step { background-color: var(--c-bronze); color: var(--c-medal-ink); }
 .podium__place--2 .podium__step { height: 2rem; }
 .podium__place--3 .podium__step { height: 1.25rem; }
 

@@ -49,7 +49,7 @@
                              scheduled_at is set AND not past -- which is not the
                              same as "play has not started". --}}
                         @if ($tournament->registration_open)
-                            <x-badge variant="primary">{{ __('Registration Open') }}</x-badge>
+                            <x-badge variant="open">{{ __('Registration Open') }}</x-badge>
                         @else
                             <x-badge>{{ __('Registration Closed') }}</x-badge>
                         @endif
@@ -94,7 +94,7 @@
                                 {{-- The controller rejects a second registration
                                      anyway; saying so here is kinder than
                                      offering a button that will fail. --}}
-                                <x-badge variant="primary">{{ __("You're registered") }}</x-badge>
+                                <x-badge variant="open">{{ __("You're registered") }}</x-badge>
                             @elseif ($tournament->registration_open)
                                 <form action="{{ route('tournaments.register', $tournament) }}" method="POST">
                                     @csrf

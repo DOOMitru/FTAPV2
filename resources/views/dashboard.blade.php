@@ -45,7 +45,7 @@
 
                             <div class="entry__actions">
                                 @if ($isReg)
-                                    <x-badge variant="primary">{{ __('Registered') }}</x-badge>
+                                    <x-badge variant="open">{{ __('Registered') }}</x-badge>
                                 @elseif ($tournament->registration_open)
                                     <form action="{{ route('tournaments.register', $tournament) }}" method="POST">
                                         @csrf

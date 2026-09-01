@@ -28,7 +28,7 @@
 
                         <td>
                             @if ($season->is_current)
-                                <x-badge variant="primary">{{ __('Current') }}</x-badge>
+                                <x-badge variant="open">{{ __('Current') }}</x-badge>
                             @endif
                         </td>
 

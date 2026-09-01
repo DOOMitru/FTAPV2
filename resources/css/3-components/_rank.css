@@ -16,7 +16,21 @@
     color: var(--c-text-muted);
 }
 
-.rank--podium {
-    border-color: var(--c-primary);
-    color: var(--c-primary);
+/* A medal is a DISC WITH INK, not coloured text. No gold clears 4.5:1 as text
+   on white -- #D4A017 manages 2.38:1 -- so the colour goes behind the numeral
+   rather than into it. That is also what a medal actually is, and it means one
+   set of values works unchanged in both themes.
+ *
+ * This replaces .rank--podium, which painted 1st, 2nd and 3rd in one identical
+ * colour: a podium that announced no hierarchy at all. */
+.rank--1,
+.rank--2,
+.rank--3 {
+    border-color: transparent;
+    color: var(--c-medal-ink);
+    font-weight: 700;
 }
+
+.rank--1 { background-color: var(--c-gold); }
+.rank--2 { background-color: var(--c-silver); }
+.rank--3 { background-color: var(--c-bronze); }

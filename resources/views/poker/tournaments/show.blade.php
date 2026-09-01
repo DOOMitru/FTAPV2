@@ -62,7 +62,7 @@
 
                     <div class="l-cluster">
                         @if ($isUserRegistered)
-                            <x-badge variant="primary">{{ __('Registered') }}</x-badge>
+                            <x-badge variant="open">{{ __('Registered') }}</x-badge>
 
                             @if ($tournament->registration_open)
                                 <form action="{{ route('tournaments.unregister', $tournament) }}" method="POST"

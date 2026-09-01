@@ -10,20 +10,27 @@
     font-size: var(--step--1);
 }
 
-/* .alert--info and .alert--success are deliberately pixel-identical: the
-   fixed, approved brand palette has no --c-success token, so both borrow
-   --c-primary. They stay distinguished by `role` and by message text, not
-   colour. Do not invent a success colour here — that needs palette
-   approval first. */
+/* These three were pixel-identical until now, because the palette had no
+   success colour and every variant borrowed the primary. That was tolerable
+   while the primary was blue. It is not tolerable now: red is the brand, so
+   an all-red set would render a success alert and a failure alert the same,
+   and events.blade.php shows both on the same page four lines apart.
+ *
+ * The palette gained --c-open with the red-and-black refresh -- approved for
+ * "open, registered, paid, won", which is the same family as "that worked".
+ * So success finally has its own colour, danger keeps red, and info goes
+ * quiet: an informational note does not need to compete with either. */
 .alert--info {
-    border-inline-start-color: var(--c-primary);
+    border-inline-start-color: var(--c-text-muted);
 }
 
 .alert--success {
-    border-inline-start-color: var(--c-primary);
+    border-inline-start-color: var(--c-open);
 }
 
-/* Coral as a border, not a text ground — no contrast problem here. */
+/* Red as a 3px border, not a text ground — no contrast problem here, and it
+   still reads as alarm because an alert is contextual: it appears in response
+   to something the user just did. */
 .alert--danger {
     border-inline-start-color: var(--c-primary);
 }
