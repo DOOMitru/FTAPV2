@@ -130,6 +130,20 @@ class PokerTournamentController extends Controller
 
         $user = \App\Models\User::findOrFail($targetUserId);
 
+        // The gate reads the TARGET user, not the actor. This one method serves
+        // both self-registration and the administrator user_id override, so
+        // checking the actor would make an administrator a way around the rule
+        // rather than a user of it.
+        //
+        // The message names WHICH gate refused. A player can now be stopped by
+        // approval or by email verification, and an unexplained refusal turns
+        // support into guesswork.
+        if (! $user->isApproved()) {
+            return back()->with('error', $targetUserId === auth()->id()
+                ? 'Your account is waiting for approval by a league administrator, so you cannot enter tournaments yet.'
+                : 'That account has not been approved by a league administrator yet.');
+        }
+
         $tournament->registrants()->create([
             'user_id' => $user->id,
             'player_name' => $user->first_name . ' ' . $user->last_name,

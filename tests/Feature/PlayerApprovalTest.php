@@ -2,7 +2,10 @@
 
 namespace Tests\Feature;
 
+use App\Models\PokerSeason;
+use App\Models\PokerTournament;
 use App\Models\User;
+use App\Models\Venue;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -62,5 +65,127 @@ class PlayerApprovalTest extends TestCase
 
         $this->assertSame(1, User::approved()->count());
         $this->assertSame(1, User::awaitingApproval()->count());
+    }
+
+    private function makeTournament(): PokerTournament
+    {
+        $venue = Venue::create(['name' => 'The Grand Card Room', 'address' => '100 Casino Blvd']);
+
+        $season = PokerSeason::create([
+            'name' => 'Season 1',
+            'start_date' => now()->subMonth(),
+            'end_date' => now()->addMonth(),
+            'is_current' => true,
+        ]);
+
+        return PokerTournament::create([
+            'name' => 'Weekly Freezeout',
+            'scheduled_at' => now()->addDay(),
+            'start_time' => now()->addDay()->addHours(2),
+            'venue_id' => $venue->id,
+            'season_id' => $season->id,
+        ]);
+    }
+
+    public function test_a_pending_player_cannot_self_register(): void
+    {
+        $player = User::factory()->pending()->create(['is_admin' => false]);
+        $tournament = $this->makeTournament();
+
+        $this->actingAs($player)
+            ->post(route('tournaments.register', $tournament))
+            ->assertSessionHas('error');
+
+        $this->assertDatabaseMissing('tournament_registrants', [
+            'tournament_id' => $tournament->id,
+            'user_id' => $player->id,
+        ]);
+    }
+
+    public function test_a_rejected_player_cannot_self_register(): void
+    {
+        // Rejection is not merely absence from the pending queue. A rejected
+        // account still exists and still logs in; it must be refused here.
+        $player = User::factory()->rejected()->create(['is_admin' => false]);
+        $tournament = $this->makeTournament();
+
+        $this->actingAs($player)
+            ->post(route('tournaments.register', $tournament))
+            ->assertSessionHas('error');
+
+        $this->assertDatabaseMissing('tournament_registrants', [
+            'tournament_id' => $tournament->id,
+            'user_id' => $player->id,
+        ]);
+    }
+
+    public function test_an_approved_player_can_self_register(): void
+    {
+        $player = User::factory()->create(['is_admin' => false]);
+        $tournament = $this->makeTournament();
+
+        $this->actingAs($player)->post(route('tournaments.register', $tournament));
+
+        $this->assertDatabaseHas('tournament_registrants', [
+            'tournament_id' => $tournament->id,
+            'user_id' => $player->id,
+        ]);
+    }
+
+    public function test_an_admin_cannot_register_a_pending_player_via_the_override(): void
+    {
+        // One controller method serves self-registration and the administrator
+        // user_id override. The gate must read the TARGET user, not the actor,
+        // or an administrator becomes a way around the rule rather than a user
+        // of it.
+        $admin = User::factory()->create(['is_admin' => true]);
+        $player = User::factory()->pending()->create(['is_admin' => false]);
+        $tournament = $this->makeTournament();
+
+        $this->actingAs($admin)->post(
+            route('tournaments.register', $tournament),
+            ['user_id' => $player->id]
+        )->assertSessionHas('error');
+
+        $this->assertDatabaseMissing('tournament_registrants', [
+            'tournament_id' => $tournament->id,
+            'user_id' => $player->id,
+        ]);
+    }
+
+    public function test_an_admin_cannot_register_a_pending_player_via_the_registrant_form(): void
+    {
+        $admin = User::factory()->create(['is_admin' => true]);
+        $player = User::factory()->pending()->create(['is_admin' => false]);
+        $tournament = $this->makeTournament();
+
+        $this->actingAs($admin)->post(route('poker.registrants.store'), [
+            'tournament_id' => $tournament->id,
+            'user_id' => $player->id,
+            'player_name' => 'Ada Lovelace',
+            'registered_at' => now()->format('Y-m-d H:i:s'),
+        ])->assertSessionHasErrors('user_id');
+
+        $this->assertDatabaseMissing('tournament_registrants', [
+            'tournament_id' => $tournament->id,
+            'user_id' => $player->id,
+        ]);
+    }
+
+    public function test_the_registrant_picker_offers_only_approved_players(): void
+    {
+        // A form that offers a choice its own store would refuse is a worse
+        // failure than one that never offers it: the administrator learns the
+        // rule by hitting it, one player at a time.
+        $admin = User::factory()->create(['is_admin' => true]);
+        User::factory()->create(['first_name' => 'Approvedy', 'is_admin' => false]);
+        User::factory()->pending()->create(['first_name' => 'Pendingly', 'is_admin' => false]);
+        User::factory()->rejected()->create(['first_name' => 'Refusedly', 'is_admin' => false]);
+
+        $this->actingAs($admin)->get(route('poker.registrants.create'))
+            ->assertOk()
+            ->assertSee('Approvedy')
+            ->assertDontSee('Pendingly')
+            ->assertDontSee('Refusedly');
     }
 }
