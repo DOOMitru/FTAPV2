@@ -91,20 +91,7 @@
                 <div class="l-container l-stack">{{ $slot }}</div>
             </main>
 
-            <footer class="public__footer">
-                {{-- Inside l-container so the footer's edges line up with the
-                     page content above it rather than with the viewport. --}}
-                <div class="l-container public__foot">
-                    {{-- The mark itself, decorative here: the signature beside
-                         it already says the name, so alt text would make a
-                         screen reader announce it twice. --}}
-                    <img class="public__foot-mark" src="{{ asset('images/header_logo.png') }}" alt="">
-
-                    <span class="public__foot-tag">{{ __('Play hard. Play smart. Be first to act.') }}</span>
-
-                    <span class="public__foot-sig">&copy; {{ date('Y') }} {{ config('app.name') }}</span>
-                </div>
-            </footer>
+            <x-site-footer />
         </div>
     </body>
 </html>

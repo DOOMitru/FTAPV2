@@ -39,6 +39,11 @@
             <main class="shell__content">
                 <div class="l-container">{{ $slot }}</div>
             </main>
+
+            {{-- .shell is a flex column with min-height: 100vh and
+                 .shell__content takes flex: 1, so this sits at the bottom of
+                 the viewport on a short page rather than floating mid-screen. --}}
+            <x-site-footer />
         </div>
     </body>
 </html>

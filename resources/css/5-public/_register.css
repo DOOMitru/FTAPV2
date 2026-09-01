@@ -1093,9 +1093,88 @@
 /* The aside on the auth pages: the mark, the league name, and what the league
    is. Sits beside the form rather than above it, so a visitor arriving from
    the marketing site still sees why they are signing up. */
-.p-auth-logo {
-    display: block;
-    width: 100%;
-    max-width: 9rem;
+/* The auth pages are a mark, a name and one form. Nothing else, so the column
+   is centred rather than left-aligned: with the lede and the reason cards gone
+   there is no second column and no long text to anchor a left edge, and a
+   38rem form pinned left on a 1440px page leaves most of the viewport empty. */
+.p-auth-intro {
+    display: flex;
+    /* Wraps below the mark on a narrow screen, where a 9rem mark beside a
+       display heading leaves the name a few characters wide. */
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-5);
+    margin-block-end: var(--space-6);
+}
+
+.p-auth-intro__mark {
+    /* flex: 0 0 auto, because the rule this replaced set width: 100% -- fine
+       for a block in a stack, but as a flex item it demands the whole row and
+       pushes the name out of it entirely. */
+    flex: 0 0 auto;
+    width: 7rem;
     height: auto;
+}
+
+/* Sized to the name rather than growing: this is a lockup, and a hero that
+   takes the leftover width would push the mark away from the words it belongs
+   to. */
+.p-auth-intro > .p-hero {
+    flex: 0 1 auto;
+    /* Overrides .p-hero--start, which the component sets. A no-op while the
+       name fits on one line -- flex: 0 1 auto makes the box hug the text, so
+       there is nothing to align against. It matters when the name wraps on a
+       phone: left-aligned two-line text under a centred mark reads as a
+       mistake. */
+    text-align: center;
+    /* .p-hero--plain carries a block-end margin for stacked use. In a row
+       centred on its cross axis that is dead space below the name, shifting it
+       off centre against the mark. */
+    margin-block-end: 0;
+}
+
+/* On a phone the lockup is scaled down to sit on one row inside the form's
+   width, rather than the mark wrapping onto its own line above a full-size
+   name. nowrap is what keeps them together; the mark and the type both come
+   down so that "together" fits.
+ *
+ * At --step-2 the name breaks into two balanced lines -- FIRST TO ACT above
+   POKER LEAGUE -- beside a 3rem mark, which is the shape it wants anyway. */
+@media (max-width: 48rem) {
+    .p-auth-intro {
+        flex-wrap: nowrap;
+        gap: var(--space-3);
+    }
+
+    .p-auth-intro__mark {
+        width: 3rem;
+    }
+
+    /* Three classes deep on purpose. .p-hero--plain .p-hero__title is two, and
+       matching it would leave this depending on which rule the bundler emitted
+       last -- a coin toss that has broken this system before. */
+    .p-auth-intro > .p-hero .p-hero__title {
+        font-size: var(--step-2);
+        /* Left to itself the name breaks as "FIRST TO ACT POKER / LEAGUE",
+           stranding one word. balance splits it evenly -- FIRST TO ACT above
+           POKER LEAGUE -- which is also where the name divides in meaning.
+           Ignored by anything that does not support it, so the fallback is
+           exactly today's behaviour. */
+        text-wrap: balance;
+    }
+}
+
+/* A readable width, not the container's 80rem: a sign-in form stretched across
+   a desktop is a column of very wide inputs with each label miles from its
+   value.
+ *
+ * 38rem rather than something rounder, because the register form pairs first
+   and last name in an .l-grid. That primitive needs 2 x 16rem plus a 1rem gap
+   to hold two columns, and .card__body eats 3rem in padding, so anything under
+   38rem silently drops the pair into two stacked rows -- turning the form back
+   into the long scroll the pairing exists to avoid. */
+.p-auth-form {
+    max-width: 38rem;
+    margin-inline: auto;
 }
