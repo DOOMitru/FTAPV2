@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\User;
 use App\Notifications\PlayerApproved;
 use Illuminate\Auth\Events\Registered;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -16,11 +17,25 @@ use Illuminate\View\View;
 class UserController extends Controller
 {
     /**
+     * Columns a search looks at. Interpolated into SQL below, so this list is
+     * the only thing that may ever go in it -- never anything from a request.
+     */
+    private const SEARCHABLE = ['first_name', 'last_name', 'nickname', 'email'];
+
+    /**
      * Display a listing of the resource.
      */
-    public function index(): View
+    public function index(Request $request): View
     {
-        $users = User::orderBy('first_name')->paginate(15);
+        $search = trim((string) $request->query('search', ''));
+
+        $users = User::query()
+            ->when($search !== '', fn (Builder $query) => $this->applySearch($query, $search))
+            ->orderBy('first_name')
+            ->paginate(15)
+            // Without this, page 2 of a search drops the term and silently
+            // shows page 2 of everybody -- which looks like the search broke.
+            ->withQueryString();
 
         // Not paginated. A queue that needs paging is a queue nobody is
         // working; if it ever grows that large that is the signal, not a
@@ -28,7 +43,33 @@ class UserController extends Controller
         // longest is the one to deal with.
         $pending = User::awaitingApproval()->orderBy('created_at')->get();
 
-        return view('users.index', compact('users', 'pending'));
+        return view('users.index', compact('users', 'pending', 'search'));
+    }
+
+    /**
+     * Narrow a user query to those matching every word of a search.
+     *
+     * Every term has to match something, but not the same something: that is
+     * what lets "ada lovelace" find the row whose first_name is Ada and whose
+     * last_name is Lovelace, which no single LIKE over either column can.
+     */
+    private function applySearch(Builder $query, string $search): Builder
+    {
+        foreach (preg_split('/\s+/', $search) as $term) {
+            // lower() on both sides rather than trusting LIKE. SQLite and a
+            // ci-collated MySQL fold ASCII case; Postgres does not, and a
+            // search that quietly turns case-sensitive is not something anyone
+            // reports -- they just stop using it.
+            $like = '%'.mb_strtolower($term).'%';
+
+            $query->where(function (Builder $q) use ($like) {
+                foreach (self::SEARCHABLE as $column) {
+                    $q->orWhereRaw("lower({$column}) like ?", [$like]);
+                }
+            });
+        }
+
+        return $query;
     }
 
     public function create(): View

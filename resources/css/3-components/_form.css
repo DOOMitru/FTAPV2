@@ -37,6 +37,29 @@
     font-variant-numeric: tabular-nums;
 }
 
+/* The search row: a control with icon buttons beside it.
+ *
+ * align-items: stretch, not the .l-cluster centring it replaces. The buttons
+ * then take their height from the input rather than from a number that would
+ * have to be kept in step with .field__control's padding, font size and
+ * border -- four values, in another file, that nothing would fail on. */
+.search {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: stretch;
+    gap: var(--space-2);
+}
+
+/* A control that sits in a row instead of under a label. The base is built for
+   a stacked field -- full width, with a top margin holding it off the label
+   above it -- and both are wrong beside a button: it would eat the row and sit
+   lower than everything next to it. */
+.field__control--inline {
+    width: auto;
+    min-width: 16rem;
+    margin-block-start: 0;
+}
+
 .field__error {
     margin-block-start: var(--space-2);
     /* <x-input-error> renders a <ul>; strip the marker and indent so a single

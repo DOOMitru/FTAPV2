@@ -70,6 +70,47 @@
             </x-card>
         @endif
 
+        {{-- A plain GET form: the term lives in the URL, so a filtered list can
+             be linked, bookmarked and paged without any JavaScript. Above the
+             table rather than in the card header, because the header is a
+             non-wrapping flex row and a 16rem control plus two buttons
+             overruns it on a narrow screen. --}}
+        <form method="GET" action="{{ route('users.index') }}" class="search">
+            <label class="u-visually-hidden" for="search">{{ __('Search users') }}</label>
+
+            <input id="search" name="search" type="search" value="{{ $search }}"
+                   class="field__control field__control--inline"
+                   placeholder="{{ __('Name, nickname or email') }}">
+
+            {{-- Icon-only, so each carries its name in a visually-hidden span:
+                 the accessible name then comes from content, which is
+                 translated with the rest of the page. title gives a sighted
+                 mouse user the same word on hover. --}}
+            <x-btn variant="ghost" type="submit" class="btn--icon" :title="__('Search')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                     stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <circle cx="11" cy="11" r="8"/>
+                    <path d="M21 21l-4.35-4.35"/>
+                </svg>
+
+                <span class="u-visually-hidden">{{ __('Search') }}</span>
+            </x-btn>
+
+            {{-- Only when there is something to clear. A permanent Clear on an
+                 unfiltered list is a button that does nothing. --}}
+            @if ($search !== '')
+                <x-btn variant="ghost" class="btn--icon" :title="__('Clear search')"
+                       :href="route('users.index')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                         stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path d="M18 6L6 18M6 6l12 12"/>
+                    </svg>
+
+                    <span class="u-visually-hidden">{{ __('Clear search') }}</span>
+                </x-btn>
+            @endif
+        </form>
+
         <x-card flush>
             <x-table>
                 <x-slot name="head">
@@ -136,7 +177,13 @@
                 @empty
                     <tr>
                         <td colspan="7">
-                            <x-empty-state :title="__('No users found.')" />
+                            @if ($search !== '')
+                                <x-empty-state :title="__('No users match :term.', ['term' => '“'.$search.'”'])">
+                                    {{ __('Searches look at first and last name, nickname and email.') }}
+                                </x-empty-state>
+                            @else
+                                <x-empty-state :title="__('No users found.')" />
+                            @endif
                         </td>
                     </tr>
                 @endforelse

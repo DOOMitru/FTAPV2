@@ -78,6 +78,25 @@
     color: var(--c-primary-ink);
 }
 
+/* A button whose whole label is an icon. Its height comes from the row it sits
+   in -- .search stretches it to match the control beside it -- so only the
+   width is set here, and it is set with the spacing scale rather than a
+   number, which keeps it in proportion if the icon size ever changes.
+   `aspect-ratio: 1` was tried first and does nothing: a flex item's width is
+   resolved from its content before the stretched height is known, so the ratio
+   never gets a height to work from. It measured 20px wide against 40 tall.
+   The accessible name comes from a .u-visually-hidden span inside the button
+   rather than aria-label, so it is translated with the rest of the page. */
+.btn--icon {
+    padding-block: 0;
+    padding-inline: var(--space-3);
+}
+
+.btn--icon svg {
+    width: 1.125rem;
+    height: 1.125rem;
+}
+
 .btn--sm {
     padding: var(--space-1) var(--space-3);
     font-size: var(--step--2);
