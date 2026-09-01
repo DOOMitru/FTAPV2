@@ -1,6 +1,12 @@
-/* The public and guest shells consume the shared <x-topbar> from
-   2-layout/_topbar.css; this file styles only what is genuinely
-   public-specific — the page wrapper and the footer. No bar rules here. */
+/* The PUBLIC shell only. The guest shell used to live here too, which quietly
+   put it inside PublicRegisterTest's gradient fence -- that test allows this
+   file, so a gradient could have landed on .guest__panel with nothing
+   objecting, even though nobody decided auth pages belonged to the public
+   register. They do not: the owner chose the dashboard register for auth on
+   2026-08-31. Splitting the file is what makes that decision enforceable.
+
+   Consumes the shared <x-topbar> from 2-layout/_topbar.css; this file styles
+   only what is genuinely public-specific -- the page wrapper and the footer. */
 
 .public {
     display: flex;
@@ -20,28 +26,4 @@
     color: var(--c-text-muted);
     font-size: var(--step--1);
     text-align: center;
-}
-
-.guest {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    min-height: 100vh;
-    padding: var(--space-6) var(--space-4);
-    background-color: var(--c-bg);
-}
-
-.guest__panel {
-    width: 100%;
-    max-width: 26rem;
-    padding: var(--space-6);
-    border: var(--border-width) solid var(--c-border);
-    border-radius: var(--radius);
-    background-color: var(--c-surface);
-}
-
-.guest__brand {
-    display: flex;
-    justify-content: center;
-    margin-block-end: var(--space-6);
 }

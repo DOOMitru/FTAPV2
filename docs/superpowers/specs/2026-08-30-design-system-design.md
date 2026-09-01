@@ -104,6 +104,28 @@ colour repeated is a pattern, not decoration.
 
 ---
 
+## 4.2 Amendment, 2026-08-31 — auth pages take the dashboard register
+
+**Decision (owner):** login, register, password reset, password confirmation and email
+verification use the **dashboard register** — flat `--c-surface`, a 1px `--c-border`
+hairline, no gradient and no elevation.
+
+Signing in is entering the app, not being sold it, and the guest panel is 26rem of mostly
+input fields: a gradient there would sit behind form controls rather than behind anything.
+The panel now matches the dashboard a member lands on a second later.
+
+**This required splitting a stylesheet, and the split is the point.** `_shell-public.css`
+defined *both* shells — `.public*` and `.guest*` — and `PublicRegisterTest` allows that file.
+So the guest shell sat inside the gradient fence by accident of file organisation: a gradient
+could have landed on `.guest__panel` with no test objecting, though nobody had decided auth
+belonged to the public register.
+
+`.guest*` now lives in `2-layout/_shell-guest.css`, which is deliberately **not** on
+`PublicRegisterTest::ALLOWED`. Verified by adding `var(--gradient-panel)` there and watching
+the build fail. A fence that permits something by accident is not a fence.
+
+---
+
 ## 5. Phase 0 — Correctness & cleanup
 
 ### 5.1 `is_active` crash (blocker)
