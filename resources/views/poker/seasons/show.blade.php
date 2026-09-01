@@ -16,6 +16,41 @@
             <x-stat :label="__('Players')" :value="number_format($uniquePlayersCount)" />
         </div>
 
+        {{-- Rendered either way. A season with no thresholds must SAY so: an
+             absent panel is indistinguishable from a rendering failure, and a
+             reader cannot tell "not decided yet" from "something broke". --}}
+        <x-card :title="__('Finale Qualification')">
+            @if ($season->hasThresholds())
+                <p class="field__hint">{{ __('A player must meet all three to reach the finale.') }}</p>
+
+                <div class="l-grid">
+                    {{-- Each figure guarded on its own, not just the block.
+                         hasThresholds() is true when ANY one is set, so a
+                         partly decided season lands here -- and
+                         number_format(null) renders 0, stating a target nobody
+                         chose and everybody has already met. --}}
+                    <x-stat :label="__('Season points')"
+                            :value="$season->finale_points_required !== null
+                                ? number_format($season->finale_points_required)
+                                : __('Not set')" />
+
+                    <x-stat :label="__('Tournament wins')"
+                            :value="$season->finale_wins_required !== null
+                                ? (string) $season->finale_wins_required
+                                : __('Not set')" />
+
+                    <x-stat :label="__('Venue points')"
+                            :value="$season->finale_venue_points_required !== null
+                                ? number_format($season->finale_venue_points_required)
+                                : __('Not set')" />
+                </div>
+            @else
+                <x-empty-state :title="__('No thresholds yet')">
+                    {{ __('The qualification thresholds for this season have not been set. Until they are, no player is measured against them.') }}
+                </x-empty-state>
+            @endif
+        </x-card>
+
         <div class="l-sidebar">
             <x-card :title="__('Standings')" :flush="true">
                 @if ($leaderboard->isEmpty())
@@ -37,6 +72,8 @@
                             <th scope="col">{{ __('Points') }}</th>
                             <th scope="col" class="table__num">{{ __('Played') }}</th>
                             <th scope="col" class="table__num">{{ __('Won') }}</th>
+                            <th scope="col" class="table__num">{{ __('Venue pts') }}</th>
+                            <th scope="col">{{ __('Finale') }}</th>
                         </x-slot>
 
                         @foreach ($leaderboard as $index => $row)
@@ -67,6 +104,31 @@
                                 </td>
                                 <td class="table__num">{{ $row['played'] }}</td>
                                 <td class="table__num">{{ $row['wins'] }}</td>
+
+                                <td class="table__num">{{ $row['venue_points'] }}</td>
+
+                                <td>
+                                    @if (! $season->hasThresholds())
+                                        &mdash;
+                                    @elseif ($row['qualified'])
+                                        <x-badge variant="open">{{ __('Qualified') }}</x-badge>
+                                    @else
+                                        {{-- Plain text, not a badge. A badge is a short
+                                             state; this is a sentence, and the badge's
+                                             uppercase tracking made "Needs points, wins
+                                             and venue points" wrap to three lines in a
+                                             column this narrow. The reason still gets
+                                             named -- a bare cross tells a player they
+                                             failed without telling them what to fix. --}}
+                                        <span class="season-show__unmet">{{ __('Needs :what', [
+                                            'what' => collect($row['unmet'])->map(fn ($k) => match ($k) {
+                                                'points' => __('points'),
+                                                'wins' => __('wins'),
+                                                'venue_points' => __('venue points'),
+                                            })->join(', ', ' '.__('and').' '),
+                                        ]) }}</span>
+                                    @endif
+                                </td>
                             </tr>
                         @endforeach
                     </x-table>

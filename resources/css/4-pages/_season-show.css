@@ -27,3 +27,12 @@
     outline: 2px solid var(--c-primary);
     outline-offset: -2px;
 }
+
+/* Why a player has not qualified. Deliberately not a .badge: a badge is a
+   short state, and this is a phrase -- at the badge's uppercase tracking
+   "Needs points, wins and venue points" wrapped to three lines in the
+   standings column, which .l-sidebar keeps narrow. */
+.season-show__unmet {
+    font-size: var(--step--1);
+    color: var(--c-text-muted);
+}

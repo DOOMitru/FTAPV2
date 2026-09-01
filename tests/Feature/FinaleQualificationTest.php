@@ -346,4 +346,77 @@ class FinaleQualificationTest extends TestCase
 
         return $row;
     }
+
+    public function test_the_page_states_the_targets(): void
+    {
+        $season = $this->season([
+            'finale_points_required' => 300,
+            'finale_wins_required' => 2,
+            'finale_venue_points_required' => 50,
+        ]);
+
+        $this->actingAs($this->admin())->get(route('seasons.show', $season))
+            ->assertOk()
+            ->assertSee('Finale Qualification')
+            ->assertSee('300');
+    }
+
+    public function test_a_season_without_thresholds_says_so(): void
+    {
+        // Explicitly, rather than by rendering nothing: a reader cannot tell an
+        // absent panel from a rendering failure.
+        $this->actingAs($this->admin())->get(route('seasons.show', $this->season()))
+            ->assertOk()
+            ->assertSee('have not been set', false)
+            ->assertDontSee('Qualified');
+    }
+
+    public function test_a_partially_set_season_shows_only_the_numbers_it_has(): void
+    {
+        // hasThresholds() is ANY, so this season reaches the published branch.
+        // The two undecided figures must not render as 0 -- a target nobody
+        // chose and that everybody has already met.
+        $season = $this->season(['finale_points_required' => 300]);
+
+        $this->actingAs($this->admin())->get(route('seasons.show', $season))
+            ->assertOk()
+            ->assertSee('300')
+            ->assertSee('Not set');
+    }
+
+    public function test_the_standings_name_what_a_player_is_short_on(): void
+    {
+        // A bare cross tells a player they failed without telling them what to
+        // do about it.
+        $season = $this->season(['finale_wins_required' => 5]);
+        $player = User::factory()->create();
+        $this->resultFor($season, $player, place: 2, points: 100);
+
+        $this->actingAs($this->admin())->get(route('seasons.show', $season))
+            ->assertOk()
+            ->assertSee('Needs wins');
+    }
+
+    public function test_a_qualifying_player_is_marked_qualified(): void
+    {
+        $season = $this->season(['finale_points_required' => 100]);
+        $player = User::factory()->create();
+        $this->resultFor($season, $player, place: 1, points: 500);
+
+        $this->actingAs($this->admin())->get(route('seasons.show', $season))
+            ->assertOk()
+            ->assertSee('Qualified');
+    }
+
+    public function test_the_standings_show_venue_points(): void
+    {
+        $season = $this->season(['finale_venue_points_required' => 10]);
+        $player = User::factory()->create();
+        $this->resultFor($season, $player, place: 1, points: 100);
+        $this->venuePointsFor($player, 42, '-3 days');
+
+        $this->actingAs($this->admin())->get(route('seasons.show', $season))
+            ->assertOk()
+            ->assertSee('42');
+    }
 }
