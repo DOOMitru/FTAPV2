@@ -95,6 +95,15 @@
                                      anyway; saying so here is kinder than
                                      offering a button that will fail. --}}
                                 <x-badge variant="open">{{ __("You're registered") }}</x-badge>
+                            @elseif (! auth()->user()->isApproved())
+                                {{-- Same reasoning as the branch above: the
+                                     controller refuses this case anyway, and a
+                                     button that vanishes with no explanation
+                                     reads as a bug rather than as a decision
+                                     pending on you. Both this and the guard
+                                     call isApproved(), so what is offered and
+                                     what is refused cannot disagree. --}}
+                                <x-badge>{{ __('Awaiting approval') }}</x-badge>
                             @elseif ($tournament->registration_open)
                                 <form action="{{ route('tournaments.register', $tournament) }}" method="POST">
                                     @csrf

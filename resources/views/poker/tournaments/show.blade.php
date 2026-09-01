@@ -72,6 +72,12 @@
                                     <x-btn variant="ghost" type="submit">{{ __('Unregister') }}</x-btn>
                                 </form>
                             @endif
+                        @elseif (! auth()->user()->isApproved())
+                            {{-- Explained, not hidden. The controller refuses
+                                 this case anyway, and a control that vanishes
+                                 without a reason reads as a bug rather than as
+                                 a decision pending on you. --}}
+                            <x-badge>{{ __('Awaiting approval') }}</x-badge>
                         @elseif ($tournament->registration_open)
                             <form action="{{ route('tournaments.register', $tournament) }}" method="POST">
                                 @csrf

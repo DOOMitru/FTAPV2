@@ -188,4 +188,49 @@ class PlayerApprovalTest extends TestCase
             ->assertDontSee('Pendingly')
             ->assertDontSee('Refusedly');
     }
+
+    public function test_a_pending_player_is_told_why_rather_than_shown_a_register_button(): void
+    {
+        $player = User::factory()->pending()->create(['is_admin' => false]);
+        $tournament = $this->makeTournament();
+
+        $response = $this->actingAs($player)->get('/events');
+
+        // Asserted on the form ACTION, not on the word "Register": the page
+        // also says "Registration closes" and "Registration open", so a text
+        // assertion would pass for the wrong reason.
+        $response->assertOk()
+            ->assertSee(__('Awaiting approval'))
+            ->assertDontSee(route('tournaments.register', $tournament));
+    }
+
+    public function test_an_approved_player_still_gets_the_register_button(): void
+    {
+        // The other half of the pair. Without it, a change that hid the button
+        // from everyone would pass the test above.
+        $player = User::factory()->create(['is_admin' => false]);
+        $tournament = $this->makeTournament();
+
+        $this->actingAs($player)->get('/events')
+            ->assertOk()
+            ->assertSee(route('tournaments.register', $tournament));
+    }
+
+    public function test_the_admin_override_picker_on_a_tournament_offers_only_approved_players(): void
+    {
+        // A third picker, on the tournament page rather than the registrant
+        // form. It feeds the same register() override that refuses unapproved
+        // targets, so offering one here would let an administrator choose a
+        // player the very next request rejects.
+        $admin = User::factory()->create(['is_admin' => true]);
+        User::factory()->create(['first_name' => 'Approvedy', 'is_admin' => false]);
+        User::factory()->pending()->create(['first_name' => 'Pendingly', 'is_admin' => false]);
+
+        $tournament = $this->makeTournament();
+
+        $this->actingAs($admin)->get(route('tournaments.show', $tournament))
+            ->assertOk()
+            ->assertSee('Approvedy')
+            ->assertDontSee('Pendingly');
+    }
 }

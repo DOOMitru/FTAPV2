@@ -88,7 +88,12 @@ class PokerTournamentController extends Controller
         $availableUsers = collect();
         if (auth()->user()->is_admin) {
             $registeredUserIds = $tournament->registrants()->pluck('user_id')->toArray();
-            $availableUsers = \App\Models\User::whereNotIn('id', $registeredUserIds)
+            // approved(), for the same reason the registrant pickers filter:
+            // register() refuses an unapproved target, so offering one here
+            // would let an administrator pick a player the very next request
+            // rejects.
+            $availableUsers = \App\Models\User::approved()
+                ->whereNotIn('id', $registeredUserIds)
                 ->orderBy('first_name')
                 ->get();
         }
