@@ -123,14 +123,6 @@
                             </x-dropdown-link>
                         @endif
                     @endauth
-
-                    {{-- A consumer's own entry -- the details page's Unregister,
-                         which exists nowhere else. It styles its control as a
-                         .dropdown__item, which the component supports for both
-                         links and buttons. --}}
-                    @isset($actions)
-                        {{ $actions }}
-                    @endisset
                 </x-slot>
             </x-dropdown>
         </div>
@@ -199,22 +191,42 @@
             {{ $slot }}
         @endif
 
-        {{-- Register alone, and the row only exists when it does. Everything
-             else moved into the menu above, so an empty row here would be a
-             rule and a gap under every card that cannot be registered for. --}}
-        @auth
-            @if (! ($tournament->viewer_registered ?? false)
+        @php
+            // The two states of one control. A player either joins from here or
+            // leaves from here, and the row holds whichever applies -- putting
+            // Unregister in the menu made leaving a different kind of gesture
+            // from joining, hidden behind a click, for no reason but that the
+            // details page is the only page offering it.
+            $canRegister = auth()->check()
+                && ! ($tournament->viewer_registered ?? false)
                 && auth()->user()->isApproved()
-                && $tournament->registration_open)
-                <div class="p-event__actions">
+                && $tournament->registration_open;
+
+            // trim(), not isset(): the details page always passes this slot and
+            // fills it only when the viewer is registered and registration is
+            // still open, so an isset() check would render an empty row -- a
+            // rule and a gap under every card that offers nothing.
+            $hasGivenAction = isset($actions) && trim($actions) !== '';
+        @endphp
+
+        @if ($canRegister || $hasGivenAction)
+            <div class="p-event__actions">
+                @if ($canRegister)
+                    {{-- Primary: it is the thing the card wants you to do. --}}
                     <form action="{{ route('tournaments.register', $tournament) }}" method="POST">
                         @csrf
-                        {{-- Primary now that it stands alone: it was ghost
-                             because Details was the primary beside it. --}}
                         <x-btn variant="primary" type="submit">{{ __('Register') }}</x-btn>
                     </form>
-                </div>
-            @endif
-        @endauth
+                @endif
+
+                {{-- A consumer's own control, standing where Register would --
+                     the details page's Unregister, which exists nowhere else.
+                     The two are mutually exclusive in practice: nobody can both
+                     register and unregister for the same tournament. --}}
+                @if ($hasGivenAction)
+                    {{ $actions }}
+                @endif
+            </div>
+        @endif
     </div>
 </article>

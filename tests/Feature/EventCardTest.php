@@ -121,7 +121,12 @@ class EventCardTest extends TestCase
             ->get(route('tournaments.show', $tournament))
             ->assertOk()
             ->assertSee("You're registered")
-            ->assertDontSee('Unregister');
+            ->assertDontSee('Unregister')
+            // And no empty row where it would have been. The details page
+            // always passes the slot and fills it only when unregistering is
+            // possible, so the card has to test the slot's CONTENT -- isset()
+            // alone renders a rule and a gap under a card offering nothing.
+            ->assertDontSee('p-event__actions', false);
     }
 
     public function test_an_unapproved_player_is_told_why_there_is_no_register_button(): void
@@ -249,15 +254,28 @@ class EventCardTest extends TestCase
         );
     }
 
-    public function test_unregister_is_a_menu_entry_on_the_details_page(): void
+    public function test_unregister_stands_where_register_would(): void
     {
-        // It arrives through the card's slot, which now lands inside the menu,
-        // so the control has to be a .dropdown__item rather than a button.
+        // It arrives through the card's slot, which lands in the action row, so
+        // the control is a button again rather than a menu item -- and it is
+        // not in the menu, which is the half of this that could regress
+        // silently.
         $tournament = $this->tournament();
         $player = User::factory()->create();
         $this->register($tournament, $player);
 
-        $this->actingAs($player)->get(route('tournaments.show', $tournament))->assertOk()
-            ->assertSee('<button type="submit" class="dropdown__item">Unregister</button>', false);
+        $html = $this->actingAs($player)->get(route('tournaments.show', $tournament))
+            ->assertOk()->getContent();
+
+        $this->assertStringContainsString('p-event__actions', $html);
+
+        $row = substr($html, strpos($html, 'p-event__actions'));
+        $this->assertStringContainsString('Unregister', $row);
+
+        // Never both: someone registered cannot also be offered Register.
+        $this->assertStringNotContainsString('>Register<', $row);
+
+        // And no longer a menu item.
+        $this->assertStringNotContainsString('class="dropdown__item">Unregister', $html);
     }
 }

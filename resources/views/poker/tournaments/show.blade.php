@@ -34,9 +34,12 @@
 
             <x-slot name="actions">
                 {{-- Unregister lives only here, so the shared card does not
-                     carry it. It renders inside that card's menu now, so the
-                     control is a .dropdown__item rather than a button -- the
-                     component styles both links and buttons with it.
+                     carry it. It stands in the action row where Register would
+                     be, so it is a button again rather than a menu item.
+
+                     Ghost, not primary: leaving is not what the card is asking
+                     you to do, and a red button alone in that row would read as
+                     the call to action.
 
                      Both conditions are the controller's: it refuses an
                      unregister once registration has closed. --}}
@@ -45,7 +48,7 @@
                           data-confirm="{{ __('Are you sure you want to unregister from this tournament?') }}">
                         @csrf
                         @method('DELETE')
-                        <button type="submit" class="dropdown__item">{{ __('Unregister') }}</button>
+                        <x-btn variant="ghost" type="submit">{{ __('Unregister') }}</x-btn>
                     </form>
                 @endif
             </x-slot>
