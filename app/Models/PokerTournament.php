@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Collection;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class PokerTournament extends Model
@@ -40,6 +41,52 @@ class PokerTournament extends Model
             get: fn () => $this->scheduled_at !== null
                 && ! \Illuminate\Support\Carbon::parse($this->scheduled_at)->isPast(),
         );
+    }
+
+    /**
+     * The podium, but only the places that are actually settled.
+     *
+     * Places are handed out from the bottom of the field up, so the lowest
+     * place numbers on record are NOT the podium until the field has shrunk to
+     * meet them. With eight players of ten out, the best finish recorded is
+     * third; first and second are still being played for, and showing the
+     * current top three would put two players on a podium nobody has won.
+     *
+     * Third is settled once two players are left, which is the moment it was
+     * awarded. First and second appear together and only once everyone has a
+     * result: second is technically known when one player remains, but a
+     * silver medal beside an empty gold one reads as a rendering fault.
+     */
+    public function podium(): Collection
+    {
+        $remaining = max(0, $this->countOf('registrants') - $this->countOf('results'));
+
+        $settled = match (true) {
+            $remaining === 0 => [1, 2, 3],
+            $remaining <= 2 => [3],
+            default => [],
+        };
+
+        if ($settled === []) {
+            return collect();
+        }
+
+        return $this->results->whereIn('place', $settled)->sortBy('place')->values();
+    }
+
+    /**
+     * Count a relation from whatever the caller already has: a loaded
+     * relation, then a withCount alias, and only then a query of its own. The
+     * events archive draws a podium per tournament, so a query here would be a
+     * query per card.
+     */
+    private function countOf(string $relation): int
+    {
+        if ($this->relationLoaded($relation)) {
+            return $this->getRelation($relation)->count();
+        }
+
+        return $this->{$relation.'_count'} ?? $this->{$relation}()->count();
     }
 
     public function venue(): BelongsTo

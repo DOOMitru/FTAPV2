@@ -44,10 +44,12 @@
 
                         <span class="p-leader__nickname">{{ $tournament->venue->name ?? __('Location TBD') }}</span>
 
-                        {{-- sortBy('place'), not the collection's own order: the
-                             results relation is unordered, so take(3) alone gave
-                             three arbitrary players rather than the podium. --}}
-                        @php $podium = $tournament->results->sortBy('place')->take(3); @endphp
+                        {{-- The settled places only -- see
+                             PokerTournament::podium(). This was
+                             sortBy('place')->take(3), which is the current best
+                             three: on a tournament still being played out they
+                             are the last few knocked out, not the podium. --}}
+                        @php $podium = $tournament->podium(); @endphp
 
                         @if ($podium->isNotEmpty())
                             <ol class="p-podium">

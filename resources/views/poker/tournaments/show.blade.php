@@ -75,15 +75,24 @@
              column they were written into. See 4-pages/_tournament-show.css. --}}
         <div class="l-sidebar tshow__panels">
             <div class="l-stack">
-                @if ($isPast && $podium->isNotEmpty())
+                {{-- No $isPast here. The podium is empty until its places are
+                     settled, so it hides itself -- and "play has begun" was
+                     never the right question anyway: what decides a podium is
+                     how many players are left, not the clock. --}}
+                @if ($podium->isNotEmpty())
                     <x-card :title="__('Podium')" class="tshow__podium">
-                        {{-- 1-2-3 in the DOM, 2-1-3 on screen. See .podium. --}}
+                        {{-- 1-2-3 in the DOM, 2-1-3 on screen. See .podium.
+
+                             Keyed on the result's own place, not on its
+                             position in the list: third can be settled while
+                             first and second are not, and by index that lone
+                             bronze finisher would be dressed in gold. --}}
                         <ol class="podium">
-                            @foreach ($podium as $index => $winner)
-                                <li class="podium__place podium__place--{{ $index + 1 }}">
+                            @foreach ($podium as $winner)
+                                <li class="podium__place podium__place--{{ $winner->place }}">
                                     <span class="podium__seat">{{ strtoupper(substr($winner->player_name, 0, 1)) }}</span>
                                     <span class="podium__name">{{ $winner->player_name }}</span>
-                                    <span class="podium__step">{{ $index + 1 }}</span>
+                                    <span class="podium__step">{{ $winner->place }}</span>
                                 </li>
                             @endforeach
                         </ol>
@@ -130,6 +139,8 @@
                     </x-slot>
 
                     @forelse ($tournament->registrants->sortBy('player_name') as $registrant)
+                        @php $result = $resultsByUser[$registrant->user_id] ?? null; @endphp
+
                         <div class="entry">
                             <span class="podium__seat">{{ strtoupper(substr($registrant->player_name, 0, 1)) }}</span>
 
@@ -138,6 +149,41 @@
 
                                 @if (filled($registrant->player_nickname))
                                     <div class="entry__meta"><span>{{ $registrant->player_nickname }}</span></div>
+                                @endif
+                            </div>
+
+                            <div class="entry__actions">
+                                @if ($result)
+                                    {{-- Already out. Their finish replaces the
+                                         control, so the row says what happened
+                                         rather than offering to do it again. --}}
+                                    <x-badge>{{ \Illuminate\Support\Number::ordinal($result->place) }}
+                                        &middot; {{ number_format($result->points) }} {{ __('pts') }}</x-badge>
+                                @elseif (auth()->user()->is_admin && ! $tournament->registration_open)
+                                    {{-- Only once the field is settled: a late
+                                         entry would change how many places there
+                                         are, and the ones already awarded would
+                                         be wrong. The controller refuses it in
+                                         that state too.
+
+                                         The confirmation names the place and the
+                                         points because neither is chosen here --
+                                         they fall out of how many players are
+                                         still in, and an administrator should
+                                         see what they are about to award before
+                                         they award it. --}}
+                                    <form action="{{ route('poker.tournaments.eliminate', $tournament) }}"
+                                          method="POST"
+                                          data-confirm="{{ __('Eliminate :name? They finish in :place place and are awarded :points points. This records a tournament result.', [
+                                              'name' => $registrant->player_name,
+                                              'place' => \Illuminate\Support\Number::ordinal($nextPlace),
+                                              'points' => number_format($nextPlacePoints),
+                                          ]) }}">
+                                        @csrf
+                                        <input type="hidden" name="user_id" value="{{ $registrant->user_id }}">
+
+                                        <x-btn variant="ghost" size="sm" type="submit">{{ __('Eliminate') }}</x-btn>
+                                    </form>
                                 @endif
                             </div>
                         </div>

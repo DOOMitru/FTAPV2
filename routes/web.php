@@ -127,7 +127,10 @@ Route::get('/events', function () {
         ->paginate(2)
         ->withQueryString();
 
+    // withCount('registrants'): podium() needs the size of the field to know
+    // which places are settled, and this page draws one podium per card.
     $pastTournaments = \App\Models\PokerTournament::with(['venue', 'season', 'results'])
+        ->withCount('registrants')
         ->where('start_time', '<', now())
         ->orderBy('start_time', 'desc')
         ->get();
@@ -166,6 +169,11 @@ Route::middleware('auth')->group(function () {
         Route::resource('seasons', \App\Http\Controllers\Poker\PokerSeasonController::class)->except(['show']);
         Route::resource('venues', \App\Http\Controllers\Poker\VenueController::class);
         Route::resource('tournaments', \App\Http\Controllers\Poker\PokerTournamentController::class)->except(['show']);
+
+        // Recording a knockout, not editing a tournament, so it sits beside the
+        // resource rather than inside it. Admin-only by this group.
+        Route::post('tournaments/{tournament}/eliminate', [\App\Http\Controllers\Poker\PokerTournamentController::class, 'eliminate'])
+            ->name('tournaments.eliminate');
         Route::resource('results', \App\Http\Controllers\Poker\PokerTournamentResultController::class)->except(['show']);
         Route::resource('registrants', \App\Http\Controllers\Poker\PokerTournamentRegistrantController::class)->except(['show']);
         Route::resource('venue-points', \App\Http\Controllers\Poker\VenuePointsController::class)->except(['show']);
