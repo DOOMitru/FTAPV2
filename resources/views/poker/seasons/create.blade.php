@@ -14,9 +14,17 @@
                     <textarea class="field__control" name="description" id="description" rows="3">{{ old('description') }}</textarea>
                 </x-field>
 
-                <x-field name="start_date" :label="__('Start Date')" type="date" :value="old('start_date')" required />
+                {{-- One line above a phone, stacked below it. .l-grid rather
+                     than a media query: it collapses when two 16rem tracks no
+                     longer fit, and it is the same primitive the register form
+                     uses to pair first and last name. A start and an end date
+                     are one range read together, so a full stack step between
+                     them separates two halves of a single fact. --}}
+                <div class="l-grid">
+                    <x-field name="start_date" :label="__('Start Date')" type="date" :value="old('start_date')" required />
 
-                <x-field name="end_date" :label="__('End Date')" type="date" :value="old('end_date')" required />
+                    <x-field name="end_date" :label="__('End Date')" type="date" :value="old('end_date')" required />
+                </div>
 
                 {{-- The finale rules. Optional on purpose: a season is often
                      created before its thresholds are decided, and an empty

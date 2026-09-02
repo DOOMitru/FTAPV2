@@ -19,9 +19,17 @@
                      stringifies as "2026-05-01 00:00:00". An <input type="date">
                      accepts YYYY-MM-DD and renders anything else as BLANK, so
                      editing a season silently offered to wipe its dates. --}}
-                <x-field name="start_date" :label="__('Start Date')" type="date" :value="old('start_date', $season->start_date?->format('Y-m-d'))" required />
+                {{-- One line above a phone, stacked below it. .l-grid rather
+                     than a media query: it collapses when two 16rem tracks no
+                     longer fit, and it is the same primitive the register form
+                     uses to pair first and last name. A start and an end date
+                     are one range read together, so a full stack step between
+                     them separates two halves of a single fact. --}}
+                <div class="l-grid">
+                    <x-field name="start_date" :label="__('Start Date')" type="date" :value="old('start_date', $season->start_date?->format('Y-m-d'))" required />
 
-                <x-field name="end_date" :label="__('End Date')" type="date" :value="old('end_date', $season->end_date?->format('Y-m-d'))" required />
+                    <x-field name="end_date" :label="__('End Date')" type="date" :value="old('end_date', $season->end_date?->format('Y-m-d'))" required />
+                </div>
 
                 {{-- The finale rules. Optional on purpose: a season is often
                      created before its thresholds are decided, and an empty
