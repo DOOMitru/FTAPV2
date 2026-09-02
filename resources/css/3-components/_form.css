@@ -1,3 +1,17 @@
+/* The height a form control resolves to, expressed from the very values it is
+   built from rather than measured off a screenshot -- so anything that has to
+   stand beside one can ask for the number and cannot drift from it.
+ *
+   Not in _tokens.css: this is not a design decision, it is a consequence of
+   three that already live there. */
+:root {
+    --control-height: calc(
+        var(--step-0) * var(--leading-normal)
+        + var(--space-2) * 2
+        + var(--border-width) * 2
+    );
+}
+
 .field__label {
     display: block;
     font-family: var(--font-body);
@@ -11,6 +25,9 @@
 .field__control {
     display: block;
     width: 100%;
+    /* Its natural height already, stated so that --control-height is the
+       authority rather than a guess about it. */
+    min-height: var(--control-height);
     margin-block-start: var(--space-2);
     padding: var(--space-2) var(--space-3);
     border: var(--border-width) solid var(--c-border);
@@ -48,6 +65,68 @@
     flex-wrap: wrap;
     align-items: stretch;
     gap: var(--space-2);
+}
+
+/* Two fields on one line, stacking when there is no room for both. */
+.field-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: start;
+    gap: var(--space-4);
+}
+
+/* The one that takes the leftover width. Everything else in the row keeps its
+   own, which is what lets a fixed figure sit beside an input that grows. */
+.field-row__grow {
+    flex: 1 1 12rem;
+}
+
+/* Actions sharing a field row. They have no label of their own, so they take
+   the space one would have occupied -- from an empty label rather than a
+   hard-coded offset, so it stays right if the label's type ever changes.
+ *
+ * The row is aligned to its start, not its end: a validation message appears
+ * BELOW a control, and end-aligning would lift the input above the buttons at
+ * exactly the moment someone is trying to fix it. */
+.field-row__actions {
+    flex: 0 0 auto;
+}
+
+.field-row__actions > .l-cluster {
+    margin-block-start: var(--space-2);
+    /* As tall as the control beside it, with .l-cluster's own centring putting
+       the buttons on its middle. Top-aligned they sat high against a taller
+       input, which is what "next to" is not. */
+    min-height: var(--control-height);
+}
+
+/* Wrapped onto its own line, the reserved label space is a gap above the
+   buttons with nothing in it. */
+@media (max-width: 48rem) {
+    .field-row__actions > .field__label {
+        display: none;
+    }
+
+    .field-row__actions > .l-cluster {
+        margin-block-start: 0;
+    }
+}
+
+/* A value shown where a control would be. Same padding, radius and type size
+   as .field__control so the two line up exactly when they sit side by side --
+   and a transparent border rather than none, so it occupies the same height
+   as the bordered box beside it rather than sitting a pixel high.
+   Plainly not editable: no visible border, and the raised ground reads as
+   inert next to a control's own. */
+.field__static {
+    display: block;
+    margin-block-start: var(--space-2);
+    padding: var(--space-2) var(--space-3);
+    border: var(--border-width) solid transparent;
+    border-radius: var(--radius-sm);
+    background-color: var(--c-surface-raised);
+    font-size: var(--step-0);
+    font-weight: 600;
 }
 
 /* A control that sits in a row instead of under a label. The base is built for

@@ -39,6 +39,6 @@
     <div class="l-cluster">
         <x-btn variant="primary">{{ $sponsor ? __('Save') : __('Add Sponsor') }}</x-btn>
 
-        <a class="link" href="{{ route('sponsors.index') }}">{{ __('Cancel') }}</a>
+        <x-btn variant="ghost" :href="route('sponsors.index')">{{ __('Cancel') }}</x-btn>
     </div>
 </form>

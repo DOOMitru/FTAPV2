@@ -42,7 +42,7 @@
                 <div class="l-cluster">
                     <x-btn variant="primary">{{ __('Save') }}</x-btn>
 
-                    <a class="link" href="{{ route('poker.venue-points.index') }}">{{ __('Cancel') }}</a>
+                    <x-btn variant="ghost" :href="route('poker.venue-points.index')">{{ __('Cancel') }}</x-btn>
                 </div>
             </form>
         </x-card>

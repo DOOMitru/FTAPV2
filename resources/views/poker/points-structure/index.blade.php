@@ -12,6 +12,10 @@
             <x-alert variant="success">{{ session('status') }}</x-alert>
         @endif
 
+        @if (session('error'))
+            <x-alert variant="danger">{{ session('error') }}</x-alert>
+        @endif
+
         <x-card flush>
             <x-table>
                 <x-slot name="head">
@@ -30,13 +34,22 @@
                             <div class="l-cluster l-cluster--end">
                                 <x-action icon="edit" :label="__('Edit')" :href="route('poker.points-structure.edit', $structure)" />
 
-                                <form action="{{ route('poker.points-structure.destroy', $structure) }}" method="POST"
-                                      data-confirm="{{ __('Delete :name? This cannot be undone.', ['name' => $structure->place.__(' place')]) }}">
-                                    @csrf
-                                    @method('DELETE')
+                                {{-- The deepest place only. The ladder shrinks
+                                     from the bottom, so offering Delete on a
+                                     middle row would be offering a control the
+                                     controller refuses. --}}
+                                @if ($structure->place === $lastPlace)
+                                    <form action="{{ route('poker.points-structure.destroy', $structure) }}" method="POST"
+                                          data-confirm="{{ __('Remove :place place, worth :points points?', [
+                                              'place' => \Illuminate\Support\Number::ordinal($structure->place),
+                                              'points' => number_format($structure->points),
+                                          ]) }}">
+                                        @csrf
+                                        @method('DELETE')
 
-                                    <x-action icon="delete" :label="__('Delete')" danger />
-                                </form>
+                                        <x-action icon="delete" :label="__('Delete')" danger />
+                                    </form>
+                                @endif
                             </div>
                         </td>
                     </tr>

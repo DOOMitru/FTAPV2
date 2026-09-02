@@ -8,14 +8,37 @@
             <form method="POST" action="{{ route('poker.points-structure.store') }}" class="l-stack">
                 @csrf
 
-                <x-field name="place" :label="__('Place')" type="number" :value="old('place')" required autofocus />
+                {{-- Inlined: a fixed figure beside the one field there is
+                     to fill in. The structure is a ladder from first place
+                     down, so the next entry is always one deeper than the
+                     deepest -- there is nothing here to decide. --}}
+                <div class="field-row">
+                    <div>
+                        <span class="field__label">{{ __('Place') }}</span>
+                        <p class="field__static">{{ \Illuminate\Support\Number::ordinal($nextPlace) }}</p>
+                    </div>
 
-                <x-field name="points" :label="__('Points')" type="number" :value="old('points')" required />
+                    <div class="field-row__grow">
+                        <x-field name="points" :label="__('Points')" type="number" min="1"
+                                 :value="old('points')"
+                                 :hint="__('Must be at least 1. A place worth nothing is a place left out of the structure.')"
+                                 required autofocus />
+                    </div>
 
-                <div class="l-cluster">
-                    <x-btn variant="primary">{{ __('Save') }}</x-btn>
+                    {{-- On the row, not under it: two controls and their
+                         actions are one line's worth of form. The empty label
+                         reserves the space the labels beside it take, so the
+                         buttons line up with the inputs rather than with the
+                         words above them. --}}
+                    <div class="field-row__actions">
+                        <span class="field__label" aria-hidden="true">&nbsp;</span>
 
-                    <a class="link" href="{{ route('poker.points-structure.index') }}">{{ __('Cancel') }}</a>
+                        <div class="l-cluster">
+                            <x-btn variant="primary">{{ __('Save') }}</x-btn>
+
+                            <x-btn variant="ghost" :href="route('poker.points-structure.index')">{{ __('Cancel') }}</x-btn>
+                        </div>
+                    </div>
                 </div>
             </form>
         </x-card>

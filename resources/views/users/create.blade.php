@@ -36,7 +36,7 @@
                 <div class="l-cluster">
                     <x-btn variant="primary">{{ __('Register Player') }}</x-btn>
 
-                    <a class="link" href="{{ route('users.index') }}">{{ __('Cancel') }}</a>
+                    <x-btn variant="ghost" :href="route('users.index')">{{ __('Cancel') }}</x-btn>
                 </div>
             </form>
         </x-card>
