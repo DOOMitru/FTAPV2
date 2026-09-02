@@ -67,10 +67,13 @@
             </div>
         @endif
 
-        <div class="l-sidebar">
+        {{-- Below 60rem the two columns dissolve and these cards become
+             items of one grid, ordered by .tshow__* rather than by which
+             column they were written into. See 4-pages/_tournament-show.css. --}}
+        <div class="l-sidebar tshow__panels">
             <div class="l-stack">
                 @if ($isPast && $podium->isNotEmpty())
-                    <x-card :title="__('Podium')">
+                    <x-card :title="__('Podium')" class="tshow__podium">
                         {{-- 1-2-3 in the DOM, 2-1-3 on screen. See .podium. --}}
                         <ol class="podium">
                             @foreach ($podium as $index => $winner)
@@ -85,7 +88,7 @@
                 @endif
 
                 @if ($isPast)
-                    <x-card :title="__('Final Standings')" flush>
+                    <x-card :title="__('Final Standings')" flush class="tshow__standings">
                         <x-table>
                             <x-slot name="head">
                                 <th scope="col">{{ __('Pos') }}</th>
@@ -118,7 +121,7 @@
                     </x-card>
                 @endif
 
-                <x-card :title="__('Registered Players')" flush>
+                <x-card :title="__('Registered Players')" flush class="tshow__players">
                     <x-slot name="actions">
                         <x-badge>{{ $registrantsCount }}</x-badge>
                     </x-slot>
@@ -142,30 +145,97 @@
             </div>
 
             <div class="l-stack">
-                @if (auth()->user()->is_admin && $availableUsers->isNotEmpty())
-                    <x-card :title="__('Admin: Register')">
-                        <form action="{{ route('tournaments.register', $tournament) }}" method="POST" class="l-stack">
-                            @csrf
+                {{-- is_admin alone. The card used to require a non-empty list
+                     as well, so once everyone was entered the register control
+                     vanished with no explanation -- which reads as a bug rather
+                     than as a state, the same reasoning that keeps "Awaiting
+                     approval" on the event card instead of hiding its button.
+                     The empty case now says what happened. --}}
+                @if (auth()->user()->is_admin)
+                    {{-- A searchable list, not a <select>. The select could not
+                         be searched past the browser's type-to-jump, which
+                         matches the start of the label only -- so an
+                         administrator who knew a nickname or an email address
+                         had no way to use it.
 
-                            <x-field name="user_id" :label="__('Select Player')">
-                                <select class="field__control" name="user_id" id="user_id" required>
-                                    <option value="">{{ __('-- Choose User --') }}</option>
+                         $availableUsers is already the right set: the
+                         controller excludes anyone registered for this
+                         tournament and anyone unapproved, because register()
+                         refuses both and offering them would be offering a
+                         button that fails. --}}
+                    <x-card :title="__('Admin: Register')" class="tshow__register">
+                        @php
+                            // One lowercase haystack per row, built once here
+                            // rather than in the filter: the search has to cover
+                            // name, nickname and email, and doing that in the
+                            // expression would repeat four fields in two places.
+                            $haystack = fn ($u) => mb_strtolower(trim(
+                                $u->first_name.' '.$u->last_name.' '.$u->nickname.' '.$u->email
+                            ));
+                        @endphp
 
+                        <div class="l-stack l-stack--tight"
+                             x-data="{ q: '', terms: {{ Illuminate\Support\Js::from($availableUsers->map($haystack)->values()) }} }">
+                            <label class="u-visually-hidden" for="player-search">
+                                {{ __('Search players') }}
+                            </label>
+
+                            <input id="player-search" type="search" class="field__control"
+                                   x-model="q" placeholder="{{ __('Name, nickname or email') }}">
+
+                            @if ($availableUsers->isEmpty())
+                                <x-empty-state :title="__('Everyone is registered')">
+                                    {{ __('Every approved player is already entered in this tournament.') }}
+                                </x-empty-state>
+                            @else
+                                <ul class="picker">
                                     @foreach ($availableUsers as $user)
-                                        <option value="{{ $user->id }}">
-                                            {{ $user->first_name }} {{ $user->last_name }}{{ filled($user->nickname) ? ' ('.$user->nickname.')' : '' }}
-                                        </option>
-                                    @endforeach
-                                </select>
-                            </x-field>
+                                        {{-- Rendered server-side and hidden by the
+                                             filter, rather than built from the
+                                             array in x-data. If the script never
+                                             runs, an administrator still sees every
+                                             player and can still register one; an
+                                             x-for list would be empty. --}}
+                                        <li class="picker__item"
+                                            data-search="{{ $haystack($user) }}"
+                                            x-show="$el.dataset.search.includes(q.trim().toLowerCase())">
+                                            <form action="{{ route('tournaments.register', $tournament) }}"
+                                                  method="POST"
+                                                  data-confirm="{{ __('Register :name for :tournament?', [
+                                                      'name' => $user->first_name.' '.$user->last_name,
+                                                      'tournament' => $tournament->name,
+                                                  ]) }}">
+                                                @csrf
+                                                <input type="hidden" name="user_id" value="{{ $user->id }}">
 
-                            <x-btn variant="primary" class="btn--block">{{ __('Register Player') }}</x-btn>
-                        </form>
+                                                <button type="submit" class="picker__btn">
+                                                    <span class="picker__name">
+                                                        {{ $user->first_name }} {{ $user->last_name }}{{ filled($user->nickname) ? ' ('.$user->nickname.')' : '' }}
+                                                    </span>
+
+                                                    <span class="picker__meta">{{ $user->email }}</span>
+                                                </button>
+                                            </form>
+                                        </li>
+                                    @endforeach
+                                </ul>
+
+                                {{-- The terms array exists for this line alone.
+                                     The rows filter themselves from their own
+                                     data-search; knowing whether ANY of them
+                                     matched needs the set. --}}
+                                <p class="picker__empty"
+                                   x-show="terms.filter(t => t.includes(q.trim().toLowerCase())).length === 0"
+                                   x-cloak>
+                                    {{ __('No players match that search.') }}
+                                </p>
+                            @endif
+                        </div>
                     </x-card>
                 @endif
 
                 @if (! $isPast && $pointsStructure->isNotEmpty())
-                    <x-card :title="__('Points at Stake')">
+                    <x-card :title="__('Points at Stake')" class="tshow__points">
                         <dl class="rows">
                             @foreach ($pointsStructure as $structure)
                                 <div class="row">

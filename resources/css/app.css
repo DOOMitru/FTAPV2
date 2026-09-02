@@ -36,6 +36,7 @@
 @import "./3-components/_rows.css";
 @import "./3-components/_nav.css";
 @import "./3-components/_pagination.css";
+@import "./3-components/_picker.css";
 @import "./3-components/_sponsor-admin.css";
 @import "./3-components/_site-footer.css";
 @import "./3-components/_scrollbar.css";
@@ -43,6 +44,7 @@
 @import "./4-pages/_season-show.css";
 @import "./4-pages/_venue-show.css";
 @import "./4-pages/_venues.css";
+@import "./4-pages/_tournament-show.css";
 
 /* The public register — gradients and elevation, allowed here and nowhere
    else. Guarded by PublicRegisterTest. */
