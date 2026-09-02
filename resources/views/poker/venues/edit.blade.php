@@ -17,10 +17,10 @@
 
                 <x-field name="address" :label="__('Physical Address')" :value="old('address', $venue->address)" placeholder="e.g. 123 Poker Street, Las Vegas, NV" :hint="__('Optional: Providing an address will enable a Google Maps preview.')" />
 
-                <div class="l-cluster">
-                    <x-btn variant="primary">{{ __('Save') }}</x-btn>
-
+                <div class="l-cluster l-cluster--end">
                     <x-btn variant="ghost" :href="route('poker.venues.index')">{{ __('Cancel') }}</x-btn>
+
+                    <x-btn variant="primary">{{ __('Save') }}</x-btn>
                 </div>
             </form>
         </x-card>

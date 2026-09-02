@@ -59,10 +59,10 @@
                     <x-input-error :messages="$errors->get('is_admin')" />
                 </div>
 
-                <div class="l-cluster">
-                    <x-btn variant="primary">{{ __('Update User') }}</x-btn>
-
+                <div class="l-cluster l-cluster--end">
                     <x-btn variant="ghost" :href="route('users.index')">{{ __('Cancel') }}</x-btn>
+
+                    <x-btn variant="primary">{{ __('Update User') }}</x-btn>
                 </div>
             </form>
         </x-card>

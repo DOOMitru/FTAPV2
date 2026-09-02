@@ -67,10 +67,10 @@
                     <x-input-error :messages="$errors->get('is_current')" />
                 </div>
 
-                <div class="l-cluster">
-                    <x-btn variant="primary">{{ __('Save') }}</x-btn>
-
+                <div class="l-cluster l-cluster--end">
                     <x-btn variant="ghost" :href="route('poker.seasons.index')">{{ __('Cancel') }}</x-btn>
+
+                    <x-btn variant="primary">{{ __('Save') }}</x-btn>
                 </div>
             </form>
         </x-card>

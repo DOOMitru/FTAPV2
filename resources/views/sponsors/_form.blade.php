@@ -36,9 +36,9 @@
 
     <p class="field__hint">{{ __('Lower numbers appear first, within a tier. Premium sponsors always come before regular ones.') }}</p>
 
-    <div class="l-cluster">
-        <x-btn variant="primary">{{ $sponsor ? __('Save') : __('Add Sponsor') }}</x-btn>
-
+    <div class="l-cluster l-cluster--end">
         <x-btn variant="ghost" :href="route('sponsors.index')">{{ __('Cancel') }}</x-btn>
+
+        <x-btn variant="primary">{{ $sponsor ? __('Save') : __('Add Sponsor') }}</x-btn>
     </div>
 </form>

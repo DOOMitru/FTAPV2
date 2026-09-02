@@ -82,7 +82,7 @@
             </div>
         @endif
 
-        <div class="l-cluster">
+        <div class="l-cluster l-cluster--end">
             <x-btn variant="primary">{{ __('Save') }}</x-btn>
 
             @if (session('status') === 'profile-updated')

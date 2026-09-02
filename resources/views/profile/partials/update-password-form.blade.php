@@ -22,7 +22,7 @@
         <x-field name="password_confirmation" type="password" bag="updatePassword"
                  :label="__('Confirm Password')" autocomplete="new-password" />
 
-        <div class="l-cluster">
+        <div class="l-cluster l-cluster--end">
             <x-btn variant="primary">{{ __('Save') }}</x-btn>
 
             @if (session('status') === 'password-updated')

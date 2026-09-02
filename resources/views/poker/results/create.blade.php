@@ -75,10 +75,10 @@
                     <x-field name="player_nickname" :label="__('Player Nickname (Optional)')" :value="old('player_nickname')" />
                 </div>
 
-                <div class="l-cluster">
-                    <x-btn variant="primary">{{ __('Save Result') }}</x-btn>
-
+                <div class="l-cluster l-cluster--end">
                     <x-btn variant="ghost" :href="route('poker.results.index')">{{ __('Cancel') }}</x-btn>
+
+                    <x-btn variant="primary">{{ __('Save Result') }}</x-btn>
                 </div>
             </form>
         </x-card>

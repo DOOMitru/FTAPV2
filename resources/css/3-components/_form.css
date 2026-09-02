@@ -100,9 +100,30 @@
     min-height: var(--control-height);
 }
 
-/* Wrapped onto its own line, the reserved label space is a gap above the
-   buttons with nothing in it. */
-@media (max-width: 48rem) {
+/* Below this the actions take their own line, and they take it on purpose.
+ *
+ * The breakpoint was 48rem, which was a guess at when the row had wrapped, and
+ * the guess was wrong from about 545px to 768px: the row still fitted on one
+ * line, but the rules for a wrapped one had already applied. The label spacer
+ * was hidden and the margin zeroed, so the buttons sat at the top of the row
+ * instead of level with the input beside them.
+ *
+ * 36rem is above the width at which this row genuinely runs out of room, so
+ * the stack is now declared rather than discovered and the two cannot
+ * disagree.
+ *
+ * flex-basis is what makes it a declaration. Left to wrap on its own, the
+ * actions box is only as wide as the buttons in it, so the .l-cluster--end
+ * inside has nothing to push against and the buttons sit at the start of the
+ * line -- the one place in the dashboard where a form's actions were not
+ * flush right. Given the whole line, the cluster can end them. */
+@media (max-width: 36rem) {
+    .field-row__actions {
+        flex-basis: 100%;
+    }
+
+    /* Wrapped onto its own line, the reserved label space is a gap above the
+       buttons with nothing in it. */
     .field-row__actions > .field__label {
         display: none;
     }

@@ -33,10 +33,10 @@
                     <div class="field-row__actions">
                         <span class="field__label" aria-hidden="true">&nbsp;</span>
 
-                        <div class="l-cluster">
-                            <x-btn variant="primary">{{ __('Save') }}</x-btn>
-
+                        <div class="l-cluster l-cluster--end">
                             <x-btn variant="ghost" :href="route('poker.points-structure.index')">{{ __('Cancel') }}</x-btn>
+
+                            <x-btn variant="primary">{{ __('Save') }}</x-btn>
                         </div>
                     </div>
                 </div>

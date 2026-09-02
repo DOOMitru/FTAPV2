@@ -39,10 +39,10 @@
 
                 <x-field name="amount" :label="__('Amount')" type="number" :value="old('amount', $venue_point->amount)" required />
 
-                <div class="l-cluster">
-                    <x-btn variant="primary">{{ __('Save') }}</x-btn>
-
+                <div class="l-cluster l-cluster--end">
                     <x-btn variant="ghost" :href="route('poker.venue-points.index')">{{ __('Cancel') }}</x-btn>
+
+                    <x-btn variant="primary">{{ __('Save') }}</x-btn>
                 </div>
             </form>
         </x-card>
