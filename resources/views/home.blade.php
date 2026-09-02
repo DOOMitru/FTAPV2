@@ -278,34 +278,29 @@
                 {{ __('A heartfelt thank you to the local businesses standing behind this league. Their backing is what puts cards on the table every week, and we could not be prouder to have them in our corner. Please support the businesses that support us — tell them First to Act sent you.') }}
             </x-p-hero>
 
-            <div class="p-sponsors">
-                @foreach ($sponsors as $sponsor)
-                    @php
-                        $classes = 'p-sponsor p-raised p-lift'.($sponsor->isPremium() ? ' p-sponsor--premium' : '');
-                    @endphp
+            @php
+                // Two walls, not one. Splitting them is what puts the regular
+                // sponsors on a row of their own -- a single grid flows them
+                // straight on from the premium ones, wherever that lands.
+                $premiumSponsors = $sponsors->filter->isPremium();
+                $regularSponsors = $sponsors->reject->isPremium();
+            @endphp
 
-                    {{-- The card is a link only when there is somewhere to go.
-                         An <a> without an href is not a link, and a card that
-                         looks clickable and is not is worse than a plain one. --}}
-                    @if ($sponsor->website_url)
-                        <a class="{{ $classes }}" href="{{ $sponsor->website_url }}"
-                           target="_blank" rel="noopener noreferrer">
-                            {{-- alt is the sponsor's NAME, not empty: the logo
-                                 is the content here, and empty alt would leave
-                                 a screen reader with nothing where a sponsor
-                                 should be. --}}
-                            <img class="p-sponsor__logo" src="{{ $sponsor->logoUrl() }}" alt="{{ $sponsor->name }}">
-                            <span class="p-sponsor__name">{{ $sponsor->name }}</span>
-                            <span class="u-visually-hidden">{{ __('(opens in a new tab)') }}</span>
-                        </a>
-                    @else
-                        <div class="{{ $classes }}">
-                            <img class="p-sponsor__logo" src="{{ $sponsor->logoUrl() }}" alt="{{ $sponsor->name }}">
-                            <span class="p-sponsor__name">{{ $sponsor->name }}</span>
-                        </div>
-                    @endif
-                @endforeach
-            </div>
+            @if ($premiumSponsors->isNotEmpty())
+                <div class="p-sponsors p-sponsors--premium">
+                    @foreach ($premiumSponsors as $sponsor)
+                        <x-p-sponsor :sponsor="$sponsor" />
+                    @endforeach
+                </div>
+            @endif
+
+            @if ($regularSponsors->isNotEmpty())
+                <div class="p-sponsors">
+                    @foreach ($regularSponsors as $sponsor)
+                        <x-p-sponsor :sponsor="$sponsor" />
+                    @endforeach
+                </div>
+            @endif
 
             <div class="p-cta">
                 <p class="p-cta__lede">{{ __('Interested in becoming a sponsor?') }}</p>

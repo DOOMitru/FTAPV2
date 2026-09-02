@@ -1280,11 +1280,96 @@
 
 
 /* The sponsor wall. */
+/* The wall, in two rows of cards: premium above, regular below.
+ *
+ * Flex, not grid, for one reason: a partly filled row has to centre. Grid
+ * tracks fill the container, so two premium sponsors in a three-column grid sit
+ * in the first two columns with a hole on the end. Flex items are laid out and
+ * then justified, so a short row -- including the last row of a long wall --
+ * centres on its own.
+ *
+ * The count per row is a custom property and the width is one formula off it,
+ * so a breakpoint changes a single number rather than restating the arithmetic.
+ * min-width: 0 because a flex item's automatic minimum is its content, and a
+ * long sponsor name would otherwise push its card past the share it was given. */
 .p-sponsors {
-    display: grid;
+    /* One to a row on the narrowest phones. Two cards each holding a 200px
+       plate plus its padding need 480px of row, which a 375px screen does not
+       have -- and asking for two anyway does not give you two, it gives you one
+       stranded at its minimum width in a row with room to spare, because the
+       card may no longer shrink to the share it was offered. */
+    --per-row: 1;
+    /* The plate's floor. Declared here, not on the plate, because the CARD has
+       to reserve room for it -- a plate that cannot shrink inside a card that
+       can is a plate that overflows its card on a phone. */
+    --plate-min: 12.5rem;
+
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
     gap: var(--space-4);
-    grid-template-columns: repeat(auto-fit, minmax(min(11rem, 100%), 1fr));
 }
+
+.p-sponsors > * {
+    flex: 0 1 calc((100% - (var(--per-row) - 1) * var(--space-4)) / var(--per-row));
+    /* Wide enough for the plate and the card's padding either side of it,
+       rather than 0. A card that may shrink below its own contents pushes the
+       plate out through its edge; refusing to shrink makes the row wrap to
+       fewer cards instead, which is the graceful version of running out of
+       room. */
+    min-width: calc(var(--plate-min) + 2 * var(--space-4));
+}
+
+/* 33rem is 528px: 480px of row for the two cards and their gap, plus the
+   container's gutter either side, with a little to spare. */
+@media (min-width: 33rem) {
+    .p-sponsors {
+        --per-row: 2;
+    }
+}
+
+@media (min-width: 48rem) {
+    .p-sponsors {
+        --per-row: 3;
+    }
+}
+
+@media (min-width: 64rem) {
+    .p-sponsors {
+        --per-row: 4;
+    }
+}
+
+/* Premium: at most three, and one to a row on a phone. They carry a larger
+   plate and name, and two of those abreast on a narrow screen is not the
+   prominence they are paying for.
+ *
+   Declared after the rules above, including inside each query: both are a
+   single class, so source order is the only thing that lets these win. */
+.p-sponsors--premium {
+    --per-row: 1;
+    --plate-min: 16.25rem;
+}
+
+@media (min-width: 48rem) {
+    .p-sponsors--premium {
+        --per-row: 2;
+    }
+}
+
+@media (min-width: 64rem) {
+    .p-sponsors--premium {
+        --per-row: 3;
+    }
+}
+
+/* The regular wall begins its own row under the premium one. Same distance as
+   the gap inside either row, so the two read as one wall in two tiers rather
+   than as two unrelated sections. */
+.p-sponsors + .p-sponsors {
+    margin-block-start: var(--space-4);
+}
+
 
 .p-sponsor {
     display: flex;
@@ -1319,8 +1404,16 @@
  * dark surface is an empty rectangle -- the one case where the theme must not
  * win. */
 .p-sponsor__logo {
+    /* Full width of the card's content box, so the space to its left, above it
+       and to its right is the card's own padding and nothing else -- one
+       measurement, three sides. A max-width would centre a narrower plate and
+       make the side gaps wider than the top one. */
     width: 100%;
-    height: 3.5rem;
+    min-width: var(--plate-min);
+    /* 12.5rem is 200px at the default root size, in the unit the rest of this
+       system uses -- so it scales with a reader who has enlarged their text, as
+       the sponsor's name beneath it does. */
+    height: 12.5rem;
     object-fit: contain;
     background-color: #FFFFFF;
     /* --radius-lg, matching the card it sits in rather than the 3px it used to
@@ -1340,20 +1433,20 @@
     color: var(--c-text);
 }
 
-/* Premium sponsors take two columns wherever two exist, and a taller logo.
+/* A premium card is bigger, but no longer wider: it used to span two columns
+   of a shared grid, and premium has a grid of its own now. Left in place the
+   span would wrap the third card of a three-across row onto a line by itself. */
+/* A premium plate is the taller one -- 260px at the default root size. Not
+   wider: width is the card's, so the three gaps around it stay equal.
  *
- * Below this width the grid is already a single column and the span is a
- * no-op, which is why the wider-card option needed no mobile special case:
- * `span 2` in a one-column grid is clamped to the one column that exists. */
+   At every width, not just above 40rem: premium is one to a row on a phone, so
+   a full-width card at the regular height would be the flattest plate on the
+   page rather than the most prominent. */
+.p-sponsor--premium .p-sponsor__logo {
+    height: 16.25rem;
+}
+
 @media (min-width: 40rem) {
-    .p-sponsor--premium {
-        grid-column: span 2;
-    }
-
-    .p-sponsor--premium .p-sponsor__logo {
-        height: 5.5rem;
-    }
-
     .p-sponsor--premium .p-sponsor__name {
         font-size: var(--step-1);
     }
