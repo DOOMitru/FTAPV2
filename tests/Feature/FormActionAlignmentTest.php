@@ -12,7 +12,8 @@ use Tests\TestCase;
  * table and the modal footer -- the edit forms were the one place that had not
  * adopted that, and an exception nobody chose is drift rather than a decision.
  *
- * And Cancel comes BEFORE the action it cancels, so the button furthest right
+ * And the secondary action -- Cancel, or Back where the form returns to
+ * itself -- comes BEFORE the primary one, so the button furthest right
  * -- the one a thumb reaches first and a cursor lands on last -- is the one
  * that does the thing. Right-aligning the row without reordering it put Cancel
  * in that spot, which is the opposite of what a form wants.
@@ -73,9 +74,16 @@ class FormActionAlignmentTest extends TestCase
                     $unaligned[] = $name;
                 }
 
+                // By variant rather than by the word on it. The secondary
+                // action is not always called Cancel -- the points-structure
+                // form returns to itself after every save, so by the second
+                // entry there is nothing left to cancel and the button says
+                // Back. What the rule is about is which of the two comes
+                // first, not what either is called.
+                //
                 // Not every row has one: the profile forms save in place and
                 // have nowhere to go back to.
-                $cancel = strpos($body, "__('Cancel')");
+                $cancel = strpos($body, 'variant="ghost"');
 
                 if ($cancel === false) {
                     continue;
@@ -95,7 +103,7 @@ class FormActionAlignmentTest extends TestCase
         )));
 
         $this->assertSame([], $misordered, implode("\n  ", array_merge(
-            ['In these rows Cancel comes after the button it cancels; put it first:'],
+            ['In these rows the secondary action comes after the primary one; put it first:'],
             $misordered,
         )));
 
@@ -103,6 +111,9 @@ class FormActionAlignmentTest extends TestCase
         // been renamed out from under the patterns above, which is not the
         // same as passing.
         $this->assertGreaterThanOrEqual(19, $rows, 'Far fewer action rows found than expected.');
-        $this->assertGreaterThanOrEqual(17, $withCancel, 'Far fewer Cancel buttons found than expected.');
+        // 16, not 17: the points-structure create form carries its Back in
+        // the page header instead, because that form returns to itself after
+        // every save and leaving it is not one of the row's two choices.
+        $this->assertGreaterThanOrEqual(16, $withCancel, 'Far fewer secondary actions found than expected.');
     }
 }

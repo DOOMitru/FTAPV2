@@ -36,7 +36,7 @@ class PointsStructureAdminTest extends TestCase
     {
         $this->actingAs($this->admin())
             ->post(route('poker.points-structure.store'), ['points' => 100])
-            ->assertRedirect(route('poker.points-structure.index'));
+            ->assertRedirect(route('poker.points-structure.create'));
 
         $this->assertSame(1, PointsStructure::firstOrFail()->place);
     }
@@ -199,5 +199,60 @@ class PointsStructureAdminTest extends TestCase
             ->assertForbidden();
 
         $this->assertSame(1, PointsStructure::count());
+    }
+
+    public function test_saving_returns_to_the_form_ready_for_the_next_place(): void
+    {
+        // The whole point of the loop: what comes back is the form again,
+        // already asking for the following place, with the input focused so
+        // the next figure can just be typed.
+        $admin = $this->admin();
+        $this->ladder(100, 85);
+
+        $this->actingAs($admin)
+            ->post(route('poker.points-structure.store'), ['points' => 75])
+            ->assertRedirect(route('poker.points-structure.create'));
+
+        $this->actingAs($admin)->get(route('poker.points-structure.create'))->assertOk()
+            ->assertSee('4th')
+            ->assertSee('autofocus', false);
+    }
+
+    public function test_the_form_reports_what_it_just_saved(): void
+    {
+        // It is the only place the confirmation can land now. Without it a
+        // successful entry and a form that did nothing look the same.
+        $admin = $this->admin();
+
+        $this->actingAs($admin)
+            ->post(route('poker.points-structure.store'), ['points' => 100])
+            ->assertSessionHas('status');
+
+        $this->actingAs($admin)->get(route('poker.points-structure.create'))->assertOk()
+            ->assertSee('1st place added, worth 100 points.');
+    }
+
+    public function test_the_form_offers_the_way_back_to_the_listing(): void
+    {
+        $this->actingAs($this->admin())->get(route('poker.points-structure.create'))->assertOk()
+            ->assertSee(route('poker.points-structure.index'))
+            ->assertSee('>Back<', false);
+    }
+
+    public function test_entering_a_whole_ladder_in_one_sitting_walks_down(): void
+    {
+        // Four submissions in a row, each following the redirect the way a
+        // browser would, land as 1st through 4th rather than fighting over a
+        // place.
+        $admin = $this->admin();
+
+        foreach ([100, 85, 75, 60] as $points) {
+            $this->actingAs($admin)
+                ->post(route('poker.points-structure.store'), ['points' => $points])
+                ->assertRedirect(route('poker.points-structure.create'));
+        }
+
+        $this->assertSame([1, 2, 3, 4], PointsStructure::orderBy('place')->pluck('place')->all());
+        $this->assertSame([100, 85, 75, 60], PointsStructure::orderBy('place')->pluck('points')->all());
     }
 }

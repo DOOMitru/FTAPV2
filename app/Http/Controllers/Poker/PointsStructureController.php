@@ -66,7 +66,13 @@ class PointsStructureController extends Controller
 
         PointsStructure::create($validated);
 
-        return redirect()->route('poker.points-structure.index')->with('status', __(
+        // Back to the form, not to the listing. A structure is entered in one
+        // sitting -- first place, then second, then third -- and a round trip
+        // through the index between each one turns that into a page load and a
+        // click per entry. The form recomputes the next place on the way in, so
+        // the one that comes back is already asking for the following place
+        // with its input focused.
+        return redirect()->route('poker.points-structure.create')->with('status', __(
             ':place place added, worth :points points.',
             ['place' => Number::ordinal($validated['place']), 'points' => number_format($validated['points'])]
         ));
