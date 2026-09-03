@@ -708,15 +708,6 @@
 
 
 
-/* A closing caveat, not a heading. */
-.p-note {
-    max-width: 46rem;
-    margin-inline: auto;
-    font-size: var(--step--1);
-    line-height: var(--leading-relaxed);
-    color: var(--c-text-muted);
-}
-
 /* First, second and third read as a ranking rather than a list. Three steps of
    one variable -- emphasis -- rather than gold/silver/bronze, which would put
    three more colours into a system that has one. */

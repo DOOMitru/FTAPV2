@@ -84,10 +84,4 @@
             </tr>
         @endforelse
     </x-table>
-
-    <footer class="p-page-foot">
-        <p class="p-note">
-            {{ __('Points are verified by the league organizers. In the event of ties, prize pools are split but points are awarded to the higher finishing position in the official bracket.') }}
-        </p>
-    </footer>
 </x-public-layout>
