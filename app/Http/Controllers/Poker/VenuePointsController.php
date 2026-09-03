@@ -24,11 +24,21 @@ class VenuePointsController extends Controller
     /**
      * Show the form for creating a new resource.
      */
-    public function create(): View
+    public function create(Request $request): View
     {
-        $users = User::all();
-        $venues = Venue::all();
-        return view('poker.venue-points.create', compact('users', 'venues'));
+        return view('poker.venue-points.create', [
+            // Ordered, because this is a list somebody reads and searches
+            // rather than a set of options a machine picks from.
+            'users' => User::orderBy('first_name')->orderBy('last_name')->get(),
+            'venues' => Venue::orderBy('name')->get(),
+
+            // Handed back by store() so the next entry for the same sitting
+            // starts where the last one left off. In the query string rather
+            // than the session: it survives a refresh, and a link to "tonight
+            // at the Diamond Club" is a useful thing to be able to keep.
+            'venueId' => $request->query('venue_id'),
+            'eventDate' => $request->query('event_date'),
+        ]);
     }
 
     /**
@@ -46,7 +56,17 @@ class VenuePointsController extends Controller
 
         VenuePoints::create($validated);
 
-        return redirect()->route('poker.venue-points.index')->with('status', 'Venue points added successfully!');
+        // Back to the form, not to the listing. A night at a venue is a dozen
+        // players entered one after another, and a round trip through the index
+        // between each one is a page load and two clicks per player. The venue
+        // and the date come back with it; only the player and the amount change.
+        return redirect()->route('poker.venue-points.create', [
+            'venue_id' => $validated['venue_id'],
+            'event_date' => $validated['event_date'],
+        ])->with('status', __(':amount venue points recorded for :name.', [
+            'amount' => number_format($validated['amount']),
+            'name' => $validated['user_name'],
+        ]));
     }
 
     /**

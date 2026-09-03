@@ -43,7 +43,12 @@
                                 <x-action icon="edit" :label="__('Edit')" :href="route('poker.results.edit', $result)" />
 
                                 <form action="{{ route('poker.results.destroy', $result) }}" method="POST"
-                                      data-confirm="{{ __('Delete :name? This cannot be undone.', ['name' => $result->player_name]) }}">
+                                      data-confirm="{{ __('Delete the :place place finish for :name in :tournament, worth :points points? This cannot be undone.', [
+                                          'name' => $result->player_name,
+                                          'place' => \Illuminate\Support\Number::ordinal($result->place),
+                                          'tournament' => $result->tournament->name,
+                                          'points' => number_format($result->points),
+                                      ]) }}">
                                     @csrf
                                     @method('DELETE')
 

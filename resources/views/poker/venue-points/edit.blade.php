@@ -37,7 +37,11 @@
 
                 <x-field name="event_date" :label="__('Event Date')" type="date" :value="old('event_date', \Illuminate\Support\Carbon::parse($venue_point->event_date)->format('Y-m-d'))" required />
 
-                <x-field name="amount" :label="__('Amount')" type="number" :value="old('amount', $venue_point->amount)" required />
+                <x-field name="amount" :label="__('Amount')" type="number"
+                         :value="old('amount', $venue_point->amount)"
+                         :hint="__('Whole dollars only, rounded to the nearest dollar.')"
+                         :hint-inline="true"
+                         required />
 
                 <div class="l-cluster l-cluster--end">
                     <x-btn variant="ghost" :href="route('poker.venue-points.index')">{{ __('Cancel') }}</x-btn>

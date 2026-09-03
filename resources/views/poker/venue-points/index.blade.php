@@ -23,12 +23,39 @@
                 </x-slot>
 
                 @forelse ($venue_points as $point)
+                    @php
+                        // Worked out once. The cells and the confirmation have
+                        // to be describing the same row, and formatting the
+                        // date twice is how they would stop.
+                        $date = $point->event_date
+                            ? \Illuminate\Support\Carbon::parse($point->event_date)->format('M d, Y')
+                            : null;
+
+                        $venueName = $point->venue->name ?? null;
+
+                        // Names the record, not the person holding it. This
+                        // said "Delete Ada Lovelace?", which is a truthful
+                        // description of a different and much worse button.
+                        //
+                        // One sentence, not a short and a long one: event_date
+                        // is NOT NULL and venue_id cascades on delete, so a row
+                        // without either cannot exist and a branch for it would
+                        // be untestable. The fallbacks are for a broken foreign
+                        // key, and read as a sentence because this is one.
+                        $confirm = __('Delete :amount venue points for :name at :venue on :date? This cannot be undone.', [
+                            'amount' => number_format($point->amount),
+                            'name' => $point->user_name,
+                            'venue' => $venueName ?? __('an unknown venue'),
+                            'date' => $date ?? __('an unknown date'),
+                        ]);
+                    @endphp
+
                     <tr>
-                        <td>{{ $point->event_date ? \Illuminate\Support\Carbon::parse($point->event_date)->format('M d, Y') : '—' }}</td>
+                        <td>{{ $date ?? '—' }}</td>
 
                         <td>{{ $point->user_name }}</td>
 
-                        <td>{{ $point->venue->name ?? __('TBD') }}</td>
+                        <td>{{ $venueName ?? __('TBD') }}</td>
 
                         <td class="table__num">{{ number_format($point->amount) }}</td>
 
@@ -37,7 +64,7 @@
                                 <x-action icon="edit" :label="__('Edit')" :href="route('poker.venue-points.edit', $point)" />
 
                                 <form action="{{ route('poker.venue-points.destroy', $point) }}" method="POST"
-                                      data-confirm="{{ __('Delete :name? This cannot be undone.', ['name' => $point->user_name]) }}">
+                                      data-confirm="{{ $confirm }}">
                                     @csrf
                                     @method('DELETE')
 

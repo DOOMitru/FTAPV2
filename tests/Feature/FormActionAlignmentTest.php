@@ -111,9 +111,10 @@ class FormActionAlignmentTest extends TestCase
         // been renamed out from under the patterns above, which is not the
         // same as passing.
         $this->assertGreaterThanOrEqual(19, $rows, 'Far fewer action rows found than expected.');
-        // 16, not 17: the points-structure create form carries its Back in
-        // the page header instead, because that form returns to itself after
-        // every save and leaving it is not one of the row's two choices.
-        $this->assertGreaterThanOrEqual(16, $withCancel, 'Far fewer secondary actions found than expected.');
+        // Two forms below the count of action rows: points-structure create
+        // and venue-points create both carry their Back in the page header
+        // instead. Each returns to itself after every save, so leaving is not
+        // one of the two choices its action row is offering.
+        $this->assertGreaterThanOrEqual(15, $withCancel, 'Far fewer secondary actions found than expected.');
     }
 }

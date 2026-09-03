@@ -40,7 +40,10 @@
                                 <x-action icon="edit" :label="__('Edit')" :href="route('poker.registrants.edit', $registrant)" />
 
                                 <form action="{{ route('poker.registrants.destroy', $registrant) }}" method="POST"
-                                      data-confirm="{{ __('Delete :name? This cannot be undone.', ['name' => $registrant->player_name]) }}">
+                                      data-confirm="{{ __('Remove :name from :tournament? This cannot be undone.', [
+                                          'name' => $registrant->player_name,
+                                          'tournament' => $registrant->tournament->name,
+                                      ]) }}">
                                     @csrf
                                     @method('DELETE')
 

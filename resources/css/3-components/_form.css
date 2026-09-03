@@ -171,6 +171,29 @@
     font-weight: 600;
 }
 
+/* A label with its note beside it.
+ *
+ * align-items: baseline, not centre. The label is 11px uppercase and the note
+ * is a sentence at the same size; centring two runs of different type leaves
+ * neither sitting on the line the other is on.
+ *
+ * It wraps, so a long note on a narrow screen drops under the label rather
+ * than squeezing it. */
+.field__label-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: var(--space-2);
+}
+
+/* The label's size so the pair reads as one line, and none of its treatment:
+   this is a sentence, and an uppercase letterspaced sentence is decoded rather
+   than read. */
+.field__note {
+    font-size: var(--step--2);
+    color: var(--c-text-muted);
+}
+
 .field__hint {
     margin-block-start: var(--space-2);
     color: var(--c-text-muted);
