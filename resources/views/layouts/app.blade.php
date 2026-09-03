@@ -46,6 +46,10 @@
                  .shell__content takes flex: 1, so this sits at the bottom of
                  the viewport on a short page rather than floating mid-screen. --}}
             <x-site-footer />
+
+            {{-- One per page. Every form carrying data-confirm is asked about
+                 here rather than through the browser's own dialog. --}}
+            <x-confirm-dialog />
         </div>
     </body>
 </html>

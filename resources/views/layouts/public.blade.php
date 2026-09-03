@@ -92,6 +92,10 @@
             </main>
 
             <x-site-footer />
+
+            {{-- One per page. Every form carrying data-confirm is asked about
+                 here rather than through the browser's own dialog. --}}
+            <x-confirm-dialog />
         </div>
     </body>
 </html>

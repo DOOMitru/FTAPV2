@@ -1,0 +1,43 @@
+/* The confirmation dialog.
+ *
+ * Shaped to match .modal__panel beside it -- same surface, border, radius and
+ * overlay shadow -- so the two read as one component family even though this
+ * one is a native <dialog> and that one is a positioned div. */
+.confirm {
+    /* A <dialog> is display: none until it opens, and the UA centres it
+       horizontally only; auto on all four sides centres it in the viewport. */
+    margin: auto;
+    /* min(): wide enough to read a sentence on a desktop, never wider than a
+       phone with the page gutter left either side. */
+    width: min(28rem, calc(100vw - 2 * var(--space-4)));
+    padding: 0;
+    border: var(--border-width) solid var(--c-border);
+    border-radius: var(--radius);
+    background-color: var(--c-surface);
+    color: var(--c-text);
+    box-shadow: var(--shadow-overlay);
+}
+
+/* The same scrim value .modal__backdrop uses. Literal there and literal here:
+   the two must agree, and one of them being a token while the other is not is
+   how they would stop agreeing. */
+.confirm::backdrop {
+    background-color: rgb(11 15 25 / 0.7);
+}
+
+.confirm__message {
+    margin: 0;
+    padding: var(--space-5);
+    line-height: var(--leading-relaxed);
+}
+
+/* Deliberately the same shape as .modal__footer: end-aligned, dismiss first,
+   which is the rule every dashboard form's action row follows. */
+.confirm__actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: var(--space-3);
+    padding: var(--space-4) var(--space-5);
+    border-block-start: var(--border-width) solid var(--c-border);
+}

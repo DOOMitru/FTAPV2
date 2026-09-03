@@ -250,6 +250,11 @@
                                             x-show="$el.dataset.search.includes(q.trim().toLowerCase())">
                                             <form action="{{ route('tournaments.register', $tournament) }}"
                                                   method="POST"
+                                                  {{-- The one confirmation here that is not
+                                                       destructive, so its Confirm button is not
+                                                       red. The browser's dialog had no colour to
+                                                       get wrong; a styled one does. --}}
+                                                  data-confirm-tone="primary"
                                                   data-confirm="{{ __('Register :name for :tournament?', [
                                                       'name' => $user->first_name.' '.$user->last_name,
                                                       'tournament' => $tournament->name,
