@@ -105,7 +105,20 @@ Route::prefix('rules')->name('rules.')->group(function () {
             }], 'points')
             ->orderByDesc('tournament_results_sum_points')
             ->take(3)
-            ->get();
+            ->get()
+            // Only players who have actually scored. Without this the query
+            // returns the first three rows of the users table with a null sum
+            // apiece, and the panel announces three season leaders on nought
+            // points -- which is what it did for every day of a season before
+            // its first result was recorded.
+            //
+            // Filtering after take(3) rather than inside the query is safe
+            // because the rows are already ordered by that same sum: if the
+            // third has none, nobody below it has any either. Doing it in SQL
+            // would mean HAVING on a correlated subquery alias with no GROUP
+            // BY, which is not something to rely on across drivers.
+            ->filter(fn ($performer) => $performer->tournament_results_sum_points > 0)
+            ->values();
         }
 
         return view('rules.points-structure', compact('pointsStructure', 'topPerformers', 'currentSeason'));
