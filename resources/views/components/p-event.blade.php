@@ -30,7 +30,7 @@
     @endif
 
     <div class="p-event__body">
-        {{-- Every piece of STATUS sits here, together. "You're registered" and
+        {{-- Every piece of STATUS sits here, together. "Registered" and
              "Awaiting approval" used to live down in the action row, where a
              badge shared a line with buttons and had to be excluded from their
              layout. They are states, like the two beside them. --}}
@@ -56,12 +56,11 @@
             <x-badge>{{ $tournament->season->name }}</x-badge>
 
             @auth
-                @if ($tournament->viewer_registered ?? false)
-                    {{-- The controller rejects a second registration anyway;
-                         saying so is kinder than offering a button that
-                         fails. --}}
-                    <x-badge variant="open">{{ __("You're registered") }}</x-badge>
-                @elseif (! auth()->user()->isApproved())
+                {{-- "Registered" is not here any more: it moved down to the
+                     action row, beside the button that undoes it. The badges in
+                     this cluster describe the TOURNAMENT -- whether it is open,
+                     which season it belongs to -- and that one describes YOU. --}}
+                @if (! ($tournament->viewer_registered ?? false) && ! auth()->user()->isApproved())
                     {{-- Same reasoning: the controller refuses this case too,
                          and a button that vanishes with no explanation reads as
                          a bug rather than as a decision pending on you. Both
@@ -207,10 +206,22 @@
             // still open, so an isset() check would render an empty row -- a
             // rule and a gap under every card that offers nothing.
             $hasGivenAction = isset($actions) && trim($actions) !== '';
+
+            // Where the viewer stands, shown beside the control that changes
+            // it. The controller rejects a second registration anyway, so
+            // saying so is kinder than offering a button that fails.
+            $isRegistered = auth()->check() && ($tournament->viewer_registered ?? false);
         @endphp
 
-        @if ($canRegister || $hasGivenAction)
+        @if ($isRegistered || $canRegister || $hasGivenAction)
             <div class="p-event__actions">
+                {{-- At the start of the row; the buttons take the end. --}}
+                @if ($isRegistered)
+                    <x-badge variant="open">{{ __('Registered') }}</x-badge>
+                @endif
+
+                @if ($canRegister || $hasGivenAction)
+                <div class="p-event__actions-end">
                 @if ($canRegister)
                     {{-- Primary: it is the thing the card wants you to do. --}}
                     <form action="{{ route('tournaments.register', $tournament) }}" method="POST">
@@ -225,6 +236,8 @@
                      register and unregister for the same tournament. --}}
                 @if ($hasGivenAction)
                     {{ $actions }}
+                @endif
+                </div>
                 @endif
             </div>
         @endif

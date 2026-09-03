@@ -48,11 +48,46 @@
                             <div class="entry__actions">
                                 @if ($isReg)
                                     <x-badge variant="open">{{ __('Registered') }}</x-badge>
+
+                                    {{-- The badge says where you stand; the
+                                         button is how you change it. Saying the
+                                         first without offering the second left
+                                         the details page as the only way out of
+                                         a tournament.
+
+                                         Ghost, not danger: leaving is not what
+                                         this row is asking you to do.
+
+                                         The condition is the controller's --
+                                         it refuses a withdrawal once
+                                         registration has closed -- so past that
+                                         point the badge stands alone, which is
+                                         the truth of it. --}}
+                                    @if ($tournament->registration_open)
+                                        <form action="{{ route('tournaments.unregister', $tournament) }}" method="POST"
+                                              data-confirm="{{ __('Unregister from :tournament? You can enter again while registration is open.', [
+                                                  'tournament' => $tournament->name,
+                                              ]) }}">
+                                            @csrf
+                                            @method('DELETE')
+
+                                            <x-btn variant="ghost" size="sm" type="submit">{{ __('Unregister') }}</x-btn>
+                                        </form>
+                                    @endif
                                 @elseif ($tournament->registration_open)
-                                    <form action="{{ route('tournaments.register', $tournament) }}" method="POST">
-                                        @csrf
-                                        <x-btn variant="primary" size="sm">{{ __('Sign Up') }}</x-btn>
-                                    </form>
+                                    {{-- Approval is the controller's gate too, and
+                                         it refuses an unapproved account. Offering
+                                         the button anyway is offering a click that
+                                         cannot work; saying why is what the event
+                                         card does in the same situation. --}}
+                                    @if (auth()->user()->isApproved())
+                                        <form action="{{ route('tournaments.register', $tournament) }}" method="POST">
+                                            @csrf
+                                            <x-btn variant="primary" size="sm">{{ __('Register') }}</x-btn>
+                                        </form>
+                                    @else
+                                        <x-badge>{{ __('Awaiting approval') }}</x-badge>
+                                    @endif
                                 @endif
 
                                 <x-btn variant="ghost" size="sm" :href="route('tournaments.show', $tournament)">

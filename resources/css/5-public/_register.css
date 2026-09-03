@@ -1240,16 +1240,29 @@
     flex: 0 0 auto;
 }
 
-/* Register, alone. The row is rendered only when there is something in it, so
-   this never draws a rule across an empty strip. */
+/* Where you stand about entering, and the control that changes it, on one
+   line: the badge at the start, the button at the end. The row is rendered only
+   when there is something in it, so this never draws a rule across an empty
+   strip. */
 .p-event__actions {
-    display: grid;
-    /* Explicit, so the button's position is a decision rather than a side
-       effect of .btn being inline-flex inside a stretched grid item. */
-    justify-items: end;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-3);
     margin-block-start: auto;
     padding-block-start: var(--space-4);
     border-block-start: var(--border-width) solid var(--c-border);
+}
+
+/* An auto margin rather than justify-content: space-between, so the buttons sit
+   at the end whether or not a badge precedes them. space-between would put a
+   lone button at the START of the row on every card that has no status to
+   show, which is most of them. */
+.p-event__actions-end {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-3);
+    margin-inline-start: auto;
 }
 
 

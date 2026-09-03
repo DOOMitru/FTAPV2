@@ -91,7 +91,7 @@ class EventCardTest extends TestCase
         $this->actingAs($player)
             ->get(route('tournaments.show', $tournament))
             ->assertOk()
-            ->assertSee("You're registered")
+            ->assertSee('Registered')
             ->assertDontSee('>Register<', false);
     }
 
@@ -120,13 +120,14 @@ class EventCardTest extends TestCase
         $this->actingAs($player)
             ->get(route('tournaments.show', $tournament))
             ->assertOk()
-            ->assertSee("You're registered")
+            ->assertSee('Registered')
             ->assertDontSee('Unregister')
-            // And no empty row where it would have been. The details page
-            // always passes the slot and fills it only when unregistering is
-            // possible, so the card has to test the slot's CONTENT -- isset()
-            // alone renders a rule and a gap under a card offering nothing.
-            ->assertDontSee('p-event__actions', false);
+            // The row is still drawn, because the badge is in it now -- but
+            // with no button group inside. The details page always passes the
+            // slot and fills it only when unregistering is possible, so the
+            // card has to test the slot's CONTENT: isset() alone would render
+            // an empty group and a gap beside the badge.
+            ->assertDontSee('p-event__actions-end', false);
     }
 
     public function test_an_unapproved_player_is_told_why_there_is_no_register_button(): void
@@ -202,19 +203,34 @@ class EventCardTest extends TestCase
             ->assertSee($tournament->start_time->format('l j F Y, g:i A'));
     }
 
-    public function test_a_registered_player_sees_a_badge_and_no_action_row(): void
+    public function test_a_registered_player_sees_the_badge_in_the_action_row(): void
     {
-        // "You're registered" is a status, and it sits with the other status
-        // badges. The action row holds Register alone now, so for someone
-        // already registered there is nothing to put in it -- and rendering it
-        // empty would draw a rule and a gap across the bottom of the card.
+        // "Registered" describes the VIEWER, so it sits beside the control
+        // that changes it rather than up with the badges describing the
+        // tournament. On a card offering nothing to press -- the home page --
+        // it is the only thing on the row, and the button group is not drawn.
         $tournament = $this->tournament();
         $player = User::factory()->create();
         $this->register($tournament, $player);
 
-        $this->actingAs($player)->get('/')->assertOk()
-            ->assertSee("You're registered")
-            ->assertDontSee('p-event__actions', false);
+        $html = $this->actingAs($player)->get('/')->assertOk()
+            ->assertSee('Registered')
+            ->assertDontSee('p-event__actions-end', false)
+            ->getContent();
+
+        // In the row, not above it.
+        $row = substr($html, strpos($html, 'p-event__actions'));
+        $this->assertStringContainsString('Registered', $row);
+    }
+
+    public function test_a_card_with_nothing_to_say_draws_no_row(): void
+    {
+        // The rule and the padding are only worth drawing around something. A
+        // guest is offered no button and has no status, so the card ends at
+        // its facts.
+        $this->tournament();
+
+        $this->get('/')->assertOk()->assertDontSee('p-event__actions', false);
     }
 
     public function test_the_action_row_holds_register_alone(): void
