@@ -20,7 +20,8 @@ use Tests\TestCase;
  * edge, with the podium clipped off the bottom.
  *
  * That page needs two things the public pages do not: no Details button, since
- * it IS the details page, and an Unregister control, which exists nowhere else.
+ * it IS the details page, and an Unregister control on every card that says
+ * you are registered.
  * Both arrive through the component's props and slots, and both are the kind of
  * thing a later edit to the shared card can quietly drop.
  */
@@ -203,24 +204,48 @@ class EventCardTest extends TestCase
             ->assertSee($tournament->start_time->format('l j F Y, g:i A'));
     }
 
-    public function test_a_registered_player_sees_the_badge_in_the_action_row(): void
+    public function test_the_public_cards_let_a_registered_player_leave(): void
     {
-        // "Registered" describes the VIEWER, so it sits beside the control
-        // that changes it rather than up with the badges describing the
-        // tournament. On a card offering nothing to press -- the home page --
-        // it is the only thing on the row, and the button group is not drawn.
+        // Wherever a card is willing to tell you that you are registered, it is
+        // willing to let you undo it. This used to be the details page alone,
+        // which meant seeing "Registered" on the home page and having to go
+        // looking for the way out.
         $tournament = $this->tournament();
         $player = User::factory()->create();
         $this->register($tournament, $player);
 
-        $html = $this->actingAs($player)->get('/')->assertOk()
-            ->assertSee('Registered')
-            ->assertDontSee('p-event__actions-end', false)
-            ->getContent();
+        foreach (['/', route('events')] as $url) {
+            $html = $this->actingAs($player)->get($url)->assertOk()
+                ->assertSee('Registered')
+                ->assertSee('Unregister')
+                ->getContent();
 
-        // In the row, not above it.
-        $row = substr($html, strpos($html, 'p-event__actions'));
-        $this->assertStringContainsString('Registered', $row);
+            $row = substr($html, strpos($html, 'p-event__actions'));
+
+            $this->assertStringContainsString('Registered', $row, "Badge not in the row on {$url}.");
+            $this->assertStringContainsString(
+                route('tournaments.unregister', $tournament),
+                $row,
+                "No way out on {$url}."
+            );
+
+            // Never both: someone registered cannot also be offered Register.
+            $this->assertStringNotContainsString('>Register<', $row);
+        }
+    }
+
+    public function test_the_badge_stands_alone_once_registration_has_closed(): void
+    {
+        // The controller refuses a withdrawal past the cutoff, so the row keeps
+        // the badge and draws no button group beside it.
+        $tournament = $this->tournament(closesIn: '-1 day');
+        $player = User::factory()->create();
+        $this->register($tournament, $player);
+
+        $this->actingAs($player)->get('/')->assertOk()
+            ->assertSee('Registered')
+            ->assertDontSee('Unregister')
+            ->assertDontSee('p-event__actions-end', false);
     }
 
     public function test_a_card_with_nothing_to_say_draws_no_row(): void

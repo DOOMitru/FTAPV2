@@ -191,36 +191,38 @@
         @endif
 
         @php
-            // The two states of one control. A player either joins from here or
-            // leaves from here, and the row holds whichever applies -- putting
-            // Unregister in the menu made leaving a different kind of gesture
-            // from joining, hidden behind a click, for no reason but that the
-            // details page is the only page offering it.
-            $canRegister = auth()->check()
-                && ! ($tournament->viewer_registered ?? false)
-                && auth()->user()->isApproved()
-                && $tournament->registration_open;
-
-            // trim(), not isset(): the details page always passes this slot and
-            // fills it only when the viewer is registered and registration is
-            // still open, so an isset() check would render an empty row -- a
-            // rule and a gap under every card that offers nothing.
-            $hasGivenAction = isset($actions) && trim($actions) !== '';
-
             // Where the viewer stands, shown beside the control that changes
             // it. The controller rejects a second registration anyway, so
             // saying so is kinder than offering a button that fails.
             $isRegistered = auth()->check() && ($tournament->viewer_registered ?? false);
+
+            // The two states of one control. A player either joins from here or
+            // leaves from here, and the row holds whichever applies.
+            $canRegister = auth()->check()
+                && ! $isRegistered
+                && auth()->user()->isApproved()
+                && $tournament->registration_open;
+
+            // Both conditions are the controller's: it refuses a withdrawal
+            // once registration has closed.
+            //
+            // This used to arrive through an `actions` slot that only the
+            // details page filled, on the reasoning that leaving a tournament
+            // was something you did from its own page. It is not -- wherever a
+            // card is willing to tell you that you are registered, it should be
+            // willing to let you undo it. The slot had no other caller, so it
+            // is gone rather than left as an extension point nothing extends.
+            $canUnregister = $isRegistered && $tournament->registration_open;
         @endphp
 
-        @if ($isRegistered || $canRegister || $hasGivenAction)
+        @if ($isRegistered || $canRegister || $canUnregister)
             <div class="p-event__actions">
                 {{-- At the start of the row; the buttons take the end. --}}
                 @if ($isRegistered)
                     <x-badge variant="open">{{ __('Registered') }}</x-badge>
                 @endif
 
-                @if ($canRegister || $hasGivenAction)
+                @if ($canRegister || $canUnregister)
                 <div class="p-event__actions-end">
                 @if ($canRegister)
                     {{-- Primary: it is the thing the card wants you to do. --}}
@@ -230,12 +232,27 @@
                     </form>
                 @endif
 
-                {{-- A consumer's own control, standing where Register would --
-                     the details page's Unregister, which exists nowhere else.
-                     The two are mutually exclusive in practice: nobody can both
-                     register and unregister for the same tournament. --}}
-                @if ($hasGivenAction)
-                    {{ $actions }}
+                {{-- Standing where Register would. The two are mutually
+                     exclusive: nobody can both join and leave the same
+                     tournament.
+
+                     Ghost, not danger. Leaving is not what the card is asking
+                     you to do, and a red button alone in that row would read as
+                     the call to action.
+
+                     The message names the tournament because the events page
+                     draws a column of these and "this tournament" would be
+                     whichever one you happened to click. --}}
+                @if ($canUnregister)
+                    <form action="{{ route('tournaments.unregister', $tournament) }}" method="POST"
+                          data-confirm="{{ __('Unregister from :tournament? You can enter again while registration is open.', [
+                              'tournament' => $tournament->name,
+                          ]) }}">
+                        @csrf
+                        @method('DELETE')
+
+                        <x-btn variant="ghost" type="submit">{{ __('Unregister') }}</x-btn>
+                    </form>
                 @endif
                 </div>
                 @endif

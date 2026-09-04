@@ -32,26 +32,6 @@
                 <p class="u-muted">{{ $tournament->description }}</p>
             @endif
 
-            <x-slot name="actions">
-                {{-- Unregister lives only here, so the shared card does not
-                     carry it. It stands in the action row where Register would
-                     be, so it is a button again rather than a menu item.
-
-                     Ghost, not primary: leaving is not what the card is asking
-                     you to do, and a red button alone in that row would read as
-                     the call to action.
-
-                     Both conditions are the controller's: it refuses an
-                     unregister once registration has closed. --}}
-                @if ($isUserRegistered && $tournament->registration_open)
-                    <form action="{{ route('tournaments.unregister', $tournament) }}" method="POST"
-                          data-confirm="{{ __('Are you sure you want to unregister from this tournament?') }}">
-                        @csrf
-                        @method('DELETE')
-                        <x-btn variant="ghost" type="submit">{{ __('Unregister') }}</x-btn>
-                    </form>
-                @endif
-            </x-slot>
         </x-p-event>
 
         {{-- No Registrants tile: the Registered Players card below carries the

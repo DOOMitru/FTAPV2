@@ -3,7 +3,17 @@
     align-items: center;
     justify-content: center;
     gap: var(--space-2);
-    padding: var(--space-2) var(--space-4);
+    /* A pixel more above the label than below, on purpose.
+     *
+     * Every label here is uppercase (text-transform, below), so no glyph ever
+     * reaches into the descender space that the line box reserves under the
+     * baseline. The ink therefore sits high inside its own line box, and
+     * centring the BOX does not centre what anyone can see: measured at this
+     * size it was 10px of button above the letters and 12px below.
+     *
+     * .btn--sm sets the padding shorthand and so resets both halves; its
+     * smaller type measures centred without this. */
+    padding: calc(var(--space-2) + 1px) var(--space-4) calc(var(--space-2) - 1px);
     border: var(--border-width) solid transparent;
     border-radius: var(--radius);
     background-color: transparent;
