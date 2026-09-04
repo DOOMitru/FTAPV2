@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="250" height="350" viewBox="0 0 250 350" role="img" aria-label="two of spades">
+<title>two of spades</title>
+<rect x="5" y="5" width="240" height="340" rx="20" fill="#FFFFFF" stroke="#3A3A3C" stroke-width="5"/>
+<g transform="translate(125.0,168.72) scale(2.0919)"><path fill="#3A3A3C" d="M0,-14C8,-4 16,0 16,8C16,14 11,17 7,17C4,17 2,15 1,13L3,20L-3,20L-1,13C-2,15 -4,17 -7,17C-11,17 -16,14 -16,8C-16,0 -8,-4 0,-14Z"/></g>
+<text x="31" y="56.55" fill="#3A3A3C" font-family="Impact, Haettenschweiler, 'Arial Narrow', sans-serif" font-size="35" letter-spacing="1">2</text>
+<g transform="translate(42.92,84.98) scale(0.745)"><path fill="#3A3A3C" d="M0,-14C8,-4 16,0 16,8C16,14 11,17 7,17C4,17 2,15 1,13L3,20L-3,20L-1,13C-2,15 -4,17 -7,17C-11,17 -16,14 -16,8C-16,0 -8,-4 0,-14Z"/></g>
+<text transform="translate(219,293.45) rotate(180)" x="0" y="0" fill="#3A3A3C" font-family="Impact, Haettenschweiler, 'Arial Narrow', sans-serif" font-size="35" letter-spacing="1">2</text>
+<g transform="translate(207.08,265.02) scale(-0.745)"><path fill="#3A3A3C" d="M0,-14C8,-4 16,0 16,8C16,14 11,17 7,17C4,17 2,15 1,13L3,20L-3,20L-1,13C-2,15 -4,17 -7,17C-11,17 -16,14 -16,8C-16,0 -8,-4 0,-14Z"/></g>
+</svg>
