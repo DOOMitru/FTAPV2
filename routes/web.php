@@ -86,8 +86,10 @@ Route::prefix('rules')->name('rules.')->group(function () {
     Route::redirect('/betting', '/rules/conduct')->name('old-betting');
     Route::redirect('/behaviour', '/rules/conduct#conduct-rules')->name('behaviour');
 
-    Route::get('/texas-holdem', function () {
-        return view('rules.texas-holdem');
+    Route::get('/texas-holdem', function (\App\Support\PokerHandSampler $sampler) {
+        // Dealt per request. The hierarchy is about the SHAPE of a hand, and a
+        // fixed picture teaches the suit along with it.
+        return view('rules.texas-holdem', ['hands' => $sampler->hierarchy()]);
     })->name('texas-holdem');
 
     Route::get('/points-structure', function () {

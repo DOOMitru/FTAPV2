@@ -50,3 +50,4 @@
 /* The public register — gradients and elevation, allowed here and nowhere
    else. Guarded by PublicRegisterTest. */
 @import "./5-public/_register.css";
+@import "./5-public/_hand.css";

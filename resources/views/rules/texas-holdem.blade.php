@@ -73,32 +73,30 @@
         @endforeach
     </div>
 
-    @php
-        $rankings = ['Royal Flush', 'Straight Flush', 'Four of a Kind', 'Full House', 'Flush', 'Straight', 'Three of a Kind', 'Two Pair', 'One Pair', 'High Card'];
-    @endphp
-
     <section class="p-panel">
         <div class="p-panel__glow" aria-hidden="true"></div>
 
-        <div class="p-panel__split">
-            <div>
-                <h2 class="p-panel__title">{{ __('Hand Hierarchy') }}</h2>
+        {{-- Not the two-column split this used to be: a hand is five cards
+             wide, and half a panel is not enough to show one at a size anybody
+             can read. The heading takes its own line and the hands take the
+             width. --}}
+        <div class="p-panel__lead">
+            <h2 class="p-panel__title">{{ __('Hand Hierarchy') }}</h2>
 
-                <p class="p-panel__text">
-                    {{ __('Understanding the value of your hand is crucial. We follow standard high-poker rankings from the Royal Flush down to the High Card.') }}
-                </p>
+            <p class="p-panel__text">
+                {{ __('Understanding the value of your hand is crucial. We follow standard high-poker rankings from the Royal Flush down to the High Card.') }}
+            </p>
 
-                <p class="p-pill">
-                    <span class="p-pill__dot" aria-hidden="true"></span>
-                    {{ __('Official League Rank') }}
-                </p>
-            </div>
+            <p class="p-pill">
+                <span class="p-pill__dot" aria-hidden="true"></span>
+                {{ __('Official League Rank') }}
+            </p>
+        </div>
 
-            <div class="p-chip-grid">
-                @foreach ($rankings as $i => $rank)
-                    <x-p-chip :index="$i + 1">{{ $rank }}</x-p-chip>
-                @endforeach
-            </div>
+        <div class="p-hand-grid">
+            @foreach ($hands as $i => $hand)
+                <x-p-hand :name="__($hand['name'])" :cards="$hand['cards']" :index="$i + 1" />
+            @endforeach
         </div>
     </section>
 
