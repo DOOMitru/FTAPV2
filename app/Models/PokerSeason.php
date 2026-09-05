@@ -15,6 +15,23 @@ class PokerSeason extends Model
 
     protected $table = 'seasons';
 
+    /**
+     * The season a given date falls inside, if any.
+     *
+     * Ordered by start date so that overlapping seasons -- which nothing
+     * prevents -- resolve to the earlier one every time rather than to whatever
+     * the database happened to return first. The backfill migration orders the
+     * same way, so a row assigned then and a row assigned now agree.
+     */
+    public static function covering(mixed $date): ?self
+    {
+        return static::query()
+            ->whereDate('start_date', '<=', $date)
+            ->whereDate('end_date', '>=', $date)
+            ->orderBy('start_date')
+            ->first();
+    }
+
     protected $fillable = [
         'name',
         'description',

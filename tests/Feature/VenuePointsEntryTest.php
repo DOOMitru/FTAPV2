@@ -24,6 +24,23 @@ class VenuePointsEntryTest extends TestCase
         return User::factory()->create(['is_admin' => true, 'approval_status' => 'approved']);
     }
 
+    /**
+     * Every test here records venue points, and venue points now need a season
+     * to belong to -- the controller refuses a date no season covers, because
+     * points outside every season count toward nothing.
+     */
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        \App\Models\PokerSeason::create([
+            'name' => 'Season 40',
+            'start_date' => '2026-06-01',
+            'end_date' => '2026-12-31',
+            'is_current' => true,
+        ]);
+    }
+
     private function venue(string $name = 'Diamond Club'): Venue
     {
         return Venue::create(['name' => $name, 'address' => '1 Card Street']);

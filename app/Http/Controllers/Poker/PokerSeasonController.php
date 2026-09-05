@@ -92,16 +92,16 @@ class PokerSeasonController extends Controller
         $totalPoints = $season->results->sum('points');
         $uniquePlayersCount = $season->results->pluck('user_id')->unique()->count();
 
-        // venue_points carries no season_id, only an event_date, so the
-        // season's own dates are the only attribution available.
-        //
-        // A consequence worth knowing rather than discovering: EDITING A
-        // SEASON'S DATES MOVES THIS FIGURE, and with it who qualifies. That is
-        // inherent to the schema, not a defect in this query.
+        // By the season stored on the row, not by whether its date happens to
+        // fall between two others. It used to be the latter, which meant
+        // editing a season's dates moved venue points between seasons and
+        // changed who qualified for the finale -- with nothing to report,
+        // because a coincidence of two numbers cannot announce that it has
+        // changed its mind.
         //
         // One grouped query rather than a lookup per player.
         $venuePoints = \App\Models\VenuePoints::query()
-            ->whereBetween('event_date', [$season->start_date, $season->end_date])
+            ->where('season_id', $season->id)
             ->groupBy('user_id')
             ->selectRaw('user_id, SUM(amount) as total')
             ->pluck('total', 'user_id');

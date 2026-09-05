@@ -269,20 +269,27 @@ class FinaleQualificationTest extends TestCase
 
     private function venuePointsFor(User $user, int $amount, string $when): void
     {
+        $date = now()->modify($when)->toDateString();
+
         VenuePoints::create([
             'user_id' => $user->id,
             'user_name' => $user->first_name,
             'venue_id' => Venue::create(['name' => 'VP '.uniqid(), 'address' => 'x'])->id,
             'amount' => $amount,
-            'event_date' => now()->modify($when)->toDateString(),
+            'event_date' => $date,
+            // Stamped the way the controller stamps it: the season the date
+            // falls inside, or none at all. A night outside every season is a
+            // row that counts toward nothing, which is the rule below.
+            'season_id' => PokerSeason::covering($date)?->id,
         ]);
     }
 
     public function test_venue_points_are_counted_only_inside_the_season_dates(): void
     {
-        // venue_points carries no season_id -- only an event_date -- so the
-        // season's own dates are the only attribution available. A row from
-        // before the season must not count toward it.
+        // A row from before the season must not count toward it. It is stamped
+        // with the season its date fell in -- none, here -- rather than being
+        // matched against the season's dates when the leaderboard is drawn,
+        // which is what used to make editing those dates move the figures.
         $season = $this->season(['finale_venue_points_required' => 10]);
         $player = User::factory()->create();
 
