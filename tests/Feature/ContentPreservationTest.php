@@ -300,40 +300,57 @@ class ContentPreservationTest extends TestCase
     // -----------------------------------------------------------------
 
     /**
-     * 21 numbered rules across 5 sections, plus the 10 hand rankings.
+     * The 21 rules of play, every sub-clause of them, and the 10 hand rankings.
+     *
+     * The page used to carry a summary of the rules -- five sections of short
+     * paraphrases. It carries the league's actual rules document now, so this
+     * checks that document: every clause reaching the page, and the numbering
+     * that people cite them by.
      */
     public function test_texas_holdem_preserves_every_rule(): void
     {
         $response = $this->get('/rules/texas-holdem');
         $response->assertOk();
 
-        foreach ([
-            'Structural Standards', 'The Dealing Phase', 'Wagering Intervals',
-            'The Showdown', 'Technical Provisions',
-        ] as $section) {
-            $response->assertSee($section);
-        }
+        $response->assertSee("Texas Hold'em Game Rules");
 
-        // All 21, not a sample. A dropped rule is the exact failure this
-        // method exists to catch, and the titles are distinctive enough to
-        // assert individually.
-        foreach ([
-            'The Deck', 'The Blinds', 'The Shuffle', 'Hole Cards', 'Misdeals',
-            'Dead Hands', 'Pre-Flop Betting', 'The Flop', 'The Turn', 'The River',
-            'Burn Cards', 'Card Value', 'Order of Show', 'Cards Speak',
-            'Splitting Pots', 'Mucking', 'Side Pots', 'Rabbitting',
-            'Playing the Board', 'Chip Positioning', 'Director Finality',
-        ] as $rule) {
-            $response->assertSee($rule);
-        }
+        // Every clause, at every depth. A rule silently lost to the recursion
+        // is the exact failure this method exists to catch, and it would not
+        // show up in a spot check: the page is 63 clauses long.
+        $seen = 0;
 
-        // The zero-padded numbering is content too -- rules get cited by
-        // number. Only the endpoints are asserted: every intermediate value
-        // is a two-digit string that would match somewhere by accident, so
-        // asserting all of them would be a check that cannot fail.
-        $text = preg_replace('/\s+/', ' ', strip_tags($response->getContent()));
-        $this->assertStringContainsString('01', $text);
-        $this->assertStringContainsString('21', $text);
+        $walk = function (array $items) use (&$walk, $response, &$seen) {
+            foreach ($items as $item) {
+                $response->assertSee($item['text']);
+                $seen++;
+
+                foreach (['note', 'after'] as $extra) {
+                    if (isset($item[$extra])) {
+                        $response->assertSee($item[$extra]);
+                    }
+                }
+
+                if (isset($item['children'])) {
+                    $walk($item['children']);
+                }
+            }
+        };
+
+        $walk(config('holdem.rules'));
+
+        // And the document has not quietly shrunk. Walking the config proves
+        // the page renders what the config holds; this proves the config still
+        // holds the rules.
+        $this->assertCount(21, config('holdem.rules'));
+        $this->assertSame(63, $seen);
+
+        // Pinned independently of the config, so this is a check on the words
+        // and not only on the plumbing. Escaped rather than raw: Blade turns an
+        // apostrophe into &#039;, so a raw search for one finds nothing on a
+        // page that renders it perfectly.
+        $response->assertSee('The dealer shall shuffle the cards 3 to 7 times.');
+        $response->assertSee('A misdeal may NOT be called after substantial action has occurred.');
+        $response->assertSee('the player with the Dealer Button shall post the Small Blind');
 
         foreach ([
             'Royal Flush', 'Straight Flush', 'Four of a Kind', 'Full House', 'Flush',
@@ -343,18 +360,49 @@ class ContentPreservationTest extends TestCase
         }
     }
 
+    /**
+     * The betting and behaviour rules, every clause of them.
+     *
+     * The page used to carry paraphrases -- "Verbal Declarations", "Ethical
+     * Play" -- and a separate Enforcement panel restating an escalation the
+     * behaviour rules already set out. It carries the league's actual document
+     * now, so this checks that document.
+     */
     public function test_conduct_rules_page_preserves_every_rule(): void
     {
         $response = $this->get('/rules/conduct');
         $response->assertOk();
 
-        foreach ([
-            'Verbal Declarations', 'String Betting', 'Oversized Chips', 'Raise Limits',
-            'Ethical Play', 'Professional Courtesy', 'Table Communication', 'Electronic Devices',
-            'First Offense', 'Second Offense', 'Third Offense',
-        ] as $item) {
-            $response->assertSee($item);
-        }
+        $response->assertSee('Betting Rules');
+        $response->assertSee('Behaviour Rules');
+
+        $seen = 0;
+
+        $walk = function (array $items) use (&$walk, $response, &$seen) {
+            foreach ($items as $item) {
+                $response->assertSee($item['text']);
+                $seen++;
+
+                if (isset($item['children'])) {
+                    $walk($item['children']);
+                }
+            }
+        };
+
+        $walk(config('conduct.betting'));
+        $walk(config('conduct.behaviour'));
+
+        $this->assertCount(4, config('conduct.betting'));
+        $this->assertCount(6, config('conduct.behaviour'));
+        $this->assertSame(15, $seen);
+
+        // Pinned independently of the config, so this checks the words and not
+        // only the plumbing. The escalation ladder is the part that used to be
+        // duplicated in a panel of its own.
+        $response->assertSee('Strattle betting is not allowed.');
+        $response->assertSee('Cell phone use is not allowed at the tables.');
+        $response->assertSee('banned from playing in any “First to Act” event for the period of one month.');
+        $response->assertSee('including a ten-second countdown');
     }
 
     public function test_regulations_page_preserves_every_rule(): void

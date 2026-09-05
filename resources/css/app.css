@@ -51,3 +51,4 @@
    else. Guarded by PublicRegisterTest. */
 @import "./5-public/_register.css";
 @import "./5-public/_hand.css";
+@import "./5-public/_rules.css";
