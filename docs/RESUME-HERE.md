@@ -5,7 +5,7 @@ poker nights in Regina.
 
 ## Where things stand
 
-Suite: **431 passed.** Run `php artisan test`.
+Suite: **436 passed.** Run `php artisan test`.
 
 **The design-system work is finished and is no longer what this project is
 about.** Phases 0-5 moved all 86 views off Tailwind onto hand-built CSS
@@ -14,6 +14,15 @@ the logo's palette (`docs/RED-BLACK-EXIT-AUDIT.md`). Colour is enforced rather
 than asserted: `TokenContrastTest` parses the real token file and fails the suite
 on any pair below AA. Everything since has been features and defect work on top
 of that foundation.
+
+**The four public rules pages carry the league's real documents.** They were
+paraphrases written to fill a layout -- and some of them were wrong: the finale
+was described as a top-20 cut when it is three thresholds, and a "Point
+Multiplier: Double Weighted Points Awarded" fact stated a scoring rule the league
+does not have and the app does not implement. The rules now live as data in
+`config/holdem.php`, `config/conduct.php` and `config/regulations.php`, render
+through one recursive component, and are numbered by CSS counters so a clause is
+cited by where it sits.
 
 **Mail works.** SMTP is configured against Dreamhost, connects, authenticates and
 delivers; a real password reset was sent, clicked and completed on 2026-09-05.
@@ -35,9 +44,15 @@ send.
 ### Open, in rough priority
 
 1. `APP_URL` on the production host (above). Owner's, at deploy time.
-2. `docs/` holds six audit documents from finished phases. Their open-items
+2. **One unreproduced test failure**, seen once on 2026-09-05: a full run
+   reported `1 failed, 435 passed`, and the name was not captured. It did not
+   recur in 45 further full runs or 120 targeted ones against everything in the
+   suite that uses randomness or the clock. Recorded rather than dismissed: a
+   test that fails once in fifty runs will eventually fail in CI, and the next
+   person to see it should know it is not new.
+3. `docs/` holds six audit documents from finished phases. Their open-items
    sections are largely resolved; treat this file as the index, not them.
-3. `.superpowers/sdd/` can be deleted whenever convenient — see the end of this
+4. `.superpowers/sdd/` can be deleted whenever convenient — see the end of this
    file.
 
 Nothing else is known-broken. There are no TODO, FIXME or HACK markers anywhere
@@ -62,6 +77,20 @@ in `app/`, `routes/` or `resources/`.
   A whole session of "verified visually" was done on the wrong font before this was
   noticed, and it mattered exactly once: a button label sitting 2px high. Re-declare the
   `@font-face` rules with absolute `file://` paths in the dumped copy before measuring type.
+- **Check a new class name against the stylesheet before using it.** `.p-rule`
+  was already the decorative `<hr>` at the foot of four pages -- 4rem wide,
+  centred, 2px tall -- so list items wearing it collapsed into a 64px column of
+  overlapping text. Every one of the 436 tests passed while the page was
+  unreadable; only a screenshot showed it. The rules list is `.p-clause` now.
+- **Source order decides between two single-class rules, and this project has
+  been bitten three times.** `.rows`, then `.p-benefits`, then
+  `.p-clause__text`: in each case a `margin: 0` reset loaded after the spacing
+  rule that was supposed to apply and silently won. If spacing does not appear,
+  look for a reset later in the cascade before looking anywhere else.
+- **`assertSee($text)` escapes its expectation; `assertSee($text, false)` does
+  not.** Blade turns an apostrophe into `&#039;`, so a raw search for one finds
+  nothing on a page rendering it perfectly. Default to the escaping form when
+  asserting content.
 - **Chromium here is snap-confined**: it cannot read or write `/tmp`, and enforces a
   500px minimum window width. Use a directory under `$HOME` for screenshot work.
 
@@ -143,6 +172,34 @@ are recorded so they are not rediscovered as if new:
   view windows page numbers, so it calls `total()` and `lastPage()`, which a simple
   paginator does not have. Pointing it there made the first ever `simplePaginate()` call a
   fatal error. Simple pagination falls back to Laravel's stock view: unstyled, but working.
+
+### Added while the rules pages were rebuilt
+
+- **A rule set is data, not markup.** `config/holdem.php`, `config/conduct.php`
+  and `config/regulations.php` hold the clauses; `<x-p-rules>` renders them
+  recursively and `.p-rules-doc` styles them. A page's markup is then about
+  layout, and a test can walk the same data the page renders.
+- **Numbering comes from CSS counters, never from the content.** Clauses are
+  cited by number -- "21.8" -- so a number typed into the text is one that
+  silently stops matching the moment a clause is inserted above it.
+- **Rule sets run the full container with no measure on the text.** Unusual, and
+  deliberate: these are short numbered clauses, not prose, and at the container's
+  width all but a handful fit on one line. A measure puts back the whitespace
+  without shortening a line that mattered. Above 48rem they are inset by
+  `--space-6` so they align with the panels around them.
+- **Every departure from the source document is commented where it is made** --
+  a corrected blind level, four transcription slips -- so nobody later restores
+  it to match the paper copy.
+- **The finale panel states only what the app enforces or the rules say.** It
+  previously carried an invented scoring rule. There is a test refusing any
+  rank-cut phrasing, and another refusing to print a season's threshold figures,
+  which differ per season and are published on the season page.
+- **The season has no fixed number of tournaments.** Confirmed by the owner on
+  2026-09-05; the regulations page's old "12 regular tournaments" section was
+  removed rather than corrected, because there was no number to put back.
+- **Public form actions share `.p-form-actions`** -- full width on a phone,
+  label-width and flush right above 40rem. `btn--block` survives on the sign-in
+  button alone, where a full-width primary in a 38rem column is right.
 
 ## Four defects found in the plan itself during Phase 0
 
