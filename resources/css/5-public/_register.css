@@ -186,8 +186,41 @@
     color: var(--c-text-muted);
 }
 
+/* Flush left, all three of them.
+ *
+ * .p-hero__title and .p-hero__eyebrow are capped at 52rem and centred with an
+ * auto inline margin, which is right for a centred hero and wrong here: the
+ * TEXT was start-aligned but its BOX was still centred, so on a full-width band
+ * the eyebrow and title sat about 180px in while the lede -- which already reset
+ * its margin -- began at the padding edge. Three blocks, two different left
+ * edges, for no reason a reader could see. */
+.p-hero--start .p-hero__eyebrow,
+.p-hero--start .p-hero__title,
 .p-hero--start .p-hero__lede {
     margin-inline: 0;
+}
+
+/* A measure, not a column width.
+ *
+ * 40rem is a comfortable line length when the hero is one narrow column. Across
+ * a full-width band it wrapped this page's lede two words from the end, and
+ * 46rem still left "either way." alone on a line of its own. The sentence
+ * measures about 50rem set, so 52rem lets it sit on one line wherever the band
+ * is wide enough to hold it -- which on this page is any desktop.
+ *
+ * balance rather than pretty for the widths where it must still wrap: pretty
+ * only avoids a short LAST line, while balance evens all of them, so a lede
+ * that breaks does so into two comparable lines instead of a long one and a
+ * remainder. It does nothing at all when the text already fits. */
+.p-hero--start .p-hero__lede {
+    max-width: 52rem;
+    text-wrap: balance;
+}
+
+/* The title is short and set large, so it is the other place a bad break shows.
+   balance evens the lines rather than filling the first one. */
+.p-hero__title {
+    text-wrap: balance;
 }
 
 .p-section-head {
@@ -751,15 +784,6 @@
 }
 
 /* An addressable detail — email, Discord — as an icon beside a label and value. */
-.p-contact {
-    display: flex;
-    /* Centred against the tile, not top-aligned: the tile is 2.5rem and the
-       label-plus-value block is shorter, so without this the text sat high and
-       the pair read as misaligned. */
-    align-items: center;
-    gap: var(--space-4);
-}
-
 .p-contact__label {
     font-family: var(--font-body);
     font-size: var(--step--2);
@@ -857,12 +881,6 @@
 
 /* Addressable details, side by side. A wider gap than .l-grid's, because these
    blocks have no border to separate them -- the space is the separation. */
-.p-contacts {
-    display: grid;
-    gap: var(--space-6);
-    grid-template-columns: repeat(auto-fit, minmax(min(14rem, 100%), 1fr));
-}
-
 /* The season block. The same surface as the .p-event card below it:
    .p-raised's large radius and float shadow, and no border.
 
@@ -1751,4 +1769,25 @@
 .p-auth-form {
     max-width: 38rem;
     margin-inline: auto;
+}
+
+/* A form's action row on a public page.
+ *
+ * Full width on a phone, where a wide target is the point and there is nothing
+ * to align against. Once the form is no longer the whole screen the button
+ * shrinks to its label and sits at the end of the row -- the same place every
+ * dashboard form puts its action. */
+.p-form-actions .btn {
+    width: 100%;
+}
+
+@media (min-width: 40rem) {
+    .p-form-actions {
+        display: flex;
+        justify-content: flex-end;
+    }
+
+    .p-form-actions .btn {
+        width: auto;
+    }
 }

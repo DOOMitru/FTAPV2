@@ -70,7 +70,7 @@ class MailCheck extends Command
         if (in_array(strtolower((string) $contact), self::PLACEHOLDERS, true)) {
             $problems[] = sprintf(
                 'LEAGUE_CONTACT_EMAIL is still the placeholder (%s). Contact-form submissions are '
-                .'being delivered there, and the contact page displays it.',
+                .'being delivered there, so they are going to an address nobody reads.',
                 $contact
             );
         }
