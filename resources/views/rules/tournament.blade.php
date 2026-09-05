@@ -64,7 +64,11 @@
     @php
         $finalRules = [
 
-        ['label' => 'Qualification', 'effect' => 'Top 10 Players in Seasonal Standings'],
+        // Not "Top 10 Players in Seasonal Standings". It sat beside a
+        // paragraph describing the real rule and contradicted it in three
+        // words -- and being a shorter, bolder line, it is the one a reader
+        // takes away.
+        ['label' => 'Qualification', 'effect' => 'Season Points, Wins and Venue Points'],
         ['label' => 'Point Multiplier', 'effect' => 'Double Weighted Points Awarded'],
         ['label' => 'The Trophy', 'effect' => 'Crown of the First to Act Champion'],
         ];
@@ -77,7 +81,15 @@
                 <div>
                     <h3 class="p-panel__title">{{ __('The Season Finale') }}</h3>
 
-                    <p class="p-panel__text">{{ __('The season ends with a finale for the top 20 players on the leaderboard. Every night before it counts toward getting there.') }}</p>
+                    {{-- Earned, not ranked. This said "the top 20 players on
+                         the leaderboard", which is not how the finale works:
+                         a season sets three targets and everyone who meets all
+                         of them plays, however many that turns out to be. The
+                         numbers are deliberately not repeated here -- they
+                         differ per season and the season page publishes them,
+                         so a figure written into the rules page is a figure
+                         that goes stale without anyone noticing. --}}
+                    <p class="p-panel__text">{{ __('The season ends with a finale, and a place in it is earned rather than ranked. Each season sets the points, tournament wins and venue points a player needs, and everyone who meets all three plays. Every night before it counts toward getting there.') }}</p>
 
                     <p class="p-pill">
                         <span class="p-pill__dot" aria-hidden="true"></span>

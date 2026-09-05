@@ -428,4 +428,63 @@ class FinaleQualificationTest extends TestCase
             ->assertOk()
             ->assertSee('42');
     }
+
+    public function test_the_public_pages_describe_the_rule_the_app_enforces(): void
+    {
+        // Both of these told players the finale was for "the top 20 on the
+        // leaderboard". It is not, and has not been since thresholds shipped:
+        // a season sets three targets and everyone who meets all of them plays.
+        // Someone sitting 25th who clears them qualifies, and someone sitting
+        // 3rd without a win does not -- so a player could read the rules page,
+        // believe they were safe at 18th, and be wrong.
+        $pages = [route('rules.tournament'), route('about.index')];
+
+        foreach ($pages as $url) {
+            $html = $this->get($url)->assertOk()->getContent();
+
+            // Comments are stripped from rendered output, so the account of
+            // this in the Blade source cannot satisfy the check.
+            //
+            // Any rank cut, not just the twenty. The first pass at this fixed
+            // the prose and left a fact tile beside it reading "Top 10 Players
+            // in Seasonal Standings" -- the same wrong rule with a different
+            // number, and the bolder of the two lines.
+            $this->assertDoesNotMatchRegularExpression(
+                '/top\s+\d+\s+(?:players?|on the leaderboard|in seasonal)/i',
+                $html,
+                "{$url} still promises a rank cut."
+            );
+        }
+
+        $this->get(route('rules.tournament'))->assertOk()
+            ->assertSee('earned rather than ranked');
+
+        $this->get(route('about.index'))->assertOk()
+            ->assertSee("season's qualification targets", false);
+    }
+
+    public function test_the_public_pages_do_not_quote_a_threshold(): void
+    {
+        // The numbers differ per season and the season page publishes them. A
+        // figure written into a rules page is a figure that goes stale without
+        // anyone noticing, which is the fault this whole change is about.
+        $season = PokerSeason::create([
+            'name' => 'Season 6',
+            'start_date' => now()->subMonth(),
+            'end_date' => now()->addMonth(),
+            'is_current' => true,
+            'finale_points_required' => 5000,
+            'finale_wins_required' => 1,
+            'finale_venue_points_required' => 500,
+        ]);
+
+        foreach ([route('rules.tournament'), route('about.index')] as $url) {
+            $html = $this->get($url)->assertOk()->getContent();
+
+            $this->assertStringNotContainsString('5,000', $html, "{$url} quotes a season's points target.");
+            $this->assertStringNotContainsString('5000', $html, "{$url} quotes a season's points target.");
+        }
+
+        $this->assertNotNull($season->id);
+    }
 }

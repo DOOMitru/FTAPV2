@@ -7,7 +7,7 @@
         <div class="l-prose">
             <p class="p-lede"><strong>First to Act Poker</strong> runs free-to-play poker nights for social players in Regina. No buy-in, no experience required, and someone will happily explain the rules at the table.</p>
 
-            <p>We run events every week. Points carry across the whole season, and the top 20 on the leaderboard play the finale.</p>
+            <p>We run events every week. Points carry across the whole season, and every player who hits the season's qualification targets plays the finale.</p>
 
             <p>The arrangement works both ways: host venues meet new customers, and local businesses reach a room full of regulars. We also run charity tournaments.</p>
         </div>
