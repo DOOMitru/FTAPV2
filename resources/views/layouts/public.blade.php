@@ -36,8 +36,10 @@
                         </x-slot>
 
                         <x-slot name="content">
-                            <x-dropdown-link :href="route('rules.tournament')">{{ __('Regulations') }}</x-dropdown-link>
-                            <x-dropdown-link :href="route('rules.betting')">{{ __('Conduct') }}</x-dropdown-link>
+                            {{-- Named for what each page is titled, so the menu
+                                 and the page a reader lands on agree. --}}
+                            <x-dropdown-link :href="route('rules.tournament')">{{ __('Rules & Regulations') }}</x-dropdown-link>
+                            <x-dropdown-link :href="route('rules.betting')">{{ __('Betting & Conduct') }}</x-dropdown-link>
                             <x-dropdown-link :href="route('rules.texas-holdem')">{{ __('How to play') }}</x-dropdown-link>
                             <x-dropdown-link :href="route('rules.points-structure')">{{ __('Points') }}</x-dropdown-link>
                         </x-slot>

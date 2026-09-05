@@ -38,13 +38,18 @@ return [
 
         ['text' => 'The blinds will be for 20 minutes rather than 15.'],
 
-        ['text' => 'The blinds will be 100/200, 200/400, 300/600, 400/500, 500/1000, break, 1000/2000, 1500/3000, 2000/4000, 3000/6000, 4000/8000, 5000/10000 and 10000/20000.'],
+        // 400/800, corrected from the 400/500 in the source document at the
+        // owner's direction. Every other level in the schedule is a 1:2 ratio,
+        // which is what made it findable.
+        ['text' => 'The blinds will be 100/200, 200/400, 300/600, 400/800, 500/1000, break, 1000/2000, 1500/3000, 2000/4000, 3000/6000, 4000/8000, 5000/10000 and 10000/20000.'],
 
         ['text' => 'Players will be placed into one of the two tournaments based on their point accumulation.'],
 
         ['text' => 'If a player is knocked out of the Championship game they are eligible to play in the alternate game as long as it is before the first break and the alternate game is still in progress. A player starting late will receive a reduced chip stack in the same manner as in our regular season games.'],
 
-        ['text' => 'If players in the alternate game are knocked-out they may re-enter once if it is prior to the break. Their re-entry chip count will be reduced by double the current blind.'],
+        // "knocked out" as a verb takes no hyphen; the source hyphenated it
+        // here and not in rule 5, which uses "knocked out" correctly.
+        ['text' => 'If players in the alternate game are knocked out they may re-enter once if it is prior to the break. Their re-entry chip count will be reduced by double the current blind.'],
     ],
 
 ];

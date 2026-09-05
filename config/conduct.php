@@ -23,7 +23,8 @@ return [
 
         ['text' => 'Players shall keep all of their cards and chips on the table and visible at all times.'],
 
-        ['text' => 'Strattle betting is not allowed.'],
+        // "Straddle", corrected from "Strattle" in the source.
+        ['text' => 'Straddle betting is not allowed.'],
     ],
 
     'behaviour' => [
@@ -39,7 +40,8 @@ return [
             'text' => 'The tournament director may remove disruptive players from the tournament. The following system of warnings and penalties may be used:',
             'children' => [
                 ['text' => 'The tournament director will inform the player of their infraction and if necessary make them aware of further consequences.'],
-                ['text' => 'After the first verbal warning the player will be withdrawn from play until the blind has past their position at the table.'],
+                // "has passed", corrected from "has past" in the source.
+                ['text' => 'After the first verbal warning the player will be withdrawn from play until the blind has passed their position at the table.'],
                 ['text' => 'The player will be ejected from the tournament.'],
                 ['text' => 'The player will be banned from playing in any “First to Act” event for the period of one month.'],
                 ['text' => 'The player will not be invited to play at any “First to Act” event for the remainder of the season.'],

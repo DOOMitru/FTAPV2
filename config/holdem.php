@@ -131,7 +131,10 @@ return [
             'text' => 'If two or more players wish to bet more than the bet of another player moving All-In, the dealer shall establish a side pot(s). Players may raise All-In:',
             'children' => [
                 ['text' => 'The player moving All-In is eligible to win the main pot, consisting of the Blinds, all previous bets, the bet of the player moving All-In and the bets of the other players matching the All-In bet.'],
-                ['text' => 'The players with chips remaining may continue placing bets into the side.'],
+                // "the side pot", corrected from "the side" in the source: the
+                // clause is about side pots and 19.1 names the main pot, so the
+                // sentence ended a word early.
+                ['text' => 'The players with chips remaining may continue placing bets into the side pot.'],
                 ['text' => 'Additional side pots may be created if other players are All-In. There is no limit as to how many side pots can be in play.'],
             ],
         ],

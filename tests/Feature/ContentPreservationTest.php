@@ -410,7 +410,7 @@ class ContentPreservationTest extends TestCase
         // Pinned independently of the config, so this checks the words and not
         // only the plumbing. The escalation ladder is the part that used to be
         // duplicated in a panel of its own.
-        $response->assertSee('Strattle betting is not allowed.');
+        $response->assertSee('Straddle betting is not allowed.');
         $response->assertSee('Cell phone use is not allowed at the tables.');
         $response->assertSee('banned from playing in any “First to Act” event for the period of one month.');
         $response->assertSee('including a ten-second countdown');
@@ -448,6 +448,11 @@ class ContentPreservationTest extends TestCase
         $response->assertSee('not exceeding seating for a maximum of 10 players');
         $response->assertSee('The player in seat one will be the dealer to start the tournament.');
         $response->assertSee('There will be two tournaments running at the same time.');
+
+        // The blind schedule, and the level that was corrected in it. Every
+        // level is a 1:2 ratio, which is how 400/500 was spotted in the source.
+        $response->assertSee('400/800');
+        $response->assertDontSee('400/500');
 
         // The finale panel, which describes the same finale the app enforces.
         $response->assertSee('Season Points, Wins and Venue Points');
