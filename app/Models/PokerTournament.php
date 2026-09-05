@@ -80,6 +80,26 @@ class PokerTournament extends Model
      * events archive draws a podium per tournament, so a query here would be a
      * query per card.
      */
+    /**
+     * Has anyone been given a finish here yet?
+     *
+     * The gate on removing a registrant. A place is a position in a field, so
+     * taking a player out of the field after finishes are recorded leaves every
+     * one of those finishes describing a tournament that no longer exists --
+     * tenth of ten, in a field of nine. Registering someone late is the
+     * opposite case and is handled: the shift hook moves the recorded places
+     * down to match. There is no matching way back, because removing a player
+     * is ambiguous in a way that adding one is not -- did they never play, or
+     * did they play and their result should go too?
+     *
+     * So the answer is that they stay. This is asked in two places, and lives
+     * here so the two cannot come to different conclusions.
+     */
+    public function hasRecordedResults(): bool
+    {
+        return $this->countOf('results') > 0;
+    }
+
     private function countOf(string $relation): int
     {
         if ($this->relationLoaded($relation)) {

@@ -39,16 +39,25 @@
                             <div class="l-cluster l-cluster--end">
                                 <x-action icon="edit" :label="__('Edit')" :href="route('poker.registrants.edit', $registrant)" />
 
-                                <form action="{{ route('poker.registrants.destroy', $registrant) }}" method="POST"
-                                      data-confirm="{{ __('Remove :name from :tournament? This cannot be undone.', [
-                                          'name' => $registrant->player_name,
-                                          'tournament' => $registrant->tournament->name,
-                                      ]) }}">
-                                    @csrf
-                                    @method('DELETE')
+                                {{-- Only while the field can still change. Once
+                                     finishes are recorded, a place describes the
+                                     size of the field, and taking a player out of
+                                     it makes every one of those places wrong --
+                                     so the controller refuses, and offering the
+                                     button anyway is offering a click that cannot
+                                     work. --}}
+                                @unless ($registrant->tournament->hasRecordedResults())
+                                    <form action="{{ route('poker.registrants.destroy', $registrant) }}" method="POST"
+                                          data-confirm="{{ __('Remove :name from :tournament? This cannot be undone.', [
+                                              'name' => $registrant->player_name,
+                                              'tournament' => $registrant->tournament->name,
+                                          ]) }}">
+                                        @csrf
+                                        @method('DELETE')
 
-                                    <x-action icon="delete" :label="__('Delete')" danger />
-                                </form>
+                                        <x-action icon="delete" :label="__('Delete')" danger />
+                                    </form>
+                                @endunless
                             </div>
                         </td>
                     </tr>

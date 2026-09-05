@@ -260,6 +260,17 @@ class PokerTournamentController extends Controller
             return back()->with('error', 'Registration has closed, so this entry can no longer be withdrawn.');
         }
 
+        // Belt and braces: a player cannot reach this once results exist,
+        // because withdrawing needs registration open and eliminating needs it
+        // closed. That is two other guards happening to agree rather than this
+        // rule being enforced, and the day either one moves, this becomes the
+        // hole that lets a settled field change size.
+        if ($tournament->hasRecordedResults()) {
+            return back()->with('error', __(
+                'Results have been recorded for this tournament, so entries can no longer be withdrawn.'
+            ));
+        }
+
         $registration = $tournament->registrants()->where('user_id', auth()->id())->first();
 
         if (!$registration) {
