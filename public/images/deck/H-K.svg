@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="250" height="350" viewBox="0 0 250 350" role="img" aria-label="king of hearts">
+<title>king of hearts</title>
+<rect x="5" y="5" width="240" height="340" rx="20" fill="#FFFFFF" stroke="#3A3A3C" stroke-width="5"/>
+<g transform="translate(125.0,175.00) scale(4.0094)"><path fill="#E8483C" d="M0,16C-11,7 -17,0 -17,-6C-17,-12 -12,-16 -6,-16C-2,-16 0,-13 0,-11C0,-13 2,-16 6,-16C12,-16 17,-12 17,-6C17,0 11,7 0,16Z"/></g>
+<text x="31" y="56.55" fill="#E8483C" font-family="Impact, Haettenschweiler, 'Arial Narrow', sans-serif" font-size="35" letter-spacing="1">K</text>
+<g transform="translate(43.66,86.47) scale(0.745)"><path fill="#E8483C" d="M0,16C-11,7 -17,0 -17,-6C-17,-12 -12,-16 -6,-16C-2,-16 0,-13 0,-11C0,-13 2,-16 6,-16C12,-16 17,-12 17,-6C17,0 11,7 0,16Z"/></g>
+<text transform="translate(219,293.45) rotate(180)" x="0" y="0" fill="#E8483C" font-family="Impact, Haettenschweiler, 'Arial Narrow', sans-serif" font-size="35" letter-spacing="1">K</text>
+<g transform="translate(206.34,263.53) scale(-0.745)"><path fill="#E8483C" d="M0,16C-11,7 -17,0 -17,-6C-17,-12 -12,-16 -6,-16C-2,-16 0,-13 0,-11C0,-13 2,-16 6,-16C12,-16 17,-12 17,-6C17,0 11,7 0,16Z"/></g>
+</svg>

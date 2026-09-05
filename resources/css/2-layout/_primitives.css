@@ -1,0 +1,114 @@
+/* Layout primitives own every margin and gap in the system. Components set
+   their own padding and never their own outer spacing, so any component can be
+   dropped into any layout without dragging whitespace along with it. */
+
+.l-container {
+    width: 100%;
+    max-width: 80rem;
+    margin-inline: auto;
+    padding-inline: var(--space-4);
+}
+
+.l-container--narrow {
+    max-width: 48rem;
+}
+
+/* Vertical rhythm. The owl selector spaces siblings without a trailing gap. */
+.l-stack > * + * {
+    margin-block-start: var(--space-5);
+}
+
+.l-stack--tight > * + * {
+    margin-block-start: var(--space-3);
+}
+
+.l-stack--loose > * + * {
+    margin-block-start: var(--space-8);
+}
+
+/* Horizontal grouping that wraps rather than overflows. */
+.l-cluster {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-3);
+}
+
+.l-cluster--between {
+    justify-content: space-between;
+}
+
+.l-cluster--end {
+    justify-content: flex-end;
+}
+
+/* Responsive without media queries: columns collapse when they cannot fit. */
+.l-grid {
+    display: grid;
+    gap: var(--space-4);
+    grid-template-columns: repeat(auto-fit, minmax(min(16rem, 100%), 1fr));
+}
+
+.l-grid--wide {
+    grid-template-columns: repeat(auto-fit, minmax(min(22rem, 100%), 1fr));
+}
+
+/* Three abreast at every width. auto-fit sizes tracks against a minimum and
+   drops to one column on a phone, which is right for cards and wrong for a set
+   of three figures that belong read together: a season's tournaments, points
+   and players are one sentence, not three rows.
+
+   minmax(0, 1fr), not 1fr: a track's automatic minimum is its content's
+   min-content width, so a long stat label would refuse to shrink and push the
+   row wider than the screen instead of wrapping inside its own tile. */
+.l-grid--trio {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+/* Two abreast on a phone rather than one.
+ *
+ * The base tracks want 16rem. At 375px the container leaves 343px of usable
+ * width, so exactly one fits and a row of four stat tiles renders as four
+ * full-width cards -- a screenful of numbers that should have been a glance.
+ * Above this width the base rule takes over again and the row grows back out.
+ *
+ * A fixed pair, not a smaller auto-fit track: 9rem tracks would let a THIRD
+ * column in at around 500px and split four tiles three-and-one, and 10rem
+ * clears 375px by seven pixels, which is not a margin worth shipping.
+ *
+ * minmax(0, 1fr), not 1fr: a track's automatic minimum is its content's
+ * min-content width, so a label like "Podium Finishes" would refuse to shrink
+ * and push the pair wider than the screen instead of wrapping inside a tile. */
+@media (max-width: 48rem) {
+    .l-grid--tight {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+.l-sidebar {
+    display: grid;
+    gap: var(--space-5);
+    grid-template-columns: minmax(0, 2fr) minmax(min(18rem, 100%), 1fr);
+}
+
+@media (max-width: 60rem) {
+    .l-sidebar {
+        /* minmax(0, 1fr), not 1fr. `1fr` means `minmax(auto, 1fr)`, and a grid
+           item's automatic minimum is its min-content width -- so a column
+           containing a wide table refuses to shrink and the page scrolls
+           sideways, even though .table-scroll is ready to scroll internally.
+           The two-column rule above already guards the main column this way;
+           the collapsed rule threw that away. */
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
+.l-prose {
+    max-width: var(--measure);
+}
+
+/* A measure without a rhythm is half a prose block: consecutive paragraphs ran
+   together with no gap at all. */
+.l-prose > * + * {
+    margin-block-start: var(--space-4);
+}

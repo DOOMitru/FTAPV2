@@ -1,0 +1,34 @@
+/* The PUBLIC shell only. The guest shell used to live here too, which quietly
+   put it inside PublicRegisterTest's gradient fence -- that test allows this
+   file, so a gradient could have landed on .guest__panel with nothing
+   objecting, even though nobody decided auth pages belonged to the public
+   register. They do not: the owner chose the dashboard register for auth on
+   2026-08-31. Splitting the file is what makes that decision enforceable.
+
+   Consumes the shared <x-topbar> from 2-layout/_topbar.css; this file styles
+   only what is genuinely public-specific -- the page wrapper and the footer. */
+
+.public {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    background-color: var(--c-bg);
+}
+
+.public__main {
+    flex: 1 1 auto;
+    padding-block: var(--space-8);
+}
+
+/* 48rem is where the topbar becomes two rows -- brand and burger, then the nav
+   panel beneath. That taller bar leaves less room for the page, and the 48px
+   gap below it that reads as generous on a desktop reads as wasted on a phone,
+   where it can push the first heading most of the way down the fold.
+ *
+ * Only the TOP is reduced. The bottom gap separates content from the footer,
+ * which is a different relationship and still wants the room. */
+@media (max-width: 48rem) {
+    .public__main {
+        padding-block-start: var(--space-5);
+    }
+}

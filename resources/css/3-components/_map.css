@@ -1,0 +1,46 @@
+/* The embedded venue map. Shared, not public-only: events uses it, and both
+   showcase detail pages -- which are dashboard-register pages -- embed the same
+   thing. It lived in 5-public because events needed it first, and its pin used
+   --shadow-float, a fenced token. Putting that class on a dashboard page would
+   have broken the register rule with NO test objecting: PublicRegisterTest
+   checks which stylesheet references a fenced token, not which view uses the
+   resulting class. The pin now uses --shadow-overlay, the dashboard's only
+   permitted shadow. */
+.map {
+    position: relative;
+    min-height: 18rem;
+}
+
+.map iframe {
+    display: block;
+    width: 100%;
+    height: 100%;
+    border: 0;
+    filter: grayscale(1);
+}
+
+/* Inverted in DARK only. The original inverted in LIGHT and not in dark, which
+   put a dark map on a light page and a glaring light map on a dark one --
+   exactly backwards. hue-rotate puts the blues back after the invert. */
+:root[data-theme="dark"] .map iframe {
+    filter: grayscale(1) invert(0.92) hue-rotate(180deg);
+}
+
+@media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) .map iframe {
+        filter: grayscale(1) invert(0.92) hue-rotate(180deg);
+    }
+}
+
+.map__pin {
+    position: absolute;
+    inset-block-end: var(--space-4);
+    inset-inline: var(--space-4);
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-3) var(--space-4);
+    border-radius: var(--radius);
+    background-color: var(--c-surface);
+    box-shadow: var(--shadow-overlay);
+}

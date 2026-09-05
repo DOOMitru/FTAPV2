@@ -1,0 +1,244 @@
+name: CI & Deploy
+
+# Pull requests get tested. Pushes to main get tested and then deployed --
+# deploy `needs: test`, so a red suite stops the release rather than racing it.
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# Every action is pinned to a commit SHA, with the version in the comment
+# beside it. A tag like @v2 is a moving pointer the action's owner can
+# repoint at any time, and the deploy job below holds an SSH key that can
+# write to the production server -- so "whatever @v2 means today" is a
+# decision handed to somebody else. Dependabot moves these deliberately;
+# see .github/dependabot.yml.
+
+# The PHP version, in one place.
+#
+# It has to match the DreamHost server's, because vendor/ is compiled on the
+# runner and shipped -- those files are built against this interpreter. Check
+# what the server actually has with:
+#
+#     ssh you@host 'ls -d /usr/local/php*'
+#
+# and set this to it. The app itself is not the constraint: composer.json allows
+# ^8.2 and nothing in composer.lock caps it.
+#
+# 8.5 because the server has /usr/local/php85 and local development runs 8.5.4,
+# so dev, CI and production are one interpreter rather than three. The pinned
+# setup-php lists 8.5 as stable on GitHub-hosted runners.
+env:
+  PHP_VERSION: '8.5'
+
+concurrency:
+  # A second push to main cancels the first: the older run would deploy code
+  # that has already been superseded.
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Tests (${{ matrix.database }})
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        # Both, on purpose. Production is MySQL, so that is the one that must
+        # pass; local development is SQLite, so that is the one that must keep
+        # working. This project already carries two SQLite-vs-MySQL notes -- the
+        # is_active double-quote misfeature, and SUM() returning an int on
+        # SQLite and a numeric string elsewhere -- so a suite that ran on one
+        # driver would be leaving exactly those differences untested.
+        database: [sqlite, mysql]
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: password
+          MYSQL_DATABASE: testing
+        ports: ['3306:3306']
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -ppassword"
+          --health-interval=10s --health-timeout=5s --health-retries=10
+
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # 2.37.2
+        with:
+          php-version: ${{ env.PHP_VERSION }}
+          extensions: mbstring, pdo_sqlite, sqlite3, pdo_mysql, intl, zip, gd
+          coverage: none
+
+      - name: Cache Composer packages
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: vendor
+          key: composer-${{ runner.os }}-php${{ env.PHP_VERSION }}-${{ hashFiles('composer.lock') }}
+          restore-keys: composer-${{ runner.os }}-php${{ env.PHP_VERSION }}-
+
+      - run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Prepare the environment
+        # The suite uses phpunit.xml's own database settings, but the framework
+        # still boots from .env, and APP_KEY is empty in the example.
+        run: |
+          cp .env.example .env
+          php artisan key:generate
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '22'
+          cache: npm
+
+      - run: npm ci
+
+      - name: Build assets
+        # Not optional. Every view renders @vite, which throws
+        # ViteManifestNotFoundException when public/build/manifest.json is
+        # missing -- without this the suite fails on a missing file rather than
+        # on anything real.
+        run: npm run build
+
+      - name: Run the test suite
+        # phpunit.xml pins DB_CONNECTION to sqlite, but PHPUnit does not
+        # overwrite a variable already present in the environment, so setting it
+        # here is what switches drivers. Verified rather than assumed.
+        env:
+          DB_CONNECTION: ${{ matrix.database }}
+          DB_HOST: 127.0.0.1
+          DB_PORT: 3306
+          DB_DATABASE: testing
+          DB_USERNAME: root
+          DB_PASSWORD: password
+        run: php artisan test
+
+  deploy:
+    name: Deploy to DreamHost
+    needs: test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    # A GitHub Environment called "production". Holds the secrets below, and
+    # lets you add a required reviewer later without touching this file.
+    environment: production
+
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # 2.37.2
+        with:
+          php-version: ${{ env.PHP_VERSION }}
+          extensions: mbstring, pdo_mysql, intl, zip, gd
+          coverage: none
+
+      - name: Install production dependencies
+        # --no-dev, because the server never runs the test suite, and the
+        # autoloader is optimised because it is generated once per deploy and
+        # then read on every request.
+        #
+        # vendor/ is built HERE and shipped, rather than composer running on the
+        # server: shared hosting has no reliable Composer and no memory headroom
+        # to resolve dependencies. That is why the PHP version above has to match
+        # the server's -- these files are compiled against it.
+        run: composer install --no-interaction --prefer-dist --no-progress --no-dev --optimize-autoloader
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '22'
+          cache: npm
+
+      - run: npm ci
+
+      - run: npm run build
+
+      - name: Open an SSH connection
+        env:
+          KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          HOST: ${{ secrets.DEPLOY_HOST }}
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "$KEY" > ~/.ssh/id_deploy
+          chmod 600 ~/.ssh/id_deploy
+          # Pin the host key rather than disabling checking, so a redirected
+          # deploy fails instead of handing the release to whoever answers.
+          ssh-keyscan -H "$HOST" >> ~/.ssh/known_hosts 2>/dev/null
+
+      - name: Put the site into maintenance mode
+        env:
+          SSH: ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}
+          PATH_ON_SERVER: ${{ secrets.DEPLOY_PATH }}
+          PHP: ${{ vars.DEPLOY_PHP || '/usr/local/php85/bin/php' }}
+        run: |
+          ssh -i ~/.ssh/id_deploy "$SSH" \
+            "cd '$PATH_ON_SERVER' && $PHP artisan down --retry=30 || true"
+
+      - name: Sync the release
+        env:
+          SSH: ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}
+          PATH_ON_SERVER: ${{ secrets.DEPLOY_PATH }}
+        run: |
+          # --delete keeps the server from accumulating files that have left the
+          # repository. Everything the SERVER owns is excluded from it:
+          #
+          #   .env            the production configuration and its APP_KEY
+          #   storage/        logs, sessions, caches AND uploaded sponsor logos
+          #   public/storage  the symlink into storage/app/public
+          #   *.sqlite        the local database, which has no business here
+          #
+          # Getting these excludes wrong is how a deploy deletes the uploads.
+          rsync -az --delete \
+            --exclude='.git' \
+            --exclude='.github' \
+            --exclude='node_modules' \
+            --exclude='tests' \
+            --exclude='.env' \
+            --exclude='storage/' \
+            --exclude='public/storage' \
+            --exclude='*.sqlite' \
+            -e "ssh -i ~/.ssh/id_deploy" \
+            ./ "$SSH:$PATH_ON_SERVER/"
+
+      - name: Migrate and warm the caches
+        env:
+          SSH: ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}
+          PATH_ON_SERVER: ${{ secrets.DEPLOY_PATH }}
+          PHP: ${{ vars.DEPLOY_PHP || '/usr/local/php85/bin/php' }}
+        run: |
+          ssh -i ~/.ssh/id_deploy "$SSH" bash -se <<EOF
+            set -euo pipefail
+            cd '$PATH_ON_SERVER'
+
+            # --force: migrate refuses to run unprompted in production without
+            # it, and there is nobody here to answer the prompt.
+            $PHP artisan migrate --force
+
+            # Idempotent, and cheap insurance: a fresh deploy directory has no
+            # symlink and the sponsor logos 404 without one.
+            $PHP artisan storage:link || true
+
+            $PHP artisan config:cache
+            $PHP artisan route:cache
+            $PHP artisan view:cache
+
+            # The gate from mail:check. A production APP_URL pointing at
+            # localhost sends verification and invite links that go nowhere, and
+            # that failure looks exactly like a working mailer.
+            $PHP artisan mail:check
+          EOF
+
+      - name: Bring the site back up
+        # always(): if anything above failed, the site is sitting in maintenance
+        # mode. A failed deploy should leave a working site and a red build, not
+        # a 503 and a red build.
+        if: always()
+        env:
+          SSH: ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}
+          PATH_ON_SERVER: ${{ secrets.DEPLOY_PATH }}
+          PHP: ${{ vars.DEPLOY_PHP || '/usr/local/php85/bin/php' }}
+        run: |
+          ssh -i ~/.ssh/id_deploy "$SSH" \
+            "cd '$PATH_ON_SERVER' && $PHP artisan up"

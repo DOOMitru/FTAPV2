@@ -1,35 +1,29 @@
-@props(['align' => 'right', 'width' => '48', 'contentClasses' => 'py-1 bg-white dark:bg-gray-700'])
+@props(['align' => 'right', 'inlineMobile' => false])
 
 @php
-$alignmentClasses = match ($align) {
-    'left' => 'ltr:origin-top-left rtl:origin-top-right start-0',
-    'top' => 'origin-top',
-    default => 'ltr:origin-top-right rtl:origin-top-left end-0',
-};
-
-$width = match ($width) {
-    '48' => 'w-48',
-    default => $width,
-};
+// inlineMobile makes the panel flow in the document below 48rem instead of
+// floating over it — an absolutely-positioned popup inside a stacked mobile
+// menu reads as a detached overlay rather than a disclosure.
+$menuClasses = 'dropdown__menu'
+    .($align === 'left' ? ' dropdown__menu--left' : '')
+    .($inlineMobile ? ' dropdown__menu--inline-mobile' : '');
 @endphp
 
-<div class="relative" x-data="{ open: false }" @click.outside="open = false" @close.stop="open = false">
-    <div @click="open = ! open">
+<div {{ $attributes->merge(['class' => 'dropdown']) }} x-data="{ open: false }" @click.outside="open = false" @close.stop="open = false">
+    <div class="dropdown__trigger" @click="open = ! open" aria-haspopup="menu" x-bind:aria-expanded="open.toString()">
         {{ $trigger }}
     </div>
 
     <div x-show="open"
-            x-transition:enter="transition ease-out duration-200"
-            x-transition:enter-start="opacity-0 scale-95"
-            x-transition:enter-end="opacity-100 scale-100"
-            x-transition:leave="transition ease-in duration-75"
-            x-transition:leave-start="opacity-100 scale-100"
-            x-transition:leave-end="opacity-0 scale-95"
-            class="absolute z-50 mt-2 {{ $width }} rounded-md shadow-lg {{ $alignmentClasses }}"
-            style="display: none;"
+            x-transition:enter="dropdown__motion"
+            x-transition:enter-start="dropdown__motion-from"
+            x-transition:enter-end="dropdown__motion-to"
+            x-transition:leave="dropdown__motion dropdown__motion--leaving"
+            x-transition:leave-start="dropdown__motion-to"
+            x-transition:leave-end="dropdown__motion-from"
+            class="{{ $menuClasses }}"
+            x-cloak
             @click="open = false">
-        <div class="rounded-md ring-1 ring-black ring-opacity-5 {{ $contentClasses }}">
-            {{ $content }}
-        </div>
+        {{ $content }}
     </div>
 </div>

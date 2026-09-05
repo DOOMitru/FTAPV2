@@ -1,0 +1,37 @@
+/* The tournament detail page's panel order on a narrow screen.
+ *
+ * The page is written as .l-sidebar: a main column holding the podium, the
+ * final standings and the registered players, and a side column holding the
+ * admin register panel and the points table. That is the right reading order
+ * side by side, and the wrong one stacked -- collapsed, the whole main column
+ * comes first, so an administrator scrolls past every registered player to
+ * reach the control that adds one.
+ *
+ * 60rem, not this project's usual 48rem: that is the width at which .l-sidebar
+ * itself collapses, and reordering before or after it would leave a band where
+ * the columns and the order disagree.
+ */
+@media (max-width: 60rem) {
+    /* The column wrappers stop generating boxes, so their cards become items
+       of the single-column grid .l-sidebar already is at this width -- and can
+       therefore be ordered independently of which column they were written
+       into. */
+    .tshow__panels > .l-stack {
+        display: contents;
+    }
+
+    /* .l-stack spaces its children with margins on the children themselves.
+       As grid items they are spaced by the grid's gap instead, and both
+       together would double the space between some pairs and not others. */
+    .tshow__panels > .l-stack > * {
+        margin-block-start: 0;
+    }
+
+    /* A past tournament leads with its result; every tournament puts the
+       control that adds a player above the list of players it adds them to. */
+    .tshow__podium { order: 1; }
+    .tshow__standings { order: 2; }
+    .tshow__register { order: 3; }
+    .tshow__players { order: 4; }
+    .tshow__points { order: 5; }
+}

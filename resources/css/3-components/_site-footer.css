@@ -1,0 +1,69 @@
+/* The site footer. Shared by the public shell and the dashboard shell, which is
+   why it lives here rather than in either 2-layout/_shell-*.css file.
+ *
+ * Uses no gradient or elevation token, so it is identical in both registers --
+ * correct for a footer, which is the one band that should not announce which
+ * half of the app you are in. */
+.site-footer {
+    border-block-start: var(--border-width) solid var(--c-border);
+    /* Sized to its contents: one space unit, so the band is about 59px tall --
+       the mark's height plus breathing room, and no more. */
+    padding-block: var(--space-4);
+}
+
+.site-footer__inner {
+    display: flex;
+    align-items: center;
+    gap: var(--space-4);
+}
+
+.site-footer__mark {
+    width: 2rem;
+    height: auto;
+    /* flex would otherwise shrink the mark before wrapping the text. */
+    flex: 0 0 auto;
+}
+
+/* A flex row of three clauses on a wide screen, reading as one line. Flex
+   rather than plain inline text so the same element can become a column below
+   without touching the markup. */
+.site-footer__tag {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4em;
+    font-family: var(--font-mono);
+    font-size: var(--step--2);
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--c-text-muted);
+}
+
+/* Pushed to the far end. An auto margin rather than justify-content:
+   space-between, which would also space the mark away from the tagline --
+   those two belong together. */
+.site-footer__sig {
+    margin-inline-start: auto;
+    font-family: var(--font-display);
+    font-size: var(--step--1);
+    letter-spacing: 0.04em;
+}
+
+/* On a phone the tagline does not fit beside the mark: it needs about 358px at
+   this size and letter-spacing, against roughly 343px of usable width at 375.
+ *
+ * Only the TAGLINE stacks. The mark stays at the left and the signature stays
+   pushed to the right, exactly where they sit on a wide screen -- the row
+   itself is not the problem, the length of one item in it is. Breaking the
+   clauses onto their own lines makes that item narrow enough for the row to
+   work again.
+ *
+ * The line-height is tightened because three uppercase mono lines at the
+   body's default leading read as three separate remarks rather than one
+   three-line phrase. */
+@media (max-width: 48rem) {
+    .site-footer__tag {
+        flex-direction: column;
+        gap: 0;
+        line-height: 1.45;
+    }
+}

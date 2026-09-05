@@ -5,51 +5,51 @@
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="csrf-token" content="{{ csrf_token() }}">
 
-        <title>{{ config('app.name', 'Laravel') }}</title>
+        <title>{{ config('app.name', 'First to Act Poker') }}</title>
 
-        <!-- Fonts -->
-        <link rel="preconnect" href="https://fonts.bunny.net">
-        <link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet" />
+        <link rel="preload" href="{{ asset('fonts/archivo.woff2') }}" as="font" type="font/woff2" crossorigin>
 
-        <!-- Scripts -->
+        <x-theme-script />
+
         @vite(['resources/css/app.css', 'resources/js/app.ts'])
         <link rel="icon" href="{{ asset('favicon.png') }}" type="image/png"/>
-        <script>
-            // On page load or when changing themes, best to add inline in `head` to avoid FOUC
-            if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-                document.documentElement.classList.add('dark')
-            } else {
-                document.documentElement.classList.remove('dark')
-            }
-
-            function toggleTheme() {
-                if (document.documentElement.classList.contains('dark')) {
-                    document.documentElement.classList.remove('dark')
-                    localStorage.theme = 'light'
-                } else {
-                    document.documentElement.classList.add('dark')
-                    localStorage.theme = 'dark'
-                }
-            }
-        </script>
     </head>
-    <body class="font-sans antialiased">
-        <div class="min-h-screen bg-gray-100 dark:bg-gray-900">
+    <body>
+        <div class="shell">
             @include('layouts.navigation')
 
-            <!-- Page Heading -->
+            {{-- Flash messages deliberately not rendered here yet: eight views already
+                 render session('status')/session('error') themselves (poker/{seasons,
+                 tournaments,points-structure,venues,registrants,venue-points,results}/index
+                 and poker/tournaments/show), so a layout-level block would duplicate them.
+                 Worse, ProfileController, Auth/PasswordController and
+                 Auth/EmailVerificationNotificationController flash sentinel strings
+                 ('profile-updated', 'password-updated', 'verification-link-sent') that the
+                 profile partials match on but never display — a naive block here would
+                 render those literally. The layout takes ownership of flash messages once
+                 the views that duplicate them convert and the sentinel-flashing controllers
+                 are updated to flash real copy; until then this is the same YAGNI call
+                 already made for pagination in this phase. --}}
             @isset($header)
-                <header class="bg-white dark:bg-gray-800 shadow">
-                    <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
-                        {{ $header }}
-                    </div>
+                <header class="shell__header">
+                    <div class="shell__header-inner">{{ $header }}</div>
                 </header>
             @endisset
 
-            <!-- Page Content -->
-            <main>
-                {{ $slot }}
-            </main>
+            {{-- No .l-container here. Every view supplies its own, and this
+                 one nested inside it -- .l-container sets padding-inline, so
+                 two of them meant the gutter was applied twice: 32px a side on
+                 a phone, where the content had the least room to give. --}}
+            <main class="shell__content">{{ $slot }}</main>
+
+            {{-- .shell is a flex column with min-height: 100vh and
+                 .shell__content takes flex: 1, so this sits at the bottom of
+                 the viewport on a short page rather than floating mid-screen. --}}
+            <x-site-footer />
+
+            {{-- One per page. Every form carrying data-confirm is asked about
+                 here rather than through the browser's own dialog. --}}
+            <x-confirm-dialog />
         </div>
     </body>
 </html>

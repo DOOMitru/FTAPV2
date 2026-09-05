@@ -1,0 +1,73 @@
+/* A searchable list you choose one row from.
+ *
+ * Replaces a <select> of every eligible player. A select is fine for a handful
+ * of options and useless at ninety: it cannot be searched beyond the browser's
+ * type-to-jump, which matches the start of the label only -- so an
+ * administrator who knows a nickname or an email address had no way to use it.
+ */
+.picker {
+    display: flex;
+    flex-direction: column;
+    /* Bounded, and scrolls. Unbounded, ninety players push the card past the
+       length of the page and the search box scrolls out of reach above it. */
+    max-height: 20rem;
+    overflow-y: auto;
+    margin: 0;
+    padding: 0;
+    border: var(--border-width) solid var(--c-border);
+    border-radius: var(--radius);
+    list-style: none;
+}
+
+.picker__item + .picker__item {
+    border-block-start: var(--border-width) solid var(--c-border);
+}
+
+/* The whole row is the control, not a link inside it: a target the width of
+   the list is easier to hit than a name, especially on a phone. The accent
+   edge and raised ground are .dropdown__item's, because this is the same
+   gesture -- pick one of these. */
+.picker__btn {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+    width: 100%;
+    padding: var(--space-3) var(--space-4);
+    border: 0;
+    border-inline-start: 3px solid transparent;
+    background-color: transparent;
+    color: var(--c-text);
+    font-family: inherit;
+    text-align: start;
+    cursor: pointer;
+    transition:
+        background-color var(--transition-fast),
+        border-color var(--transition-fast);
+}
+
+.picker__btn:hover,
+.picker__btn:focus-visible {
+    border-inline-start-color: var(--c-primary);
+    background-color: var(--c-surface-raised);
+}
+
+.picker__btn:focus-visible {
+    outline: 2px solid var(--c-primary);
+    outline-offset: -2px;
+}
+
+.picker__name {
+    font-size: var(--step--1);
+    font-weight: 600;
+}
+
+.picker__meta {
+    font-size: var(--step--2);
+    color: var(--c-text-muted);
+}
+
+.picker__empty {
+    padding: var(--space-4);
+    font-size: var(--step--1);
+    color: var(--c-text-muted);
+}

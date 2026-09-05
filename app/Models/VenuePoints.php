@@ -20,6 +20,12 @@ class VenuePoints extends Model
         'user_id',
         'user_name',
         'venue_id',
+        // Stored, not inferred. The season used to be whichever one's dates
+        // happened to contain event_date, so editing those dates moved venue
+        // points between seasons and changed who qualified for the finale --
+        // silently, because a coincidence of two numbers cannot report that it
+        // has changed its mind.
+        'season_id',
     ];
 
     public function user(): BelongsTo
@@ -30,5 +36,10 @@ class VenuePoints extends Model
     public function venue(): BelongsTo
     {
         return $this->belongsTo(Venue::class);
+    }
+
+    public function season(): BelongsTo
+    {
+        return $this->belongsTo(PokerSeason::class, 'season_id');
     }
 }

@@ -1,0 +1,69 @@
+.shell {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    background-color: var(--c-bg);
+}
+
+.shell__header {
+    border-block-end: var(--border-width) solid var(--c-border);
+}
+
+.shell__header-inner {
+    width: 100%;
+    max-width: 80rem;
+    margin-inline: auto;
+    padding: var(--space-5) var(--space-4);
+}
+
+/* Asymmetric on purpose. The header already contributes --space-5 of its own
+   padding below the title, so a matching --space-6 here stacked 56px between the
+   header rule and the first card -- the page read as two documents. --space-4 on
+   top closes it to 40px and binds the content to its header; the bottom keeps
+   --space-6 so the page still ends on air rather than against the viewport. */
+.shell__content {
+    flex: 1 1 auto;
+    padding-block: var(--space-4) var(--space-6);
+}
+
+/* Tighter gutters on a phone.
+ *
+ * Scoped under .shell, which only the dashboard layout wears -- the public
+ * shell is .public and the guest shell is its own again, so none of this
+ * reaches them.
+ *
+ * Every value here is a horizontal one. Vertical rhythm is unchanged: the
+ * problem on a narrow screen is that the gutters eat the line length, not that
+ * the page is too tall.
+ *
+ * Two classes deep, so each rule outranks the single-class component rule it
+ * narrows regardless of which file loaded first.
+ */
+@media (max-width: 48rem) {
+    .shell .l-container {
+        padding-inline: var(--space-3);
+    }
+
+    .shell .card__header,
+    .shell .card__body,
+    .shell .card__pager,
+    .shell .card__note {
+        padding-inline: var(--space-4);
+    }
+
+    /* A flush body is flush on purpose -- it holds a full-bleed table or list
+       that brings its own cell padding. Restoring padding here would indent
+       every row inside it twice. */
+    .shell .card__body--flush {
+        padding-inline: 0;
+    }
+
+    .shell .table th,
+    .shell .table td {
+        padding-inline: var(--space-3);
+    }
+
+    .shell .table--stacked tbody tr {
+        padding-inline: var(--space-3);
+    }
+}

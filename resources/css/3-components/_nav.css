@@ -1,0 +1,54 @@
+.nav-link {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-2) var(--space-3);
+    border: 0;
+    border-radius: var(--radius-sm);
+    background-color: transparent;
+    color: var(--c-text);
+    font-family: var(--font-body);
+    font-size: var(--step--2);
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    text-decoration: none;
+    white-space: nowrap;
+    cursor: pointer;
+    transition:
+        background-color var(--transition-fast),
+        color var(--transition-fast);
+}
+
+.nav-link:hover {
+    background-color: var(--c-surface-raised);
+}
+
+.nav-link:focus-visible {
+    outline: 2px solid var(--c-primary);
+    outline-offset: 2px;
+}
+
+.nav-link--current {
+    background-color: var(--c-primary-fill);
+    color: var(--c-primary-ink);
+}
+
+/* A hovered current link must keep its filled treatment. .nav-link:hover is
+   (0,2,0) and .nav-link--current only (0,1,0), so hover replaces the background
+   while the ink stays --c-primary-ink — measured at 1.29:1 in dark and 1.12:1 in
+   light, i.e. invisible. Matching the hover's specificity and keeping the fill
+   restores it to 10.6:1 / 10.4:1. */
+.nav-link--current:hover {
+    background-color: var(--c-primary-fill-hover);
+    color: var(--c-primary-ink);
+}
+
+/* The user-menu trigger carries an avatar beside its label. It needs its own
+   class rather than composing .l-cluster, which loses the cascade to
+   .nav-link's own display because _nav.css is imported later. */
+.nav-link--user {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+}

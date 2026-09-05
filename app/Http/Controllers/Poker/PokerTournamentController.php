@@ -3,11 +3,14 @@
 namespace App\Http\Controllers\Poker;
 
 use App\Http\Controllers\Controller;
+use App\Models\PointsStructure;
 use App\Models\PokerSeason;
 use App\Models\PokerTournament;
 use App\Models\Venue;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Number;
 use Illuminate\View\View;
 
 class PokerTournamentController extends Controller
@@ -28,7 +31,7 @@ class PokerTournamentController extends Controller
     {
         $venues = Venue::all();
         $seasons = PokerSeason::orderBy('name', 'desc')->get();
-        $currentSeason = PokerSeason::where('is_current', true)->first();
+        $currentSeason = PokerSeason::current();
         
         return view('poker.tournaments.create', compact('venues', 'seasons', 'currentSeason'));
     }
@@ -42,11 +45,11 @@ class PokerTournamentController extends Controller
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
             'scheduled_at' => 'required|date',
-            'start_time' => 'required|date',
+            'start_time' => 'required|date|after_or_equal:scheduled_at',
             'venue_id' => 'required|exists:venues,id',
         ]);
 
-        $currentSeason = PokerSeason::where('is_current', true)->first();
+        $currentSeason = PokerSeason::current();
 
         if (!$currentSeason) {
             return back()->with('error', 'No current active season found. Please create or set an active season first.')->withInput();
@@ -76,17 +79,46 @@ class PokerTournamentController extends Controller
         $totalPoints = $tournament->results->sum('points');
         
         $orderedResults = $tournament->results->sortBy('place')->values();
-        $podium = $orderedResults->take(3);
+        // The settled places only -- see PokerTournament::podium(). take(3) on
+        // the sorted results was the current best three, which mid-tournament
+        // are not the podium at all: places count down from the bottom, so the
+        // lowest numbers on record are simply the last few knocked out.
+        $podium = $tournament->podium();
 
         $isUserRegistered = $tournament->registrants()->where('user_id', auth()->id())->exists();
-        $isPast = \Illuminate\Support\Carbon::parse($tournament->scheduled_at)->isPast();
 
-        $pointsStructure = \App\Models\PointsStructure::orderBy('place')->get();
+        // The shared event card reads viewer_registered -- the attribute the
+        // events and home pages load with withExists. Set it from the value
+        // already computed here so the card and the page around it cannot
+        // disagree about whether you are in this tournament.
+        $tournament->viewer_registered = $isUserRegistered;
+        // "Past" means play has begun, which is start_time — not the
+        // registration cutoff held in scheduled_at.
+        $isPast = \Illuminate\Support\Carbon::parse($tournament->start_time)->isPast();
+
+        $pointsStructure = PointsStructure::orderBy('place')->get();
+
+        // Places are handed out from the bottom of the field: the first player
+        // out of ten finishes tenth, and the last one standing takes first. So
+        // the place on offer is however many registrants are still without a
+        // result -- the same number for whoever goes out next, which is why it
+        // is computed once here rather than per row.
+        $nextPlace = $registrantsCount - $resultsCount;
+        $nextPlacePoints = $pointsStructure->firstWhere('place', $nextPlace)?->points ?? 0;
+
+        // Keyed so a registrant row can find its own result without a query
+        // each. user_id, because that is what a registrant carries.
+        $resultsByUser = $tournament->results->keyBy('user_id');
 
         $availableUsers = collect();
         if (auth()->user()->is_admin) {
             $registeredUserIds = $tournament->registrants()->pluck('user_id')->toArray();
-            $availableUsers = \App\Models\User::whereNotIn('id', $registeredUserIds)
+            // approved(), for the same reason the registrant pickers filter:
+            // register() refuses an unapproved target, so offering one here
+            // would let an administrator pick a player the very next request
+            // rejects.
+            $availableUsers = \App\Models\User::approved()
+                ->whereNotIn('id', $registeredUserIds)
                 ->orderBy('first_name')
                 ->get();
         }
@@ -101,13 +133,76 @@ class PokerTournamentController extends Controller
             'isUserRegistered',
             'isPast',
             'pointsStructure',
-            'availableUsers'
+            'availableUsers',
+            'nextPlace',
+            'nextPlacePoints',
+            'resultsByUser'
         ));
     }
 
     /**
      * Register a user for the tournament (Self or Admin override).
      */
+    /**
+     * Knock a registered player out, which is to say record their result.
+     *
+     * Admin-only by its route. The place is not chosen: it falls out of how
+     * many players are still in, so an administrator cannot award a place out
+     * of order by clicking the wrong row.
+     */
+    public function eliminate(PokerTournament $tournament, Request $request): RedirectResponse
+    {
+        $validated = $request->validate(['user_id' => ['required', 'string']]);
+
+        // Registration still open means the field is not settled: a late entry
+        // would change how many places there are to hand out, and the ones
+        // already awarded would be wrong. The button is not rendered in this
+        // state either, but the route is reachable without it.
+        if ($tournament->registration_open) {
+            return back()->with('error', __('Registration is still open for this tournament, so no one can be eliminated yet.'));
+        }
+
+        $registrant = $tournament->registrants()->where('user_id', $validated['user_id'])->first();
+
+        if (! $registrant) {
+            return back()->with('error', __('That player is not registered for this tournament.'));
+        }
+
+        $place = $tournament->registrants()->count() - $tournament->results()->count();
+
+        if ($place < 1) {
+            return back()->with('error', __('Every registered player already has a result for this tournament.'));
+        }
+
+        // No row for a place is not an error: a structure that pays the top ten
+        // of a field of twenty means eleventh onwards score nothing.
+        $points = PointsStructure::where('place', $place)->value('points') ?? 0;
+
+        try {
+            $tournament->results()->create([
+                'user_id' => $registrant->user_id,
+                'player_name' => $registrant->player_name,
+                'player_nickname' => $registrant->player_nickname,
+                'place' => $place,
+                'points' => $points,
+            ]);
+        } catch (UniqueConstraintViolationException) {
+            // tr_tournament_user_unique already forbids two results for one
+            // player in one tournament, so that rule is enforced in one place
+            // rather than re-stated here as a check that could drift from it.
+            // This is the double-click, and the two-administrators-at-once.
+            return back()->with('error', __(':name already has a result for this tournament.', [
+                'name' => $registrant->player_name,
+            ]));
+        }
+
+        return back()->with('status', __(':name is out in :place place and takes :points points.', [
+            'name' => $registrant->player_name,
+            'place' => Number::ordinal($place),
+            'points' => number_format($points),
+        ]));
+    }
+
     public function register(PokerTournament $tournament, Request $request): RedirectResponse
     {
         $isAdmin = auth()->user()->is_admin;
@@ -115,7 +210,7 @@ class PokerTournamentController extends Controller
         
         // Only enforce "past" check for non-admins
         if (!$isAdmin && \Illuminate\Support\Carbon::parse($tournament->scheduled_at)->isPast()) {
-            return back()->with('error', 'Cannot register for a tournament that has already started or passed.');
+            return back()->with('error', 'Registration has closed for this tournament.');
         }
 
         // Check if the target user is already registered
@@ -127,6 +222,20 @@ class PokerTournamentController extends Controller
         }
 
         $user = \App\Models\User::findOrFail($targetUserId);
+
+        // The gate reads the TARGET user, not the actor. This one method serves
+        // both self-registration and the administrator user_id override, so
+        // checking the actor would make an administrator a way around the rule
+        // rather than a user of it.
+        //
+        // The message names WHICH gate refused. A player can now be stopped by
+        // approval or by email verification, and an unexplained refusal turns
+        // support into guesswork.
+        if (! $user->isApproved()) {
+            return back()->with('error', $targetUserId === auth()->id()
+                ? 'Your account is waiting for approval by a league administrator, so you cannot enter tournaments yet.'
+                : 'That account has not been approved by a league administrator yet.');
+        }
 
         $tournament->registrants()->create([
             'user_id' => $user->id,
@@ -148,7 +257,18 @@ class PokerTournamentController extends Controller
     public function unregister(PokerTournament $tournament): RedirectResponse
     {
         if (\Illuminate\Support\Carbon::parse($tournament->scheduled_at)->isPast()) {
-            return back()->with('error', 'Cannot unregister from a tournament that has already started or passed.');
+            return back()->with('error', 'Registration has closed, so this entry can no longer be withdrawn.');
+        }
+
+        // Belt and braces: a player cannot reach this once results exist,
+        // because withdrawing needs registration open and eliminating needs it
+        // closed. That is two other guards happening to agree rather than this
+        // rule being enforced, and the day either one moves, this becomes the
+        // hole that lets a settled field change size.
+        if ($tournament->hasRecordedResults()) {
+            return back()->with('error', __(
+                'Results have been recorded for this tournament, so entries can no longer be withdrawn.'
+            ));
         }
 
         $registration = $tournament->registrants()->where('user_id', auth()->id())->first();
@@ -181,7 +301,7 @@ class PokerTournamentController extends Controller
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
             'scheduled_at' => 'required|date',
-            'start_time' => 'required|date',
+            'start_time' => 'required|date|after_or_equal:scheduled_at',
             'venue_id' => 'required|exists:venues,id',
             'season_id' => 'required|exists:seasons,id',
         ]);

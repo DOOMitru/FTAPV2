@@ -27,18 +27,50 @@ class PokerSeasonController extends Controller
         return view('poker.seasons.create');
     }
 
+    /** The finale thresholds, named once so both writes and the reset below agree. */
+    private const THRESHOLDS = [
+        'finale_points_required',
+        'finale_wins_required',
+        'finale_venue_points_required',
+    ];
+
     /**
-     * Store a newly created resource in storage.
+     * One rule set for both writes.
+     *
+     * store() and update() carried byte-identical validate blocks, which is
+     * how an edit comes to silently drop what create accepts: a rule added to
+     * one and forgotten in the other fails only for the person editing.
      */
-    public function store(Request $request): RedirectResponse
+    private function validated(Request $request): array
     {
-        $validated = $request->validate([
+        // An empty number input posts '' rather than null, and '' fails an
+        // integer rule -- so without this, WITHDRAWING a threshold is
+        // impossible. '' means cleared, and cleared is null, not zero: a
+        // season whose target is 0 would read as one everybody has met.
+        foreach (self::THRESHOLDS as $field) {
+            if ($request->input($field) === '') {
+                $request->merge([$field => null]);
+            }
+        }
+
+        return $request->validate([
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
             'start_date' => 'required|date',
             'end_date' => 'required|date|after_or_equal:start_date',
             'is_current' => 'sometimes|boolean',
+            'finale_points_required' => 'nullable|integer|min:0',
+            'finale_wins_required' => 'nullable|integer|min:0',
+            'finale_venue_points_required' => 'nullable|integer|min:0',
         ]);
+    }
+
+    /**
+     * Store a newly created resource in storage.
+     */
+    public function store(Request $request): RedirectResponse
+    {
+        $validated = $this->validated($request);
 
         // If is_current is not provided, the model's booted method will handle it
         PokerSeason::create($validated);
@@ -60,17 +92,50 @@ class PokerSeasonController extends Controller
         $totalPoints = $season->results->sum('points');
         $uniquePlayersCount = $season->results->pluck('user_id')->unique()->count();
 
+        // By the season stored on the row, not by whether its date happens to
+        // fall between two others. It used to be the latter, which meant
+        // editing a season's dates moved venue points between seasons and
+        // changed who qualified for the finale -- with nothing to report,
+        // because a coincidence of two numbers cannot announce that it has
+        // changed its mind.
+        //
+        // One grouped query rather than a lookup per player.
+        $venuePoints = \App\Models\VenuePoints::query()
+            ->where('season_id', $season->id)
+            ->groupBy('user_id')
+            ->selectRaw('user_id, SUM(amount) as total')
+            ->pluck('total', 'user_id');
+
         // Calculate Leaderboard
         $leaderboard = $season->results
             ->groupBy('user_id')
-            ->map(function ($results) {
+            ->map(function ($results) use ($venuePoints, $season) {
+                $points = $results->sum('points');
+                $wins = $results->where('place', 1)->count();
+                // Defensive, and deliberately untested: SQLite returns an int
+                // from SUM() so no assertion here can fail without it. Other
+                // drivers return a numeric STRING, and this project has
+                // already shipped one bug that existed only on MySQL (the
+                // is_active double-quote misfeature in Phase 0). unmetBy() is
+                // typed int, so the cast is what keeps that difference from
+                // becoming a TypeError on a driver nobody tested.
+                $venue = (int) ($venuePoints[$results->first()->user_id] ?? 0);
+
+                // The rule is evaluated HERE, once. A template that
+                // re-implements the comparison is a second definition waiting
+                // to drift from the model's.
+                $unmet = $season->unmetBy(points: $points, wins: $wins, venuePoints: $venue);
+
                 return [
                     'user' => $results->first()->user,
                     'player_name' => $results->first()->player_name,
-                    'points' => $results->sum('points'),
-                    'wins' => $results->where('place', 1)->count(),
+                    'points' => $points,
+                    'wins' => $wins,
                     'top3' => $results->where('place', '<=', 3)->count(),
                     'played' => $results->count(),
+                    'venue_points' => $venue,
+                    'unmet' => $unmet,
+                    'qualified' => $unmet === [],
                 ];
             })
             ->sortByDesc('points')
@@ -111,13 +176,7 @@ class PokerSeasonController extends Controller
      */
     public function update(Request $request, PokerSeason $season): RedirectResponse
     {
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'description' => 'nullable|string',
-            'start_date' => 'required|date',
-            'end_date' => 'required|date|after_or_equal:start_date',
-            'is_current' => 'sometimes|boolean',
-        ]);
+        $validated = $this->validated($request);
 
         if (!$request->has('is_current')) {
             $validated['is_current'] = false;

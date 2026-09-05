@@ -19,4 +19,20 @@ class PokerSeasonFactory extends Factory
             'is_current'  => false,
         ];
     }
+
+    /**
+     * A season whose finale rules have been published.
+     *
+     * The defaults are deliberately round rather than realistic: a fixture that
+     * looks like real data invites a reader to trust the numbers, and these are
+     * only here so a test has thresholds to measure against.
+     */
+    public function withThresholds(int $points = 300, int $wins = 2, int $venuePoints = 50): static
+    {
+        return $this->state(fn () => [
+            'finale_points_required' => $points,
+            'finale_wins_required' => $wins,
+            'finale_venue_points_required' => $venuePoints,
+        ]);
+    }
 }

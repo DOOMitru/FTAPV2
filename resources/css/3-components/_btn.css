@@ -1,0 +1,117 @@
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-2);
+    /* A pixel more above the label than below, on purpose.
+     *
+     * Every label here is uppercase (text-transform, below), so no glyph ever
+     * reaches into the descender space that the line box reserves under the
+     * baseline. The ink therefore sits high inside its own line box, and
+     * centring the BOX does not centre what anyone can see: measured at this
+     * size it was 10px of button above the letters and 12px below.
+     *
+     * .btn--sm sets the padding shorthand and so resets both halves; its
+     * smaller type measures centred without this. */
+    padding: calc(var(--space-2) + 1px) var(--space-4) calc(var(--space-2) - 1px);
+    border: var(--border-width) solid transparent;
+    border-radius: var(--radius);
+    background-color: transparent;
+    color: var(--c-text);
+    font-family: var(--font-body);
+    font-size: var(--step--1);
+    font-weight: 600;
+    line-height: 1;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    text-decoration: none;
+    white-space: nowrap;
+    cursor: pointer;
+    transition:
+        background-color var(--transition-fast),
+        border-color var(--transition-fast),
+        color var(--transition-fast);
+}
+
+.btn:focus-visible {
+    outline: 2px solid var(--c-primary);
+    outline-offset: 2px;
+}
+
+.btn:disabled,
+.btn[aria-disabled="true"] {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* --c-primary-fill, not --c-primary: a 13px uppercase label is normal-size
+   text, and white on the brand red #EF4537 is only 3.77:1. The fill token is
+   the deeper red that carries it at 4.67:1. */
+.btn--primary {
+    background-color: var(--c-primary-fill);
+    color: var(--c-primary-ink);
+}
+
+.btn--primary:hover {
+    background-color: var(--c-primary-fill-hover);
+}
+
+.btn--ghost {
+    border-color: var(--c-border);
+    color: var(--c-text);
+}
+
+.btn--ghost:hover {
+    background-color: var(--c-surface-raised);
+}
+
+/* Quiet destructive.
+ *
+ * When red is the BRAND colour it can no longer also mean "danger" by itself:
+ * a red Delete beside a red Save is distinguishable only on inspection, and
+ * peripheral vision is exactly where a misclick on Delete happens.
+ *
+ * So a destructive button rests neutral -- visually a ghost -- and commits to
+ * red only on hover and focus, at the moment the pointer is actually on it.
+ * The rule this buys: A FILLED RED BUTTON ALWAYS MEANS GO, with no exceptions,
+ * and exactly one of them rests on any view. .link--danger follows the same
+ * rule for row-level Delete controls. */
+.btn--danger {
+    border-color: var(--c-border);
+    color: var(--c-text);
+}
+
+.btn--danger:hover,
+.btn--danger:focus-visible {
+    background-color: var(--c-primary-fill);
+    border-color: var(--c-primary-fill);
+    color: var(--c-primary-ink);
+}
+
+/* A button whose whole label is an icon. Its height comes from the row it sits
+   in -- .search stretches it to match the control beside it -- so only the
+   width is set here, and it is set with the spacing scale rather than a
+   number, which keeps it in proportion if the icon size ever changes.
+   `aspect-ratio: 1` was tried first and does nothing: a flex item's width is
+   resolved from its content before the stretched height is known, so the ratio
+   never gets a height to work from. It measured 20px wide against 40 tall.
+   The accessible name comes from a .u-visually-hidden span inside the button
+   rather than aria-label, so it is translated with the rest of the page. */
+.btn--icon {
+    padding-block: 0;
+    padding-inline: var(--space-3);
+}
+
+.btn--icon svg {
+    width: 1.125rem;
+    height: 1.125rem;
+}
+
+.btn--sm {
+    padding: var(--space-1) var(--space-3);
+    font-size: var(--step--2);
+}
+
+.btn--block {
+    width: 100%;
+}

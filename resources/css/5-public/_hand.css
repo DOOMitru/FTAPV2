@@ -1,0 +1,104 @@
+/* The hand hierarchy, dealt.
+ *
+ * Ten hands, five cards each, face down and turning over one hand after
+ * another, strongest first. All of it is CSS: one animation per card, its delay
+ * built from two numbers the markup supplies -- --hand, the hand's place in the
+ * hierarchy, and --deal, the card's place in that hand. Nothing schedules
+ * anything in script.
+ *
+ * The whole cascade lasts about five seconds. Longer would leave someone
+ * waiting on the last hand; dealing all ten at once, which is what this did
+ * first, throws fifty cards over at the same moment and reads as a flicker
+ * rather than a deal.
+ */
+/* The heading block above the hands, with room under it. */
+.p-panel__lead {
+    margin-block-end: var(--space-6);
+}
+
+.p-hand-grid {
+    display: grid;
+    gap: var(--space-6) var(--space-5);
+    /* 19rem holds five cards at a readable size; below that the grid drops to
+       one hand per row rather than shrinking the cards past legibility. */
+    grid-template-columns: repeat(auto-fit, minmax(min(19rem, 100%), 1fr));
+}
+
+.p-hand {
+    /* <figure> carries a UA margin that would fight the grid's gap. */
+    margin: 0;
+}
+
+.p-hand__cards {
+    display: flex;
+    gap: var(--space-2);
+    /* Depth, so the turn is a turn. Without it the card squashes horizontally
+       and springs back, which reads as a glitch rather than a card. */
+    perspective: 45rem;
+}
+
+.p-hand__card {
+    position: relative;
+    /* A zero basis, so each card takes an equal share of the row AND has a
+       definite width for aspect-ratio to work from. On an auto basis the width
+       resolves from the image's own size and the ratio has nothing to hold. */
+    flex: 1 1 0;
+    min-width: 0;
+    /* The cards themselves are 250x350. */
+    aspect-ratio: 5 / 7;
+    transform-style: preserve-3d;
+    animation: p-hand-turn 0.4s ease-out both;
+    /* This hand's turn comes after the ones above it; within it the cards go
+       left to right. The pause first is so the backs are seen as backs before
+       anything moves. */
+    animation-delay: calc(0.25s + var(--hand, 0) * 0.45s + var(--deal, 0) * 0.09s);
+}
+
+.p-hand__side {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    backface-visibility: hidden;
+}
+
+/* Turned away to begin with, so the card's own rotation brings it round. */
+.p-hand__side--face {
+    transform: rotateY(180deg);
+}
+
+@keyframes p-hand-turn {
+    from { transform: rotateY(0); }
+    to { transform: rotateY(180deg); }
+}
+
+/* Asked for no motion: deal the hand face up. These cards are the content of
+   this section, not decoration around it, so the one thing that must not happen
+   is leaving them face down. */
+@media (prefers-reduced-motion: reduce) {
+    .p-hand__card {
+        animation: none;
+        transform: rotateY(180deg);
+    }
+}
+
+.p-hand__caption {
+    display: flex;
+    align-items: baseline;
+    justify-content: center;
+    gap: var(--space-2);
+    margin-block-start: var(--space-3);
+}
+
+.p-hand__rank {
+    font-family: var(--font-mono);
+    font-size: var(--step--2);
+    color: var(--c-text-muted);
+}
+
+.p-hand__name {
+    font-size: var(--step--1);
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}

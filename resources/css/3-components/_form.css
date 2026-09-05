@@ -1,0 +1,281 @@
+/* The height a form control resolves to, expressed from the very values it is
+   built from rather than measured off a screenshot -- so anything that has to
+   stand beside one can ask for the number and cannot drift from it.
+ *
+   Not in _tokens.css: this is not a design decision, it is a consequence of
+   three that already live there. */
+:root {
+    --control-height: calc(
+        var(--step-0) * var(--leading-normal)
+        + var(--space-2) * 2
+        + var(--border-width) * 2
+    );
+}
+
+.field__label {
+    display: block;
+    font-family: var(--font-body);
+    font-size: var(--step--2);
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--c-text-muted);
+}
+
+.field__control {
+    display: block;
+    width: 100%;
+    /* Its natural height already, stated so that --control-height is the
+       authority rather than a guess about it. */
+    min-height: var(--control-height);
+    margin-block-start: var(--space-2);
+    padding: var(--space-2) var(--space-3);
+    border: var(--border-width) solid var(--c-border);
+    border-radius: var(--radius-sm);
+    background-color: var(--c-bg);
+    color: var(--c-text);
+    font-family: var(--font-body);
+    font-size: var(--step-0);
+    transition: border-color var(--transition-fast);
+}
+
+.field__control:hover {
+    border-color: var(--c-text-muted);
+}
+
+.field__control:focus-visible {
+    outline: 2px solid var(--c-primary);
+    outline-offset: 1px;
+    border-color: var(--c-primary);
+}
+
+.field__control--mono {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+}
+
+/* The search row: a control with icon buttons beside it.
+ *
+ * align-items: stretch, not the .l-cluster centring it replaces. The buttons
+ * then take their height from the input rather than from a number that would
+ * have to be kept in step with .field__control's padding, font size and
+ * border -- four values, in another file, that nothing would fail on. */
+.search {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: stretch;
+    gap: var(--space-2);
+}
+
+/* Two fields on one line, stacking when there is no room for both. */
+.field-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: start;
+    gap: var(--space-4);
+}
+
+/* The one that takes the leftover width. Everything else in the row keeps its
+   own, which is what lets a fixed figure sit beside an input that grows. */
+.field-row__grow {
+    flex: 1 1 12rem;
+}
+
+/* Actions sharing a field row. They have no label of their own, so they take
+   the space one would have occupied -- from an empty label rather than a
+   hard-coded offset, so it stays right if the label's type ever changes.
+ *
+ * The row is aligned to its start, not its end: a validation message appears
+ * BELOW a control, and end-aligning would lift the input above the buttons at
+ * exactly the moment someone is trying to fix it. */
+.field-row__actions {
+    flex: 0 0 auto;
+}
+
+.field-row__actions > .l-cluster {
+    margin-block-start: var(--space-2);
+    /* As tall as the control beside it, with .l-cluster's own centring putting
+       the buttons on its middle. Top-aligned they sat high against a taller
+       input, which is what "next to" is not. */
+    min-height: var(--control-height);
+}
+
+/* Below this the actions take their own line, and they take it on purpose.
+ *
+ * The breakpoint was 48rem, which was a guess at when the row had wrapped, and
+ * the guess was wrong from about 545px to 768px: the row still fitted on one
+ * line, but the rules for a wrapped one had already applied. The label spacer
+ * was hidden and the margin zeroed, so the buttons sat at the top of the row
+ * instead of level with the input beside them.
+ *
+ * 36rem is above the width at which this row genuinely runs out of room, so
+ * the stack is now declared rather than discovered and the two cannot
+ * disagree.
+ *
+ * flex-basis is what makes it a declaration. Left to wrap on its own, the
+ * actions box is only as wide as the buttons in it, so the .l-cluster--end
+ * inside has nothing to push against and the buttons sit at the start of the
+ * line -- the one place in the dashboard where a form's actions were not
+ * flush right. Given the whole line, the cluster can end them. */
+@media (max-width: 36rem) {
+    .field-row__actions {
+        flex-basis: 100%;
+    }
+
+    /* Wrapped onto its own line, the reserved label space is a gap above the
+       buttons with nothing in it. */
+    .field-row__actions > .field__label {
+        display: none;
+    }
+
+    .field-row__actions > .l-cluster {
+        margin-block-start: 0;
+    }
+}
+
+/* A value shown where a control would be. Same padding, radius and type size
+   as .field__control so the two line up exactly when they sit side by side --
+   and a transparent border rather than none, so it occupies the same height
+   as the bordered box beside it rather than sitting a pixel high.
+   Plainly not editable: no visible border, and the raised ground reads as
+   inert next to a control's own. */
+.field__static {
+    display: block;
+    margin-block-start: var(--space-2);
+    padding: var(--space-2) var(--space-3);
+    border: var(--border-width) solid transparent;
+    border-radius: var(--radius-sm);
+    background-color: var(--c-surface-raised);
+    font-size: var(--step-0);
+    font-weight: 600;
+}
+
+/* A control that sits in a row instead of under a label. The base is built for
+   a stacked field -- full width, with a top margin holding it off the label
+   above it -- and both are wrong beside a button: it would eat the row and sit
+   lower than everything next to it. */
+.field__control--inline {
+    width: auto;
+    min-width: 16rem;
+    margin-block-start: 0;
+}
+
+.field__error {
+    margin-block-start: var(--space-2);
+    /* <x-input-error> renders a <ul>; strip the marker and indent so a single
+       message reads as a line of text rather than a bulleted list. */
+    list-style: none;
+    padding-inline-start: 0;
+    color: var(--c-primary);
+    font-size: var(--step--1);
+    font-weight: 600;
+}
+
+/* A label with its note beside it.
+ *
+ * align-items: baseline, not centre. The label is 11px uppercase and the note
+ * is a sentence at the same size; centring two runs of different type leaves
+ * neither sitting on the line the other is on.
+ *
+ * It wraps, so a long note on a narrow screen drops under the label rather
+ * than squeezing it. */
+.field__label-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: var(--space-2);
+}
+
+/* The label's size so the pair reads as one line, and none of its treatment:
+   this is a sentence, and an uppercase letterspaced sentence is decoded rather
+   than read. */
+.field__note {
+    font-size: var(--step--2);
+    color: var(--c-text-muted);
+}
+
+.field__hint {
+    margin-block-start: var(--space-2);
+    color: var(--c-text-muted);
+    font-size: var(--step--1);
+}
+
+/* A checkbox with its label beside it. <x-field> renders a labelled control in
+   a column, which is wrong for a checkbox: the label belongs on the same line
+   and the whole thing is one hit target. */
+.field__check {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    cursor: pointer;
+}
+
+.field__check input[type="checkbox"] {
+    width: 1rem;
+    height: 1rem;
+    /* accent-color styles the native control's fill in every current browser,
+       which keeps the checkbox a real checkbox -- no faked box, no lost
+       keyboard behaviour, no lost forced-colors rendering. */
+    accent-color: var(--c-primary);
+    cursor: pointer;
+}
+
+.field__check input[type="checkbox"]:focus-visible {
+    outline: 2px solid var(--c-primary);
+    outline-offset: 2px;
+}
+
+.field__check span {
+    font-size: var(--step--1);
+    color: var(--c-text-muted);
+}
+
+/* A file input. The control itself cannot be restyled -- only its button can,
+   through ::file-selector-button, and the default there is an OS-native widget
+   that ignores every token in this system. */
+.field__file {
+    display: block;
+    width: 100%;
+    font-family: var(--font-body);
+    font-size: var(--step--1);
+    color: var(--c-text-muted);
+}
+
+.field__file::file-selector-button {
+    margin-inline-end: var(--space-4);
+    padding: var(--space-2) var(--space-4);
+    border: var(--border-width) solid var(--c-border);
+    border-radius: var(--radius);
+    background-color: var(--c-surface-raised);
+    color: var(--c-text);
+    font-family: var(--font-body);
+    font-size: var(--step--2);
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: background-color var(--transition-fast), border-color var(--transition-fast);
+}
+
+.field__file::file-selector-button:hover {
+    border-color: var(--c-primary);
+    background-color: var(--c-surface);
+}
+
+/* Focus lands on the input, not the pseudo-element, so the ring goes here. */
+.field__file:focus-visible {
+    outline: 2px solid var(--c-primary);
+    outline-offset: 2px;
+    border-radius: var(--radius-sm);
+}
+
+/* The current image beside its file picker. */
+.field__media {
+    display: flex;
+    align-items: center;
+    gap: var(--space-4);
+}
+
+.field__media > .field__file {
+    min-width: 0;
+}

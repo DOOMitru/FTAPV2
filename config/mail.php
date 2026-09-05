@@ -115,4 +115,15 @@ return [
         'name' => env('MAIL_FROM_NAME', 'Example'),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | League Contact Address
+    |--------------------------------------------------------------------------
+    |
+    | Where contact and sponsorship form submissions are delivered.
+    |
+    */
+
+    'league_contact' => env('LEAGUE_CONTACT_EMAIL', env('MAIL_FROM_ADDRESS', 'hello@example.com')),
+
 ];

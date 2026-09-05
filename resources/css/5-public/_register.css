@@ -1,0 +1,1815 @@
+/* The public register.
+ *
+ * The dashboard is borders-not-shadows: a 1px hairline does every separation
+ * and the only shadow in the whole app shell is --shadow-overlay, on dropdowns
+ * and modals. The public site is the shop window and plays by different rules --
+ * gradients and elevation are allowed here and only here.
+ *
+ * This file is the boundary. PublicRegisterTest asserts that --gradient-* and
+ * --shadow-raised / --shadow-float are referenced from 5-public/ and the public
+ * shell alone, so the licence cannot quietly leak into the dashboard. Two
+ * registers, one product: every gradient stop derives from --c-primary or
+ * --c-primary, so the public pages are louder, not different.
+ */
+
+/* The primary panel. Hero blocks, CTA bands, the "highlight" sections. */
+.p-panel {
+    padding: var(--space-6);
+    border-radius: var(--radius-lg);
+    background-image: var(--gradient-panel);
+    color: var(--gradient-panel-ink);
+    box-shadow: var(--shadow-float);
+}
+
+/* Warm variant for the moments that should feel like a poker chip rather than
+   a product page. Same depth as .p-panel, a different temperature. */
+.p-panel--accent {
+    background-image: var(--gradient-accent);
+    color: var(--gradient-accent-ink);
+}
+
+/* A section-wide wash, for banding long pages without drawing a line. Subtle
+   by construction: it runs --c-surface to --c-bg, two colours already adjacent. */
+.p-wash {
+    background-image: var(--gradient-surface);
+}
+
+/* Elevation instead of a hairline. .p-raised is the resting state for a public
+   card; .p-lift adds the hover response. Both stay off the dashboard. */
+.p-raised {
+    border-radius: var(--radius-lg);
+    background-color: var(--c-surface);
+    box-shadow: var(--shadow-raised);
+}
+
+.p-lift {
+    transition: box-shadow var(--transition-fast), transform var(--transition-fast);
+}
+
+.p-lift:hover {
+    box-shadow: var(--shadow-float);
+    transform: translateY(-2px);
+}
+
+/* ── The blocks the eight public pages share ──────────────────────────────
+   Built before any page is converted, so eight pages cannot arrive at eight
+   different heroes. Everything below is public-register only: it may use the
+   gradient and elevation tokens, and PublicRegisterTest keeps it here. */
+
+.p-hero {
+    /* Positioned and clipped for the watermark below. Safe on both counts:
+       .p-hero renders only an eyebrow, a title and a lede -- nothing focusable
+       and no dropdown -- so overflow: hidden clips decoration and nothing
+       else. The buttons on the home hero are siblings, not children. */
+    position: relative;
+    overflow: hidden;
+    margin-block-end: var(--space-10);
+    padding: var(--space-8) var(--space-5);
+    border-radius: var(--radius-lg);
+    /* A band, not a card: --gradient-surface runs surface -> page ground, so it
+       fades out at the bottom edge instead of stopping at a border. */
+    background-image: var(--gradient-surface);
+    text-align: center;
+}
+
+/* One large suit behind the band. Atmosphere, not information: aria-hidden, so
+   it carries no contrast requirement and announces nothing.
+ *
+ * A GLYPH, not an image. The whole motif costs zero bytes over the wire and
+ * scales with the type rather than needing a second asset at 2x. */
+.p-hero__watermark {
+    position: absolute;
+    /* Centred on the band rather than pinned to its top edge. Hero bands vary
+       in height -- the rules pages run ~290px, the home hero taller -- and a
+       top-pinned glyph got sliced through its lobes on the short ones, which
+       reads as an accident rather than a crop. Centring makes any band height
+       look deliberate. */
+    inset-block-start: 50%;
+    /* Inside the band, not bleeding off it. This was -0.04em, which pushed the
+       glyph past the right edge so overflow: hidden sliced it -- a mark cut
+       flat by the container reads as a clipping bug rather than as a crop. */
+    inset-inline-end: var(--space-5);
+    transform: translateY(-50%);
+    z-index: 0;
+    font-size: 13rem;
+    line-height: 1;
+    color: var(--c-text);
+    opacity: 0.04;
+    pointer-events: none;
+    user-select: none;
+}
+
+/* The transform above would animate on a theme change and jitter for anyone
+   who asked not to see motion; nothing here should move at all. */
+@media (prefers-reduced-motion: reduce) {
+    .p-hero__watermark {
+        transition: none;
+    }
+}
+
+/* The band's own children sit above the watermark. Without this the eyebrow
+   and title share a stacking context with it and the paint order is source
+   order -- which happens to be correct here, but only by accident. */
+.p-hero > :not(.p-hero__watermark) {
+    position: relative;
+    z-index: 1;
+}
+
+/* The eyebrow's suit mark. Scoped to .p-hero__eyebrow rather than the shared
+   .u-eyebrow utility on purpose: .u-eyebrow is also the dashboard's
+   page-header eyebrow and the date stamp on archived events, and a spade
+   belongs on neither. The dashboard is the flat register; the motif is the
+   shop window's. */
+.p-hero__suit {
+    margin-inline-end: var(--space-2);
+    /* Suits are drawn heavier than the letterforms beside them; a touch
+       smaller keeps the eyebrow reading as one line rather than a glyph with
+       text after it. */
+    font-size: 0.92em;
+}
+
+.p-hero__title,
+.p-hero__eyebrow {
+    max-width: 52rem;
+    margin-inline: auto;
+}
+
+.p-hero--start {
+    text-align: start;
+    /* The stack owns the spacing when the hero is one member of a column;
+       .p-hero's own block-end margin is for a hero that opens a page. Leaving
+       both gave 112px above the next block and 48px below it. */
+    margin-block-end: 0;
+}
+
+.p-hero__eyebrow {
+    margin-block-end: var(--space-3);
+    color: var(--c-primary);
+}
+
+.p-hero__title {
+    font-family: var(--font-display);
+    font-size: var(--step-4);
+    font-weight: 400;
+    line-height: var(--leading-tight);
+    letter-spacing: -0.02em;
+    text-transform: uppercase;
+}
+
+/* The accent word. Background-clipped rather than a flat colour: this is the
+   public register, and the gradient is the point of it. */
+.p-hero__highlight {
+    background-image: var(--gradient-primary);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+}
+
+/* Without this the headline word VANISHES in Windows High Contrast and any
+   other forced-colors mode: the UA drops background-image, and colour:
+   transparent is all that is left. Forced colours are the one place where a
+   decorative gradient must give way to a readable word. */
+@media (forced-colors: active) {
+    .p-hero__highlight {
+        background-image: none;
+        color: currentColor;
+        -webkit-text-fill-color: currentColor;
+    }
+}
+
+.p-hero__lede {
+    max-width: 40rem;
+    margin-inline: auto;
+    margin-block-start: var(--space-5);
+    font-size: var(--step-1);
+    line-height: var(--leading-relaxed);
+    color: var(--c-text-muted);
+}
+
+/* Flush left, all three of them.
+ *
+ * .p-hero__title and .p-hero__eyebrow are capped at 52rem and centred with an
+ * auto inline margin, which is right for a centred hero and wrong here: the
+ * TEXT was start-aligned but its BOX was still centred, so on a full-width band
+ * the eyebrow and title sat about 180px in while the lede -- which already reset
+ * its margin -- began at the padding edge. Three blocks, two different left
+ * edges, for no reason a reader could see. */
+.p-hero--start .p-hero__eyebrow,
+.p-hero--start .p-hero__title,
+.p-hero--start .p-hero__lede {
+    margin-inline: 0;
+}
+
+/* A measure, not a column width.
+ *
+ * 40rem is a comfortable line length when the hero is one narrow column. Across
+ * a full-width band it wrapped this page's lede two words from the end, and
+ * 46rem still left "either way." alone on a line of its own. The sentence
+ * measures about 50rem set, so 52rem lets it sit on one line wherever the band
+ * is wide enough to hold it -- which on this page is any desktop.
+ *
+ * balance rather than pretty for the widths where it must still wrap: pretty
+ * only avoids a short LAST line, while balance evens all of them, so a lede
+ * that breaks does so into two comparable lines instead of a long one and a
+ * remainder. It does nothing at all when the text already fits. */
+.p-hero--start .p-hero__lede {
+    max-width: 52rem;
+    text-wrap: balance;
+}
+
+/* The title is short and set large, so it is the other place a bad break shows.
+   balance evens the lines rather than filling the first one. */
+.p-hero__title {
+    text-wrap: balance;
+}
+
+.p-section-head {
+    display: flex;
+    align-items: center;
+    gap: var(--space-4);
+    margin-block-end: var(--space-5);
+}
+
+/* One disc, two consumers: section heads and icon rule cards, which carried
+   byte-identical rules before this. */
+.p-icon-tile {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: var(--radius);
+    /* --gradient-panel, not --gradient-primary: the primary ramp is clipped onto
+       the hero title and has to stay bright, and its bright stop carries a
+       white icon at only 2.54:1. The panel ramp carries it at 7.61:1. */
+    background-image: var(--gradient-panel);
+    color: var(--gradient-panel-ink);
+}
+
+.p-icon-tile svg {
+    width: 1.25rem;
+    height: 1.25rem;
+}
+
+
+
+.p-section-head__title {
+    font-family: var(--font-body);
+    font-size: var(--step-0);
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+}
+
+.p-item {
+    position: relative;
+    display: flex;
+    gap: var(--space-4);
+    padding: var(--space-5);
+    padding-inline-start: var(--space-6);
+    background-image: var(--gradient-raised);
+    /* Clips the rail below to the card's own corner radius. */
+    overflow: hidden;
+}
+
+/* The rail. A pseudo-element rather than a border, because border-image cannot
+   follow a border-radius and a gradient border would square off the corners. */
+.p-item::before {
+    content: "";
+    position: absolute;
+    inset-block: 0;
+    inset-inline-start: 0;
+    width: 3px;
+    background-image: var(--gradient-primary);
+}
+
+/* Mono and fixed-width so the titles line up down the column whatever the
+   number of digits. The citation key, not decoration. */
+.p-item__number {
+    flex: 0 0 auto;
+    min-width: 2ch;
+    font-family: var(--font-mono);
+    font-size: var(--step--1);
+    font-weight: 600;
+    line-height: var(--leading-tight);
+    color: var(--c-primary);
+}
+
+.p-item__body {
+    min-width: 0;
+}
+
+.p-item__title {
+    font-size: var(--step-0);
+    font-weight: 600;
+    line-height: var(--leading-tight);
+}
+
+.p-item__text {
+    margin-block-start: var(--space-2);
+    font-size: var(--step--1);
+    line-height: var(--leading-relaxed);
+    color: var(--c-text-muted);
+}
+
+.p-chip {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-1);
+    padding: var(--space-4) var(--space-3);
+    border-radius: var(--radius);
+    background-color: rgb(255 255 255 / 0.10);
+    text-align: center;
+}
+
+.p-chip__index {
+    font-family: var(--font-mono);
+    font-size: var(--step--2);
+}
+
+.p-chip__label {
+    font-size: var(--step--1);
+    font-weight: 600;
+    line-height: var(--leading-tight);
+}
+
+/* The offset blurred disc inside a gradient panel. Five pages hand-build one
+   today. Needs a positioned, clipped parent -- .p-panel provides both. */
+.p-panel {
+    position: relative;
+    overflow: hidden;
+}
+
+.p-panel__glow {
+    position: absolute;
+    inset-block-start: -4rem;
+    inset-inline-end: -4rem;
+    width: 12rem;
+    height: 12rem;
+    border-radius: var(--radius-pill);
+    background-color: rgb(255 255 255 / 0.18);
+    filter: blur(40px);
+    pointer-events: none;
+}
+
+/* :not(.p-panel__glow) is load-bearing. Both selectors are (0,1,0), and this
+   one is declared later, so a bare `.p-panel > *` overrode the glow's own
+   `position: absolute` and laid it out in flow as a 16rem block -- 300px of
+   dead space above the panel's content. */
+.p-panel > *:not(.p-panel__glow) {
+    position: relative;
+}
+
+/* The fading divider that closes each rules page. */
+.p-rule {
+    width: 4rem;
+    height: 2px;
+    margin-inline: auto;
+    border: 0;
+    background-image: linear-gradient(to right, transparent, var(--c-primary), transparent);
+}
+
+/* Two columns of rule sections, capped at two without a media query: 28rem
+   inside .l-container's 80rem measure fits twice and never three times. The
+   original used md:grid-cols-2, which snapped at one breakpoint; auto-fit
+   collapses to one column whenever the columns genuinely stop fitting. */
+/* Multi-column, not grid. A two-column grid makes every cell in a row as tall
+   as the tallest section in it, so a 2-rule section left a 300px hole beside a
+   5-rule one. Columns flow content continuously instead, and column-width
+   collapses to one column on its own when the space is not there. */
+.p-sections {
+    columns: 28rem 2;
+    column-gap: var(--space-8);
+}
+
+.p-sections__group {
+    break-inside: avoid-column;
+    margin-block-end: var(--space-8);
+}
+
+.p-sections__group > * + * {
+    margin-block-start: var(--space-4);
+}
+
+/* Inside a gradient panel: a translucent pill for a standing label. */
+.p-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-2) var(--space-4);
+    border: var(--border-width) solid rgb(255 255 255 / 0.25);
+    border-radius: var(--radius-pill);
+    background-color: rgb(255 255 255 / 0.12);
+    font-family: var(--font-body);
+    font-size: var(--step--2);
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+}
+
+.p-pill__dot {
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: var(--radius-pill);
+    background-color: currentColor;
+    /* The global prefers-reduced-motion block collapses this to 0.01ms. */
+    animation: p-pulse 2s ease-in-out infinite;
+}
+
+@keyframes p-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.35; }
+}
+
+/* The panel's two halves: copy on the start edge, the grid filling the rest. */
+.p-panel__split {
+    display: grid;
+    gap: var(--space-6);
+    grid-template-columns: repeat(auto-fit, minmax(min(18rem, 100%), 1fr));
+    align-items: center;
+}
+
+.p-panel__title {
+    font-family: var(--font-display);
+    font-size: var(--step-3);
+    font-weight: 400;
+    line-height: var(--leading-tight);
+    text-transform: uppercase;
+}
+
+/* A panel's text can be more than one paragraph. Spaced like the sponsorship
+   notes, which solve the same problem: sentences that belong together but not
+   on the same line. A no-op on the panels holding a single <p>. */
+.p-panel__text > * + * {
+    margin-block-start: var(--space-3);
+}
+
+.p-panel__text {
+    margin-block: var(--space-4) var(--space-6);
+    font-size: var(--step--1);
+    line-height: var(--leading-relaxed);
+    /* Full-strength ink, deliberately. A grey token would be invisible on a
+       saturated gradient, and fading the panel's own ink is worse: it moves the
+       text toward the ground. At 0.85 this measured 4.45:1 on the accent
+       panel's coral stop and 4.34:1 on the dark panel's light stop -- both
+       below AA. Hierarchy here comes from size, not from opacity. */
+}
+
+/* An arrow link closing a card, the card-surface counterpart of
+   .p-panel__link. Worn together with .link, which supplies the colour and the
+   underline; this adds only what differs. .p-panel__link cannot be reused: its
+   ink is `inherit` and its rule is white-on-gradient, both of which vanish on
+   a neutral surface. */
+.p-cardlink {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    font-family: var(--font-body);
+    font-size: var(--step--2);
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    text-underline-offset: 0.25em;
+}
+
+.p-cardlink svg {
+    width: 0.875rem;
+    height: 0.875rem;
+}
+
+.p-chip-grid {
+    display: grid;
+    gap: var(--space-3);
+    grid-template-columns: repeat(auto-fit, minmax(min(7rem, 100%), 1fr));
+}
+
+/* Padding rather than a margin: this closes the page, and an outer margin on
+   a block that sits inside .l-stack would compound with the stack's own gap. */
+.p-page-foot {
+    padding-block-start: var(--space-8);
+    text-align: center;
+}
+
+.p-page-foot__caption {
+    margin-block-end: var(--space-4);
+}
+
+/* Sticky in-page navigation for the long rules pages. */
+.p-subnav {
+    position: sticky;
+    inset-block-start: 0;
+    z-index: 30;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-2) var(--space-5);
+    padding: var(--space-3) var(--space-4);
+    border-block-end: var(--border-width) solid var(--c-border);
+    /* Opaque, not the translucent-with-backdrop-blur the originals used: a
+       blurred bar over a gradient page ground smears the gradient as it
+       scrolls past, which reads as a rendering fault rather than an effect. */
+    background-color: var(--c-surface);
+}
+
+.p-subnav__link {
+    padding: var(--space-2) var(--space-3);
+    border-radius: var(--radius-sm);
+    color: var(--c-text-muted);
+    font-family: var(--font-body);
+    font-size: var(--step--2);
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    text-decoration: none;
+    transition: color var(--transition-fast), background-color var(--transition-fast);
+}
+
+.p-subnav__link:hover {
+    background-color: var(--c-surface-raised);
+    color: var(--c-text);
+}
+
+.p-subnav__link:focus-visible {
+    outline: 2px solid var(--c-primary);
+    outline-offset: 2px;
+}
+
+/* "Part I: Tournament Fundamentals" — a label with a rule running off to the
+   end of the measure. */
+.p-part {
+    display: flex;
+    align-items: center;
+    gap: var(--space-4);
+    margin-block-end: var(--space-6);
+}
+
+.p-part__label {
+    flex: 0 0 auto;
+    font-family: var(--font-body);
+    font-size: var(--step--2);
+    font-weight: 600;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--c-text-muted);
+}
+
+.p-part__line {
+    flex: 1 1 auto;
+    height: var(--border-width);
+    background-color: var(--c-border);
+}
+
+/* Anchored sections must clear the sticky bar when jumped to. */
+.p-anchor {
+    scroll-margin-block-start: 5rem;
+}
+
+.p-fact {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-4);
+    padding: var(--space-4) var(--space-5);
+    border-radius: var(--radius);
+    /* Inside a gradient panel, so it tints the panel rather than painting a
+       surface colour that would fight the ramp underneath. */
+    background-color: rgb(255 255 255 / 0.12);
+}
+
+.p-fact__label {
+    display: block;
+    font-family: var(--font-body);
+    font-size: var(--step--2);
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+}
+
+.p-fact__value {
+    display: block;
+    margin-block-start: var(--space-1);
+    font-size: var(--step-0);
+    font-weight: 600;
+}
+
+.p-fact__rail {
+    flex: 0 0 auto;
+    width: 0.375rem;
+    height: 2.5rem;
+    border-radius: var(--radius-pill);
+    background-color: currentColor;
+    opacity: 0.5;
+}
+
+/* The points table's figure column: a large tabular number with its unit set
+   small beside it, so the column scans as a list of magnitudes. */
+.p-points {
+    display: flex;
+    align-items: baseline;
+    justify-content: flex-end;
+    gap: var(--space-2);
+}
+
+.p-points__value {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    font-size: var(--step-2);
+    font-weight: 600;
+    letter-spacing: -0.02em;
+}
+
+.p-points__unit {
+    font-family: var(--font-body);
+    font-size: var(--step--2);
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--c-text-muted);
+}
+
+.p-tier {
+    font-size: var(--step-0);
+    font-weight: 600;
+}
+
+.p-tier + .badge {
+    margin-block-start: var(--space-2);
+}
+
+/* Standings preview inside a gradient panel. */
+/* A panel heading, not .u-eyebrow: that utility is --c-text-muted, which is
+   tuned for a page ground and washes out to near-invisible on a saturated
+   gradient. Inside a panel the only safe ink is the panel's own. */
+.p-panel__eyebrow {
+    margin-block-end: var(--space-5);
+    font-family: var(--font-body);
+    font-size: var(--step--2);
+    font-weight: 600;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+}
+
+/* Across, not down: this list sat in a narrow sidebar and now spans the page.
+   auto-fit collapses it back to one column when the space is not there. */
+.p-leaders {
+    display: grid;
+    gap: var(--space-4);
+    grid-template-columns: repeat(auto-fit, minmax(min(16rem, 100%), 1fr));
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+/* Each leader is a tile. Laid out across the full width without one, the
+   points of one leader end up hard against the seat number of the next and the
+   three read as a single run-on line. */
+.p-leader {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    padding: var(--space-3) var(--space-4);
+    border-radius: var(--radius);
+    background-color: rgb(255 255 255 / 0.12);
+}
+
+.p-leader__seat {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    width: 1.75rem;
+    height: 1.75rem;
+    border-radius: var(--radius-sm);
+    background-color: rgb(255 255 255 / 0.2);
+    font-family: var(--font-mono);
+    font-size: var(--step--2);
+    font-weight: 600;
+}
+
+/* The body must grow and stay start-aligned; without flex:1 the seat, name and
+   points distribute evenly and the name drifts to the middle of the row. */
+.p-leader__body {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+/* display:block, because .l-stack--tight only sets margins -- inline children
+   still share a line however much margin they carry. */
+.p-leader__name {
+    display: block;
+    font-size: var(--step--1);
+    font-weight: 600;
+}
+
+.p-leader__nickname {
+    display: block;
+    font-size: var(--step--2);
+}
+
+.p-leader__points {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    font-size: var(--step-0);
+    font-weight: 600;
+    text-align: end;
+}
+
+/* A quiet link out of a gradient panel. Underlined rather than coloured: there
+   is no second colour available on a saturated ground. */
+.p-panel__link {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    margin-block-start: var(--space-5);
+    padding-block-start: var(--space-4);
+    border-block-start: var(--border-width) solid rgb(255 255 255 / 0.25);
+    width: 100%;
+    color: inherit;
+    font-family: var(--font-body);
+    font-size: var(--step--2);
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    text-decoration: underline;
+    text-underline-offset: 0.25em;
+}
+
+.p-panel__link svg {
+    width: 0.875rem;
+    height: 0.875rem;
+}
+
+
+
+
+
+/* First, second and third read as a ranking rather than a list. Three steps of
+   one variable -- emphasis -- rather than gold/silver/bronze, which would put
+   three more colours into a system that has one. */
+.p-leader--1 {
+    background-color: rgb(255 255 255 / 0.22);
+}
+
+.p-leader--1 .p-leader__seat {
+    background-color: var(--gradient-panel-ink);
+    color: var(--gradient-panel-ink-inverse);
+}
+
+.p-leader--1 .p-leader__name {
+    font-size: var(--step-0);
+}
+
+.p-leader--1 .p-leader__points {
+    font-size: var(--step-2);
+}
+
+.p-leader--2 {
+    background-color: rgb(255 255 255 / 0.14);
+}
+
+.p-leader--2 .p-leader__points {
+    font-size: var(--step-1);
+}
+
+.p-leader--3 {
+    background-color: rgb(255 255 255 / 0.09);
+}
+
+
+/* A two-column split for pages that pair narrative with a form. Collapses to
+   one column when the columns stop fitting, without a breakpoint. */
+.p-split {
+    display: grid;
+    gap: var(--space-8);
+    grid-template-columns: repeat(auto-fit, minmax(min(24rem, 100%), 1fr));
+    align-items: start;
+}
+
+/* An addressable detail — email, Discord — as an icon beside a label and value. */
+.p-contact__label {
+    font-family: var(--font-body);
+    font-size: var(--step--2);
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--c-text-muted);
+}
+
+.p-contact__value {
+    display: block;
+    margin-block-start: var(--space-1);
+    font-size: var(--step-0);
+    font-weight: 600;
+}
+
+/* The form card's masthead: mark, title, and a line of context. */
+.p-form-head {
+    display: flex;
+    align-items: center;
+    gap: var(--space-4);
+    margin-block-end: var(--space-6);
+}
+
+.p-form-head__mark {
+    width: 3.5rem;
+    height: auto;
+}
+
+.p-form-head__title {
+    font-family: var(--font-display);
+    font-size: var(--step-2);
+    font-weight: 400;
+    line-height: var(--leading-tight);
+    text-transform: uppercase;
+}
+
+.p-benefits {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+/* Room under the heading, and MORE room than the benefits give each other.
+ *
+ * The items sit --space-4 apart, so a heading any closer reads as the first
+ * item rather than as their heading -- which is what it did: 15px from the
+ * title to the first benefit against 28px between benefits.
+ *
+ * Stated here rather than by putting .l-stack on the wrapper, which was tried
+ * and did nothing: .l-stack > * + * and .p-benefits are both single-class
+ * selectors, and this file loads after 2-layout, so the list's own margin reset
+ * wins on source order. The same collision cost this project an evening once
+ * already with .rows. */
+.p-section-head__title + .p-benefits {
+    margin-block-start: var(--space-5);
+}
+
+.p-benefit {
+    display: flex;
+    gap: var(--space-3);
+    font-size: var(--step--1);
+    line-height: var(--leading-relaxed);
+}
+
+.p-benefit__tick {
+    flex: 0 0 auto;
+    width: 1.25rem;
+    height: 1.25rem;
+    color: var(--c-primary);
+}
+
+/* The opening paragraph of a prose block: one step up, so the eye lands there
+   before the body copy. */
+.p-lede {
+    font-size: var(--step-1);
+    line-height: var(--leading-relaxed);
+}
+
+/* A page's supporting image. Contained rather than cropped -- these are logos
+   and marks, not photography. */
+.p-figure {
+    display: block;
+    width: 100%;
+    max-width: 18rem;
+    height: auto;
+    margin-inline: auto;
+    object-fit: contain;
+}
+
+/* No opacity on any of the panel text above. See the note on .p-panel__text.
+   The only opacity left inside a panel is on .p-fact__rail, which is a
+   decorative bar carrying no information.
+
+   Context under a form card's title. Owns its own rhythm so the block can be
+   one paragraph or several without the caller spacing them. */
+.p-form-head__notes {
+    margin-block-end: var(--space-5);
+    font-size: var(--step--1);
+    line-height: var(--leading-relaxed);
+    color: var(--c-text-muted);
+}
+
+.p-form-head__notes > * + * {
+    margin-block-start: var(--space-3);
+}
+
+/* Addressable details, side by side. A wider gap than .l-grid's, because these
+   blocks have no border to separate them -- the space is the separation. */
+/* The season block. The same surface as the .p-event card below it:
+   .p-raised's large radius and float shadow, and no border.
+
+   It was built on <x-card>, which was wrong here -- .card draws a 1px border,
+   because the dashboard separates surfaces with a border and never a shadow.
+   Worn together with .p-raised the block got the hard outline AND the float
+   shadow, so it sat on the page as a different kind of object from the event
+   card it is stacked with. Padding matches .p-event__body. */
+.p-seasoncard {
+    padding: var(--space-6);
+}
+
+/* Its two column headings. Full-strength ink above muted .row__labels.
+   .u-eyebrow cannot do this job: it is step--2 / 600 / uppercase / muted,
+   which is .row__label almost exactly, so the heading and the labels beneath
+   it came out indistinguishable. */
+.p-seasoncard__head {
+    font-family: var(--font-body);
+    font-size: var(--step--1);
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+}
+
+/* The two columns, and the link that has to line up with them.
+ *
+ * A subgrid, not two independent stacks. The link sits at the card's start
+ * edge -- under the left column -- but has to sit on the SAME LINE as the
+ * sentence at the foot of the right column, and two independent stacks share
+ * no rows for it to be placed into. Here both columns take their rows from the
+ * parent, so the parent has a real third row and the link is placed into it.
+ *
+ * The left column spans two rows and the right spans three, rather than both
+ * spanning three: if the left spanned three it would still occupy the cell the
+ * link is placed in, and two grid items in one cell overlap. Spanning two
+ * leaves that cell genuinely free.
+ *
+ * The link stays LAST in the DOM. Below the breakpoint the columns stack and
+ * it belongs at the end of the card, which is where source order already puts
+ * it -- no reordering, and a screen reader meets it last in both layouts. */
+.p-seasoncard__cols {
+    display: grid;
+    /* Stacked: bigger than the --space-5 inside a column, so the seam between
+       the two groups is never tighter than the seams within one. */
+    gap: var(--space-6);
+}
+
+.p-seasoncard__col {
+    display: grid;
+    gap: var(--space-5);
+    align-content: start;
+}
+
+@media (min-width: 48rem) {
+    .p-seasoncard__cols {
+        grid-template-columns: 1fr 1fr;
+        column-gap: var(--space-6);
+        row-gap: var(--space-5);
+    }
+
+    /* Rows are shared only when both columns are the same shape -- a heading
+       over a facts list. With no thresholds published the right column is a
+       single line of copy while the left is still a three-row list, and a
+       shared row 2 is as tall as the taller of them: it opened a hole under
+       that line about as deep as the list beside it. Unaligned, the link
+       simply auto-places below the left column, which is where it began. */
+    .p-seasoncard__cols--aligned {
+        grid-template-rows: auto auto auto;
+    }
+
+    .p-seasoncard__cols--aligned .p-seasoncard__col {
+        grid-row: span 2;
+        grid-template-rows: subgrid;
+    }
+
+    /* Three rows: heading, facts, and the sentence the link levels with. */
+    .p-seasoncard__cols--aligned .p-seasoncard__col--tall {
+        grid-row: span 3;
+    }
+
+    .p-seasoncard__cols--aligned .p-seasoncard__link {
+        grid-column: 1;
+        grid-row: 3;
+        /* Baseline, not the default stretch. Stretched, the link's box fills a
+           row as tall as the two-line sentence beside it, and .p-cardlink
+           centres its own content -- so the label sank to the middle of that
+           row and sat visibly below the sentence's first line. */
+        align-self: baseline;
+    }
+}
+
+/* The fact lists inside it.
+ *
+ * Each pair is one flex row spanning the full width, not two cells of a
+ * two-track grid. Two things force that. Right-aligned values align on their
+ * own by sitting at the row's end edge -- no shared track needed. And the
+ * hairline has to cross the whole row: with dt and dd as separate grid items
+ * the rule would break at the column gap and read as two dashes. */
+.p-seasoncard__facts {
+    display: flex;
+    flex-direction: column;
+}
+
+.p-seasoncard__row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--space-4);
+    padding-block: var(--space-3);
+}
+
+/* Between rows only. A trailing rule would sit against the block's own
+   padding and read as a cut-off row. --c-border is the same hairline .card
+   and .entry use, so it is already measured for both themes. */
+.p-seasoncard__row + .p-seasoncard__row {
+    border-block-start: var(--border-width) solid var(--c-border);
+}
+
+.p-seasoncard__value {
+    font-size: var(--step--1);
+    font-weight: 600;
+    text-align: end;
+}
+
+/* An upcoming tournament: map beside the details, or details alone when the
+   venue has no address. auto-fit means the two-column form appears only when
+   there is room for it, and the no-map case needs no separate rule. */
+.p-event {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(22rem, 100%), 1fr));
+    /* Taller than its contents. The map's own 18rem was setting the height, so
+       side by side the card was a letterbox and the body's material -- badges,
+       name, date, buttons -- sat squeezed in the middle of it. A floor only: a
+       details page passing a description and links grows past it. */
+    min-height: 24rem;
+    overflow: hidden;
+}
+
+.p-event__body {
+    display: flex;
+    flex-direction: column;
+    /* Not centred. Against the 24rem floor the whole body floated in the middle
+       of the card, which took the menu with it -- and a menu halfway down is
+       not the card's top-end corner. .p-event__actions keeps its
+       margin-block-start:auto, so Register still sits on the floor. */
+    justify-content: flex-start;
+    gap: var(--space-4);
+    padding: var(--space-6);
+}
+
+/* The start date as a calendar leaf, beside the name it belongs to. It was a
+   line of text in a two-column fact grid, indistinguishable from the
+   registration cutoff next to it -- and of the two, the one a player needs is
+   when play starts. */
+.p-event__head {
+    /* The mark column both lines below share. Declared here so the venue and
+       the time cannot drift apart: the pin is drawn at 2rem and the clock at
+       1rem, but each is laid out in a box this wide, so their centres line up
+       and the two labels start on the same axis. */
+    --event-column: 2rem;
+
+    display: flex;
+    align-items: center;
+    gap: var(--space-4);
+}
+
+.p-event__when {
+    display: flex;
+    flex: 0 0 auto;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 4.5rem;
+    padding: var(--space-3) var(--space-2);
+    border: var(--border-width) solid var(--c-border);
+    border-radius: var(--radius);
+    background-color: var(--c-surface-raised);
+    line-height: 1;
+}
+
+.p-event__month {
+    font-family: var(--font-body);
+    font-size: var(--step--2);
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--c-primary);
+}
+
+.p-event__day {
+    margin-block-start: var(--space-2);
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    font-size: var(--step-2);
+    font-weight: 600;
+}
+
+.p-event__weekday {
+    margin-block-start: var(--space-2);
+    font-family: var(--font-body);
+    font-size: var(--step--2);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--c-text-muted);
+}
+
+
+
+.p-event__title {
+    font-family: var(--font-display);
+    font-size: var(--step-2);
+    font-weight: 400;
+    line-height: var(--leading-tight);
+    text-transform: uppercase;
+}
+
+.p-event__facts {
+    display: grid;
+    gap: var(--space-4);
+    grid-template-columns: repeat(auto-fit, minmax(min(10rem, 100%), 1fr));
+}
+
+
+.p-archive {
+    display: grid;
+    gap: var(--space-4);
+    grid-template-columns: repeat(auto-fit, minmax(min(18rem, 100%), 1fr));
+}
+
+.p-archive__card {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    padding: var(--space-5);
+    color: inherit;
+    text-decoration: none;
+}
+
+.p-archive__title {
+    font-size: var(--step-0);
+    font-weight: 600;
+}
+
+.p-archive__foot {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    margin-block-start: var(--space-4);
+    padding-block-start: var(--space-4);
+    border-block-start: var(--border-width) solid var(--c-border);
+}
+
+.p-archive__more {
+    font-family: var(--font-body);
+    font-size: var(--step--2);
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--c-text-muted);
+}
+
+/* The podium of a finished tournament, named rather than initialled. */
+.p-podium {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    margin: var(--space-2) 0 0;
+    padding: 0;
+    list-style: none;
+}
+
+.p-podium__row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+}
+
+.p-podium__name {
+    min-width: 0;
+    overflow: hidden;
+    font-size: var(--step--1);
+    font-weight: 600;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.p-archive__arrow {
+    width: 1rem;
+    height: 1rem;
+    color: var(--c-text-muted);
+    transition: transform var(--transition-fast);
+}
+
+.p-archive__card:hover .p-archive__arrow {
+    transform: translateX(3px);
+}
+
+/* --step-1, one step under the title's --step-2 and one above the time beside
+   it. It began at --step--1 in --c-text-muted, this system's caption
+   treatment; body size was still not enough, and beside a calendar leaf the
+   venue is half of what the card is telling you. The scale now says so: name,
+   then venue, then everything else.
+
+   No top margin: it heads its own column rather than hanging under a title. */
+.p-event__venue {
+    /* The pin is the one mark that carries weight, so it is twice the clock's
+       size. Declared here rather than on the svg because the centring formula
+       below needs the same number. */
+    --event-mark: 2rem;
+
+    display: flex;
+    /* start, not center: a venue name long enough to wrap would otherwise put
+       the pin between its two lines instead of against the first. */
+    align-items: start;
+    gap: var(--space-3);
+    font-size: var(--step-2);
+    font-weight: 600;
+    line-height: var(--leading-tight);
+    text-transform: uppercase;
+    /* Uppercase at this size sets tight; a little tracking opens it back up. */
+    letter-spacing: 0.03em;
+}
+
+.p-event__time {
+    display: flex;
+    align-items: start;
+    /* Same gap as the venue above: the mark column is only half of what makes
+       the two labels start on one axis. */
+    gap: var(--space-3);
+    /* Off the venue line above it, which is --step-2 now and needs the room. */
+    margin-block-start: var(--space-2);
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    font-size: var(--step-0);
+    font-weight: 600;
+    line-height: var(--leading-tight);
+}
+
+/* Both marks together. Grey, so they label their lines rather than competing
+   with them -- the venue is the loud thing here, not the pin in front of it.
+ *
+ * The nudge centres each icon on the FIRST line rather than leaving it at the
+ * top of the line box, which is what align-items: start alone would do. 1lh is
+ * the element's own line height, so one expression is correct for the venue at
+ * --step-1 and the time at --step-0 without either being measured by hand. */
+.p-event__venue svg,
+.p-event__time svg {
+    flex: 0 0 auto;
+    /* Box as wide as the shared column, drawn at its own size. An svg with no
+       preserveAspectRatio of its own is xMidYMid, so a square viewBox in a box
+       wider than it is tall renders centred in that width -- which is what
+       puts the 1rem clock on the same axis as the 2rem pin without a spacer
+       element or a hand-computed indent. */
+    width: var(--event-column);
+    height: var(--event-mark, 1rem);
+    /* One formula, two sizes. The pin is larger than its own line box, so this
+       resolves NEGATIVE for it -- which is right: centring something taller
+       than a line means overflowing it equally top and bottom. */
+    margin-block-start: calc((1lh - var(--event-mark, 1rem)) / 2);
+    color: var(--c-text-muted);
+}
+
+/* Two items: the badges, which wrap among themselves, and the menu, which does
+   not move. In a single cluster the menu's auto margin followed the badges onto
+   their second line on a narrow card. */
+.p-event__status {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--space-3);
+}
+
+.p-event__menu {
+    flex: 0 0 auto;
+}
+
+/* Where you stand about entering, and the control that changes it, on one
+   line: the badge at the start, the button at the end. The row is rendered only
+   when there is something in it, so this never draws a rule across an empty
+   strip. */
+.p-event__actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-3);
+    margin-block-start: auto;
+    padding-block-start: var(--space-4);
+    border-block-start: var(--border-width) solid var(--c-border);
+}
+
+/* An auto margin rather than justify-content: space-between, so the buttons sit
+   at the end whether or not a badge precedes them. space-between would put a
+   lone button at the START of the row on every card that has no status to
+   show, which is most of them. */
+.p-event__actions-end {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-3);
+    margin-inline-start: auto;
+}
+
+
+
+/* A section intro rather than a page hero: no band, no radius, tighter below,
+   and a step down in size. Three washed bands stacked down one page would read
+   as three pages, and three 56px titles as four heroes -- a section heading has
+   to be visibly subordinate to the page's own. */
+.p-hero--plain {
+    padding: 0;
+    border-radius: 0;
+    background-image: none;
+    margin-block-end: var(--space-6);
+}
+
+.p-hero--plain .p-hero__title {
+    font-size: var(--step-3);
+}
+
+
+/* The sponsor wall. */
+/* The wall, in two rows of cards: premium above, regular below.
+ *
+ * Flex, not grid, for one reason: a partly filled row has to centre. Grid
+ * tracks fill the container, so two premium sponsors in a three-column grid sit
+ * in the first two columns with a hole on the end. Flex items are laid out and
+ * then justified, so a short row -- including the last row of a long wall --
+ * centres on its own.
+ *
+ * The count per row is a custom property and the width is one formula off it,
+ * so a breakpoint changes a single number rather than restating the arithmetic.
+ * min-width: 0 because a flex item's automatic minimum is its content, and a
+ * long sponsor name would otherwise push its card past the share it was given. */
+.p-sponsors {
+    /* One to a row on the narrowest phones. Two cards each holding a 200px
+       plate plus its padding need 480px of row, which a 375px screen does not
+       have -- and asking for two anyway does not give you two, it gives you one
+       stranded at its minimum width in a row with room to spare, because the
+       card may no longer shrink to the share it was offered. */
+    --per-row: 1;
+    /* The plate's floor. Declared here, not on the plate, because the CARD has
+       to reserve room for it -- a plate that cannot shrink inside a card that
+       can is a plate that overflows its card on a phone. */
+    --plate-min: 12.5rem;
+
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: var(--space-4);
+}
+
+.p-sponsors > * {
+    flex: 0 1 calc((100% - (var(--per-row) - 1) * var(--space-4)) / var(--per-row));
+    /* Wide enough for the plate and the card's padding either side of it,
+       rather than 0. A card that may shrink below its own contents pushes the
+       plate out through its edge; refusing to shrink makes the row wrap to
+       fewer cards instead, which is the graceful version of running out of
+       room. */
+    min-width: calc(var(--plate-min) + 2 * var(--space-4));
+}
+
+/* 33rem is 528px: 480px of row for the two cards and their gap, plus the
+   container's gutter either side, with a little to spare. */
+@media (min-width: 33rem) {
+    .p-sponsors {
+        --per-row: 2;
+    }
+}
+
+@media (min-width: 48rem) {
+    .p-sponsors {
+        --per-row: 3;
+    }
+}
+
+@media (min-width: 64rem) {
+    .p-sponsors {
+        --per-row: 4;
+    }
+}
+
+/* Premium: at most three, and one to a row on a phone. They carry a larger
+   plate and name, and two of those abreast on a narrow screen is not the
+   prominence they are paying for.
+ *
+   Declared after the rules above, including inside each query: both are a
+   single class, so source order is the only thing that lets these win. */
+.p-sponsors--premium {
+    --per-row: 1;
+    --plate-min: 16.25rem;
+}
+
+@media (min-width: 48rem) {
+    .p-sponsors--premium {
+        --per-row: 2;
+    }
+}
+
+@media (min-width: 64rem) {
+    .p-sponsors--premium {
+        --per-row: 3;
+    }
+}
+
+/* The regular wall begins its own row under the premium one. Same distance as
+   the gap inside either row, so the two read as one wall in two tiers rather
+   than as two unrelated sections. */
+.p-sponsors + .p-sponsors {
+    margin-block-start: var(--space-4);
+}
+
+
+.p-sponsor {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-1);
+    /* Uniform. It was --space-6 block / --space-4 inline, so the gap above the
+       logo plate was twice the gap beside it and the plate sat visibly low in
+       its card. */
+    padding: var(--space-4);
+    text-align: center;
+}
+
+/* The card is an <a> when the sponsor has a website and a <div> when it does
+   not, so the text decoration and colour have to be reset either way -- an
+   inherited underline across a logo card reads as damage. */
+.p-sponsor {
+    color: inherit;
+    text-decoration: none;
+}
+
+/* Real artwork now, uploaded by an administrator, rather than the typographic
+   stand-ins this wall used to carry.
+ *
+ * contain, never cover: a sponsor's logo arrives at whatever aspect ratio the
+ * business uses, and cropping a paying sponsor's mark to fit a box is not a
+ * thing to do to them.
+ *
+ * The white plate is fixed rather than themed. Logos are usually transparent
+ * PNGs drawn in the business's own dark ink, and a dark transparent logo on a
+ * dark surface is an empty rectangle -- the one case where the theme must not
+ * win. */
+.p-sponsor__logo {
+    /* Full width of the card's content box, so the space to its left, above it
+       and to its right is the card's own padding and nothing else -- one
+       measurement, three sides. A max-width would centre a narrower plate and
+       make the side gaps wider than the top one. */
+    width: 100%;
+    min-width: var(--plate-min);
+    /* 12.5rem is 200px at the default root size, in the unit the rest of this
+       system uses -- so it scales with a reader who has enlarged their text, as
+       the sponsor's name beneath it does. */
+    height: 12.5rem;
+    object-fit: contain;
+    background-color: #FFFFFF;
+    /* --radius-lg, matching the card it sits in rather than the 3px it used to
+       carry: at that size the plate read as a different kind of object stuck
+       onto the card instead of part of it. */
+    border-radius: var(--radius-lg);
+    padding: var(--space-2);
+}
+
+/* The sponsor's name, not a caption. These businesses pay to be named, so the
+   name is set to be read rather than to sit quietly under the artwork. */
+.p-sponsor__name {
+    margin-block-start: var(--space-3);
+    font-size: var(--step-0);
+    font-weight: 700;
+    letter-spacing: 0.01em;
+    color: var(--c-text);
+}
+
+/* A premium card is bigger, but no longer wider: it used to span two columns
+   of a shared grid, and premium has a grid of its own now. Left in place the
+   span would wrap the third card of a three-across row onto a line by itself. */
+/* A premium plate is the taller one -- 260px at the default root size. Not
+   wider: width is the card's, so the three gaps around it stay equal.
+ *
+   At every width, not just above 40rem: premium is one to a row on a phone, so
+   a full-width card at the regular height would be the flattest plate on the
+   page rather than the most prominent. */
+.p-sponsor--premium .p-sponsor__logo {
+    height: 16.25rem;
+}
+
+@media (min-width: 40rem) {
+    .p-sponsor--premium .p-sponsor__name {
+        font-size: var(--step-1);
+    }
+}
+
+/* A closing call to action, centred under a section. */
+.p-cta {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-4);
+    padding-block-start: var(--space-8);
+    text-align: center;
+}
+
+.p-cta__lede {
+    font-size: var(--step-0);
+    color: var(--c-text-muted);
+}
+
+/* A major band of a public page. The shell's .l-stack puts 24px between its
+   children, which is right for stacked cards and much too tight between
+   sections of a marketing page. Padding rather than a margin, so it adds to the
+   stack's gap instead of collapsing against it and leaving the total to chance. */
+.p-section {
+    padding-block-start: var(--space-8);
+}
+
+/* The aside on the auth pages: the mark, the league name, and what the league
+   is. Sits beside the form rather than above it, so a visitor arriving from
+   the marketing site still sees why they are signing up. */
+/* The standings sit below the season's status and finale cards, and .p-section
+   gives its children no spacing of its own -- so without this the two groups
+   are separated by nothing but the grid's own 1rem gap and read as one block
+   of four unrelated cards. Wider than that gap on purpose: the distance
+   between GROUPS has to beat the distance within one. */
+.p-season-standings {
+    margin-block-start: var(--space-6);
+}
+
+/* A short standings list -- three rows of rank, name and figure. Not .table:
+   that is the dashboard's dense many-column grid, and this is three lines
+   inside a card.
+
+   The list reset in 1-base/_reset.css already strips the marker and padding
+   from ol[class], so nothing here repeats that. */
+.p-standing__row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    padding-block: var(--space-3);
+}
+
+/* Between rows only. A trailing rule under the last name would draw a line
+   against the card's own padding and read as a cut-off row. */
+.p-standing__row + .p-standing__row {
+    border-block-start: var(--border-width) solid var(--c-border);
+}
+
+.p-standing__name {
+    /* min-width: 0 so a long name ellipsises inside the row rather than
+       forcing the figure beside it off the card. */
+    flex: 1 1 auto;
+    min-width: 0;
+    font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.p-standing__value {
+    flex: 0 0 auto;
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    font-size: var(--step--1);
+    color: var(--c-text-muted);
+}
+
+/* ── The home lead ────────────────────────────────────────────────────────
+   The opening block on the home page: mark, name, tagline, lede. Its own block
+   rather than a variant of .p-hero, which eight other pages share and which
+   carries none of these parts.
+
+   No watermark here, unlike every other hero. The mark IS the graphic on this
+   page; a ghost suit behind an actual logo is noise. */
+.p-lead {
+    display: flex;
+    align-items: center;
+    gap: var(--space-8);
+    padding: var(--space-8);
+    border-radius: var(--radius-lg);
+    background-image: var(--gradient-surface);
+}
+
+.p-lead__body {
+    /* Takes the leftover width, and may shrink: without a min-width of 0 a
+       flex item refuses to go below its longest unbreakable word, which for a
+       display heading is most of the row. */
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+/* order: 2 puts the mark to the RIGHT of the words on a wide screen while it
+   stays first in the DOM, where it belongs for the mobile layout. */
+.p-lead__mark {
+    order: 2;
+    flex: 0 0 auto;
+    width: 16rem;
+    height: auto;
+}
+
+.p-lead__eyebrow {
+    margin-block-end: var(--space-3);
+    color: var(--c-primary);
+}
+
+.p-lead__title {
+    font-family: var(--font-display);
+    font-size: var(--step-4);
+    font-weight: 400;
+    line-height: var(--leading-tight);
+    letter-spacing: -0.02em;
+    text-transform: uppercase;
+}
+
+/* The tagline. Display face and brand red so it reads as a motto rather than
+   as another sentence -- it sits between a title and a paragraph and has to
+   hold its own against both. Flat colour rather than the clipped gradient the
+   title uses: at this size a two-stop ramp across a short line reads as a
+   printing fault. */
+/* Each clause is unbreakable, so the line can only wrap at a full stop. */
+.p-lead__tagline > span {
+    white-space: nowrap;
+}
+
+.p-lead__tagline {
+    margin-block-start: var(--space-4);
+    font-family: var(--font-display);
+    font-size: var(--step-1);
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    color: var(--c-primary);
+}
+
+/* The call to action lives inside the card, which is what makes centring the
+   mark against the card mean anything: with the buttons outside it they read
+   as orphaned below a block the mark was aligned to. */
+.p-lead__actions {
+    margin-block-start: var(--space-5);
+}
+
+.p-lead__lede {
+    max-width: 44rem;
+    margin-block-start: var(--space-4);
+    font-size: var(--step-1);
+    line-height: var(--leading-relaxed);
+    color: var(--c-text-muted);
+}
+
+/* Shown to a signed-in player in place of the Join / Learn more buttons: they
+   have already joined, and offering to sign them up again is asking for
+   something they have done. */
+.p-lead__welcome-line {
+    font-family: var(--font-display);
+    font-size: var(--step-3);
+    line-height: var(--leading-tight);
+    text-transform: uppercase;
+}
+
+.p-lead__welcome-note {
+    margin-block-start: var(--space-2);
+    color: var(--c-text-muted);
+}
+
+/* On a phone the mark goes above the words, centred, and comes down to a size
+   that does not push the heading off the first screen. */
+@media (max-width: 48rem) {
+    .p-lead {
+        flex-direction: column;
+        /* The base rule centres on the cross axis, which in a column is the
+           HORIZONTAL one -- it would shrink the text block to its longest line
+           and centre that. stretch keeps the words full width; the mark opts
+           out of it on its own. */
+        align-items: stretch;
+        gap: var(--space-4);
+        padding: var(--space-5);
+    }
+
+    .p-lead__mark {
+        /* order is reset: in a column, 2 would put the mark below the text. */
+        order: 0;
+        align-self: center;
+        width: 6rem;
+    }
+
+    /* Both strand a word when left to wrap: "FIRST TO ACT POKER / LEAGUE" and
+       "PLAY HARD. PLAY SMART. BE FIRST TO / ACT." balance splits them evenly,
+       and on the tagline that also lands the break between two clauses rather
+       than inside one. Ignored where unsupported, which leaves today's
+       behaviour. */
+    .p-lead__title {
+        font-size: var(--step-2);
+        text-wrap: balance;
+    }
+
+    .p-lead__tagline {
+        margin-block-start: var(--space-3);
+        font-size: var(--step--1);
+    }
+
+    .p-lead__lede {
+        margin-block-start: var(--space-3);
+        font-size: var(--step-0);
+    }
+}
+
+/* The auth pages are a mark, a name and one form. Nothing else, so the column
+   is centred rather than left-aligned: with the lede and the reason cards gone
+   there is no second column and no long text to anchor a left edge, and a
+   38rem form pinned left on a 1440px page leaves most of the viewport empty. */
+.p-auth-intro {
+    display: flex;
+    /* Wraps below the mark on a narrow screen, where a 9rem mark beside a
+       display heading leaves the name a few characters wide. */
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-5);
+    margin-block-end: var(--space-6);
+}
+
+.p-auth-intro__mark {
+    /* flex: 0 0 auto, because the rule this replaced set width: 100% -- fine
+       for a block in a stack, but as a flex item it demands the whole row and
+       pushes the name out of it entirely. */
+    flex: 0 0 auto;
+    width: 7rem;
+    height: auto;
+}
+
+/* Sized to the name rather than growing: this is a lockup, and a hero that
+   takes the leftover width would push the mark away from the words it belongs
+   to. */
+.p-auth-intro > .p-hero {
+    flex: 0 1 auto;
+    /* Overrides .p-hero--start, which the component sets. A no-op while the
+       name fits on one line -- flex: 0 1 auto makes the box hug the text, so
+       there is nothing to align against. It matters when the name wraps on a
+       phone: left-aligned two-line text under a centred mark reads as a
+       mistake. */
+    text-align: center;
+    /* .p-hero--plain carries a block-end margin for stacked use. In a row
+       centred on its cross axis that is dead space below the name, shifting it
+       off centre against the mark. */
+    margin-block-end: 0;
+}
+
+/* On a phone the lockup is scaled down to sit on one row inside the form's
+   width, rather than the mark wrapping onto its own line above a full-size
+   name. nowrap is what keeps them together; the mark and the type both come
+   down so that "together" fits.
+ *
+ * At --step-2 the name breaks into two balanced lines -- FIRST TO ACT above
+   POKER LEAGUE -- beside a 3rem mark, which is the shape it wants anyway. */
+@media (max-width: 48rem) {
+    .p-auth-intro {
+        flex-wrap: nowrap;
+        gap: var(--space-3);
+    }
+
+    .p-auth-intro__mark {
+        width: 3rem;
+    }
+
+    /* Three classes deep on purpose. .p-hero--plain .p-hero__title is two, and
+       matching it would leave this depending on which rule the bundler emitted
+       last -- a coin toss that has broken this system before. */
+    .p-auth-intro > .p-hero .p-hero__title {
+        font-size: var(--step-2);
+        /* Left to itself the name breaks as "FIRST TO ACT POKER / LEAGUE",
+           stranding one word. balance splits it evenly -- FIRST TO ACT above
+           POKER LEAGUE -- which is also where the name divides in meaning.
+           Ignored by anything that does not support it, so the fallback is
+           exactly today's behaviour. */
+        text-wrap: balance;
+    }
+}
+
+/* A readable width, not the container's 80rem: a sign-in form stretched across
+   a desktop is a column of very wide inputs with each label miles from its
+   value.
+ *
+ * 38rem rather than something rounder, because the register form pairs first
+   and last name in an .l-grid. That primitive needs 2 x 16rem plus a 1rem gap
+   to hold two columns, and .card__body eats 3rem in padding, so anything under
+   38rem silently drops the pair into two stacked rows -- turning the form back
+   into the long scroll the pairing exists to avoid. */
+.p-auth-form {
+    max-width: 38rem;
+    margin-inline: auto;
+}
+
+/* A form's action row on a public page.
+ *
+ * Full width on a phone, where a wide target is the point and there is nothing
+ * to align against. Once the form is no longer the whole screen the button
+ * shrinks to its label and sits at the end of the row -- the same place every
+ * dashboard form puts its action. */
+.p-form-actions .btn {
+    width: 100%;
+}
+
+@media (min-width: 40rem) {
+    .p-form-actions {
+        display: flex;
+        justify-content: flex-end;
+    }
+
+    .p-form-actions .btn {
+        width: auto;
+    }
+}

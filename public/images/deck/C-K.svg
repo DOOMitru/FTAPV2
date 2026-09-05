@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="250" height="350" viewBox="0 0 250 350" role="img" aria-label="king of clubs">
+<title>king of clubs</title>
+<rect x="5" y="5" width="240" height="340" rx="20" fill="#FFFFFF" stroke="#3A3A3C" stroke-width="5"/>
+<g transform="translate(125.0,166.46) scale(4.2684)"><g fill="#3A3A3C"><circle cx="0" cy="-7" r="7"/><circle cx="-8" cy="5" r="7"/><circle cx="8" cy="5" r="7"/><path d="M-6,18L6,18C2,13 1,9 0,4C-1,9 -2,13 -6,18Z"/></g></g>
+<text x="31" y="56.55" fill="#3A3A3C" font-family="Impact, Haettenschweiler, 'Arial Narrow', sans-serif" font-size="35" letter-spacing="1">K</text>
+<g transform="translate(42.17,84.98) scale(0.745)"><g fill="#3A3A3C"><circle cx="0" cy="-7" r="7"/><circle cx="-8" cy="5" r="7"/><circle cx="8" cy="5" r="7"/><path d="M-6,18L6,18C2,13 1,9 0,4C-1,9 -2,13 -6,18Z"/></g></g>
+<text transform="translate(219,293.45) rotate(180)" x="0" y="0" fill="#3A3A3C" font-family="Impact, Haettenschweiler, 'Arial Narrow', sans-serif" font-size="35" letter-spacing="1">K</text>
+<g transform="translate(207.82,265.02) scale(-0.745)"><g fill="#3A3A3C"><circle cx="0" cy="-7" r="7"/><circle cx="-8" cy="5" r="7"/><circle cx="8" cy="5" r="7"/><path d="M-6,18L6,18C2,13 1,9 0,4C-1,9 -2,13 -6,18Z"/></g></g>
+</svg>

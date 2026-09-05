@@ -1,0 +1,39 @@
+.badge {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-1);
+    padding: var(--space-1) var(--space-2);
+    border: var(--border-width) solid var(--c-border);
+    border-radius: var(--radius-pill);
+    font-family: var(--font-body);
+    font-size: var(--step--2);
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    line-height: 1;
+    text-transform: uppercase;
+    color: var(--c-text-muted);
+}
+
+.badge--primary {
+    border-color: var(--c-primary);
+    color: var(--c-primary);
+}
+
+/* Formerly .badge--accent, when the accent was a second brand hue distinct
+   from the blue primary. Red IS the primary now, so this and .badge--primary
+   would be the same badge; the name stays only because points-structure calls
+   it, and it resolves to the same treatment. */
+.badge--accent {
+    border-color: var(--c-primary);
+    color: var(--c-primary);
+}
+
+/* Felt green, for a state that is OPEN or WON -- registration open, you're
+   registered, the current season. Distinct from .badge--primary, which marks
+   IDENTITY (Admin, Podium Level) rather than state. The two were the same
+   variant until now, so a badge saying "Registration Open" and one saying
+   "Admin" looked like the same kind of fact. */
+.badge--open {
+    border-color: var(--c-open);
+    color: var(--c-open);
+}

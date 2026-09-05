@@ -1,0 +1,62 @@
+/* The venue detail page.
+ *
+ * Its header card was <x-card flush> laid out with .l-sidebar, the same
+ * arrangement the tournament page had. .l-sidebar is 2fr 1fr, so the map took
+ * two thirds and everything else was squeezed into the last third -- and flush
+ * removes the card's padding for the map's benefit, with nothing giving it
+ * back, so the venue name rendered against the card's top border.
+ */
+
+/* Equal columns, not 2fr 1fr. The stats could not sit two abreast in a third
+   of the card: .l-grid's tracks want 16rem and only one fitted, so four tiles
+   stacked into a column as tall as the map beside them. */
+.venue-show__split {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(22rem, 100%), 1fr));
+}
+
+/* The padding the flush card gives up for the map. Everything that is not the
+   map has to bring its own back. */
+.venue-show__body {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: var(--space-4);
+    padding: var(--space-6);
+}
+
+/* One step under .page-header__title, which carries the same name above it:
+   large enough to be this card's subject, not so large it competes with the
+   page's own heading. */
+.venue-show__name {
+    font-family: var(--font-display);
+    font-size: var(--step-2);
+    font-weight: 400;
+    line-height: var(--leading-tight);
+    letter-spacing: -0.01em;
+    text-transform: uppercase;
+}
+
+.venue-show__lede {
+    font-size: var(--step--1);
+    line-height: var(--leading-relaxed);
+    color: var(--c-text-muted);
+}
+
+/* Two by two. Fixed at two tracks rather than auto-fit, which is what let the
+   four tiles become a single tall column in the first place. minmax(0, 1fr)
+   rather than 1fr: a grid item's automatic minimum is its min-content width,
+   so a long label like "Tournament Points" would refuse to shrink and push the
+   pair sideways instead of wrapping inside its own tile. */
+.venue-show__stats {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-3);
+}
+
+/* Each panel keeps its own height. Stretched -- the grid default -- an empty
+   leaderboard grew to match a list of nineteen tournaments beside it, and the
+   page opened on a card that was mostly void. */
+.venue-show__panels {
+    align-items: start;
+}

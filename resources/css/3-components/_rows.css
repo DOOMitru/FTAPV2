@@ -1,0 +1,216 @@
+/* A label-and-value list. .p-fact is the public register's panel equivalent;
+   this one uses muted text, which a saturated ground cannot carry. Shared:
+   both the dashboard and the public pages want it, and it references no fenced
+   token, so it does not belong in 5-public. */
+/* No `margin: 0` here. The reset already zeroes dl, and .rows is only ever
+   worn by a dl -- so the declaration bought nothing, while its single-class
+   specificity landed later in the cascade than `.l-stack > * + *` and silently
+   cancelled it. A .rows dropped into a stack got no spacing above it and the
+   heading above it collided with its first label. Layout primitives own the
+   gaps; a component setting its own outer spacing is what this file's own
+   header warns against. */
+.rows {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+}
+
+.row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--space-3);
+}
+
+.row__label {
+    font-family: var(--font-body);
+    font-size: var(--step--2);
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--c-text-muted);
+}
+
+.row__value {
+    font-size: var(--step--1);
+    font-weight: 600;
+    text-align: end;
+}
+
+/* A calendar chip: month above day. Used where a date has to be scannable in a
+   list rather than read as a sentence. */
+.date-chip {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    width: 3rem;
+    height: 3rem;
+    border: var(--border-width) solid var(--c-border);
+    border-radius: var(--radius);
+    background-color: var(--c-surface-raised);
+    line-height: 1;
+}
+
+.date-chip__month {
+    font-family: var(--font-body);
+    font-size: var(--step--2);
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--c-primary);
+}
+
+.date-chip__day {
+    margin-block-start: var(--space-1);
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    font-size: var(--step-1);
+    font-weight: 600;
+}
+
+/* One entry in a list of things inside a card: a leading chip, a body that
+   grows, and actions at the end. The card's own divider separates them. */
+.entry {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-4);
+    padding: var(--space-4) var(--space-5);
+}
+
+.entry + .entry {
+    border-block-start: var(--border-width) solid var(--c-border);
+}
+
+.entry__body {
+    flex: 1 1 12rem;
+    min-width: 0;
+}
+
+.entry__title {
+    font-size: var(--step-0);
+    font-weight: 600;
+}
+
+.entry__meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-1) var(--space-4);
+    margin-block-start: var(--space-1);
+    font-size: var(--step--2);
+    color: var(--c-text-muted);
+}
+
+.entry__actions {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    margin-inline-start: auto;
+}
+
+/* A footnote under a card's body, inside its border. */
+.card__note {
+    padding: var(--space-3) var(--space-5);
+    border-block-start: var(--border-width) solid var(--c-border);
+    font-family: var(--font-body);
+    font-size: var(--step--2);
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    text-align: center;
+    color: var(--c-text-muted);
+}
+
+/* A finishing podium. DOM order is 1-2-3 -- the winner is announced first --
+   while `order` puts 2-1-3 on screen. CSS reordering does not touch the
+   accessibility tree, which is exactly why `order` exists. The original markup
+   was sequenced 2nd, 1st, 3rd, so a screen reader met the runner-up first. */
+.podium {
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    gap: var(--space-4);
+}
+
+.podium__place {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+.podium__place--1 { order: 2; }
+.podium__place--2 { order: 1; }
+.podium__place--3 { order: 3; }
+
+.podium__seat {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.5rem;
+    height: 2.5rem;
+    border: var(--border-width) solid var(--c-border);
+    border-radius: var(--radius-pill);
+    background-color: var(--c-surface-raised);
+    font-family: var(--font-mono);
+    font-size: var(--step--1);
+    font-weight: 600;
+}
+
+/* The seats carry the medals. Previously only 1st was distinguished and it
+   used --c-primary, so the podium said "first" but never "second" or "third".
+   Ink is fixed rather than themed because the medal grounds are: #16171B on
+   gold is 7.54:1, on silver 7.71:1, on bronze 4.72:1, in both themes. */
+.podium__place--1 .podium__seat,
+.podium__place--2 .podium__seat,
+.podium__place--3 .podium__seat {
+    border-color: transparent;
+    color: var(--c-medal-ink);
+    font-weight: 700;
+}
+
+.podium__place--1 .podium__seat {
+    width: 3.25rem;
+    height: 3.25rem;
+    background-color: var(--c-gold);
+    font-size: var(--step-1);
+}
+
+.podium__place--2 .podium__seat { background-color: var(--c-silver); }
+.podium__place--3 .podium__seat { background-color: var(--c-bronze); }
+
+/* The riser. Height carries the ranking; the numeral repeats it for anyone who
+   cannot see the heights. */
+.podium__step {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.5rem;
+    border-start-start-radius: var(--radius);
+    border-start-end-radius: var(--radius);
+    background-color: var(--c-surface-raised);
+    font-family: var(--font-mono);
+    font-size: var(--step--2);
+    font-weight: 600;
+    color: var(--c-text-muted);
+}
+
+/* The step below each seat echoes its medal, quietly -- the seat is the loud
+   element and spending the colour twice at full strength would flatten both. */
+.podium__place--1 .podium__step { height: 3rem; background-color: var(--c-gold); color: var(--c-medal-ink); }
+.podium__place--2 .podium__step { background-color: var(--c-silver); color: var(--c-medal-ink); }
+.podium__place--3 .podium__step { background-color: var(--c-bronze); color: var(--c-medal-ink); }
+.podium__place--2 .podium__step { height: 2rem; }
+.podium__place--3 .podium__step { height: 1.25rem; }
+
+.podium__name {
+    max-width: 7rem;
+    overflow: hidden;
+    font-size: var(--step--2);
+    text-align: center;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--c-text-muted);
+}

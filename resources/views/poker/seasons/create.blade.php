@@ -1,58 +1,73 @@
 <x-app-layout>
     <x-slot name="header">
-        <h2 class="font-semibold text-xl text-gray-800 dark:text-gray-200 leading-tight">
-            {{ __('Create Poker Season') }}
-        </h2>
+        <x-page-header :eyebrow="__('League')" :title="__('Create Poker Season')" />
     </x-slot>
 
-    <div class="py-12">
-        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
-            <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
-                <div class="p-6 text-gray-900 dark:text-gray-100">
-                    <form method="POST" action="{{ route('poker.seasons.store') }}" class="space-y-6">
-                        @csrf
+    <div class="l-container">
+        <x-card>
+            <form method="POST" action="{{ route('poker.seasons.store') }}" class="l-stack">
+                @csrf
 
-                        <div>
-                            <x-input-label for="name" :value="__('Name')" />
-                            <x-text-input id="name" name="name" type="text" class="mt-1 block w-full" :value="old('name')" required autofocus />
-                            <x-input-error class="mt-2" :messages="$errors->get('name')" />
-                        </div>
+                <x-field name="name" :label="__('Name')" :value="old('name')" required autofocus />
 
-                        <div>
-                            <x-input-label for="description" :value="__('Description')" />
-                            <textarea id="description" name="description" class="mt-1 block w-full border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-indigo-500 dark:focus:ring-indigo-600 rounded-md shadow-sm">{{ old('description') }}</textarea>
-                            <x-input-error class="mt-2" :messages="$errors->get('description')" />
-                        </div>
+                <x-field name="description" :label="__('Description')">
+                    <textarea class="field__control" name="description" id="description" rows="3">{{ old('description') }}</textarea>
+                </x-field>
 
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                                <x-input-label for="start_date" :value="__('Start Date')" />
-                                <x-text-input id="start_date" name="start_date" type="date" class="mt-1 block w-full" :value="old('start_date')" required />
-                                <x-input-error class="mt-2" :messages="$errors->get('start_date')" />
-                            </div>
+                {{-- One line above a phone, stacked below it. .l-grid rather
+                     than a media query: it collapses when two 16rem tracks no
+                     longer fit, and it is the same primitive the register form
+                     uses to pair first and last name. A start and an end date
+                     are one range read together, so a full stack step between
+                     them separates two halves of a single fact. --}}
+                <div class="l-grid">
+                    <x-field name="start_date" :label="__('Start Date')" type="date" :value="old('start_date')" required />
 
-                            <div>
-                                <x-input-label for="end_date" :value="__('End Date')" />
-                                <x-text-input id="end_date" name="end_date" type="date" class="mt-1 block w-full" :value="old('end_date')" required />
-                                <x-input-error class="mt-2" :messages="$errors->get('end_date')" />
-                            </div>
-                        </div>
-
-                        <div class="block">
-                            <label for="is_current" class="inline-flex items-center">
-                                <input id="is_current" type="checkbox" class="rounded dark:bg-gray-900 border-gray-300 dark:border-gray-700 text-indigo-600 shadow-sm focus:ring-indigo-500 dark:focus:ring-indigo-600 dark:focus:ring-offset-gray-800" name="is_current" value="1" checked>
-                                <span class="ms-2 text-sm text-gray-600 dark:text-gray-400">{{ __('Mark as Current Season') }}</span>
-                            </label>
-                            <x-input-error class="mt-2" :messages="$errors->get('is_current')" />
-                        </div>
-
-                        <div class="flex items-center gap-4">
-                            <x-primary-button>{{ __('Save') }}</x-primary-button>
-                            <a href="{{ route('poker.seasons.index') }}" class="text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100">{{ __('Cancel') }}</a>
-                        </div>
-                    </form>
+                    <x-field name="end_date" :label="__('End Date')" type="date" :value="old('end_date')" required />
                 </div>
-            </div>
-        </div>
+
+                {{-- The finale rules. Optional on purpose: a season is often
+                     created before its thresholds are decided, and an empty
+                     field means NOT PUBLISHED rather than a target of zero. --}}
+                <div>
+                    <h3 class="card__title">{{ __('Finale Qualification') }}</h3>
+
+                    <p class="field__hint">
+                        {{ __('A player must meet all three to reach the finale. Leave any of them empty while the number is still being decided — an empty field is not published, and is not enforced against anyone.') }}
+                    </p>
+                </div>
+
+                <x-field name="finale_points_required" type="number" min="0"
+                         :label="__('Season points required')"
+                         :value="old('finale_points_required')"
+                         :hint="__('Points accumulated across the season.')" />
+
+                <x-field name="finale_wins_required" type="number" min="0"
+                         :label="__('Tournament wins required')"
+                         :value="old('finale_wins_required')"
+                         :hint="__('Tournaments finished in first place.')" />
+
+                <x-field name="finale_venue_points_required" type="number" min="0"
+                         :label="__('Venue points required')"
+                         :value="old('finale_venue_points_required')"
+                         :hint="__('Venue points earned at events dated inside this season.')" />
+
+
+                <div>
+                    <label class="field__check" for="is_current">
+                        <input id="is_current" type="checkbox" name="is_current" value="1" {{ old('is_current') ? 'checked' : '' }}>
+                        <span>{{ __('Is Current Season') }}</span>
+                    </label>
+
+                    <x-input-error :messages="$errors->get('is_current')" />
+                </div>
+
+                <div class="l-cluster l-cluster--end">
+                    <x-btn variant="ghost" :href="route('poker.seasons.index')">{{ __('Cancel') }}</x-btn>
+
+                    <x-btn variant="primary">{{ __('Save') }}</x-btn>
+                </div>
+            </form>
+        </x-card>
     </div>
 </x-app-layout>

@@ -1,0 +1,50 @@
+/* Row actions in the dashboard tables, as icons.
+ *
+ * Quiet at rest and only distinguished on hover, which is what .link--danger
+ * already established here: a table row can carry three or four of these, and
+ * colouring them all at rest turns every row into a set of traffic lights.
+ */
+.action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2rem;
+    height: 2rem;
+    padding: 0;
+    border: var(--border-width) solid transparent;
+    border-radius: var(--radius-sm);
+    background-color: transparent;
+    color: var(--c-text-muted);
+    cursor: pointer;
+    transition:
+        color var(--transition-fast),
+        border-color var(--transition-fast),
+        background-color var(--transition-fast);
+}
+
+.action svg {
+    width: 1rem;
+    height: 1rem;
+}
+
+/* The hairline appears on hover rather than sitting there permanently. The
+   target is 2rem square either way -- the border is what it looks like, not
+   what you can hit. */
+.action:hover {
+    border-color: var(--c-border);
+    background-color: var(--c-surface-raised);
+    color: var(--c-text);
+}
+
+.action:focus-visible {
+    outline: 2px solid var(--c-primary);
+    outline-offset: 2px;
+}
+
+/* Destructive, and it says so only when you reach for it -- the same bargain
+   .link--danger struck. Resting red would make Delete the loudest thing in
+   every row of every table in the app. */
+.action--danger:hover {
+    border-color: var(--c-primary-hover);
+    color: var(--c-primary-hover);
+}

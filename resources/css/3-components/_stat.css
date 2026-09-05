@@ -1,0 +1,41 @@
+.stat {
+    padding: var(--space-4) var(--space-5);
+    border: var(--border-width) solid var(--c-border);
+    border-radius: var(--radius);
+    background-color: var(--c-surface);
+}
+
+.stat__label {
+    font-family: var(--font-body);
+    font-size: var(--step--2);
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--c-text-muted);
+}
+
+.stat__value {
+    display: block;
+    /* Internal spacing between this component's own parts (label -> value), not
+       outer margin against siblings. */
+    margin-block-start: var(--space-2);
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    font-size: var(--step-3);
+    font-weight: 600;
+    line-height: 1;
+}
+
+/* A stat in a three-up row on a phone. At the base size "7,154" in --step-3 is
+   wider than the third of a 375px screen it has to sit in, and the tile's own
+   padding takes another 40px of that. Only in a trio: a stat standing alone or
+   two-up has the room and keeps its full size. */
+@media (max-width: 48rem) {
+    .l-grid--trio .stat {
+        padding: var(--space-3);
+    }
+
+    .l-grid--trio .stat__value {
+        font-size: var(--step-1);
+    }
+}

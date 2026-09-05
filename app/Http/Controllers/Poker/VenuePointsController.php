@@ -24,11 +24,56 @@ class VenuePointsController extends Controller
     /**
      * Show the form for creating a new resource.
      */
-    public function create(): View
+    public function create(Request $request): View
     {
-        $users = User::all();
-        $venues = Venue::all();
-        return view('poker.venue-points.create', compact('users', 'venues'));
+        return view('poker.venue-points.create', [
+            // Ordered, because this is a list somebody reads and searches
+            // rather than a set of options a machine picks from.
+            'users' => User::orderBy('first_name')->orderBy('last_name')->get(),
+            'venues' => Venue::orderBy('name')->get(),
+
+            // Handed back by store() so the next entry for the same sitting
+            // starts where the last one left off. In the query string rather
+            // than the session: it survives a refresh, and a link to "tonight
+            // at the Diamond Club" is a useful thing to be able to keep.
+            'venueId' => $request->query('venue_id'),
+            'eventDate' => $request->query('event_date'),
+        ]);
+    }
+
+
+    /**
+     * Stamp the season the date falls in, or say why it cannot.
+     *
+     * Venue points only mean anything as part of a season -- the finale
+     * threshold is a season's -- so a date outside every season is a data entry
+     * mistake worth catching at the form rather than a row that quietly counts
+     * toward nothing.
+     *
+     * @param  array<string, mixed>  $validated
+     * @return array<string, mixed>|null  null when no season covers the date
+     */
+    private function withSeason(array $validated): ?array
+    {
+        $season = \App\Models\PokerSeason::covering($validated['event_date']);
+
+        if (! $season) {
+            return null;
+        }
+
+        $validated['season_id'] = $season->id;
+
+        return $validated;
+    }
+
+    /** The message a date outside every season gets. */
+    private function noSeason(string $date): \Illuminate\Http\RedirectResponse
+    {
+        return back()->withInput()->withErrors([
+            'event_date' => __('No season covers :date, so these points would count toward nothing. Check the date, or set the season\'s dates to include it.', [
+                'date' => \Illuminate\Support\Carbon::parse($date)->format('M d, Y'),
+            ]),
+        ]);
     }
 
     /**
@@ -44,9 +89,23 @@ class VenuePointsController extends Controller
             'venue_id' => 'required|exists:venues,id',
         ]);
 
-        VenuePoints::create($validated);
+        if (! $stamped = $this->withSeason($validated)) {
+            return $this->noSeason($validated['event_date']);
+        }
 
-        return redirect()->route('poker.venue-points.index')->with('status', 'Venue points added successfully!');
+        VenuePoints::create($stamped);
+
+        // Back to the form, not to the listing. A night at a venue is a dozen
+        // players entered one after another, and a round trip through the index
+        // between each one is a page load and two clicks per player. The venue
+        // and the date come back with it; only the player and the amount change.
+        return redirect()->route('poker.venue-points.create', [
+            'venue_id' => $validated['venue_id'],
+            'event_date' => $validated['event_date'],
+        ])->with('status', __(':amount venue points recorded for :name.', [
+            'amount' => number_format($validated['amount']),
+            'name' => $validated['user_name'],
+        ]));
     }
 
     /**
@@ -72,7 +131,12 @@ class VenuePointsController extends Controller
             'venue_id' => 'required|exists:venues,id',
         ]);
 
-        $venue_point->update($validated);
+        // Re-stamped, because the date may have been what changed.
+        if (! $stamped = $this->withSeason($validated)) {
+            return $this->noSeason($validated['event_date']);
+        }
+
+        $venue_point->update($stamped);
 
         return redirect()->route('poker.venue-points.index')->with('status', 'Venue points updated successfully!');
     }

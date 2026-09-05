@@ -1,0 +1,265 @@
+/* The shared top bar. One component consumed by both the authenticated and
+   public shells (`<x-topbar>` with `links` / `actions` slots — see
+   resources/views/components/topbar.blade.php) so the mobile-menu logic
+   exists exactly once instead of drifting between two hand-copied layouts. */
+
+.topbar {
+    border-block-end: var(--border-width) solid var(--c-border);
+    background-color: var(--c-surface);
+}
+
+/* Shares .l-container's measure so the bar's contents line up with page
+   content instead of running full-bleed past it. */
+.topbar__inner {
+    display: flex;
+    align-items: center;
+    gap: var(--space-5);
+    width: 100%;
+    max-width: 80rem;
+    margin-inline: auto;
+    padding: var(--space-3) var(--space-4);
+}
+
+.brand {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    color: var(--c-text);
+    text-decoration: none;
+    white-space: nowrap;
+}
+
+.brand:focus-visible {
+    outline: 2px solid var(--c-primary);
+    outline-offset: 2px;
+}
+
+.brand__logo {
+    display: block;
+    height: 2.25rem;
+    width: auto;
+}
+
+.brand__text {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+}
+
+/* Identity: wide, uppercase, tracked. */
+.brand__name {
+    font-family: var(--font-display);
+    font-size: var(--step--1);
+    font-weight: 400;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+/* Garnish, deliberately recessive rather than a second wordmark: body face,
+   natural case, untracked, muted, tight line-height so it tucks under the
+   name instead of floating. The hierarchy comes entirely from the contrast
+   with .brand__name above, not from any weight of its own. */
+.brand__location {
+    font-family: var(--font-body);
+    font-size: var(--step--2);
+    font-weight: 400;
+    letter-spacing: normal;
+    text-transform: none;
+    line-height: 1.1;
+    color: var(--c-text-muted);
+}
+
+/* Standalone class — do not compose .btn onto this. A previous revision had
+   `.btn { display: inline-flex }` silently defeat `display: none` here at
+   equal specificity because _btn.css imports before this file; keeping this
+   selector unrelated to .btn removes that cascade hazard entirely. */
+.topbar__burger {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    width: 2.25rem;
+    height: 2.25rem;
+    margin-inline-start: auto;
+    border: 0;
+    border-radius: var(--radius-sm);
+    background-color: transparent;
+    color: var(--c-text);
+    cursor: pointer;
+    transition: background-color var(--transition-fast);
+}
+
+.topbar__burger:hover {
+    background-color: var(--c-surface-raised);
+}
+
+.topbar__burger:focus-visible {
+    outline: 2px solid var(--c-primary);
+    outline-offset: 2px;
+}
+
+.topbar__burger-icon {
+    width: 1.5rem;
+    height: 1.5rem;
+}
+
+/* Every control in the bar shares one 2.25rem height — brand logo, burger,
+   theme toggle, nav links and the user trigger alike — so the bar's height is
+   set by that constant and not by whichever child happens to be tallest. The
+   authenticated bar previously ran 20px taller than the public one because the
+   user trigger stacked a 2.5rem avatar inside .nav-link's block padding (56px);
+   with a matching min-height here and .avatar--sm on the trigger, both bars
+   measure the same. */
+.topbar .nav-link {
+    min-height: 2.25rem;
+}
+
+/* The avatar is taller than a nav link's text, so .nav-link's own block padding
+   would push this trigger past the shared height. Trimming it lets min-height
+   above govern instead, and the avatar stays optically centred. */
+.topbar .nav-link--user {
+    padding-block: var(--space-1);
+}
+
+/* Above 48rem: one flex row, links then actions pushed to the end. */
+.topbar__panel {
+    display: flex;
+    flex: 1 1 auto;
+    align-items: center;
+    min-width: 0;
+}
+
+.topbar__nav {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+.topbar__actions-desktop {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+/* Replaced by the flat row below 48rem. */
+.topbar__actions-mobile {
+    display: none;
+}
+
+.topbar__identity {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+.topbar__actions {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    margin-inline-start: auto;
+}
+
+.theme-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.25rem;
+    height: 2.25rem;
+    border: 0;
+    border-radius: var(--radius-sm);
+    background-color: transparent;
+    color: var(--c-text);
+    cursor: pointer;
+    transition: background-color var(--transition-fast);
+}
+
+.theme-toggle:hover {
+    background-color: var(--c-surface-raised);
+}
+
+.theme-toggle:focus-visible {
+    outline: 2px solid var(--c-primary);
+    outline-offset: 2px;
+}
+
+.theme-toggle__icon {
+    width: 1.25rem;
+    height: 1.25rem;
+}
+
+/* Reliable because theme-script.blade.php always stamps [data-theme] before
+   first paint, so exactly one branch below ever applies. */
+[data-theme="light"] .theme-toggle__icon--sun,
+[data-theme="light"] .theme-toggle__label--light { display: none; }
+[data-theme="dark"]  .theme-toggle__icon--moon,
+[data-theme="dark"]  .theme-toggle__label--dark  { display: none; }
+
+@media (max-width: 48rem) {
+    /* The bar becomes two rows: brand + burger, then the panel beneath them.
+       Without flex-wrap the panel stays a flex item on the single row and gets
+       squeezed alongside the brand instead of dropping below it. */
+    .topbar__inner {
+        flex-wrap: wrap;
+        gap: var(--space-3);
+    }
+
+    .topbar__burger {
+        display: inline-flex;
+    }
+
+    .topbar__panel {
+        display: none;
+        width: 100%;
+    }
+
+    .topbar__panel--open {
+        display: flex;
+        /* flex-basis forces its own row; width alone would still let it share
+           the brand's line as a shrinkable flex item. */
+        flex-basis: 100%;
+        flex-direction: column;
+        align-items: stretch;
+        width: 100%;
+        padding-block-start: var(--space-3);
+        border-block-start: var(--border-width) solid var(--c-border);
+    }
+
+    .topbar__nav {
+        flex-direction: column;
+        align-items: stretch;
+        width: 100%;
+    }
+
+    /* The theme toggle sits beside the avatar and name rather than stacked
+       above them — they are one identity cluster, not two separate controls. */
+    /* flex-start, not center: when the user menu expands inline the row grows,
+       and centring would drag the theme toggle down beside it. */
+
+    .topbar__actions-desktop {
+        display: none;
+    }
+
+    /* Log out alone on the left, identity on the right: a destructive action
+       kept away from the controls people reach for casually. */
+    .topbar__actions-mobile {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: var(--space-3);
+        width: 100%;
+    }
+
+    .topbar__actions {
+        display: flex;
+        /* Aligns the guest row (theme / log in / join), which has no
+           .topbar__actions-mobile wrapper of its own. The signed-in wrapper is
+           width:100% with its own space-between, so this does not reach it. */
+        justify-content: flex-end;
+        width: 100%;
+        margin-inline-start: 0;
+        margin-block-start: var(--space-3);
+        padding-block-start: var(--space-3);
+        border-block-start: var(--border-width) solid var(--c-border);
+    }
+
+}

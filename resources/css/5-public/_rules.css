@@ -1,0 +1,156 @@
+/* The league's rules of play.
+ *
+ * The item class is .p-clause, not .p-rule: .p-rule is already the decorative
+ * <hr> at the foot of four pages -- 4rem wide, centred, 2px tall -- and list
+ * items wearing it collapsed into a 64px column of overlapping text. The tests
+ * all passed; only a screenshot showed it.
+ *
+ * Numbered by CSS counters, never in the content. Rules are cited by number --
+ * "21.8" -- so the number has to come from where the clause sits: a number
+ * typed into the text is one that silently stops matching the moment a clause
+ * is inserted above it. counters(), plural, walks the nesting and joins with a
+ * dot, so a clause knows its whole address without the markup carrying it.
+ */
+.p-rules {
+    counter-reset: clause;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+/* Between clauses, and a little more between the top-level rules than between
+   the sub-clauses inside one -- so a rule reads as a block rather than as a
+   run of equally spaced sentences. */
+.p-rules > li + li {
+    margin-block-start: var(--space-4);
+}
+
+.p-rules > .p-clause > .p-clause__body > .p-rules > li + li {
+    margin-block-start: var(--space-3);
+}
+
+.p-clause {
+    counter-increment: clause;
+    display: grid;
+    /* auto: every clause in ONE list shares a number column as wide as its
+       widest sibling, so "9." lines up with "21." and "16.2.1" with "16.2.2",
+       without a width being chosen for any level. */
+    grid-template-columns: auto minmax(0, 1fr);
+    column-gap: var(--space-4);
+}
+
+.p-clause::before {
+    content: counters(clause, '.') '.';
+    font-family: var(--font-mono);
+    font-size: var(--step--1);
+    /* Figures of one width, so the column does not shuffle between 1 and 11. */
+    font-variant-numeric: tabular-nums;
+    /* Sits on the first line of the text beside it, which is set taller. */
+    line-height: var(--leading-relaxed);
+    color: var(--c-primary);
+}
+
+/* Deeper clauses are already set apart by their indent and their longer
+   number; colouring every level would make a page of accent. */
+.p-rules .p-rules .p-clause::before {
+    color: var(--c-text-muted);
+}
+
+/* Reset first, then space. Written the other way round -- the owl above a
+   `.p-clause__text { margin: 0 }` -- the reset won on source order at equal
+   specificity and rule 6's closing sentence sat flush against the sub-clause
+   above it, reading as part of it. The same collision as .rows and .p-benefits
+   before it; the order is the whole fix. */
+.p-clause__body > * {
+    margin: 0;
+}
+
+.p-clause__body > * + * {
+    margin-block-start: var(--space-3);
+}
+
+.p-clause__text {
+    line-height: var(--leading-relaxed);
+}
+
+/* An aside that qualifies the rule above it rather than continuing it. Set in
+   from the text and marked, so it is not read as the next sentence of the
+   rule. */
+.p-clause__note {
+    margin: 0;
+    padding: var(--space-3) var(--space-4);
+    border-inline-start: 2px solid var(--c-primary);
+    border-radius: 0 var(--radius) var(--radius) 0;
+    background-color: var(--c-surface);
+    font-size: var(--step--1);
+    line-height: var(--leading-relaxed);
+}
+
+.p-clause__note-label {
+    margin-inline-end: var(--space-2);
+    font-family: var(--font-body);
+    font-size: var(--step--2);
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--c-primary);
+}
+
+/* The full container, like every other block on the page.
+ *
+ * This was capped at 60rem. On a 78rem container that left the rules against
+ * the left edge with 290px of nothing beside them, and since the hero above
+ * and the hand hierarchy below both run the full width, they read as though
+ * they had come loose.
+ *
+ * No measure on the text either, which is unusual and is the right call here:
+ * these are short numbered clauses, not prose. At the container's width all
+ * but a handful fit on ONE line, which is how a rules document is read -- and
+ * the few that wrap are the deep sub-clauses, whose indent has already
+ * shortened them. Capping the measure would put the whitespace back without
+ * buying a single shorter line for most of the document. */
+.p-rules-doc {
+    /* Air on both sides, not just below.
+     *
+     * With a margin only underneath, a rule set that FOLLOWS something else --
+     * the championship rules under the season finale panel -- got whatever the
+     * page stack gives any two siblings, and ran up against it. Adjacent
+     * margins collapse to the larger of the two, so this does not double the
+     * gap between two rule sets; it only stops one being tight against
+     * whatever precedes it. */
+    margin-block: var(--space-10);
+}
+
+/* Inset to match the panels around them.
+ *
+ * A .p-panel carries --space-6 of its own padding, so on the regulations page
+ * the finale panel's text sat that much further in than the rules above and
+ * below it, and the three blocks read as three different left edges. The same
+ * inset here lines them up.
+ *
+ * Above 48rem only: on a phone the container's gutter is already the whole
+ * margin there is, and taking another 2rem off each side buys alignment with
+ * a panel nobody is comparing it to at that width. */
+@media (min-width: 48rem) {
+    .p-rules-doc {
+        padding-inline: var(--space-6);
+    }
+}
+
+/* Room under the heading before the first rule, and more of it than the rules
+   give each other, so it reads as their heading rather than as rule zero. */
+.p-rules-doc .p-section-head {
+    margin-block-end: var(--space-6);
+}
+
+/* A sentence introducing a rule set rather than belonging to it -- the
+   championship rules open with one. Set apart from the clauses below so it is
+   not mistaken for an unnumbered first rule. */
+/* No measure, for the same reason the clauses below have none: capped at 72ch
+   it wrapped two words from the end while the rules beside it ran the full
+   width, which reads as the lead having come loose from its own section. */
+.p-rules-doc__lead {
+    margin-block: 0 var(--space-5);
+    line-height: var(--leading-relaxed);
+    color: var(--c-text-muted);
+}

@@ -1,37 +1,47 @@
 <x-app-layout>
     <x-slot name="header">
-        <h2 class="font-semibold text-xl text-gray-800 dark:text-gray-200 leading-tight">
-            {{ __('Edit Points Structure Entry') }}
-        </h2>
+        <x-page-header :eyebrow="__('Setup')" :title="__('Edit Points Structure Entry')" />
     </x-slot>
 
-    <div class="py-12">
-        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
-            <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
-                <div class="p-6 text-gray-900 dark:text-gray-100">
-                    <form method="POST" action="{{ route('poker.points-structure.update', $points_structure) }}" class="space-y-6">
-                        @csrf
-                        @method('PATCH')
+    <div class="l-container">
+        <x-card>
+            <form method="POST" action="{{ route('poker.points-structure.update', $points_structure) }}" class="l-stack">
+                @csrf
+                @method('PATCH')
 
-                        <div>
-                            <x-input-label for="place" :value="__('Place')" />
-                            <x-text-input id="place" name="place" type="number" class="mt-1 block w-full" :value="old('place', $points_structure->place)" required autofocus min="1" />
-                            <x-input-error class="mt-2" :messages="$errors->get('place')" />
-                        </div>
+                {{-- Inlined: a fixed figure beside the one field there is
+                     to fill in. Moving a place would collide with another or
+                     leave a hole in the ladder; what an entry is worth is the
+                     only thing about it that changes. --}}
+                <div class="field-row">
+                    <div>
+                        <span class="field__label">{{ __('Place') }}</span>
+                        <p class="field__static">{{ \Illuminate\Support\Number::ordinal($points_structure->place) }}</p>
+                    </div>
 
-                        <div>
-                            <x-input-label for="points" :value="__('Points')" />
-                            <x-text-input id="points" name="points" type="number" class="mt-1 block w-full" :value="old('points', $points_structure->points)" required min="0" />
-                            <x-input-error class="mt-2" :messages="$errors->get('points')" />
-                        </div>
+                    <div class="field-row__grow">
+                        <x-field name="points" :label="__('Points')" type="number" min="1"
+                                 :value="old('points', $points_structure->points)"
+                                 :hint="__('Must be at least 1. A place worth nothing is a place left out of the structure.')"
+                                 required autofocus />
+                    </div>
 
-                        <div class="flex items-center gap-4">
-                            <x-primary-button>{{ __('Update') }}</x-primary-button>
-                            <a href="{{ route('poker.points-structure.index') }}" class="text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100">{{ __('Cancel') }}</a>
+                    {{-- On the row, not under it: two controls and their
+                         actions are one line's worth of form. The empty label
+                         reserves the space the labels beside it take, so the
+                         buttons line up with the inputs rather than with the
+                         words above them. --}}
+                    <div class="field-row__actions">
+                        <span class="field__label" aria-hidden="true">&nbsp;</span>
+
+                        <div class="l-cluster l-cluster--end">
+                            <x-btn variant="ghost" :href="route('poker.points-structure.index')">{{ __('Cancel') }}</x-btn>
+
+                            <x-btn variant="primary">{{ __('Save') }}</x-btn>
                         </div>
-                    </form>
+                    </div>
                 </div>
-            </div>
-        </div>
+            </form>
+        </x-card>
     </div>
 </x-app-layout>

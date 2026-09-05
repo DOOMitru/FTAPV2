@@ -17,7 +17,12 @@ class PokerTournamentRegistrantController extends Controller
      */
     public function index(): View
     {
-        $registrants = PokerTournamentRegistrant::with(['user', 'tournament'])->latest()->paginate(10);
+        // withCount on the tournament, because the view asks every row whether
+        // its tournament has results yet -- countOf() reads the alias, so this
+        // is one query rather than one per row.
+        $registrants = PokerTournamentRegistrant::with(['user', 'tournament' => fn ($q) => $q->withCount('results')])
+            ->latest()
+            ->paginate(10);
         return view('poker.registrants.index', compact('registrants'));
     }
 
@@ -26,7 +31,10 @@ class PokerTournamentRegistrantController extends Controller
      */
     public function create(): View
     {
-        $users = User::all();
+        // Approved only. The store above refuses anyone else, and a picker
+        // that offers a choice the store will reject is a worse failure than
+        // one that never offers it.
+        $users = User::approved()->orderBy('first_name')->get();
         $tournaments = PokerTournament::latest()->get();
         return view('poker.registrants.create', compact('users', 'tournaments'));
     }
@@ -38,7 +46,15 @@ class PokerTournamentRegistrantController extends Controller
     {
         $validated = $request->validate([
             'tournament_id' => 'required|exists:tournaments,id',
-            'user_id' => 'required|exists:users,id',
+            // Approval is a validation concern here rather than an abort:
+            // this arrives from a form, so a field-level error puts the message
+            // beside the field that caused it. Applied to update as well as
+            // store -- an edit must not be able to reassign a registration to
+            // an account the league has not admitted.
+            'user_id' => [
+                'required',
+                \Illuminate\Validation\Rule::exists('users', 'id')->where('approval_status', 'approved'),
+            ],
             'player_name' => 'required|string|max:255',
             'player_nickname' => 'nullable|string|max:255',
             'registered_at' => 'required|date',
@@ -59,7 +75,10 @@ class PokerTournamentRegistrantController extends Controller
      */
     public function edit(PokerTournamentRegistrant $registrant): View
     {
-        $users = User::all();
+        // Approved only. The store above refuses anyone else, and a picker
+        // that offers a choice the store will reject is a worse failure than
+        // one that never offers it.
+        $users = User::approved()->orderBy('first_name')->get();
         $tournaments = PokerTournament::latest()->get();
         return view('poker.registrants.edit', compact('registrant', 'users', 'tournaments'));
     }
@@ -71,7 +90,15 @@ class PokerTournamentRegistrantController extends Controller
     {
         $validated = $request->validate([
             'tournament_id' => 'required|exists:tournaments,id',
-            'user_id' => 'required|exists:users,id',
+            // Approval is a validation concern here rather than an abort:
+            // this arrives from a form, so a field-level error puts the message
+            // beside the field that caused it. Applied to update as well as
+            // store -- an edit must not be able to reassign a registration to
+            // an account the league has not admitted.
+            'user_id' => [
+                'required',
+                \Illuminate\Validation\Rule::exists('users', 'id')->where('approval_status', 'approved'),
+            ],
             'player_name' => 'required|string|max:255',
             'player_nickname' => 'nullable|string|max:255',
             'registered_at' => 'required|date',
@@ -87,6 +114,17 @@ class PokerTournamentRegistrantController extends Controller
      */
     public function destroy(PokerTournamentRegistrant $registrant): RedirectResponse
     {
+        // Not even for an administrator. Once finishes are recorded, the field
+        // they describe is settled, and removing someone from it silently makes
+        // every one of those places wrong.
+        if ($registrant->tournament->hasRecordedResults()) {
+            return back()->with('error', __(
+                ':name cannot be removed from :tournament: results have been recorded, and every '
+                .'finish describes the size of the field. Delete the results first if the entry is wrong.',
+                ['name' => $registrant->player_name, 'tournament' => $registrant->tournament->name]
+            ));
+        }
+
         $registrant->delete();
 
         return redirect()->route('poker.registrants.index')->with('status', 'Tournament registrant removed successfully!');

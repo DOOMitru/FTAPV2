@@ -1,0 +1,46 @@
+/* An inline text link. The system had no such thing until now: every link so
+   far was a button, a nav item, or a panel link. Shared by both registers, so
+   it carries no gradient. */
+.link {
+    color: var(--c-primary);
+    text-decoration: underline;
+    text-underline-offset: 0.2em;
+    transition: color var(--transition-fast);
+}
+
+.link:hover {
+    color: var(--c-primary-hover);
+}
+
+.link:focus-visible {
+    outline: 2px solid var(--c-primary);
+    outline-offset: 2px;
+    border-radius: var(--radius-sm);
+}
+
+/* A destructive link. Used for row-level Delete controls, which are submit
+   buttons inside a form rather than anchors -- .link styles both.
+ *
+ * It RESTS MUTED and goes red on hover, the same rule .btn--danger follows.
+ * That is not only consistency: .link is itself --c-primary now, so a red
+ * Delete would render identically to the Edit link beside it. Resting muted
+ * distinguishes the two AND keeps destruction from being the loudest thing in
+ * the row -- the colour arrives when the pointer is actually on it. */
+.link--danger {
+    color: var(--c-text-muted);
+}
+
+.link--danger:hover {
+    color: var(--c-primary-hover);
+}
+
+/* A link that is really a <button>: strip the control chrome so it sits in a
+   line of links without announcing itself as a button. It keeps button
+   semantics, which is correct -- it submits a form. */
+button.link {
+    padding: 0;
+    border: 0;
+    background: none;
+    font: inherit;
+    cursor: pointer;
+}

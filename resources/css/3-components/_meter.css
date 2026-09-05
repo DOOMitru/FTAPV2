@@ -1,0 +1,64 @@
+/* The signature element. Points read as a run of stacked chips rather than a
+   smooth bar: the fill is a repeating gradient of 6px segments separated by
+   1px gaps, so a longer bar is literally more chips. */
+.meter {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+}
+
+.meter__track {
+    flex: 1 1 auto;
+    height: 0.625rem;
+    min-width: 3rem;
+    border: var(--border-width) solid var(--c-border);
+    border-radius: var(--radius-sm);
+    background-color: var(--c-surface-raised);
+    overflow: hidden;
+}
+
+.meter__fill {
+    width: var(--meter-fill, 0%);
+    height: 100%;
+    background-image: repeating-linear-gradient(
+        to right,
+        var(--c-primary) 0,
+        var(--c-primary) 6px,
+        transparent 6px,
+        transparent 7px
+    );
+    /* The reveal, approved by the owner at the Task 10 gate.
+       An @keyframes animation, not a transition: --meter-fill is baked into the
+       element's inline style server-side, so at first paint there is no prior
+       state for a transition to animate FROM. Keyframes have an explicit start,
+       so they fire on load.
+
+       Width, not transform: scaleX() would be compositor-cheaper but it stretches
+       the repeating gradient, so the chips themselves would smear and change size
+       as the bar grows. The chips must stay a fixed width — that is the whole
+       idea — so width is the correct property here even though it costs layout.
+
+       The global prefers-reduced-motion block in _tokens.css collapses this to
+       0.01ms, so a reduced-motion visitor sees the final state immediately. */
+    animation: meter-reveal var(--transition-reveal) both;
+}
+
+@keyframes meter-reveal {
+    from {
+        width: 0;
+    }
+
+    to {
+        width: var(--meter-fill, 0%);
+    }
+}
+
+.meter__value {
+    flex: 0 0 auto;
+    min-width: 4ch;
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    font-size: var(--step--1);
+    font-weight: 600;
+    text-align: right;
+}

@@ -1,264 +1,315 @@
 <x-public-layout>
-    <div class="relative bg-white dark:bg-gray-900 overflow-hidden">
-        <div class="max-w-7xl mx-auto">
-            <div class="md:grid md:grid-cols-2 md:gap-8 md:items-center">
-                <!-- Text Content -->
-                <div class="px-4 py-12 sm:px-6 md:px-8">
-                    <main>
-                        <div class="sm:text-center md:text-left">
-                            <h1 class="text-4xl tracking-tight font-extrabold text-gray-900 dark:text-white sm:text-5xl md:text-6xl">
-                                <span class="block xl:inline">First to Act</span>
-                                <span class="block text-indigo-600 dark:text-indigo-500 xl:inline">Poker League</span>
-                            </h1>
-                            <p class="mt-3 text-base text-gray-500 dark:text-gray-400 sm:mt-5 sm:text-lg sm:max-w-xl sm:mx-auto md:mt-5 md:text-xl md:mx-0">
-                                Join the most exciting amateur poker league. Compete in tournaments, climb the leaderboard, and become the champion.
+    {{-- The home lead is its own block rather than <x-p-hero>: it is the only
+         hero carrying a mark, a tagline and a call to action, and bolting three
+         optional props onto a component eight other pages share, to serve one
+         page, is how a shared component rots. It reuses .p-hero__highlight and
+         .p-hero__suit, both of which are standalone classes. --}}
+    <section class="p-lead">
+        {{-- Decorative: the title beside it says the name. First in the DOM
+             because that is its mobile position; CSS order moves it right on a
+             wide screen. --}}
+        <img class="p-lead__mark" src="{{ asset('images/hero_logo.png') }}" alt="">
+
+        <div class="p-lead__body">
+            <p class="u-eyebrow p-lead__eyebrow">
+                <span class="p-hero__suit" aria-hidden="true">&spades;</span>{{ __('Regina, Saskatchewan') }}
+            </p>
+
+            <h1 class="p-lead__title">
+                {{ __('First to Act') }} <span class="p-hero__highlight">{{ __('Poker League') }}</span>
+            </h1>
+
+            {{-- Three spans, as in the footer: the motto may only break BETWEEN
+                 clauses. text-wrap: balance was tried and is wrong here -- it
+                 balances line lengths, which split "Play hard. Play / smart."
+                 straight through the middle of a clause. --}}
+            <p class="p-lead__tagline">
+                <span>{{ __('Play hard.') }}</span>
+                <span>{{ __('Play smart.') }}</span>
+                <span>{{ __('Be first to act.') }}</span>
+            </p>
+
+            <p class="p-lead__lede">
+                {{ __("Free Texas Hold'em every week, hosted by bars and lounges around Regina — turn up and you are backing them too. Season points, tournament wins and venue points all decide who plays the season finale, for a prize pool funded entirely by local sponsors.") }}
+            </p>
+
+            @auth
+                {{-- A signed-in player has already joined; offering them "Join Now" is
+                     asking for something they have done. --}}
+                <div class="p-lead__welcome p-lead__actions">
+                    <p class="p-lead__welcome-line">
+                        {{ __('Welcome back,') }} <span class="p-hero__highlight">{{ auth()->user()->first_name }}</span>.
+                    </p>
+
+                    <p class="p-lead__welcome-note">
+                        <a class="link" href="{{ route('dashboard') }}">{{ __('Your dashboard') }}</a>
+                        {{ __('has your points, your results and what is coming up next.') }}
+                    </p>
+                </div>
+            @else
+                <div class="l-cluster p-lead__actions">
+                    <x-btn variant="primary" :href="route('register')">{{ __('Join Now') }}</x-btn>
+                    <x-btn variant="ghost" :href="route('about.index')">{{ __('Learn More') }}</x-btn>
+                </div>
+            @endauth
+        </div>
+    </section>
+
+
+    {{-- Two sections, not one. "League Schedule" mixed the state of the season
+         with the next date on the calendar -- two different questions, and a
+         reader wanting either had to pick their card out of a row of three. --}}
+    <section class="p-section">
+        <x-p-hero plain :level="2" suit="diamond"
+                  :eyebrow="__('The Season')"
+                  :title="$currentSeason ? $currentSeason->name . ' ' . __('is Here') : __('Season Launching Soon')">
+            {{ __('Where the season stands, and what it takes to reach the finale.') }}
+        </x-p-hero>
+
+        {{-- One card, not a card beside a gradient panel. "Season Status" and
+             "Season Finale" ask the same question from two sides -- where the
+             season is now, and what it takes to finish it -- and splitting them
+             across two registers made the pair read as unrelated.
+
+             The neutral register, not the panel's: merging into the gradient
+             doubled the red field to the section's full width and made this
+             block, rather than the hero, the loudest thing on the page. Red
+             stays as accent here.
+
+             .p-raised rather than the card component, so this matches the
+             event card below it: shadow and a large radius, no hard border. --}}
+        <div class="p-seasoncard p-raised">
+            @if ($currentSeason)
+                {{-- Rows are shared between the columns only when both hold a
+                     facts list; see .p-seasoncard__cols--aligned. --}}
+                <div class="p-seasoncard__cols{{ $currentSeason->hasThresholds() ? ' p-seasoncard__cols--aligned' : '' }}">
+                    <div class="p-seasoncard__col">
+                        <h3 class="p-seasoncard__head">{{ __('Where It Stands') }}</h3>
+
+                        <dl class="p-seasoncard__facts">
+                            <div class="p-seasoncard__row">
+                                <dt class="p-contact__label">{{ __('Active') }}</dt>
+                                <dd class="p-seasoncard__value">{{ $currentSeason->name }}</dd>
+                            </div>
+
+                            <div class="p-seasoncard__row">
+                                <dt class="p-contact__label">{{ __('Runs') }}</dt>
+                                <dd class="p-seasoncard__value">
+                                    {{ $currentSeason->start_date?->format('M j, Y') ?? '?' }} &ndash;
+                                    {{ $currentSeason->end_date?->format('M j, Y') ?? '?' }}
+                                </dd>
+                            </div>
+
+                            <div class="p-seasoncard__row">
+                                <dt class="p-contact__label">{{ __('Entry') }}</dt>
+                                <dd class="p-seasoncard__value">{{ __('Free') }}</dd>
+                            </div>
+                        </dl>
+                    </div>
+
+                    <div class="p-seasoncard__col p-seasoncard__col--tall">
+                        <h3 class="p-seasoncard__head">{{ __('What It Takes') }}</h3>
+
+                        {{-- Each figure is guarded on its own, not just the
+                             block: hasThresholds() is true when ANY one is set,
+                             so a season with only a points target reaches this
+                             branch, and number_format(null) renders 0 -- a
+                             target nobody chose and everybody has cleared. --}}
+                        @if ($currentSeason->hasThresholds())
+                            <dl class="p-seasoncard__facts">
+                                <div class="p-seasoncard__row">
+                                    <dt class="p-contact__label">{{ __('Season points') }}</dt>
+                                    <dd class="p-seasoncard__value u-mono">
+                                        {{ $currentSeason->finale_points_required !== null
+                                            ? number_format($currentSeason->finale_points_required)
+                                            : __('not set yet') }}
+                                    </dd>
+                                </div>
+
+                                <div class="p-seasoncard__row">
+                                    <dt class="p-contact__label">{{ __('Tournament wins') }}</dt>
+                                    <dd class="p-seasoncard__value u-mono">
+                                        {{ $currentSeason->finale_wins_required !== null
+                                            ? $currentSeason->finale_wins_required
+                                            : __('not set yet') }}
+                                    </dd>
+                                </div>
+
+                                <div class="p-seasoncard__row">
+                                    <dt class="p-contact__label">{{ __('Venue points') }}</dt>
+                                    <dd class="p-seasoncard__value u-mono">
+                                        {{ $currentSeason->finale_venue_points_required !== null
+                                            ? number_format($currentSeason->finale_venue_points_required)
+                                            : __('not set yet') }}
+                                    </dd>
+                                </div>
+                            </dl>
+                        @else
+                            <p class="u-muted">
+                                {{ __('The exact thresholds are still being set and will be published here once they are.') }}
                             </p>
-                            <div class="mt-5 sm:mt-8 sm:flex sm:justify-center md:justify-start">
-                                <div class="rounded-md shadow">
-                                    <a href="{{ route('register') }}" class="w-full flex items-center justify-center px-8 py-3 border border-transparent text-base font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 md:py-4 md:text-lg md:px-10">
-                                        Join Now
-                                    </a>
-                                </div>
-                                <div class="mt-3 sm:mt-0 sm:ml-3">
-                                    <a href="{{ route('about.index') }}" class="w-full flex items-center justify-center px-8 py-3 border border-transparent text-base font-medium rounded-md text-indigo-700 bg-indigo-100 hover:bg-indigo-200 dark:text-indigo-300 dark:bg-indigo-900 dark:hover:bg-indigo-800 md:py-4 md:text-lg md:px-10">
-                                        Learn More
-                                    </a>
-                                </div>
-                            </div>
-                        </div>
-                    </main>
-                </div>
-                
-                <!-- Hero Image -->
-                <div class="px-4 py-6 sm:px-6 md:px-8 md:py-12 flex items-center justify-center md:justify-end">
-                    <img class="w-full h-auto max-w-[200px] md:max-w-sm lg:max-w-md" src="{{ asset('images/hero_logo.png') }}" alt="First to Act Poker League">
-                </div>
-            </div>
-        </div>
-    </div>
+                        @endif
 
-    <!-- Features Section -->
-    <div class="py-12 bg-gray-50 dark:bg-gray-800">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="lg:text-center">
-                <h2 class="text-base text-indigo-600 dark:text-indigo-400 font-semibold tracking-wide uppercase">Competition</h2>
-                <p class="mt-2 text-3xl leading-8 font-extrabold tracking-tight text-gray-900 dark:text-white sm:text-4xl">
-                    A better way to play poker
-                </p>
-                <p class="mt-4 max-w-2xl text-xl text-gray-500 dark:text-gray-400 lg:mx-auto">
-                    Experience structured tournaments, fair play, and a competitive environment with our comprehensive rules and point system.
-                </p>
-            </div>
+                        {{-- Below the figures, not above them. Anything between
+                             this heading and this list offsets the list from the
+                             one in the column beside it, and the two stop
+                             reading as one table.
 
-            <div class="mt-10">
-                <dl class="space-y-10 md:space-y-0 md:grid md:grid-cols-2 md:gap-x-8 md:gap-y-10">
-                    <div class="relative">
-                        <dt>
-                            <div class="absolute flex items-center justify-center h-12 w-12 rounded-md bg-indigo-500 text-white">
-                                <!-- Heroicon name: globe-alt -->
-                                <svg class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
-                                </svg>
-                            </div>
-                            <p class="ml-16 text-lg leading-6 font-medium text-gray-900 dark:text-white">Tournaments</p>
-                        </dt>
-                        <dd class="mt-2 ml-16 text-base text-gray-500 dark:text-gray-400">
-                            Regular tournaments with points counting towards the season finale.
-                        </dd>
-                    </div>
-
-                    <div class="relative">
-                        <dt>
-                            <div class="absolute flex items-center justify-center h-12 w-12 rounded-md bg-indigo-500 text-white">
-                                <!-- Heroicon name: scale -->
-                                <svg class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3" />
-                                </svg>
-                            </div>
-                            <p class="ml-16 text-lg leading-6 font-medium text-gray-900 dark:text-white">Fair Play</p>
-                        </dt>
-                        <dd class="mt-2 ml-16 text-base text-gray-500 dark:text-gray-400">
-                            Strict adherence to rules ensuring a fair game for everyone.
-                        </dd>
-                    </div>
-                </dl>
-            </div>
-        </div>
-    </div>
-
-    <!-- Season Info Section -->
-    <div class="py-16 bg-white dark:bg-gray-900 border-t border-gray-100 dark:border-gray-800">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="lg:text-center mb-12">
-                <h2 class="text-xs font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-[0.3em] mb-4">{{ __('League Schedule') }}</h2>
-                <p class="mt-2 text-3xl sm:text-4xl font-extrabold tracking-tight text-gray-900 dark:text-white">
-                    {{ $currentSeason ? ($currentSeason->name . ' ' . __('is Here')) : __('Season Launching Soon') }}
-                </p>
-                <p class="mt-4 max-w-2xl text-lg text-gray-500 dark:text-gray-400 lg:mx-auto">
-                    {{ __('Track the latest seasonal progress, upcoming high-stakes tournaments, and the race to the championship finale.') }}
-                </p>
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-                <!-- Season Status Card -->
-                <div class="bg-indigo-50 dark:bg-indigo-900/20 p-8 rounded-2xl border border-indigo-100 dark:border-indigo-800 shadow-sm transition-all duration-300 hover:shadow-md">
-                    <div class="flex items-center gap-4 mb-6">
-                        <div class="p-3 bg-indigo-600 rounded-lg text-white">
-                            <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                            </svg>
-                        </div>
-                        <h3 class="text-xl font-bold text-gray-900 dark:text-white">{{ __('Season Status') }}</h3>
-                    </div>
-                    @if($currentSeason)
-                        <div class="space-y-4">
-                            <div class="flex justify-between items-center text-sm">
-                                <span class="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest">{{ __('Active') }}</span>
-                                <span class="text-gray-900 dark:text-white font-bold">{{ $currentSeason->name }}</span>
-                            </div>
-                            <div class="flex justify-between items-center text-sm">
-                                <span class="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest">{{ __('Duration') }}</span>
-                                <span class="text-gray-900 dark:text-white font-medium">{{ $currentSeason->start_date?->format('M Y') ?? '?' }} - {{ $currentSeason->end_date?->format('M Y') ?? '?' }}</span>
-                            </div>
-                            <div class="flex justify-between items-center text-sm">
-                                <span class="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest">{{ __('Prize Pool') }}</span>
-                                <span class="text-indigo-600 dark:text-indigo-400 font-black tracking-tight">{{ __('Dynamic') }}</span>
-                            </div>
-                        </div>
-                    @else
-                        <div class="py-6 text-center italic text-gray-400 text-sm">
-                            {{ __('No active season found.') }}
-                        </div>
-                    @endif
-                </div>
-
-                <!-- Upcoming Events Card -->
-                <div class="bg-white dark:bg-gray-800 p-8 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm transition-all duration-300 hover:shadow-md">
-                    <div class="flex items-center gap-4 mb-6">
-                        <div class="p-3 bg-rose-600 rounded-lg text-white">
-                            <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-                        </div>
-                        <h3 class="text-xl font-bold text-gray-900 dark:text-white">{{ __('Next Event') }}</h3>
-                    </div>
-                    @if($nextTournament)
-                        <div class="space-y-4">
-                            <div>
-                                <p class="text-gray-900 dark:text-white font-bold text-lg leading-tight mb-1">{{ $nextTournament->name }}</p>
-                                <p class="text-indigo-600 dark:text-indigo-400 font-bold text-sm">
-                                    {{ $nextTournament->start_time?->format('F d, Y') ?? __('TBD') }}<br>
-                                    <span class="opacity-70">{{ $nextTournament->start_time?->format('h:i A') ?? '' }}</span>
-                                </p>
-                            </div>
-                            <div class="pt-4 border-t border-gray-50 dark:border-gray-700">
-                                <p class="text-xs text-gray-500 dark:text-gray-400 leading-relaxed italic">
-                                    {{ $nextTournament->venue?->name ?? __('Location TBD') }}
-                                </p>
-                            </div>
-                        </div>
-                    @else
-                        <div class="py-6 text-center italic text-gray-400 text-sm">
-                            {{ __('No upcoming events scheduled.') }}
-                        </div>
-                    @endif
-                </div>
-
-                <!-- Point System Highlights -->
-                <div class="bg-gray-900 dark:bg-indigo-950 p-8 rounded-2xl shadow-xl transition-all duration-300 hover:scale-[1.02]">
-                    <div class="flex items-center gap-4 mb-6">
-                        <div class="p-3 bg-yellow-400 rounded-lg text-gray-900">
-                            <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-                            </svg>
-                        </div>
-                        <h3 class="text-xl font-bold text-white">Season Finale</h3>
-                    </div>
-                    <div class="space-y-4 text-gray-300">
-                        <p class="text-sm leading-relaxed">
-                            The top 20 players on the leaderboard at the end of the season qualify for the <span class="text-yellow-400 font-bold underline decoration-yellow-400/30 underline-offset-4">Grand Championship</span>.
+                             Kept at all because the rows give three numbers and
+                             never say you need all three, and "any one of these"
+                             is a different competition. --}}
+                        <p class="u-muted">
+                            {{ __('Three things decide who plays: the points you accumulate over the season, how many tournaments you win, and the venue points you pick up along the way.') }}
                         </p>
-                        <div class="pt-2">
-                             <a href="#" class="text-white hover:text-yellow-400 font-semibold text-sm flex items-center gap-1 transition-colors">
-                                View Point System
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
-                             </a>
-                        </div>
                     </div>
+
+                    {{-- Last in the DOM on purpose. Stacked, the link belongs at
+                         the end of the card, which is where source order puts it;
+                         side by side, CSS lifts it into the left column's third
+                         row so it sits level with the sentence opposite. Nothing
+                         is reordered, so it is last for a screen reader either
+                         way. --}}
+                    <a class="link p-cardlink p-seasoncard__link" href="{{ route('rules.points-structure') }}">
+                        {{ __('View Point System') }}
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <path d="M17 8l4 4m0 0l-4 4m4-4H3"/>
+                        </svg>
+                    </a>
                 </div>
-            </div>
+            @else
+                {{-- No columns to level anything with, so the link is simply
+                     last. x-empty-state is not used here: .empty is built on
+                     the muted tokens, which is the register this card left. --}}
+                <div class="p-seasoncard__col">
+                    <h3 class="p-seasoncard__head">{{ __('Season Finale') }}</h3>
+
+                    <p class="u-muted">
+                        {{ __('Three things decide who plays: the points you accumulate over the season, how many tournaments you win, and the venue points you pick up along the way.') }}
+                    </p>
+
+                    <p class="u-muted">
+                        {{ __('No season is running at the moment. The next one will appear here as soon as its dates are set.') }}
+                    </p>
+
+                    <a class="link p-cardlink" href="{{ route('rules.points-structure') }}">
+                        {{ __('View Point System') }}
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <path d="M17 8l4 4m0 0l-4 4m4-4H3"/>
+                        </svg>
+                    </a>
+                </div>
+            @endif
         </div>
-    </div>
 
-    <!-- Sponsors Section -->
-    <div class="py-16 bg-white dark:bg-gray-900">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="text-center mb-12">
-                <h2 class="text-base text-indigo-600 dark:text-indigo-400 font-semibold tracking-wide uppercase">Our Sponsors</h2>
-                <p class="mt-2 text-3xl leading-8 font-extrabold tracking-tight text-gray-900 dark:text-white sm:text-4xl">
-                    Proudly Supported By
-                </p>
-                <p class="mt-4 max-w-2xl text-xl text-gray-500 dark:text-gray-400 mx-auto">
-                    Thank you to our amazing sponsors who make this league possible
-                </p>
+        @auth
+            @if ($topByPoints->isNotEmpty())
+                {{-- Signed-in players only. A leaderboard is for people playing
+                     in it; to a stranger it is a list of names. --}}
+                <div class="l-grid p-season-standings">
+                    <x-card :title="__('Most Points')" class="p-raised">
+                        <ol class="p-standing">
+                            @foreach ($topByPoints as $i => $row)
+                                <li class="p-standing__row">
+                                    <x-rank :place="$i + 1" />
+                                    <span class="p-standing__name">{{ $row['name'] }}</span>
+                                    <span class="p-standing__value">{{ number_format($row['points']) }} {{ __('pts') }}</span>
+                                </li>
+                            @endforeach
+                        </ol>
+                    </x-card>
+
+                    <x-card :title="__('Most Wins')" class="p-raised">
+                        @if ($topByWins->isNotEmpty())
+                            <ol class="p-standing">
+                                @foreach ($topByWins as $i => $row)
+                                    <li class="p-standing__row">
+                                        <x-rank :place="$i + 1" />
+                                        <span class="p-standing__name">{{ $row['name'] }}</span>
+                                        <span class="p-standing__value">{{ $row['wins'] }} {{ trans_choice('win|wins', $row['wins']) }}</span>
+                                    </li>
+                                @endforeach
+                            </ol>
+                        @else
+                            <x-empty-state :title="__('No wins yet this season.')" />
+                        @endif
+                    </x-card>
+                </div>
+            @endif
+        @endauth
+    </section>
+
+    <section class="p-section">
+        <x-p-hero plain :level="2" suit="club"
+                  :eyebrow="__('Next Up')"
+                  :title="$nextTournament ? __('The Next Event') : __('Nothing Scheduled Yet')">
+            {{ $nextTournament
+                ? __('The next league night, with everything you need to turn up.')
+                : __('The calendar is empty for the moment.') }}
+        </x-p-hero>
+
+        @if ($nextTournament)
+            {{-- The same card the events page draws, so the two cannot drift
+                 apart -- including its register control, which is why the home
+                 route loads viewer_registered the same way. --}}
+            <x-p-event :tournament="$nextTournament" />
+        @else
+            <x-empty-state :title="__('No events on the calendar')">
+                {{ __('Nothing is scheduled right now. Check back in a few days — new league nights go up here first, and the season page has everything played so far.') }}
+            </x-empty-state>
+        @endif
+    </section>
+
+    {{-- The whole section, heading included, only exists when there are
+         sponsors. A "Proudly Supported By" heading over an empty grid
+         advertises that nobody sponsors the league. --}}
+    @if ($sponsors->isNotEmpty())
+        <section class="p-section">
+            <x-p-hero plain :level="2" suit="heart"
+                      :eyebrow="__('Our Sponsors')"
+                      :title="__('Proudly Supported By')"
+                      :highlight="__('Supported By')">
+                {{-- Warm on purpose, and the one place on this site where that
+                     is right. Overclaiming to players costs credibility;
+                     thanking the businesses who fund the prize pool is simply
+                     owed, and every flourish here still maps to something
+                     true. --}}
+                {{ __('A heartfelt thank you to the local businesses standing behind this league. Their backing is what puts cards on the table every week, and we could not be prouder to have them in our corner. Please support the businesses that support us — tell them First to Act sent you.') }}
+            </x-p-hero>
+
+            @php
+                // Two walls, not one. Splitting them is what puts the regular
+                // sponsors on a row of their own -- a single grid flows them
+                // straight on from the premium ones, wherever that lands.
+                $premiumSponsors = $sponsors->filter->isPremium();
+                $regularSponsors = $sponsors->reject->isPremium();
+            @endphp
+
+            @if ($premiumSponsors->isNotEmpty())
+                <div class="p-sponsors p-sponsors--premium">
+                    @foreach ($premiumSponsors as $sponsor)
+                        <x-p-sponsor :sponsor="$sponsor" />
+                    @endforeach
+                </div>
+            @endif
+
+            @if ($regularSponsors->isNotEmpty())
+                <div class="p-sponsors">
+                    @foreach ($regularSponsors as $sponsor)
+                        <x-p-sponsor :sponsor="$sponsor" />
+                    @endforeach
+                </div>
+            @endif
+
+            <div class="p-cta">
+                <p class="p-cta__lede">{{ __('Interested in becoming a sponsor?') }}</p>
+
+                <x-btn variant="primary" :href="route('about.index') . '#become-a-sponsor'">
+                    {{ __('Become a Sponsor') }}
+                </x-btn>
             </div>
+        </section>
+    @endif
 
-            <div class="grid grid-cols-2 gap-8 md:grid-cols-3 lg:grid-cols-5">
-                <!-- Sponsor 1: Ace High Beverages -->
-                <div class="col-span-1 flex justify-center items-center p-8 bg-gray-50 dark:bg-gray-800 rounded-lg hover:shadow-lg transition-shadow duration-300">
-                    <div class="text-center">
-                        <div class="text-4xl font-bold text-red-600 dark:text-red-500 mb-2">A♥</div>
-                        <div class="text-sm font-semibold text-gray-900 dark:text-white">Ace High</div>
-                        <div class="text-xs text-gray-600 dark:text-gray-400">Beverages</div>
-                    </div>
-                </div>
-
-                <!-- Sponsor 2: Full House Hospitality -->
-                <div class="col-span-1 flex justify-center items-center p-8 bg-gray-50 dark:bg-gray-800 rounded-lg hover:shadow-lg transition-shadow duration-300">
-                    <div class="text-center">
-                        <div class="text-3xl font-bold text-orange-600 dark:text-orange-500 mb-2">🏠</div>
-                        <div class="text-sm font-semibold text-gray-900 dark:text-white">Full House</div>
-                        <div class="text-xs text-gray-600 dark:text-gray-400">Hospitality</div>
-                    </div>
-                </div>
-
-                <!-- Sponsor 3: Straight Tech Solutions -->
-                <div class="col-span-1 flex justify-center items-center p-8 bg-gray-50 dark:bg-gray-800 rounded-lg hover:shadow-lg transition-shadow duration-300">
-                    <div class="text-center">
-                        <div class="text-3xl font-bold text-blue-600 dark:text-blue-500 mb-2">⚡</div>
-                        <div class="text-sm font-semibold text-gray-900 dark:text-white">Straight Tech</div>
-                        <div class="text-xs text-gray-600 dark:text-gray-400">Solutions</div>
-                    </div>
-                </div>
-
-                <!-- Sponsor 4: All-In Athletics -->
-                <div class="col-span-1 flex justify-center items-center p-8 bg-gray-50 dark:bg-gray-800 rounded-lg hover:shadow-lg transition-shadow duration-300">
-                    <div class="text-center">
-                        <div class="text-3xl font-bold text-green-600 dark:text-green-500 mb-2">💪</div>
-                        <div class="text-sm font-semibold text-gray-900 dark:text-white">All-In</div>
-                        <div class="text-xs text-gray-600 dark:text-gray-400">Athletics</div>
-                    </div>
-                </div>
-
-                <!-- Sponsor 5: Pocket Kings Financial -->
-                <div class="col-span-1 flex justify-center items-center p-8 bg-gray-50 dark:bg-gray-800 rounded-lg hover:shadow-lg transition-shadow duration-300">
-                    <div class="text-center">
-                        <div class="text-4xl font-bold text-yellow-600 dark:text-yellow-500 mb-2">K♠K♣</div>
-                        <div class="text-sm font-semibold text-gray-900 dark:text-white">Pocket Kings</div>
-                        <div class="text-xs text-gray-600 dark:text-gray-400">Financial</div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Optional: Add a call to action for sponsors -->
-            <div class="mt-12 text-center">
-                <p class="text-gray-600 dark:text-gray-400 mb-4">
-                    Interested in becoming a sponsor?
-                </p>
-                <a href="mailto:sponsors@firsttoact.com" class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 transition-colors duration-300">
-                    Contact Us
-                </a>
-            </div>
-        </div>
-    </div>
 </x-public-layout>

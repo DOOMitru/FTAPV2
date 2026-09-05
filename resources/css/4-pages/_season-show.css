@@ -1,0 +1,43 @@
+/* The meter needs room to read as a chip run rather than a sliver. */
+.season-show__meter-cell {
+    min-width: 12rem;
+}
+
+.season-show__tournament {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-4);
+    padding: var(--space-3) var(--space-5);
+    border-block-end: var(--border-width) solid var(--c-border);
+    color: var(--c-text);
+    text-decoration: none;
+    transition: background-color var(--transition-fast);
+}
+
+.season-show__tournament:last-child {
+    border-block-end: 0;
+}
+
+.season-show__tournament:hover {
+    background-color: var(--c-surface-raised);
+}
+
+.season-show__tournament:focus-visible {
+    outline: 2px solid var(--c-primary);
+    outline-offset: -2px;
+}
+
+/* The qualified mark in the standings. --c-open is the system's one semantic
+   colour -- registration open, registered, paid, won -- and this is the same
+   kind of statement, so it does not get a colour of its own. */
+.season-show__qualified {
+    display: inline-flex;
+    color: var(--c-open);
+}
+
+.season-show__qualified svg {
+    width: 1.125rem;
+    height: 1.125rem;
+}
+
