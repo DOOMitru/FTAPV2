@@ -117,9 +117,15 @@ jobs:
         # here is what switches drivers. Verified rather than assumed.
         env:
           DB_CONNECTION: ${{ matrix.database }}
+          # DB_DATABASE means two different things to the two drivers: a schema
+          # name to MySQL, a FILE PATH to SQLite. Setting it to "testing" for
+          # both sent the SQLite leg looking for a file called `testing` and
+          # failed 380 tests with "Database file at path [testing] does not
+          # exist". :memory: is what phpunit.xml uses, and what SQLite wants.
+          DB_DATABASE: ${{ matrix.database == 'mysql' && 'testing' || ':memory:' }}
+          # Ignored by the SQLite driver, so these need no condition.
           DB_HOST: 127.0.0.1
           DB_PORT: 3306
-          DB_DATABASE: testing
           DB_USERNAME: root
           DB_PASSWORD: password
         run: php artisan test
