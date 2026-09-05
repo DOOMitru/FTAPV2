@@ -60,10 +60,50 @@ class MailCheckTest extends TestCase
             'mail.default' => 'smtp',
             'mail.from.address' => 'league@firsttoact.com',
             'mail.league_contact' => 'league@firsttoact.com',
+            // Delivering is not enough on its own: a message whose links point
+            // at localhost is delivered and still useless.
+            'app.url' => 'https://firsttoact.com',
         ]);
 
         $this->artisan('mail:check')
             ->expectsOutputToContain('Nothing here would silently fail')
             ->assertExitCode(0);
+    }
+
+    public function test_it_fails_when_the_links_would_point_at_the_sending_machine(): void
+    {
+        // The failure a working mailer cannot save you from. Every link this
+        // application puts in an email is built from APP_URL, so mail that
+        // sends, arrives and opens perfectly still goes nowhere when clicked.
+        config([
+            'mail.default' => 'smtp',
+            'mail.from.address' => 'league@firsttoact.com',
+            'mail.league_contact' => 'league@firsttoact.com',
+            'app.url' => 'http://localhost',
+        ]);
+
+        $this->artisan('mail:check')
+            ->expectsOutputToContain('every link in every message points at the machine that sent it')
+            ->assertExitCode(1);
+    }
+
+    public function test_it_names_the_link_base_it_checked(): void
+    {
+        config(['app.url' => 'https://firsttoact.com']);
+
+        $this->artisan('mail:check')->expectsOutputToContain('https://firsttoact.com');
+    }
+
+    public function test_a_loopback_address_counts_as_local_too(): void
+    {
+        // Same fault wearing a different hostname.
+        config([
+            'mail.default' => 'smtp',
+            'mail.from.address' => 'league@firsttoact.com',
+            'mail.league_contact' => 'league@firsttoact.com',
+            'app.url' => 'http://127.0.0.1:8000',
+        ]);
+
+        $this->artisan('mail:check')->assertExitCode(1);
     }
 }

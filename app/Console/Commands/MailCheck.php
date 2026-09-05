@@ -26,6 +26,9 @@ class MailCheck extends Command
     /** Stock Laravel values that mean "nobody configured this". */
     private const PLACEHOLDERS = ['hello@example.com', 'example@example.com', ''];
 
+    /** Hosts that only resolve on the machine that sent the mail. */
+    private const LOCAL_HOSTS = ['localhost', '127.0.0.1', '::1', '0.0.0.0'];
+
     public function handle(): int
     {
         $mailer = config('mail.default');
@@ -41,6 +44,7 @@ class MailCheck extends Command
         $this->line(sprintf('  %-22s %s', 'port', config('mail.mailers.smtp.port') ?? '—'));
         $this->line(sprintf('  %-22s %s <%s>', 'from', $fromName, $from));
         $this->line(sprintf('  %-22s %s', 'league contact', $contact));
+        $this->line(sprintf('  %-22s %s', 'link base (APP_URL)', config('app.url')));
         $this->newLine();
 
         $problems = [];
@@ -68,6 +72,22 @@ class MailCheck extends Command
                 'LEAGUE_CONTACT_EMAIL is still the placeholder (%s). Contact-form submissions are '
                 .'being delivered there, and the contact page displays it.',
                 $contact
+            );
+        }
+
+        // The one that survives a perfectly configured mailer. Every link this
+        // application puts in an email -- verification, password reset, the
+        // admin invite -- is built from APP_URL, so pointed at localhost the
+        // mail is delivered, opened, clicked, and goes nowhere. That failure
+        // looks like a working mailer right up until a player tries to use it.
+        $host = parse_url((string) config('app.url'), PHP_URL_HOST);
+
+        if (in_array(strtolower((string) $host), self::LOCAL_HOSTS, true)) {
+            $problems[] = sprintf(
+                'APP_URL is %s, so every link in every message points at the machine that sent it. '
+                .'Verification, password reset and the invite link all arrive unusable. Set it to '
+                .'the address players actually visit.',
+                config('app.url')
             );
         }
 
