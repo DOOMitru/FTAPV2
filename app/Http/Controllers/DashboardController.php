@@ -35,7 +35,7 @@ class DashboardController extends Controller
         $wins = $userResults->where('place', 1)->count();
 
         // 3. Current Season Standing
-        $currentSeason = PokerSeason::where('is_current', true)->first();
+        $currentSeason = PokerSeason::current();
 
         $seasonRank = null;
         $seasonPoints = 0;

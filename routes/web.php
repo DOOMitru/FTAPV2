@@ -15,9 +15,10 @@ use Illuminate\Support\Facades\Route;
 */
 
 Route::get('/', function () {
-    $currentSeason = \App\Models\PokerSeason::where('start_date', '<=', now())
-        ->where('end_date', '>=', now())
-        ->first() ?? \App\Models\PokerSeason::orderBy('start_date', 'desc')->first();
+    // The flag, like every other page. This asked which season's dates
+    // contained today and fell back to the most recent, so the home page could
+    // name a different season from the one the dashboard called current.
+    $currentSeason = \App\Models\PokerSeason::current();
 
     $nextTournament = \App\Models\PokerTournament::with(['venue', 'season'])
         // Same withExists the events page uses, so the shared card can say
@@ -96,7 +97,7 @@ Route::prefix('rules')->name('rules.')->group(function () {
         $pointsStructure = \App\Models\PointsStructure::orderBy('place')->get();
 
         // Fetch top 3 performers of the current season for a live preview
-        $currentSeason = \App\Models\PokerSeason::where('is_current', true)->first();
+        $currentSeason = \App\Models\PokerSeason::current();
         $topPerformers = collect();
         
         if ($currentSeason) {

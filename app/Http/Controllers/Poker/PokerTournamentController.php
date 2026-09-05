@@ -31,7 +31,7 @@ class PokerTournamentController extends Controller
     {
         $venues = Venue::all();
         $seasons = PokerSeason::orderBy('name', 'desc')->get();
-        $currentSeason = PokerSeason::where('is_current', true)->first();
+        $currentSeason = PokerSeason::current();
         
         return view('poker.tournaments.create', compact('venues', 'seasons', 'currentSeason'));
     }
@@ -49,7 +49,7 @@ class PokerTournamentController extends Controller
             'venue_id' => 'required|exists:venues,id',
         ]);
 
-        $currentSeason = PokerSeason::where('is_current', true)->first();
+        $currentSeason = PokerSeason::current();
 
         if (!$currentSeason) {
             return back()->with('error', 'No current active season found. Please create or set an active season first.')->withInput();

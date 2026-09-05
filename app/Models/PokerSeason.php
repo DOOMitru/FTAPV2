@@ -16,6 +16,29 @@ class PokerSeason extends Model
     protected $table = 'seasons';
 
     /**
+     * The league's current season, and the only answer to that question.
+     *
+     * The flag, not the dates. Both were in use: the home page asked which
+     * season's range contained today, while the dashboard, the tournament
+     * forms and the points structure read is_current. Two definitions of one
+     * word disagree the moment a season ends without anyone moving the flag, or
+     * a flag is set on a season that has not started -- and then which season a
+     * player was told about depended on which page they happened to open.
+     *
+     * The flag wins because it is a decision somebody makes and can see, where a
+     * date range is a rule that quietly re-answers itself as time passes. Only
+     * one season can carry it; the model enforces that on save.
+     *
+     * Null when nothing is flagged. A league between seasons genuinely has no
+     * current one, and falling back to the most recent -- which the home page
+     * used to do -- is the same guess this method exists to remove.
+     */
+    public static function current(): ?self
+    {
+        return static::where('is_current', true)->first();
+    }
+
+    /**
      * The season a given date falls inside, if any.
      *
      * Ordered by start date so that overlapping seasons -- which nothing
