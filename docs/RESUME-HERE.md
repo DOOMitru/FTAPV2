@@ -1,42 +1,47 @@
 # Resume here
 
-**Last worked: 2026-08-31.** Design-system project for First to Act Poker.
+**Last worked: 2026-09-05.** First to Act Poker — a league app for free-to-play
+poker nights in Regina.
 
 ## Where things stand
 
-**Two projects are complete.** The design-system conversion (Phases 0-5) moved
-all 86 views off Tailwind onto hand-built CSS — see `docs/PHASE-5-EXIT-AUDIT.md`.
-The red-and-black aesthetic refresh then moved the whole app onto the logo's
-palette — see `docs/RED-BLACK-EXIT-AUDIT.md`, with its spec and plan in
-`docs/superpowers/specs/2026-08-31-red-black-redesign-design.md` and
-`docs/superpowers/plans/2026-08-31-red-black-refresh.md`.
+Suite: **431 passed.** Run `php artisan test`.
 
-Suite: **135 passed, 0 failed.** Run `php artisan test`.
+**The design-system work is finished and is no longer what this project is
+about.** Phases 0-5 moved all 86 views off Tailwind onto hand-built CSS
+(`docs/PHASE-5-EXIT-AUDIT.md`); the red-and-black refresh then moved the app onto
+the logo's palette (`docs/RED-BLACK-EXIT-AUDIT.md`). Colour is enforced rather
+than asserted: `TokenContrastTest` parses the real token file and fails the suite
+on any pair below AA. Everything since has been features and defect work on top
+of that foundation.
 
-The site was 27x more blue than red while wearing a red logo; it now measures
-4.1% red and 0.1% blue across the public pages. Colour is enforced rather than
-asserted: `TokenContrastTest` parses the real token file and fails the suite on
-any pair that drops below AA.
+**Mail works.** SMTP is configured against Dreamhost, connects, authenticates and
+delivers; a real password reset was sent, clicked and completed on 2026-09-05.
+`php artisan mail:check` reports the resolved configuration and fails on anything
+that would silently not work — a log/array transport, a placeholder from-address
+or league contact, and an `APP_URL` pointing at the sending machine.
 
-Since then: email verification was switched on and enforced (existing accounts
-grandfathered), and a **player approval gate** was added -- anyone may register,
-but only an approved account may enter a tournament. See
-`docs/PLAYER-APPROVAL-AUDIT.md`.
+**The one thing left before players can be invited:** `APP_URL` must be the
+public address on whatever host sends real mail. Locally it is
+`http://localhost:8000`, which is correct for testing here and fatal in
+production — every verification, reset and invite link is built from it, so the
+mail arrives, opens, and goes nowhere. `mail:check` gates this; gate deploys on
+its exit code.
 
-Suite: **169 passed.**
+The 235 imported players are approved and verified but hold random 32-character
+passwords, so each needs a password-reset mail to get in. That is the first real
+send.
 
-Also added: mail configuration guarding (`php artisan mail:check`), an approval
-notification, and **sponsor management** -- sponsors are now a managed resource
-under Setup rather than a hardcoded array. See `docs/SPONSOR-MANAGEMENT-AUDIT.md`.
+### Open, in rough priority
 
-Suite: **196 passed.**
+1. `APP_URL` on the production host (above). Owner's, at deploy time.
+2. `docs/` holds six audit documents from finished phases. Their open-items
+   sections are largely resolved; treat this file as the index, not them.
+3. The accent gradient's hue drift — analysed in full at the end of this file,
+   unblocked, never actioned.
 
-Open items are listed at the end of `docs/SPONSOR-MANAGEMENT-AUDIT.md`,
-`docs/PLAYER-APPROVAL-AUDIT.md` and `docs/RED-BLACK-EXIT-AUDIT.md`. The most
-consequential: **MAIL_MAILER is still `log`**, so invite and verification emails
-reach nobody -- the admin-facing copyable links cover it for now, but a real
-mailer is needed before this ships. The sponsor wall is also empty until real
-sponsors are added.
+Nothing else is known-broken. There are no TODO, FIXME or HACK markers anywhere
+in `app/`, `routes/` or `resources/`.
 
 ## Standing constraints
 
@@ -50,6 +55,15 @@ sponsors are added.
   dropdowns, the modal focus trap, the theme toggle and responsive breakpoints are verified
   by hand. Headless Chromium was used throughout for screenshots and computed-style
   measurement, but it cannot drive Alpine's `x-show`.
+- **Screenshots of dumped HTML render in the WRONG FONT unless you fix the font URLs.**
+  The faces are self-hosted at the root-relative `/fonts/archivo.woff2`, which a
+  `file://` page resolves to a path that does not exist — so the page silently falls back
+  to a system font. Box layout still measures correctly; anything about type does not.
+  A whole session of "verified visually" was done on the wrong font before this was
+  noticed, and it mattered exactly once: a button label sitting 2px high. Re-declare the
+  `@font-face` rules with absolute `file://` paths in the dumped copy before measuring type.
+- **Chromium here is snap-confined**: it cannot read or write `/tmp`, and enforces a
+  500px minimum window width. Use a directory under `$HOME` for screenshot work.
 
 ## The safety net the whole conversion ran on
 
@@ -101,6 +115,34 @@ are recorded so they are not rediscovered as if new:
 - **Contact forms use a `topic` field**, not the `type` field the spec names. The
   implementation is internally consistent across controller, mailable, both views and tests;
   the spec is the outlier. No action needed.
+
+## Decisions taken since the conversion that still bind
+
+- **`is_current` is the single answer to "which season is current".** `PokerSeason::current()`
+  is the only way to ask; the home page used to match date ranges and fall back to the most
+  recent season, so it could name a different season from the dashboard. A test scans
+  `app/` and `routes/` for the lookup written out by hand, which is how the second
+  definition arrived the first time.
+- **Venue points store their season.** It used to be derived at read time from whether
+  `event_date` fell inside a season's range, so editing a season's dates moved points
+  between seasons and changed who qualified for the finale, silently. The column is
+  nullable because a date outside every season has no answer; the form refuses such a date
+  rather than recording points that count toward nothing.
+- **A registrant cannot be removed once any result exists for that tournament**, not even
+  by an admin. A place is a position in a field — tenth of ten — so removing someone
+  afterwards makes every recorded finish describe a tournament that never happened.
+  Registering someone LATE stays open and is handled: the shift hook moves recorded places
+  down to match. There is no way back, because removal is ambiguous where addition is not.
+- **The finale is earned, not ranked.** Each season sets points, wins and venue-point
+  targets, and everyone meeting all three plays. The public pages said "the top 20 on the
+  leaderboard" and a fact tile said "Top 10 Players"; both are gone, and a test refuses any
+  rank-cut phrasing. The pages deliberately do not quote the threshold figures — those are
+  per-season and published on the season page, and a number written into a rules page goes
+  stale silently.
+- **`Paginator::defaultSimpleView` is deliberately NOT set.** The design-system pagination
+  view windows page numbers, so it calls `total()` and `lastPage()`, which a simple
+  paginator does not have. Pointing it there made the first ever `simplePaginate()` call a
+  fatal error. Simple pagination falls back to Laravel's stock view: unstyled, but working.
 
 ## Four defects found in the plan itself during Phase 0
 
