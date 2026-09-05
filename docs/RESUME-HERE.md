@@ -37,8 +37,8 @@ send.
 1. `APP_URL` on the production host (above). Owner's, at deploy time.
 2. `docs/` holds six audit documents from finished phases. Their open-items
    sections are largely resolved; treat this file as the index, not them.
-3. The accent gradient's hue drift — analysed in full at the end of this file,
-   unblocked, never actioned.
+3. `.superpowers/sdd/` can be deleted whenever convenient — see the end of this
+   file.
 
 Nothing else is known-broken. There are no TODO, FIXME or HACK markers anywhere
 in `app/`, `routes/` or `resources/`.
@@ -188,42 +188,37 @@ hand on 2026-09-01**: focus lands inside the dialog, Tab cycles within it, Escap
 it, and the page behind does not scroll, on both the plain open and the wrong-password
 path that renders the modal already open.
 
+## The accent gradient's hue drift — RESOLVED, verified 2026-09-05
+
+This was the last substantive item carried forward from the design-system work.
+It is done, and the section is kept only so the finding is not rediscovered as
+if new.
+
+The fault was that `--gradient-accent` kept the original's coral-to-amber
+structure: stop A `#8A2B1E` at hue 7deg, stop B `#A2570C` at **hue 30deg —
+amber, not red**, on the largest accent surface on the site. Two ways forward
+were costed: keep the amber ramp for its 25deg of hue travel, or make it a red
+ramp at the logo's hue and let lightness carry the gradient.
+
+**The red ramp was taken.** Measured on 2026-09-05:
+
+| | value | hue | vs white |
+|---|---|---|---|
+| stop A | `#B02718` | 5.9deg | 6.67:1 |
+| stop B | `#6B140C` | 5.1deg | 12.14:1 |
+| between the stops | | 0.9deg travel | 1.82:1 |
+
+That clears every bar the analysis set: both stops above 4.5:1 on white, and
+1.82:1 between them against a 1.5:1 floor. The logo mark is hue 4.6deg, so the
+panel is now within about a degree of the brand colour rather than 25deg off it.
+
+**The `--c-accent` family has since been retired entirely** — the tokens file
+records why: the primary is the brand red, so there is no second brand hue for an
+accent to carry, and keeping one would mean two answers to one question. What the
+retired `--c-accent-strong` existed for is now solved once, for the primary.
+
 ## Open question for the owner
 
-**`.superpowers/sdd/` may be deleted.** It holds the 539-line decision ledger and 17
-   agent reports, all gitignored. Everything with forward value has been copied into this
-file. Delete it whenever convenient.
-
-## The accent gradient's hue drift — now unblocked
-
-The owner deferred this until Phase 5 was done, because changing it mid-conversion would
-have left unconverted admin views on the old colour and made the app visibly two-toned.
-**Phase 5 is done, so this is now a single-file change plus a rebuild whenever wanted.**
-
-The facts, so this does not have to be re-derived:
-
-- The accent **already matches the logo exactly**. `public/images/hero_logo.png`'s
-  dominant colour is `#EF4537` (22.7% of the mark; 13.9% of `header_logo.png`), and
-  `--c-accent` is `#EF4537`. It was sampled, not guessed.
-- Five of the six accent values sit at **hue 5deg, identical to the mark** --
-  `--c-accent`, `--c-accent-strong`, `--c-accent-hover`, `--dark-accent-text` exactly,
-  and `--c-accent-text` within 2deg. They differ only in lightness, for contrast.
-- **One value drifted, and it was introduced during Phase 2 Task 5.** Deepening
-  `--gradient-accent` for readability kept the original's coral-to-amber structure:
-  stop A `#8A2B1E` is hue 7deg (fine), stop B `#A2570C` is **hue 30deg -- amber, not
-  red**. That is why the accent panel reads brown rather than as the brand colour, and
-  it is the largest accent surface on the site.
-
-Two ways to resolve, both costed:
-
-1. **Keep the amber ramp.** 25deg of hue travel is what makes it read as a gradient
-   rather than a flat fill.
-2. **Make it a red ramp**, both stops at hue 5deg, so the panel is unmistakably the
-   logo colour. A lightness gradient rather than a hue one -- which does work: the
-   primary panel's dark ramp is cyan into pale cyan at 0deg apart and reads fine.
-   Needs a pair clearing white at 4.5:1 on both stops AND 1.5:1 between them.
-
-**Cost of any accent change: six values in `1-base/_tokens.css`, consumed by 9 rules.
-No accent hex is hardcoded anywhere else in `resources/`.** The work is not the
-substitution, it is re-deriving the contrast family -- three separate AA failures were
-found around the accent during Phases 1-2, which is why there are six values and not one.
+**`.superpowers/sdd/` may be deleted.** It holds the 539-line decision ledger and
+17 agent reports, all gitignored. Everything with forward value has been copied
+into this file. Delete it whenever convenient.
