@@ -110,11 +110,47 @@
  * shortened them. Capping the measure would put the whitespace back without
  * buying a single shorter line for most of the document. */
 .p-rules-doc {
-    margin-block-end: var(--space-10);
+    /* Air on both sides, not just below.
+     *
+     * With a margin only underneath, a rule set that FOLLOWS something else --
+     * the championship rules under the season finale panel -- got whatever the
+     * page stack gives any two siblings, and ran up against it. Adjacent
+     * margins collapse to the larger of the two, so this does not double the
+     * gap between two rule sets; it only stops one being tight against
+     * whatever precedes it. */
+    margin-block: var(--space-10);
+}
+
+/* Inset to match the panels around them.
+ *
+ * A .p-panel carries --space-6 of its own padding, so on the regulations page
+ * the finale panel's text sat that much further in than the rules above and
+ * below it, and the three blocks read as three different left edges. The same
+ * inset here lines them up.
+ *
+ * Above 48rem only: on a phone the container's gutter is already the whole
+ * margin there is, and taking another 2rem off each side buys alignment with
+ * a panel nobody is comparing it to at that width. */
+@media (min-width: 48rem) {
+    .p-rules-doc {
+        padding-inline: var(--space-6);
+    }
 }
 
 /* Room under the heading before the first rule, and more of it than the rules
    give each other, so it reads as their heading rather than as rule zero. */
 .p-rules-doc .p-section-head {
     margin-block-end: var(--space-6);
+}
+
+/* A sentence introducing a rule set rather than belonging to it -- the
+   championship rules open with one. Set apart from the clauses below so it is
+   not mistaken for an unnumbered first rule. */
+/* No measure, for the same reason the clauses below have none: capped at 72ch
+   it wrapped two words from the end while the rules beside it ran the full
+   width, which reads as the lead having come loose from its own section. */
+.p-rules-doc__lead {
+    margin-block: 0 var(--space-5);
+    line-height: var(--leading-relaxed);
+    color: var(--c-text-muted);
 }

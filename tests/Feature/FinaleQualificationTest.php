@@ -475,21 +475,30 @@ class FinaleQualificationTest extends TestCase
         // The numbers differ per season and the season page publishes them. A
         // figure written into a rules page is a figure that goes stale without
         // anyone noticing, which is the fault this whole change is about.
+        //
+        // The threshold is a deliberately odd number: searching for a round one
+        // like 5000 finds the championship blind schedule, which legitimately
+        // reads "5000/10000" and has nothing to do with qualification.
         $season = PokerSeason::create([
             'name' => 'Season 6',
             'start_date' => now()->subMonth(),
             'end_date' => now()->addMonth(),
             'is_current' => true,
-            'finale_points_required' => 5000,
+            'finale_points_required' => 5137,
             'finale_wins_required' => 1,
-            'finale_venue_points_required' => 500,
+            'finale_venue_points_required' => 463,
         ]);
 
         foreach ([route('rules.tournament'), route('about.index')] as $url) {
             $html = $this->get($url)->assertOk()->getContent();
 
-            $this->assertStringNotContainsString('5,000', $html, "{$url} quotes a season's points target.");
-            $this->assertStringNotContainsString('5000', $html, "{$url} quotes a season's points target.");
+            foreach (['5,137', '5137', '463'] as $figure) {
+                $this->assertStringNotContainsString(
+                    $figure,
+                    $html,
+                    "{$url} quotes one of the season's own thresholds."
+                );
+            }
         }
 
         $this->assertNotNull($season->id);

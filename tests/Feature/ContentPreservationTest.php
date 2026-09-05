@@ -344,6 +344,17 @@ class ContentPreservationTest extends TestCase
         $this->assertCount(21, config('holdem.rules'));
         $this->assertSame(63, $seen);
 
+        // The hierarchy is read before the rules now, and a shortcut skips
+        // past it -- a screen of cards otherwise sits between the top of the
+        // page and the document people came for.
+        $html = $response->getContent();
+        $this->assertLessThan(
+            strpos($html, 'id="holdem-rules"'),
+            strpos($html, 'id="hand-hierarchy"'),
+            'The rules should follow the hand hierarchy.'
+        );
+        $this->assertStringContainsString('href="#holdem-rules"', $html);
+
         // Pinned independently of the config, so this is a check on the words
         // and not only on the plumbing. Escaped rather than raw: Blade turns an
         // apostrophe into &#039;, so a raw search for one finds nothing on a
@@ -405,18 +416,47 @@ class ContentPreservationTest extends TestCase
         $response->assertSee('including a ten-second countdown');
     }
 
+    /**
+     * The tournament and championship rules, every clause of them.
+     *
+     * The page used to carry paraphrases -- "Standard Play", "Blind Intervals"
+     * -- alongside a Point Multiplier fact that nothing in the league's rules
+     * supports. It carries the league's document now.
+     */
     public function test_regulations_page_preserves_every_rule(): void
     {
         $response = $this->get('/rules/regulations');
         $response->assertOk();
 
-        foreach ([
-            'Standard Play', 'Blind Intervals', 'Re-Entry Policy', 'The Clock',
-            'Tournament Schedule', 'Points Accumulation', 'Seasonal Standings', 'Qualification',
-            'Point Multiplier', 'The Trophy',
-        ] as $item) {
-            $response->assertSee($item);
+        $response->assertSee('Tournament Rules');
+        $response->assertSee('Championship Game Rules');
+        $response->assertSee(config('regulations.championship_lead'));
+
+        $seen = 0;
+
+        foreach (['regulations.tournament', 'regulations.championship'] as $set) {
+            foreach (config($set) as $clause) {
+                $response->assertSee($clause['text']);
+                $seen++;
+            }
         }
+
+        $this->assertSame(12, $seen);
+
+        // Pinned independently of the config, so this checks the words and not
+        // only the plumbing.
+        $response->assertSee('not exceeding seating for a maximum of 10 players');
+        $response->assertSee('The player in seat one will be the dealer to start the tournament.');
+        $response->assertSee('There will be two tournaments running at the same time.');
+
+        // The finale panel, which describes the same finale the app enforces.
+        $response->assertSee('Season Points, Wins and Venue Points');
+        $response->assertSee('Two Tournaments, Run Together');
+
+        // And no longer a scoring rule the league does not have and the app
+        // does not implement.
+        $response->assertDontSee('Point Multiplier');
+        $response->assertDontSee('Double Weighted');
     }
 
     /**

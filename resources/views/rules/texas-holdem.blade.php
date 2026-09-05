@@ -5,17 +5,14 @@
         {{ __('The definitive guide to the world\'s most popular poker variant. From the initial shuffle to the final showdown, these regulations govern every hand played in First to Act tournaments.') }}
     </x-p-hero>
 
-    {{-- The rules themselves, from config/holdem.php. Data rather than
-         markup: the page renders them, a test checks them, and neither one
-         restates the other. --}}
-    <section class="p-rules-doc">
-        <x-p-section-head :title="__('Texas Hold\'em Game Rules')"
-                          icon="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+    {{-- One entry, and it earns its place: the hand hierarchy is a screen of
+         cards, and without this the rules are a scroll away from the top of
+         the page. --}}
+    <nav class="p-subnav" aria-label="{{ __('On this page') }}">
+        <a class="p-subnav__link" href="#holdem-rules">{{ __('Texas Hold\'em Rules') }}</a>
+    </nav>
 
-        <x-p-rules :items="config('holdem.rules')" />
-    </section>
-
-    <section class="p-panel">
+    <section id="hand-hierarchy" class="p-anchor p-panel">
         <div class="p-panel__glow" aria-hidden="true"></div>
 
         {{-- Not the two-column split this used to be: a hand is five cards
@@ -40,6 +37,16 @@
                 <x-p-hand :name="__($hand['name'])" :cards="$hand['cards']" :index="$i + 1" />
             @endforeach
         </div>
+    </section>
+
+    {{-- The rules themselves, from config/holdem.php. Data rather than
+         markup: the page renders them, a test checks them, and neither one
+         restates the other. --}}
+    <section id="holdem-rules" class="p-anchor p-rules-doc">
+        <x-p-section-head :title="__('Texas Hold\'em Game Rules')"
+                          icon="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+
+        <x-p-rules :items="config('holdem.rules')" />
     </section>
 
     <footer class="p-page-foot">
