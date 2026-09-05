@@ -26,7 +26,31 @@ The build happens on the runner, not on the server. Shared hosting has no
 reliable Composer and not much memory to resolve dependencies with, so `vendor/`
 and `public/build` are compiled in Actions and shipped. **That is why the PHP
 version in the workflow has to match the server's** -- those files are compiled
-against it. The workflow uses 8.3; set the same in the DreamHost panel.
+against it.
+
+The version lives in one place, `PHP_VERSION` at the top of the workflow, and is
+set to **8.5** -- the server offers `/usr/local/php85` and local development runs
+8.5.4, so dev, CI and production are one interpreter rather than three.
+
+Three things have to agree, and this is the whole requirement:
+
+| Where | Value |
+|---|---|
+| `PHP_VERSION` in `.github/workflows/ci.yml` | `8.5` |
+| DreamHost panel → Websites → the domain → PHP version | 8.5 |
+| `DEPLOY_PHP` (or the workflow's default) | `/usr/local/php85/bin/php` |
+
+Before the first deploy, confirm DreamHost's 8.5 build has what the app needs.
+Laravel and its dependencies require these:
+
+```
+/usr/local/php85/bin/php -m | grep -ciE '^(ctype|dom|fileinfo|filter|hash|iconv|json|libxml|mbstring|openssl|pcre|session|tokenizer|xml|xmlwriter|phar)$'
+```
+
+That should print **16**. Add `pdo_mysql` to the list once the database is set
+up -- without it the site cannot connect at all. If anything is missing, drop to
+`/usr/local/php84` and change the three values above together; nothing in the
+app requires 8.5 specifically.
 
 ## 1. GitHub: the `production` environment
 
@@ -47,7 +71,7 @@ And optionally an environment **variable** (not a secret):
 
 | Variable | Default if unset |
 |---|---|
-| `DEPLOY_PHP` | `/usr/local/php83/bin/php` |
+| `DEPLOY_PHP` | `/usr/local/php85/bin/php` |
 
 Check the real path first -- `ssh you@host 'ls /usr/local/php*/bin/php'` -- because
 plain `php` on DreamHost's shell is often an older version than the one serving
@@ -72,7 +96,7 @@ chmod 600 ~/.ssh/authorized_keys
 
 **Enable shell access.** Panel → Manage Users → the user → "Shell user (SSH)".
 
-**Set PHP 8.3.** Panel → Websites → the domain → PHP version. It must match the
+**Set PHP 8.5.** Panel → Websites → the domain → PHP version. It must match the
 workflow, for the reason above.
 
 **Point the domain at `public/`.** Laravel serves from `public/`, and everything
@@ -95,7 +119,7 @@ ssh you@host
 mkdir -p ~/apps/ftap && cd ~/apps/ftap
 # after the first deploy has put the code here:
 cp .env.example .env
-/usr/local/php83/bin/php artisan key:generate
+/usr/local/php85/bin/php artisan key:generate
 nano .env
 ```
 
@@ -141,7 +165,7 @@ compatible, so the 235 accounts do not travel by copying anything.
 re-import:
 
 ```
-/usr/local/php83/bin/php artisan users:import users.csv \
+/usr/local/php85/bin/php artisan users:import users.csv \
     --approved --verified --admin=dumitru.campan@gmail.com
 ```
 

@@ -14,6 +14,23 @@ on:
 # decision handed to somebody else. Dependabot moves these deliberately;
 # see .github/dependabot.yml.
 
+# The PHP version, in one place.
+#
+# It has to match the DreamHost server's, because vendor/ is compiled on the
+# runner and shipped -- those files are built against this interpreter. Check
+# what the server actually has with:
+#
+#     ssh you@host 'ls -d /usr/local/php*'
+#
+# and set this to it. The app itself is not the constraint: composer.json allows
+# ^8.2 and nothing in composer.lock caps it.
+#
+# 8.5 because the server has /usr/local/php85 and local development runs 8.5.4,
+# so dev, CI and production are one interpreter rather than three. The pinned
+# setup-php lists 8.5 as stable on GitHub-hosted runners.
+env:
+  PHP_VERSION: '8.5'
+
 concurrency:
   # A second push to main cancels the first: the older run would deploy code
   # that has already been superseded.
@@ -53,9 +70,7 @@ jobs:
       - name: Set up PHP
         uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # 2.37.2
         with:
-          # Match the production host. A suite that passes on a different minor
-          # has not tested the deployment.
-          php-version: '8.3'
+          php-version: ${{ env.PHP_VERSION }}
           extensions: mbstring, pdo_sqlite, sqlite3, pdo_mysql, intl, zip, gd
           coverage: none
 
@@ -63,8 +78,8 @@ jobs:
         uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
         with:
           path: vendor
-          key: composer-${{ runner.os }}-php8.3-${{ hashFiles('composer.lock') }}
-          restore-keys: composer-${{ runner.os }}-php8.3-
+          key: composer-${{ runner.os }}-php${{ env.PHP_VERSION }}-${{ hashFiles('composer.lock') }}
+          restore-keys: composer-${{ runner.os }}-php${{ env.PHP_VERSION }}-
 
       - run: composer install --no-interaction --prefer-dist --no-progress
 
@@ -116,7 +131,7 @@ jobs:
 
       - uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # 2.37.2
         with:
-          php-version: '8.3'
+          php-version: ${{ env.PHP_VERSION }}
           extensions: mbstring, pdo_mysql, intl, zip, gd
           coverage: none
 
@@ -156,7 +171,7 @@ jobs:
         env:
           SSH: ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}
           PATH_ON_SERVER: ${{ secrets.DEPLOY_PATH }}
-          PHP: ${{ vars.DEPLOY_PHP || '/usr/local/php83/bin/php' }}
+          PHP: ${{ vars.DEPLOY_PHP || '/usr/local/php85/bin/php' }}
         run: |
           ssh -i ~/.ssh/id_deploy "$SSH" \
             "cd '$PATH_ON_SERVER' && $PHP artisan down --retry=30 || true"
@@ -191,7 +206,7 @@ jobs:
         env:
           SSH: ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}
           PATH_ON_SERVER: ${{ secrets.DEPLOY_PATH }}
-          PHP: ${{ vars.DEPLOY_PHP || '/usr/local/php83/bin/php' }}
+          PHP: ${{ vars.DEPLOY_PHP || '/usr/local/php85/bin/php' }}
         run: |
           ssh -i ~/.ssh/id_deploy "$SSH" bash -se <<EOF
             set -euo pipefail
@@ -223,7 +238,7 @@ jobs:
         env:
           SSH: ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}
           PATH_ON_SERVER: ${{ secrets.DEPLOY_PATH }}
-          PHP: ${{ vars.DEPLOY_PHP || '/usr/local/php83/bin/php' }}
+          PHP: ${{ vars.DEPLOY_PHP || '/usr/local/php85/bin/php' }}
         run: |
           ssh -i ~/.ssh/id_deploy "$SSH" \
             "cd '$PATH_ON_SERVER' && $PHP artisan up"
