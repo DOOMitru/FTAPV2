@@ -440,6 +440,13 @@
     text-transform: uppercase;
 }
 
+/* A panel's text can be more than one paragraph. Spaced like the sponsorship
+   notes, which solve the same problem: sentences that belong together but not
+   on the same line. A no-op on the panels holding a single <p>. */
+.p-panel__text > * + * {
+    margin-block-start: var(--space-3);
+}
+
 .p-panel__text {
     margin-block: var(--space-4) var(--space-6);
     font-size: var(--step--1);
@@ -828,6 +835,21 @@
     margin: 0;
     padding: 0;
     list-style: none;
+}
+
+/* Room under the heading, and MORE room than the benefits give each other.
+ *
+ * The items sit --space-4 apart, so a heading any closer reads as the first
+ * item rather than as their heading -- which is what it did: 15px from the
+ * title to the first benefit against 28px between benefits.
+ *
+ * Stated here rather than by putting .l-stack on the wrapper, which was tried
+ * and did nothing: .l-stack > * + * and .p-benefits are both single-class
+ * selectors, and this file loads after 2-layout, so the list's own margin reset
+ * wins on source order. The same collision cost this project an evening once
+ * already with .rows. */
+.p-section-head__title + .p-benefits {
+    margin-block-start: var(--space-5);
 }
 
 .p-benefit {

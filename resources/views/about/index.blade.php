@@ -34,7 +34,16 @@
 
                     <h3 class="p-panel__eyebrow">{{ __('Where does the money go?') }}</h3>
 
-                    <p class="p-panel__text">Every dollar of that fee goes into the prize pool for the Season Finale. That is what keeps the games free to play.</p>
+                    {{-- Two paragraphs rather than one, for the same reason the
+                         sponsorship notes below are two: they are separate
+                         sentences doing different jobs -- where the money goes,
+                         then what that buys -- and run together they read as one
+                         long line with a full stop in the middle of it. --}}
+                    <div class="p-panel__text">
+                        <p>Every dollar of that fee goes into the prize pool for the Season Finale.</p>
+
+                        <p>That is what keeps the games free to play.</p>
+                    </div>
                 </section>
 
                 <div>
@@ -53,7 +62,7 @@
 
                         <li class="p-benefit">
                             <svg class="p-benefit__tick" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 13l4 4L19 7"/></svg>
-                            <span>A mention from the front of the room at every league night.</span>
+                            <span>Mentions from the front of the room during league nights.</span>
                         </li>
                     </ul>
                 </div>
@@ -95,7 +104,11 @@
                                   placeholder="{{ __('How can we help highlight your brand?') }}" required></textarea>
                     </x-field>
 
-                    <x-btn variant="primary" class="btn--block">{{ __('Send Inquiry') }}</x-btn>
+                    {{-- The width is the row's business, not the button's --
+                         same as the contact form. --}}
+                    <div class="p-form-actions">
+                        <x-btn variant="primary">{{ __('Send Inquiry') }}</x-btn>
+                    </div>
                 </form>
             </x-card>
         </div>
