@@ -59,7 +59,7 @@
 
         <x-card :title="__('Account Details')">
             <div class="field__media">
-                <x-avatar :user="$user" size="lg" decorative />
+                <x-monogram :user="$user" size="lg" decorative />
 
                 <div>
                     <div class="entry__title">{{ $user->display_name }}</div>

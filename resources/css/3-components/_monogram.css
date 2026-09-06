@@ -1,0 +1,39 @@
+/* A player's initials in a circle -- the only way a person is pictured in this
+   app. It was .avatar, and it had a photo variant; nobody ever uploaded a
+   photo, so the feature and the name went together. */
+.monogram {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.5rem;
+    height: 2.5rem;
+    border: var(--border-width) solid var(--c-border);
+    border-radius: var(--radius-pill);
+    background-color: var(--c-surface-raised);
+    font-family: var(--font-mono);
+    font-size: var(--step--1);
+    font-weight: 600;
+    line-height: 1;
+    color: var(--c-text-muted);
+    /* Two letters in a 2.5rem circle have no room to spare, and a wide pair
+       must not push the circle out of round. */
+    letter-spacing: 0;
+    text-transform: uppercase;
+    user-select: none;
+    /* The circle is fixed; a flex row must not squeeze it to fit a long name. */
+    flex-shrink: 0;
+}
+
+/* Bar-sized: fits inside the top bar's 2.25rem control height with room for
+   .nav-link's block padding, so the user trigger cannot outgrow the bar. */
+.monogram--sm {
+    width: 1.5rem;
+    height: 1.5rem;
+    font-size: var(--step--2);
+}
+
+.monogram--lg {
+    width: 4rem;
+    height: 4rem;
+    font-size: var(--step-2);
+}

@@ -30,6 +30,7 @@
             <x-card :title="__('Awaiting approval')" flush>
                 <x-table stacked>
                     <x-slot name="head">
+                        <th scope="col"><span class="u-visually-hidden">{{ __('Initials') }}</span></th>
                         <th scope="col">{{ __('Name') }}</th>
                         <th scope="col">{{ __('Email') }}</th>
                         <th scope="col">{{ __('Registered') }}</th>
@@ -38,6 +39,12 @@
 
                     @foreach ($pending as $candidate)
                         <tr>
+                            {{-- The table of approved users below this one has
+                                 had a photo column all along. Same page, same
+                                 entity, and this is the table where knowing who
+                                 you are admitting matters most. --}}
+                            <td class="table__thumb"><x-monogram :user="$candidate" size="sm" decorative /></td>
+
                             <td data-label="{{ __('Name') }}">{{ $candidate->first_name }} {{ $candidate->last_name }}</td>
 
                             <td data-label="{{ __('Email') }}">{{ $candidate->email }}</td>
@@ -114,7 +121,7 @@
         <x-card flush>
             <x-table stacked>
                 <x-slot name="head">
-                    <th scope="col">{{ __('Photo') }}</th>
+                    <th scope="col"><span class="u-visually-hidden">{{ __('Initials') }}</span></th>
                     <th scope="col">{{ __('Name') }}</th>
                     <th scope="col">{{ __('Nickname') }}</th>
                     <th scope="col">{{ __('Email') }}</th>
@@ -128,7 +135,7 @@
                      table says less than one that says it is empty. --}}
                 @forelse ($users as $user)
                     <tr>
-                        <td class="table__thumb"><x-avatar :user="$user" size="sm" decorative /></td>
+                        <td class="table__thumb"><x-monogram :user="$user" size="sm" decorative /></td>
 
                         <td data-label="{{ __('Name') }}">{{ $user->first_name }} {{ $user->last_name }}</td>
 

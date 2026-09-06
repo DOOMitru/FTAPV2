@@ -70,7 +70,14 @@
                         <ol class="podium">
                             @foreach ($podium as $winner)
                                 <li class="podium__place podium__place--{{ $winner->place }}">
-                                    <span class="podium__seat">{{ strtoupper(substr($winner->player_name, 0, 1)) }}</span>
+                                    {{-- Keeps .podium__seat: on the podium that
+                                         class is the MEDAL, not just a circle.
+                                         A photo sits inside a medal-coloured
+                                         ring; with no photo the seat is the
+                                         gold/silver/bronze disc it has always
+                                         been. --}}
+                                    <x-monogram class="podium__seat" :user="$winner->user"
+                                              :name="$winner->player_name" decorative />
                                     <span class="podium__name">{{ $winner->player_name }}</span>
                                     <span class="podium__step">{{ $winner->place }}</span>
                                 </li>
@@ -122,7 +129,7 @@
                         @php $result = $resultsByUser[$registrant->user_id] ?? null; @endphp
 
                         <div class="entry">
-                            <span class="podium__seat">{{ strtoupper(substr($registrant->player_name, 0, 1)) }}</span>
+                            <x-monogram :user="$registrant->user" :name="$registrant->player_name" decorative />
 
                             <div class="entry__body">
                                 <div class="entry__title">{{ $registrant->player_name }}</div>

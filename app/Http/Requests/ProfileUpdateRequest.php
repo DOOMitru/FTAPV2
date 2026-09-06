@@ -28,7 +28,6 @@ class ProfileUpdateRequest extends FormRequest
             ],
             'nickname' => ['nullable', 'string', 'max:255'],
             'is_admin' => ['sometimes', 'boolean'],
-            'profile_image' => ['nullable', 'image', 'max:2048'],
         ];
     }
 }

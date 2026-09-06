@@ -48,7 +48,6 @@ class User extends Authenticatable implements MustVerifyEmail
         'password',
         'nickname',
         'is_admin',
-        'profile_image',
     ];
 
     /**
@@ -121,22 +120,6 @@ class User extends Authenticatable implements MustVerifyEmail
                 }
 
                 return $this->first_name;
-            }
-        );
-    }
-
-    /**
-     * Get the user's profile image URL.
-     */
-    protected function profileImageUrl(): Attribute
-    {
-        return Attribute::make(
-            get: function () {
-                if ($this->profile_image) {
-                    return asset('storage/' . $this->profile_image);
-                }
-
-                return asset('images/default_profile.png');
             }
         );
     }

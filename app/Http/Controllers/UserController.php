@@ -270,19 +270,7 @@ class UserController extends Controller
             'nickname' => 'nullable|string|max:255',
             'email' => 'required|string|email|max:255|unique:users,email,' . $user->id,
             'is_admin' => 'boolean',
-            'profile_image' => 'nullable|image|max:2048',
         ]);
-
-        if ($request->hasFile('profile_image')) {
-            $path = $request->file('profile_image')->store('profile-images', 'public');
-            
-            // Delete old image
-            if ($user->profile_image) {
-                \Illuminate\Support\Facades\Storage::disk('public')->delete($user->profile_image);
-            }
-            
-            $validated['profile_image'] = $path;
-        }
 
         $user->update($validated);
 

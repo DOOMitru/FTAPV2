@@ -181,6 +181,7 @@
 .podium__place--2 .podium__seat { background-color: var(--c-silver); }
 .podium__place--3 .podium__seat { background-color: var(--c-bronze); }
 
+
 /* The riser. Height carries the ranking; the numeral repeats it for anyone who
    cannot see the heights. */
 .podium__step {
