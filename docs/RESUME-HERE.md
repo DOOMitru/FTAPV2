@@ -5,7 +5,7 @@ poker nights in Regina.
 
 ## Where things stand
 
-Suite: **493 passed.** Run `php artisan test`.
+Suite: **515 passed.** Run `php artisan test`.
 
 **The design-system work is finished and is no longer what this project is
 about.** Phases 0-5 moved all 86 views off Tailwind onto hand-built CSS
@@ -296,6 +296,46 @@ are recorded so they are not rediscovered as if new:
   view windows page numbers, so it calls `total()` and `lastPage()`, which a simple
   paginator does not have. Pointing it there made the first ever `simplePaginate()` call a
   fatal error. Simple pagination falls back to Laravel's stock view: unstyled, but working.
+
+### Avatars fall back to initials, not to a stock face (2026-09-06)
+
+- **`<x-avatar>` draws a monogram when there is no photo.** The fallback was
+  `images/default_profile.png`: one generic 1024x1024 face, **1.9MB**, drawn at
+  24px, identical for everybody -- and that was not a rare state but the only
+  state, because nobody has uploaded a photo and the 205 accounts came from a
+  CSV import that sets none. An identical face beside every name is worse than
+  no face, because it occupies the space where a difference belongs.
+- **Both initials, everywhere** (the owner asked for this explicitly): first
+  letter of the first word and of the last, so "Jean-Luc Picard" is JP and a
+  player nicknamed "Ace" is still WR. Taken from `first_name.' '.last_name`, NOT
+  from `display_name` -- that accessor prefers a nickname and otherwise falls
+  back to the first name alone, so initials from it would drop every surname.
+  `mb_*` throughout; ÉZ and ДК both render.
+- **`user` and `name` are both optional.** `user_id` is nullable with
+  `nullOnDelete` on results, registrants and venue points, so a deleted player
+  leaves a `player_name` string and no account. Handling that once in the
+  component is why the call sites do not each have to.
+- **On the podium, `.podium__seat` is the MEDAL, not a circle** -- gold, silver
+  and bronze grounds with contrast ratios recorded in `_rows.css`. A photo would
+  sit on top of that background and the medal would simply vanish, so
+  `.podium__place--N img.podium__seat` moves the medal to a 3px ring. Selected on
+  `img` so the monogram state is untouched: with no photo the disc IS the medal.
+  Specificity 0,2,1 against the 0,2,0 that sets `border-color: transparent`,
+  chosen deliberately rather than betting on file order -- the avatar carries
+  `.avatar` from a different stylesheet, and this project has had three defects
+  from two single-class selectors colliding.
+- **The Registered Players row dropped `.podium__seat`** and just uses `.avatar`.
+  It was borrowing a podium class for "a 2.5rem circle" in a list that is not a
+  podium, which is how a podium rule ends up reaching a row that has no medal.
+- **Tier 1 only.** The Awaiting-approval table on `users/index` now has the photo
+  column the approved-users table below it has always had. The remaining ten
+  sites from the survey (leaderboards, pickers, public Current Season Leaders)
+  are deliberately not done -- see the notes on that survey: several need their
+  controllers reshaped to carry a model instead of a name string, and the public
+  points-structure page raises a privacy question the owner has not answered.
+- **Still outstanding:** `public/images/default_profile.png` is now unreachable
+  from any view, but the file (1.9MB) and `User::profile_image_url`'s fallback
+  branch remain, along with `ProfilePictureTest` asserting them.
 
 ### The application timezone is America/Regina (2026-09-05)
 
