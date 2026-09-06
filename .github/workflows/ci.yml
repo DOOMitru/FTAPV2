@@ -176,9 +176,40 @@ jobs:
           mkdir -p ~/.ssh
           printf '%s\n' "$KEY" > ~/.ssh/id_deploy
           chmod 600 ~/.ssh/id_deploy
-          # Pin the host key rather than disabling checking, so a redirected
+
+          # ssh-keyscan is the first thing here that touches the network, and
+          # under `bash -e` its failure was reported against the script's first
+          # line -- a bare `mkdir` exiting 1, which reads as nonsense. Say what
+          # actually went wrong instead.
+          #
+          # Pinning the host key rather than disabling checking, so a redirected
           # deploy fails instead of handing the release to whoever answers.
-          ssh-keyscan -H "$HOST" >> ~/.ssh/known_hosts 2>/dev/null
+          for attempt in 1 2 3; do
+            if ssh-keyscan -T 15 -H "$HOST" >> ~/.ssh/known_hosts 2>/dev/null; then
+              scanned=yes
+              break
+            fi
+            echo "Host key scan attempt $attempt failed; retrying in 10s."
+            sleep 10
+          done
+
+          if [ "${scanned:-}" != yes ]; then
+            echo "::error::Could not reach the deploy host on port 22 after three attempts. The server is unreachable from this runner -- check DEPLOY_HOST, and check whether the host is blocking the connection. DreamHost throttles or blocks IPs after repeated SSH attempts, and GitHub runners come from a different address each run."
+            exit 1
+          fi
+
+          # Prove the key is accepted before anything destructive runs, so an
+          # auth problem surfaces here rather than halfway through a release.
+          #
+          # IdentitiesOnly=yes on every call, above and below. Without it ssh
+          # offers each key it can find before the one named by -i, and the
+          # server counts every one as a failed login -- which is how you get
+          # "Too many authentication failures" and, on hosts that watch for it,
+          # a banned IP. One deploy should be one authentication attempt.
+          if ! ssh -o ConnectTimeout=20 -o IdentitiesOnly=yes -i ~/.ssh/id_deploy "${{ secrets.DEPLOY_USER }}@$HOST" 'echo connected'; then
+            echo "::error::Reached the host but could not authenticate. Check that DEPLOY_SSH_KEY holds the PRIVATE key in full, including its BEGIN and END lines, and that the matching .pub is in ~/.ssh/authorized_keys on the server."
+            exit 1
+          fi
 
       - name: Make sure the deploy directory exists
         # rsync creates only the LAST component of a destination path, so a
@@ -196,7 +227,7 @@ jobs:
             /*) ;;
             *) echo "DEPLOY_PATH must be an absolute path, not '$PATH_ON_SERVER'"; exit 1 ;;
           esac
-          ssh -i ~/.ssh/id_deploy "$SSH" "mkdir -p '$PATH_ON_SERVER'"
+          ssh -o ConnectTimeout=20 -o IdentitiesOnly=yes -i ~/.ssh/id_deploy "$SSH" "mkdir -p '$PATH_ON_SERVER'"
 
       - name: Put the site into maintenance mode
         env:
@@ -207,7 +238,7 @@ jobs:
           # Nothing to take down before the first release has landed. Testing
           # for artisan says that precisely, where "|| true" would also swallow
           # a genuine failure on every deploy after this one.
-          ssh -i ~/.ssh/id_deploy "$SSH" \
+          ssh -o ConnectTimeout=20 -o IdentitiesOnly=yes -i ~/.ssh/id_deploy "$SSH" \
             "[ -f '$PATH_ON_SERVER/artisan' ] || exit 0; cd '$PATH_ON_SERVER' && $PHP artisan down --retry=30"
 
       - name: Sync the release
@@ -233,7 +264,7 @@ jobs:
             --exclude='storage/' \
             --exclude='public/storage' \
             --exclude='*.sqlite' \
-            -e "ssh -i ~/.ssh/id_deploy" \
+            -e "ssh -o ConnectTimeout=20 -o IdentitiesOnly=yes -i ~/.ssh/id_deploy" \
             ./ "$SSH:$PATH_ON_SERVER/"
 
       - name: Migrate and warm the caches
@@ -242,7 +273,7 @@ jobs:
           PATH_ON_SERVER: ${{ secrets.DEPLOY_PATH }}
           PHP: ${{ vars.DEPLOY_PHP || '/usr/local/php85/bin/php' }}
         run: |
-          ssh -i ~/.ssh/id_deploy "$SSH" bash -se <<EOF
+          ssh -o ConnectTimeout=20 -o IdentitiesOnly=yes -i ~/.ssh/id_deploy "$SSH" bash -se <<EOF
             set -euo pipefail
             cd '$PATH_ON_SERVER'
 
@@ -286,5 +317,5 @@ jobs:
           # Same guard. This step is if: always(), so it also runs after a
           # deploy that failed before any code arrived -- and a site that was
           # never there does not need bringing back.
-          ssh -i ~/.ssh/id_deploy "$SSH" \
+          ssh -o ConnectTimeout=20 -o IdentitiesOnly=yes -i ~/.ssh/id_deploy "$SSH" \
             "[ -f '$PATH_ON_SERVER/artisan' ] || exit 0; cd '$PATH_ON_SERVER' && $PHP artisan up"
