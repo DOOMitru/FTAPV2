@@ -38,7 +38,6 @@ class HomePageTest extends TestCase
 
         return PokerTournament::create([
             'name' => 'Weekly Freezeout',
-            'scheduled_at' => now()->modify($startsIn),
             'start_time' => now()->modify($startsIn)->modify('+2 hours'),
             'venue_id' => $venue->id,
             'season_id' => $season->id,
@@ -164,7 +163,6 @@ class HomePageTest extends TestCase
     {
         $tournament = PokerTournament::create([
             'name' => 'Heat '.uniqid(),
-            'scheduled_at' => now()->subDays(5),
             'start_time' => now()->subDays(5),
             'venue_id' => Venue::create(['name' => 'Room '.uniqid(), 'address' => 'x'])->id,
             'season_id' => $season->id,

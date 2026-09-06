@@ -44,7 +44,6 @@ class DeleteConfirmationTest extends TestCase
 
         return PokerTournament::create([
             'name' => 'Wednesday Night Poker',
-            'scheduled_at' => now()->subHour(),
             'start_time' => now()->subHour(),
             'venue_id' => Venue::create(['name' => 'Diamond Club', 'address' => '1 Card Street'])->id,
             'season_id' => $season->id,

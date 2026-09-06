@@ -38,7 +38,6 @@ class PodiumTest extends TestCase
 
         return PokerTournament::create([
             'name' => 'Podium Cup',
-            'scheduled_at' => now()->subHour(),
             'start_time' => now()->subHour(),
             'venue_id' => Venue::create(['name' => 'Podium Hall', 'address' => '1 Medal Way'])->id,
             'season_id' => $season->id,

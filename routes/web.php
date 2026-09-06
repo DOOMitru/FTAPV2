@@ -27,6 +27,9 @@ Route::get('/', function () {
         ->when(auth()->check(), fn ($query) => $query->withExists([
             'registrants as viewer_registered' => fn ($r) => $r->where('user_id', auth()->id()),
         ]))
+        // The card asks hasRecordedResults() before offering to withdraw, and
+        // that falls back to a query per tournament without this.
+        ->withCount('results')
         ->where('start_time', '>=', now())
         ->orderBy('start_time', 'asc')
         ->first();
@@ -138,6 +141,9 @@ Route::get('/events', function () {
         ->when(auth()->check(), fn ($query) => $query->withExists([
             'registrants as viewer_registered' => fn ($r) => $r->where('user_id', auth()->id()),
         ]))
+        // Likewise for the withdrawal guard: one count per row, not a query
+        // per card.
+        ->withCount('results')
         ->where('start_time', '>=', now())
         ->orderBy('start_time', 'asc')
         ->paginate(2)

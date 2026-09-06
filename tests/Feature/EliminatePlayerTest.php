@@ -32,8 +32,8 @@ class EliminatePlayerTest extends TestCase
         return User::factory()->create(['is_admin' => true]);
     }
 
-    /** A tournament whose registration has closed, so play can be scored. */
-    private function tournament(string $closesIn = '-1 hour'): PokerTournament
+    /** A tournament, positioned in time by its start. */
+    private function tournament(string $startsIn = '-1 hour'): PokerTournament
     {
         $season = PokerSeason::create([
             'name' => 'Season 40',
@@ -44,8 +44,7 @@ class EliminatePlayerTest extends TestCase
 
         return PokerTournament::create([
             'name' => 'Knockout Cup',
-            'scheduled_at' => now()->modify($closesIn),
-            'start_time' => now()->modify($closesIn),
+            'start_time' => now()->modify($startsIn),
             'venue_id' => Venue::create(['name' => 'Knockout Hall', 'address' => '9 Rail Street'])->id,
             'season_id' => $season->id,
         ]);
@@ -133,16 +132,20 @@ class EliminatePlayerTest extends TestCase
         $this->assertSame(0, PokerTournamentResult::where('user_id', $players[0]->id)->value('points'));
     }
 
-    public function test_nobody_can_be_eliminated_while_registration_is_open(): void
+    public function test_a_player_can_be_eliminated_before_the_advertised_start(): void
     {
-        // A late entry would change how many places there are to hand out, and
-        // every place already awarded would be wrong.
-        $tournament = $this->tournament(closesIn: '+2 days');
+        // This used to be refused, on the reasoning that a late entry would
+        // change how many places there are to hand out. The shift hook already
+        // handles that -- it moves every recorded finish down when someone
+        // registers after the fact -- so the refusal was protecting against a
+        // problem that was solved elsewhere, at the cost of an admin being
+        // unable to score a game that started early.
+        $tournament = $this->tournament(startsIn: '+2 days');
         $players = $this->field($tournament, 3);
 
-        $this->eliminate($tournament, $players[0])->assertSessionHas('error');
+        $this->eliminate($tournament, $players[0])->assertSessionHas('status');
 
-        $this->assertSame(0, PokerTournamentResult::where('tournament_id', $tournament->id)->count());
+        $this->assertSame(3, PokerTournamentResult::where('user_id', $players[0]->id)->value('place'));
     }
 
     public function test_a_player_cannot_be_eliminated_twice(): void
@@ -201,12 +204,21 @@ class EliminatePlayerTest extends TestCase
             ->assertDontSee('>Eliminate<', false);
     }
 
-    public function test_the_button_is_absent_while_registration_is_open(): void
+    public function test_the_button_is_offered_before_the_advertised_start_too(): void
     {
-        $tournament = $this->tournament(closesIn: '+2 days');
+        // It is gated on being an admin and nothing else now. The pairing test
+        // above proves the route agrees, so the page cannot offer a click the
+        // controller refuses.
+        PointsStructure::create(['place' => 3, 'points' => 75]);
+
+        $tournament = $this->tournament(startsIn: '+2 days');
         $this->field($tournament, 3);
 
         $this->actingAs($this->admin())->get(route('tournaments.show', $tournament))->assertOk()
+            ->assertSee('>Eliminate<', false);
+
+        $this->actingAs(User::factory()->create(['is_admin' => false]))
+            ->get(route('tournaments.show', $tournament))->assertOk()
             ->assertDontSee('>Eliminate<', false);
     }
 
@@ -305,7 +317,6 @@ class EliminatePlayerTest extends TestCase
 
         $other = PokerTournament::create([
             'name' => 'Unrelated Cup',
-            'scheduled_at' => now()->subHour(),
             'start_time' => now()->subHour(),
             'venue_id' => $scored->venue_id,
             'season_id' => $scored->season_id,

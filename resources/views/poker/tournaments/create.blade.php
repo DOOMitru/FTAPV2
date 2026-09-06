@@ -14,14 +14,8 @@
                     <textarea class="field__control" name="description" id="description" rows="3">{{ old('description') }}</textarea>
                 </x-field>
 
-                <div class="l-grid">
-                    <x-field name="scheduled_at" type="datetime-local"
-                             :label="__('Registration Closes (Scheduled At)')"
-                             :value="old('scheduled_at')" required />
-
-                    <x-field name="start_time" type="datetime-local" :label="__('Start Date & Time')"
-                             :value="old('start_time')" required />
-                </div>
+                <x-field name="start_time" type="datetime-local" :label="__('Start Date & Time')"
+                         :value="old('start_time')" required />
 
                 <div class="l-grid">
                 {{-- Read-only on create: the controller assigns the current

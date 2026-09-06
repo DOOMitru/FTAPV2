@@ -32,13 +32,13 @@ class DashboardTournamentActionsTest extends TestCase
     }
 
     /**
-     * Registration closes at $closesIn; play starts later.
+     * Play starts at $startsIn.
      *
      * The two are separate dates and this test file turns on the difference:
      * the dashboard lists on start_time, so a tournament whose registration has
      * closed is still ON the page right up until it is played.
      */
-    private function tournament(string $closesIn = '+3 days', string $startsIn = '+4 days'): PokerTournament
+    private function tournament(string $startsIn = '+4 days'): PokerTournament
     {
         $season = PokerSeason::create([
             'name' => 'Season 40',
@@ -49,7 +49,6 @@ class DashboardTournamentActionsTest extends TestCase
 
         return PokerTournament::create([
             'name' => 'Wednesday Night Poker',
-            'scheduled_at' => now()->modify($closesIn),
             'start_time' => now()->modify($startsIn),
             'venue_id' => Venue::create(['name' => 'Diamond Club', 'address' => '1 Card Street'])->id,
             'season_id' => $season->id,
@@ -105,14 +104,22 @@ class DashboardTournamentActionsTest extends TestCase
         $this->assertSame(0, $tournament->registrants()->count());
     }
 
-    public function test_the_way_out_closes_when_registration_does(): void
+    public function test_the_way_out_closes_when_a_finish_is_recorded(): void
     {
-        // The controller refuses a withdrawal once registration has closed, so
-        // past that point the badge stands alone rather than offering a button
-        // that would be turned away.
-        $tournament = $this->tournament(closesIn: '-1 hour', startsIn: '+2 hours');
+        // The controller refuses a withdrawal then, so past that point the badge
+        // stands alone rather than offering a button that would be turned away.
+        // Play has not started -- the clock is not what shuts this.
+        $tournament = $this->tournament(startsIn: '+2 hours');
         $player = $this->player();
         $this->register($tournament, $player);
+
+        \App\Models\PokerTournamentResult::create([
+            'tournament_id' => $tournament->id,
+            'user_id' => $player->id,
+            'player_name' => $player->first_name.' '.$player->last_name,
+            'place' => 1,
+            'points' => 0,
+        ]);
 
         $this->actingAs($player)->get(route('dashboard'))->assertOk()
             ->assertSee('Registered')

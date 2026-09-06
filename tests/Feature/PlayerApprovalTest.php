@@ -80,7 +80,6 @@ class PlayerApprovalTest extends TestCase
 
         return PokerTournament::create([
             'name' => 'Weekly Freezeout',
-            'scheduled_at' => now()->addDay(),
             'start_time' => now()->addDay()->addHours(2),
             'venue_id' => $venue->id,
             'season_id' => $season->id,

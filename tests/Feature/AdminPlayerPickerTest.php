@@ -40,7 +40,6 @@ class AdminPlayerPickerTest extends TestCase
 
         return PokerTournament::create([
             'name' => 'Picker Invitational',
-            'scheduled_at' => now()->addDays(3),
             'start_time' => now()->addDays(4),
             'venue_id' => Venue::create(['name' => 'Picker Hall', 'address' => '3 Pick Street'])->id,
             'season_id' => $season->id,

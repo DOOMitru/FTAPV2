@@ -58,7 +58,6 @@ class PointsStructurePageTest extends TestCase
 
         return PokerTournament::create([
             'name' => 'Wednesday Night Poker',
-            'scheduled_at' => now()->subWeek(),
             'start_time' => now()->subWeek(),
             'venue_id' => Venue::create(['name' => 'Diamond Club', 'address' => '1 Card Street'])->id,
             'season_id' => $season->id,
@@ -146,7 +145,6 @@ class PointsStructurePageTest extends TestCase
 
         $elsewhere = PokerTournament::create([
             'name' => 'Last Year',
-            'scheduled_at' => now()->subYear(),
             'start_time' => now()->subYear(),
             'venue_id' => $venue->id,
             'season_id' => $old->id,

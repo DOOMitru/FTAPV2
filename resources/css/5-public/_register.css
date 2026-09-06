@@ -1036,8 +1036,13 @@
     /* Taller than its contents. The map's own 18rem was setting the height, so
        side by side the card was a letterbox and the body's material -- badges,
        name, date, buttons -- sat squeezed in the middle of it. A floor only: a
-       details page passing a description and links grows past it. */
-    min-height: 24rem;
+       details page passing a description and links grows past it.
+
+       Refitted from 24rem when the registration-deadline row left the body.
+       .p-event__actions has margin-block-start:auto, so a floor taller than the
+       content does not centre anything -- it opens a gap above the buttons, and
+       at 24rem that gap was most of an inch of nothing. */
+    min-height: 20rem;
     overflow: hidden;
 }
 
@@ -1117,12 +1122,6 @@
     font-weight: 400;
     line-height: var(--leading-tight);
     text-transform: uppercase;
-}
-
-.p-event__facts {
-    display: grid;
-    gap: var(--space-4);
-    grid-template-columns: repeat(auto-fit, minmax(min(10rem, 100%), 1fr));
 }
 
 

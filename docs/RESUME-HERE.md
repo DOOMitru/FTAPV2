@@ -5,7 +5,7 @@ poker nights in Regina.
 
 ## Where things stand
 
-Suite: **473 passed.** Run `php artisan test`.
+Suite: **493 passed.** Run `php artisan test`.
 
 **The design-system work is finished and is no longer what this project is
 about.** Phases 0-5 moved all 86 views off Tailwind onto hand-built CSS
@@ -296,6 +296,98 @@ are recorded so they are not rediscovered as if new:
   view windows page numbers, so it calls `total()` and `lastPage()`, which a simple
   paginator does not have. Pointing it there made the first ever `simplePaginate()` call a
   fatal error. Simple pagination falls back to Laravel's stock view: unstyled, but working.
+
+### The application timezone is America/Regina (2026-09-05)
+
+- **Every date this app holds is a Regina wall clock somebody typed into a
+  form.** A `datetime-local` input posts naive text with no zone, so under the
+  old `'timezone' => 'UTC'` a tournament entered as 7pm was stored as 7pm UTC.
+  It read back as 7pm on every page -- so nothing looked wrong -- while being a
+  real instant six hours before the one intended. `now()` is a genuine moment,
+  so every comparison was six hours out: a tournament dropped off "upcoming"
+  everywhere at 1pm, and the details page showed Final Standings before anyone
+  sat down. `today()` rolled over at 6pm Regina, for the whole of every poker
+  evening.
+- **Saskatchewan does not observe daylight saving.** America/Regina is CST at a
+  fixed -06:00 all year, verified in both halves of the year by
+  `LeagueTimezoneTest`. The usual argument for storing UTC is ambiguous and
+  skipped local times at the DST changeover, and this zone has neither -- which
+  is why a wall clock in the database is safe here and would not be elsewhere.
+- **Not read from the environment**, deliberately. An `APP_TIMEZONE` unset on
+  one server reintroduces the bug silently, and a league in Regina is not
+  reconfigured per environment.
+- **`PokerSeason::current()` was immune** because it is an `is_current` flag
+  rather than a date range. That decision paid off here.
+- **`Carbon::setTestNow()` with a ZONED instance rewrites the default parse
+  timezone**, and Eloquent's datetime cast goes through `Carbon::parse()`. A
+  test that freezes the clock with `Carbon::parse($t, 'America/Regina')` makes
+  the models read their dates back in Regina whatever `config/app.php` says --
+  so the harness silently repairs the fault it is testing for. Four of these
+  tests passed under UTC until that was found, by reverting the config and
+  asking which ones still passed. `LeagueTimezoneTest::reginaTime()` now freezes
+  a bare instant in `date_default_timezone_get()`; note that Carbon 3's
+  `createFromTimestamp()` defaults to UTC, so the zone has to be passed.
+
+### The registration deadline is gone (2026-09-05)
+
+- **A tournament has one date now: `start_time`.** `scheduled_at` held a
+  registration cutoff an hour or so before play, and it decided three separate
+  things -- whether a player could enter, whether they could withdraw, and
+  whether an admin could start recording finishes. The league does not work that
+  way: people turn up, and someone who cannot make it says so on the night. The
+  column is **dropped**, not left unused -- a column named `scheduled_at` that
+  nothing reads is worse than most orphans, because the name implies it still
+  governs something.
+- **Entering and withdrawing both hang on results, and nothing else.** That was
+  the rule doing the real work all along: a place is a position in a field, so a
+  recorded finish describes a field of a particular size, and that is what must
+  not change underneath it. A clock never had anything to do with it.
+- **Entering is deliberately still allowed after results exist; leaving is not.**
+  Not an oversight. Joining a field of ten makes it a field of eleven,
+  unambiguously, and `PokerTournamentRegistrant`'s shift hook moves every
+  recorded finish down to match. Leaving one leaves the question of whether the
+  player played at all, which nothing can answer.
+- **Eliminate is gated on being an admin, and nothing else** (the owner's call).
+  It required registration closed, to stop a late entry changing how many places
+  there are -- but the shift hook already handles exactly that, so the guard was
+  protecting against a problem solved elsewhere at the cost of an admin being
+  unable to score a game that started early.
+- **`is_late_entry` is measured against `start_time`** now that there is no
+  deadline to be late for. Its test was always *named* after start_time; the
+  arithmetic said otherwise.
+- **`.p-event` lost a row, so its `min-height` was refitted from 24rem to
+  20rem.** `.p-event__actions` has `margin-block-start: auto`, so a floor taller
+  than the content does not centre anything -- it opens a gap above the buttons,
+  and at 24rem that gap was most of an inch of nothing. Only a screenshot showed
+  it; all 486 tests passed with the hole in the card.
+- Two labels outlived the thing they described and had to be hunted down: the
+  dashboard row said `Closes 05:11 AM` over the time play *starts*, and two
+  confirmations offered to let you "register again while registration is open".
+
+### Added with the admin registrant control
+
+- **A tournament with recorded results can still have registration open.** This
+  was assumed impossible -- eliminating needs registration closed, withdrawing
+  needs it open -- and the assumption was written into a test comment as "two
+  guards happening to agree". They do not agree:
+  `PokerTournamentResultController@store` records a result through the admin
+  results form with no requirement that registration be shut. So the state is
+  reachable, and `p-event.blade.php` was offering players an Unregister button
+  the controller then refused. The card now asks `hasRecordedResults()` too.
+- **Removing a registrant is one route, not two.** `poker.registrants.destroy`
+  already carried the settled-field rule; the tournament page reuses it rather
+  than growing an admin variant of `tournaments.unregister`. Two routes doing
+  the same thing behind different guards is how the two come to disagree.
+- **The remove control is tied to results, not to registration.** The entry most
+  likely to be wrong is one an admin added late, by which time registration is
+  shut -- tying it to `registration_open`, as the Eliminate button beside it is
+  tied, would remove it from exactly the case it exists for.
+- **Once any result exists the control leaves every row**, not just the rows of
+  players who have finished. A place is a position in a field, so the field is
+  settled as a whole.
+- **A control that disappears gets a reason.** `Results recorded · entries
+  locked` appears on the Registered Players card, to admins only -- a player was
+  never offered the control and has nothing to account for.
 
 ### Added while the rules pages were rebuilt
 

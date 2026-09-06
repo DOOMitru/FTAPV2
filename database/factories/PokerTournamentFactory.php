@@ -22,7 +22,6 @@ class PokerTournamentFactory extends Factory
         return [
             'name'        => "The {$adjective} {$noun}",
             'description' => $this->faker->paragraph(),
-            'scheduled_at' => null, // set by seeder
             'start_time'  => null, // set by seeder
             'season_id'   => PokerSeason::factory(),
             'venue_id'    => Venue::factory(),
