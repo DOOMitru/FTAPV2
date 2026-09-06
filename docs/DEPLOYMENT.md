@@ -156,11 +156,11 @@ LEAGUE_CONTACT_EMAIL=…
 encrypting production sessions and cookies. Losing it logs everyone out; leaking
 it is worse.
 
-Make the two writable directories writable:
-
-```
-chmod -R 775 storage bootstrap/cache
-```
+The deploy creates and permissions `storage/` and `bootstrap/cache` itself, so
+there is nothing to do here. Worth knowing why it has to: `storage/` is excluded
+from the sync -- it holds the logs, the sessions and the uploaded sponsor logos,
+and a release must not overwrite any of them -- so the framework's writable
+skeleton never arrives with the code and is created on the server instead.
 
 ## 4. The data
 
