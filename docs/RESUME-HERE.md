@@ -5,7 +5,7 @@ poker nights in Regina.
 
 ## Where things stand
 
-Suite: **518 passed.** Run `php artisan test`.
+Suite: **515 passed.** Run `php artisan test`.
 
 **The design-system work is finished and is no longer what this project is
 about.** Phases 0-5 moved all 86 views off Tailwind onto hand-built CSS
@@ -296,6 +296,37 @@ are recorded so they are not rediscovered as if new:
   view windows page numbers, so it calls `total()` and `lastPage()`, which a simple
   paginator does not have. Pointing it there made the first ever `simplePaginate()` call a
   fatal error. Simple pagination falls back to Laravel's stock view: unstyled, but working.
+
+### Profile pictures are gone; a player is a monogram (2026-09-06)
+
+- **The whole feature is removed**, one day after its fallback was fixed --
+  which is the right order: fixing it is what made visible that the picture half
+  had no users. Nobody ever uploaded a photo. The 205 accounts came from a CSV
+  import that sets none, so what was being maintained was a column, an accessor,
+  an upload control on two forms and file handling in two controllers, all for a
+  state the app had never been in.
+- **Dropped:** `users.profile_image` (migration), `User::profile_image_url`, the
+  `profile_image` rule in `ProfileUpdateRequest` and `UserController@update`,
+  both upload blocks and the `enctype="multipart/form-data"` that existed only
+  for them, and `.field__file` (its only callers were those two blocks -- the
+  sponsor logo input goes through `x-field`, which merges `.field__control`).
+- **`<x-avatar>` is now `<x-monogram>`, and `.avatar*` is `.monogram*`.** A
+  component named for a picture it cannot hold lies about itself, and this
+  project renames things when they stop describing what they do -- the same call
+  as `closesIn` becoming `startsIn` when the deadline went.
+- **The podium's photo rules went with it.** `.podium__place--N img.podium__seat`
+  moved the medal to a ring for a photographed seat; with no photographs the
+  seat is the gold/silver/bronze disc it always was.
+- **The `Photo` column heading on both `users/index` tables is now a
+  visually-hidden `Initials`.** The cell repeats the Name column beside it, so
+  the heading is for a screen reader rather than the eye.
+- **`storage:link` is still required** -- sponsors keep their logos on the public
+  disk. `storage/app/public/profile-images` never existed in production and the
+  migration deliberately does not delete files: a migration that reaches into
+  the filesystem cannot be rolled back.
+- `MonogramTest` guards the removal three ways: the column is gone and no file
+  quotes or accesses `profile_image`, neither profile form still offers an
+  upload or an enctype, and the component never emits an `<img>`.
 
 ### Avatars fall back to initials, not to a stock face (2026-09-06)
 

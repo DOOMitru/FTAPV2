@@ -25,7 +25,7 @@ use Tests\TestCase;
  * So the no-photo state is a monogram, and it is the state nearly every one of
  * these tests exercises, because it is the state the app is actually in.
  */
-class AvatarTest extends TestCase
+class MonogramTest extends TestCase
 {
     use RefreshDatabase;
 
@@ -38,35 +38,60 @@ class AvatarTest extends TestCase
     {
         $user = User::factory()->create(['first_name' => 'Wanda', 'last_name' => 'Reeve']);
 
-        $html = $this->render('<x-avatar :user="$user" />', ['user' => $user]);
+        $html = $this->render('<x-monogram :user="$user" />', ['user' => $user]);
 
         $this->assertStringContainsString('>WR<', $html);
-        $this->assertStringContainsString('avatar--initials', $html);
+        $this->assertStringContainsString('monogram', $html);
     }
 
-    public function test_the_generic_placeholder_is_never_served(): void
+    public function test_a_monogram_is_never_an_image(): void
     {
-        // The point of the whole change. 1.9MB, on the nav bar of every
-        // authenticated page, identical for all 205 players.
-        $user = User::factory()->create(['profile_image' => null]);
+        // The component drew a photo when one had been uploaded, and nobody
+        // ever uploaded one. It is text now, which is why it scales with the
+        // page, restyles with the theme and costs no request.
+        $user = User::factory()->create();
 
-        $this->assertStringNotContainsString(
-            'default_profile',
-            $this->render('<x-avatar :user="$user" />', ['user' => $user])
-        );
+        $this->assertStringNotContainsString('<img', $this->render('<x-monogram :user="$user" />', ['user' => $user]));
     }
 
-    public function test_a_real_photo_is_used_when_there_is_one(): void
+    public function test_the_profile_picture_feature_is_gone(): void
     {
-        // The other half: this must not have become a component that only ever
-        // draws letters.
-        $user = User::factory()->create(['profile_image' => 'profile-images/wanda.jpg']);
+        // Column, accessor, upload handling in two controllers and a file input
+        // on two forms, all maintained for a state the app was never in.
+        $this->assertFalse(\Illuminate\Support\Facades\Schema::hasColumn('users', 'profile_image'));
+        $this->assertFalse(User::factory()->create()->hasAttribute('profile_image'));
 
-        $html = $this->render('<x-avatar :user="$user" />', ['user' => $user]);
+        $survivors = [];
 
-        $this->assertStringContainsString('profile-images/wanda.jpg', $html);
-        $this->assertStringContainsString('<img', $html);
-        $this->assertStringNotContainsString('avatar--initials', $html);
+        foreach ([app_path(), resource_path()] as $root) {
+            foreach (\Symfony\Component\Finder\Finder::create()->files()->in($root) as $file) {
+                $body = file_get_contents($file->getRealPath());
+
+                // The quoted or accessed forms, so the comments in x-monogram
+                // and the migration that explain the removal are left alone.
+                if (preg_match('/[\'"$>-]profile_image\b/', $body)) {
+                    $survivors[] = $file->getFilename();
+                }
+            }
+        }
+
+        $this->assertSame([], $survivors, 'A live reference to a column that no longer exists.');
+    }
+
+    public function test_neither_profile_form_still_offers_an_upload(): void
+    {
+        // enctype went with the file input. A multipart form with nothing to
+        // upload is a form telling the browser to do work for no reason, and it
+        // is the trace this removal is most likely to leave behind.
+        $admin = User::factory()->create(['is_admin' => true, 'approval_status' => 'approved']);
+
+        foreach ([route('profile.edit'), route('users.edit', $admin)] as $url) {
+            $html = $this->actingAs($admin)->get($url)->assertOk()->getContent();
+
+            $this->assertStringNotContainsString('type="file"', $html, "An upload survives on {$url}");
+            $this->assertStringNotContainsString('multipart/form-data', $html, "enctype survives on {$url}");
+            $this->assertStringNotContainsString('Profile photo', $html);
+        }
     }
 
     /** @return array<string, array{0: string, 1: string}> */
@@ -91,7 +116,7 @@ class AvatarTest extends TestCase
         // The no-account case, which the schema allows: user_id is nullable with
         // nullOnDelete on results, registrants and venue points, so deleting a
         // player leaves their player_name behind with nothing attached.
-        $html = $this->render('<x-avatar :name="$name" />', ['name' => $name]);
+        $html = $this->render('<x-monogram :name="$name" />', ['name' => $name]);
 
         $this->assertStringContainsString('>'.$expected.'<', $html);
     }
@@ -99,7 +124,7 @@ class AvatarTest extends TestCase
     public function test_nothing_at_all_still_renders(): void
     {
         // Rather than a blank circle or a crash in a leaderboard.
-        $this->assertStringContainsString('>?<', $this->render('<x-avatar />'));
+        $this->assertStringContainsString('>?<', $this->render('<x-monogram />'));
     }
 
     public function test_a_users_full_name_is_used_rather_than_their_display_name(): void
@@ -111,7 +136,7 @@ class AvatarTest extends TestCase
             'first_name' => 'Wanda', 'last_name' => 'Reeve', 'nickname' => 'Ace',
         ]);
 
-        $html = $this->render('<x-avatar :user="$user" />', ['user' => $user]);
+        $html = $this->render('<x-monogram :user="$user" />', ['user' => $user]);
 
         $this->assertStringContainsString('>WR<', $html);
     }
@@ -123,7 +148,7 @@ class AvatarTest extends TestCase
         // at registration, so it can be stale; the account is the live answer.
         $user = User::factory()->create(['first_name' => 'Wanda', 'last_name' => 'Reeve']);
 
-        $html = $this->render('<x-avatar :user="$user" :name="$name" />',
+        $html = $this->render('<x-monogram :user="$user" :name="$name" />',
             ['user' => $user, 'name' => 'Old Spelling']);
 
         $this->assertStringContainsString('>WR<', $html);
@@ -136,7 +161,7 @@ class AvatarTest extends TestCase
         $user = User::factory()->create(['first_name' => 'Wanda', 'last_name' => 'Reeve']);
 
         foreach (['sm', 'md', 'lg'] as $size) {
-            $html = $this->render('<x-avatar :user="$user" :size="$size" />',
+            $html = $this->render('<x-monogram :user="$user" :size="$size" />',
                 ['user' => $user, 'size' => $size]);
 
             $this->assertStringContainsString('>WR<', $html, "Lost an initial at size {$size}.");
@@ -149,7 +174,7 @@ class AvatarTest extends TestCase
         // and "W R" read as letters is worse than repetition.
         $user = User::factory()->create(['first_name' => 'Wanda', 'last_name' => 'Reeve']);
 
-        $html = $this->render('<x-avatar :user="$user" decorative />', ['user' => $user]);
+        $html = $this->render('<x-monogram :user="$user" decorative />', ['user' => $user]);
 
         $this->assertStringContainsString('aria-hidden="true"', $html);
         $this->assertStringNotContainsString('role="img"', $html);
@@ -161,7 +186,7 @@ class AvatarTest extends TestCase
             'first_name' => 'Wanda', 'last_name' => 'Reeve', 'nickname' => 'Ace',
         ]);
 
-        $html = $this->render('<x-avatar :user="$user" />', ['user' => $user]);
+        $html = $this->render('<x-monogram :user="$user" />', ['user' => $user]);
 
         $this->assertStringContainsString('role="img"', $html);
         // The name to SAY is the display name, even though the letters drawn
@@ -169,11 +194,11 @@ class AvatarTest extends TestCase
         $this->assertStringContainsString('aria-label="Ace"', $html);
     }
 
-    public function test_the_awaiting_approval_table_shows_a_photo_column(): void
+    public function test_the_awaiting_approval_table_shows_a_monogram(): void
     {
-        // The inconsistency this fixes: the approved-users table on the same
-        // page has had one all along, and this is the table where knowing who
-        // you are admitting matters most.
+        // The inconsistency this fixed: the approved-users table on the same
+        // page has had this column all along, and this is the table where
+        // knowing who you are admitting matters most.
         $admin = User::factory()->create(['is_admin' => true, 'approval_status' => 'approved']);
         User::factory()->create([
             'first_name' => 'Priya', 'last_name' => 'Raman', 'approval_status' => 'pending',
@@ -184,7 +209,7 @@ class AvatarTest extends TestCase
         $awaiting = substr($html, (int) strpos($html, 'Awaiting approval'));
         $awaiting = substr($awaiting, 0, (int) strpos($awaiting, '</table>'));
 
-        $this->assertStringContainsString('avatar', $awaiting);
+        $this->assertStringContainsString('monogram', $awaiting);
         $this->assertStringContainsString('>PR<', $awaiting);
     }
 
@@ -223,8 +248,8 @@ class AvatarTest extends TestCase
     {
         // Deleted, not merely unreferenced: 1.9MB that rsync shipped on every
         // deploy for an image no page asked for. The pairing matters -- if the
-        // file goes and a reference comes back, every avatar in the app becomes
-        // a broken image, which is the one outcome worse than the stock face.
+        // file goes and a reference comes back, that is a broken image on every
+        // page, which is the one outcome worse than the stock face itself.
         $this->assertFileDoesNotExist(public_path('images/default_profile.png'));
 
         $referenced = [];
@@ -232,9 +257,9 @@ class AvatarTest extends TestCase
         foreach ([app_path(), resource_path()] as $root) {
             foreach (\Symfony\Component\Finder\Finder::create()->files()->in($root) as $file) {
                 // The QUOTED path, so this catches asset('images/default_profile.png')
-                // and leaves alone the comments in User and x-avatar that explain
-                // why it went. Naming a deleted file in prose is history; naming
-                // it in a string is a broken image.
+                // and leaves alone the comments that explain why it went.
+                // Naming a deleted file in prose is history; naming it in a
+                // string is a broken image.
                 if (str_contains(file_get_contents($file->getRealPath()), "'images/default_profile")) {
                     $referenced[] = $file->getFilename();
                 }

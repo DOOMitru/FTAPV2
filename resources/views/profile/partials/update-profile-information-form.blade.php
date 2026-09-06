@@ -14,25 +14,9 @@
         @csrf
     </form>
 
-    <form method="post" action="{{ route('profile.update') }}" class="l-stack"
-          enctype="multipart/form-data">
+    <form method="post" action="{{ route('profile.update') }}" class="l-stack">
         @csrf
         @method('patch')
-
-        <div>
-            <span class="field__label">{{ __('Profile photo') }}</span>
-
-            <div class="field__media">
-                <x-avatar :user="$user" size="lg" decorative />
-
-                <label class="field__file">
-                    <span class="u-visually-hidden">{{ __('Choose profile photo') }}</span>
-                    <input class="field__file" type="file" name="profile_image" accept="image/*">
-                </label>
-            </div>
-
-            <x-input-error :messages="$errors->get('profile_image')" />
-        </div>
 
         <div class="l-grid">
             <x-field name="first_name" :label="__('First Name')"

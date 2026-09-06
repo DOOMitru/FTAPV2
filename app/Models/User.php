@@ -48,7 +48,6 @@ class User extends Authenticatable implements MustVerifyEmail
         'password',
         'nickname',
         'is_admin',
-        'profile_image',
     ];
 
     /**
@@ -122,23 +121,6 @@ class User extends Authenticatable implements MustVerifyEmail
 
                 return $this->first_name;
             }
-        );
-    }
-
-    /**
-     * Where this user's uploaded photo lives, or null if they have not uploaded
-     * one.
-     *
-     * Null, rather than a URL for a stock face. This used to answer with
-     * images/default_profile.png -- so it could never be used to tell "has a
-     * photo" from "has none", and <x-avatar> had to consult profile_image
-     * itself to work out which of the two it was looking at. An accessor whose
-     * answer is always truthy cannot be asked a question.
-     */
-    protected function profileImageUrl(): Attribute
-    {
-        return Attribute::make(
-            get: fn () => $this->profile_image ? asset('storage/'.$this->profile_image) : null,
         );
     }
 

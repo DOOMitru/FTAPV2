@@ -181,29 +181,6 @@
 .podium__place--2 .podium__seat { background-color: var(--c-silver); }
 .podium__place--3 .podium__seat { background-color: var(--c-bronze); }
 
-/* A seat with a photo in it. The medal is a background colour, and a picture
-   sits on top of the background -- so for a player who has uploaded one the
-   medal would simply vanish. It moves to the ring instead.
-
-   Selected on img so the initials seat is untouched: with no photo the disc IS
-   the medal, exactly as before, and a ring around a gold disc would be a second
-   statement of the same thing.
-
-   .podium__place--1 img.podium__seat is 0,2,1 against the 0,2,0 that sets
-   border-color: transparent above -- deliberate, not a bet on file order. This
-   project has had three defects from two single-class selectors colliding, and
-   an avatar carries .avatar from a different stylesheet. */
-.podium__place--1 img.podium__seat,
-.podium__place--2 img.podium__seat,
-.podium__place--3 img.podium__seat {
-    /* A hairline reads as an edge, not as a medal. box-sizing is border-box, so
-       the seat keeps its diameter and the picture inside it gives up the room. */
-    border-width: 0.1875rem;
-}
-
-.podium__place--1 img.podium__seat { border-color: var(--c-gold); }
-.podium__place--2 img.podium__seat { border-color: var(--c-silver); }
-.podium__place--3 img.podium__seat { border-color: var(--c-bronze); }
 
 /* The riser. Height carries the ranking; the numeral repeats it for anyone who
    cannot see the heights. */

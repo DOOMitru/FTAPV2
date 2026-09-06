@@ -107,7 +107,7 @@
    set by that constant and not by whichever child happens to be tallest. The
    authenticated bar previously ran 20px taller than the public one because the
    user trigger stacked a 2.5rem avatar inside .nav-link's block padding (56px);
-   with a matching min-height here and .avatar--sm on the trigger, both bars
+   with a matching min-height here and .monogram--sm on the trigger, both bars
    measure the same. */
 .topbar .nav-link {
     min-height: 2.25rem;

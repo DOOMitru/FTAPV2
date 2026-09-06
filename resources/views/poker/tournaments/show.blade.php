@@ -76,7 +76,7 @@
                                          ring; with no photo the seat is the
                                          gold/silver/bronze disc it has always
                                          been. --}}
-                                    <x-avatar class="podium__seat" :user="$winner->user"
+                                    <x-monogram class="podium__seat" :user="$winner->user"
                                               :name="$winner->player_name" decorative />
                                     <span class="podium__name">{{ $winner->player_name }}</span>
                                     <span class="podium__step">{{ $winner->place }}</span>
@@ -129,7 +129,7 @@
                         @php $result = $resultsByUser[$registrant->user_id] ?? null; @endphp
 
                         <div class="entry">
-                            <x-avatar :user="$registrant->user" :name="$registrant->player_name" decorative />
+                            <x-monogram :user="$registrant->user" :name="$registrant->player_name" decorative />
 
                             <div class="entry__body">
                                 <div class="entry__title">{{ $registrant->player_name }}</div>

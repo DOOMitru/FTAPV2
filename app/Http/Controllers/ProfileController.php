@@ -33,17 +33,6 @@ class ProfileController extends Controller
             unset($data['is_admin']);
         }
 
-        if ($request->hasFile('profile_image')) {
-            $path = $request->file('profile_image')->store('profile-images', 'public');
-            
-            // Delete old image if it exists
-            if ($request->user()->profile_image) {
-                \Illuminate\Support\Facades\Storage::disk('public')->delete($request->user()->profile_image);
-            }
-            
-            $data['profile_image'] = $path;
-        }
-
         $request->user()->fill($data);
 
         if ($request->user()->isDirty('email')) {
