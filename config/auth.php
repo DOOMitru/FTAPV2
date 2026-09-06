@@ -94,7 +94,18 @@ return [
         'users' => [
             'provider' => 'users',
             'table' => env('AUTH_PASSWORD_RESET_TOKEN_TABLE', 'password_reset_tokens'),
-            'expire' => 60,
+            // Minutes a reset or invitation link stays valid.
+            //
+            // Configurable because the two uses want different windows. Sixty
+            // minutes is right for a reset somebody just asked for and is
+            // waiting on. It is wrong for an invitation: mail two hundred
+            // players at once and most will read it tomorrow, so most links
+            // would be dead before they were opened. Raise it for the invite
+            // period -- 10080 is a week -- and lower it again afterwards. The
+            // cost of a longer window is that a token in a compromised inbox
+            // stays usable for longer, which is why this is a decision and not
+            // a default.
+            'expire' => (int) env('AUTH_PASSWORD_RESET_EXPIRE', 60),
             'throttle' => 60,
         ],
     ],
