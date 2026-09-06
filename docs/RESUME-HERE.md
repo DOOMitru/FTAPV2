@@ -30,20 +30,20 @@ delivers; a real password reset was sent, clicked and completed on 2026-09-05.
 that would silently not work — a log/array transport, a placeholder from-address
 or league contact, and an `APP_URL` pointing at the sending machine.
 
-**The one thing left before players can be invited:** `APP_URL` must be the
-public address on whatever host sends real mail. Locally it is
-`http://localhost:8000`, which is correct for testing here and fatal in
-production — every verification, reset and invite link is built from it, so the
-mail arrives, opens, and goes nowhere. `mail:check` gates this; gate deploys on
-its exit code.
+**The app is deployed and deploying itself.** Push to `main` and GitHub Actions
+runs the suite on both database drivers, then ships to DreamHost shared hosting:
+rsync, migrate, cache, `mail:check`. See `docs/DEPLOYMENT.md` for the setup and
+the section below for what it cost to get there.
 
 The 235 imported players are approved and verified but hold random 32-character
 passwords, so each needs a password-reset mail to get in. That is the first real
-send.
+send, and the last thing standing between this app and a league using it.
 
 ### Open, in rough priority
 
-1. `APP_URL` on the production host (above). Owner's, at deploy time.
+1. **Seed production and invite the players.** `users:import` for the 235
+   accounts, then venues, seasons, sponsors and the points structure through the
+   dashboard. Confirm `php artisan mail:check` on the server first.
 2. **One unreproduced test failure**, seen once on 2026-09-05: a full run
    reported `1 failed, 435 passed`, and the name was not captured. It did not
    recur in 45 further full runs or 120 targeted ones against everything in the
@@ -57,6 +57,72 @@ send.
 
 Nothing else is known-broken. There are no TODO, FIXME or HACK markers anywhere
 in `app/`, `routes/` or `resources/`.
+
+## The pipeline
+
+`.github/workflows/ci.yml`, one file, two jobs. `deploy` declares `needs: test`,
+so a red suite stops a release rather than racing it.
+
+**Tests** run as a matrix over SQLite and MySQL. Production is MySQL, so that leg
+is the one that must pass; local development is SQLite, so that leg must keep
+working. Running one driver would leave the differences between them untested,
+which is not theoretical — see below.
+
+**Deploy** builds `vendor/` and `public/build` on the runner and rsyncs them up.
+Shared hosting has no reliable Composer and little memory to resolve
+dependencies with. That is why `PHP_VERSION` in the workflow has to match the
+DreamHost panel and `DEPLOY_PHP`: those files are compiled against it. All three
+are 8.5.
+
+Secrets live in the `production` GitHub Environment: `DEPLOY_SSH_KEY`,
+`DEPLOY_HOST`, `DEPLOY_USER`, `DEPLOY_PATH`. Adding a required reviewer there
+turns this into deploy-on-approval without touching the workflow.
+
+Every action is pinned to a commit SHA — a moving tag is a decision handed to
+somebody else, and this job holds a key that writes to production. Dependabot
+keeps them current: routine bumps grouped into one PR, majors one at a time.
+
+### What the pipeline caught that months of green tests did not
+
+Worth recording, because each one was invisible from a working tree that had
+been running fine for weeks:
+
+- **`@vite` throws without `public/build`.** It is gitignored, so a fresh
+  checkout has no manifest and every view test fails on a missing file. CI
+  builds before it tests.
+- **`public/storage` is a gitignored symlink**, so a fresh checkout has none and
+  `StorageLinkTest` fails — on both database legs, for a reason that has nothing
+  to do with databases. CI runs `storage:link`.
+- **A `GROUP BY` that only MySQL rejects.** `$season->results()` is a
+  HasManyThrough, and the relation appends `tournaments.season_id as
+  laravel_through_key` to the SELECT. Beside a `GROUP BY` that is fatal under
+  `ONLY_FULL_GROUP_BY`, on by default since MySQL 8. **SQLite does not enforce
+  that rule**, so the dashboard — the most-visited authenticated page — would
+  have thrown a 500 the first time a real player loaded it in production. This
+  is the reason the MySQL leg exists.
+- **PDO returns MySQL columns as strings** where SQLite returns typed values, so
+  `place`, `points`, `amount` and `sort_order` were `"5"` in production and `5`
+  in development. Fixed by casting on the models rather than loosening the
+  assertions: the model should be the authority on its own types.
+
+### Things about DreamHost shared hosting that cost time
+
+- **rsync creates only the last component of a destination path.** A
+  `DEPLOY_PATH` whose parent does not exist fails with `mkdir … No such file or
+  directory`. The deploy makes the chain itself now.
+- **`DEPLOY_PATH` must be absolute.** A leading `~` does not expand inside the
+  quoted commands the deploy runs. The workflow rejects a relative path early
+  with a clear message.
+- **`storage/` is excluded from the sync** — it holds the logs, the sessions and
+  the uploaded sponsor logos, and a release must not overwrite them. The
+  consequence is that the framework's writable skeleton never arrives with the
+  code, and `view:cache` fails with "View path not found" because it clears
+  before it compiles. The deploy creates those directories.
+- **Always pass `-o IdentitiesOnly=yes`.** Without it ssh offers every key it can
+  find before the one named by `-i`, the server counts each as a failed login,
+  and DreamHost blocks the IP. That happened once, from a home connection, and
+  took an hour to clear. Every ssh call in the workflow names its key and only
+  its key.
 
 ## Standing constraints
 
