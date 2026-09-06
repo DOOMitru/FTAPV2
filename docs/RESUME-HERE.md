@@ -60,22 +60,48 @@ Laravel's stock reset notification, which opens "we received a password reset
 request", a false statement about a request nobody made and the shape of a
 phishing message when several hundred people get one at once.
 
+**The mass send is deliberately not done. It waits on the owner, not on code.**
+Verified end to end on 2026-09-05: `mail:check` passes on the server, and a real
+invitation to the administrator's own address arrived, looked right and worked.
+What remains is 204 outstanding accounts and a decision about when a league gets
+204 emails at once. Nothing is blocking it technically — do not treat this as an
+unfinished feature and do not send it to "finish" the work.
+
 ### Open, in rough priority
 
-1. **Invite the players.** The 205 accounts are imported. Send in batches with
-   `users:invite --limit=80`; it records `invited_at` only after the send
-   returns, so a batch that dies halfway does not mark people as written to.
-   Then venues, seasons, sponsors and the points structure through the
-   dashboard. Confirm `php artisan mail:check` on the server first.
-2. **One unreproduced test failure**, seen once on 2026-09-05: a full run
+1. **Seed production through the dashboard** — venues, seasons, sponsors and the
+   points structure. Independent of the invites below, and worth doing first:
+   the invitation points players at a site, and an empty schedule is a poor
+   first impression.
+2. **Invite the players — ON THE OWNER'S SAY-SO, deferred 2026-09-05.** 204
+   outstanding. The plan, when it is wanted:
+   - `users:invite --limit=20 --sleep=5 --force` first, then read the bounces at
+     `info@firsttoactpoker.com` before continuing. Twenty is small enough to see
+     a problem before it is two hundred people.
+   - Then `--limit=80 --sleep=5 --force`, an hour apart, three times.
+   - **DreamHost rate-limits outgoing SMTP on shared hosting and the current
+     per-hour figure was never established.** If sends start failing partway
+     through a batch with connection or "too many messages" errors, that is what
+     it is; the answer is smaller batches over more hours, not a retry loop.
+   - Failures are safe. The command records `invited_at` only after the send
+     returns, catches per-recipient throwables, keeps going, and tables what
+     failed — so a dead batch leaves those players outstanding for the next run.
+     A duplicate invitation is a nuisance; a missing one is a player who never
+     gets in.
+   - Check the report says `links valid for 10080 minutes` before a batch. At
+     seven days people can act whenever they read it; at 60 the command warns,
+     and most of the league would need "Forgot your password?" instead.
+   - Someone should watch `info@firsttoactpoker.com` that evening. The
+     invitation sets no Reply-To, so replies land there.
+3. **One unreproduced test failure**, seen once on 2026-09-05: a full run
    reported `1 failed, 435 passed`, and the name was not captured. It did not
    recur in 45 further full runs or 120 targeted ones against everything in the
    suite that uses randomness or the clock. Recorded rather than dismissed: a
    test that fails once in fifty runs will eventually fail in CI, and the next
    person to see it should know it is not new.
-3. `docs/` holds six audit documents from finished phases. Their open-items
+4. `docs/` holds six audit documents from finished phases. Their open-items
    sections are largely resolved; treat this file as the index, not them.
-4. `.superpowers/sdd/` can be deleted whenever convenient — see the end of this
+5. `.superpowers/sdd/` can be deleted whenever convenient — see the end of this
    file.
 
 Nothing else is known-broken. There are no TODO, FIXME or HACK markers anywhere
