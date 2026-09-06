@@ -1,5 +1,14 @@
 name: CI & Deploy
 
+# What the Actions list calls each run. Both a pull request and a merge produce
+# a run of this one workflow, and labelling them both "CI & Deploy" makes a pull
+# request look as though it shipped something. It cannot: the deploy job below
+# is gated on a push to main and is skipped on every pull request.
+run-name: >-
+  ${{ github.event_name == 'push'
+      && format('Deploy {0}', github.event.head_commit.message)
+      || format('Tests only - {0}', github.head_ref) }}
+
 # Pull requests get tested. Pushes to main get tested and then deployed --
 # deploy `needs: test`, so a red suite stops the release rather than racing it.
 on:

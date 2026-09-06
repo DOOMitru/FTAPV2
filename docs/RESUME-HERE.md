@@ -5,7 +5,7 @@ poker nights in Regina.
 
 ## Where things stand
 
-Suite: **436 passed.** Run `php artisan test`.
+Suite: **473 passed.** Run `php artisan test`.
 
 **The design-system work is finished and is no longer what this project is
 about.** Phases 0-5 moved all 86 views off Tailwind onto hand-built CSS
@@ -24,25 +24,48 @@ does not have and the app does not implement. The rules now live as data in
 through one recursive component, and are numbered by CSS counters so a clause is
 cited by where it sits.
 
-**Mail works.** SMTP is configured against Dreamhost, connects, authenticates and
-delivers; a real password reset was sent, clicked and completed on 2026-09-05.
-`php artisan mail:check` reports the resolved configuration and fails on anything
-that would silently not work — a log/array transport, a placeholder from-address
-or league contact, and an `APP_URL` pointing at the sending machine.
+**Mail works, and now looks like the league.** SMTP is configured against
+Dreamhost, connects, authenticates and delivers; a real password reset was sent,
+clicked and completed on 2026-09-05. `php artisan mail:check` reports the
+resolved configuration and fails on anything that would silently not work — a
+log/array transport, a placeholder from-address, from-NAME or league contact, and
+an `APP_URL` pointing at the sending machine.
+
+All four emails the app sends — invitation, approval, password reset, email
+verification — carry the home page's light hero: the logo, `FIRST TO ACT POKER
+LEAGUE` with the second half in the accent red, and the motto beneath it. Two of
+those four are written by the framework, and were arriving in Laravel's voice
+("Whoops!", a button reading "Verify Email Address", signed with the app name);
+`AppServiceProvider::composeAuthenticationEmails()` rewrites both through
+`toMailUsing`. The sign-off is `The First to Act Team`, rendered unconditionally
+in `resources/views/vendor/notifications/email.blade.php` so a notification added
+later cannot forget it. `EmailPresentationTest` holds masthead, greeting,
+signature and single-call-to-action for all four together.
+
+The from-name read **"Example"** on the first production send. Nothing was
+misconfigured in this repo: `config/mail.php` shipped Laravel's
+`env('MAIL_FROM_NAME', 'Example')` and the server's `.env` had no such line, so
+one missing variable branded every message. The fallback is now the league's own
+name, and `mail:check` looks at the from-name as well as the from-address — it
+had reported "nothing here would silently fail" against that exact mailer.
 
 **The app is deployed and deploying itself.** Push to `main` and GitHub Actions
 runs the suite on both database drivers, then ships to DreamHost shared hosting:
 rsync, migrate, cache, `mail:check`. See `docs/DEPLOYMENT.md` for the setup and
 the section below for what it cost to get there.
 
-The 235 imported players are approved and verified but hold random 32-character
-passwords, so each needs a password-reset mail to get in. That is the first real
-send, and the last thing standing between this app and a league using it.
+The 205 imported players are approved and verified but hold random 32-character
+passwords, so each needs an invitation to get in. `users:invite` sends it — not
+Laravel's stock reset notification, which opens "we received a password reset
+request", a false statement about a request nobody made and the shape of a
+phishing message when several hundred people get one at once.
 
 ### Open, in rough priority
 
-1. **Seed production and invite the players.** `users:import` for the 235
-   accounts, then venues, seasons, sponsors and the points structure through the
+1. **Invite the players.** The 205 accounts are imported. Send in batches with
+   `users:invite --limit=80`; it records `invited_at` only after the send
+   returns, so a batch that dies halfway does not mark people as written to.
+   Then venues, seasons, sponsors and the points structure through the
    dashboard. Confirm `php artisan mail:check` on the server first.
 2. **One unreproduced test failure**, seen once on 2026-09-05: a full run
    reported `1 failed, 435 passed`, and the name was not captured. It did not
@@ -159,6 +182,15 @@ been running fine for weeks:
   asserting content.
 - **Chromium here is snap-confined**: it cannot read or write `/tmp`, and enforces a
   500px minimum window width. Use a directory under `$HOME` for screenshot work.
+
+**One exemption from the no-inline-CSS rule, and only one.**
+`resources/views/vendor/mail/` is skipped by `InlineStyleGuardTest`, because HTML
+email requires the opposite of what the rule enforces: Gmail and Outlook.com
+strip `<style>` blocks, so Laravel reads `themes/default.css` at send time and
+writes each declaration back out as a `style` attribute. The styling still lives
+in one stylesheet — that file rather than `resources/css/`. The exemption list is
+itself asserted (`test_the_exemption_covers_only_the_mail_templates`) so widening
+it is a deliberate edit rather than a line in a diff nobody reads.
 
 ## The safety net the whole conversion ran on
 

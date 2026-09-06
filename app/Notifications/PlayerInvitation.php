@@ -42,8 +42,14 @@ class PlayerInvitation extends Notification
         // Said in whole units the reader recognises. "Expires in 10080 minutes"
         // is technically true and useless.
         $minutes = (int) config('auth.passwords.'.config('auth.defaults.passwords').'.expire');
-        $window = Carbon::now()->addMinutes($minutes)->diffForHumans(
-            Carbon::now(), \Carbon\CarbonInterface::DIFF_ABSOLUTE
+
+        // ONE reference instant, used twice. Carbon::now() called twice returns
+        // two times a few microseconds apart, and diffForHumans floors -- which
+        // reported a 60 minute window as "59 minutes", and would have told 205
+        // players that a 7 day link lasted 6 days.
+        $now = Carbon::now();
+        $window = $now->copy()->addMinutes($minutes)->diffForHumans(
+            $now, \Carbon\CarbonInterface::DIFF_ABSOLUTE
         );
 
         return (new MailMessage)
@@ -57,10 +63,10 @@ class PlayerInvitation extends Notification
             ->action('Set your password', $url)
             ->line('This link works for '.$window.'.')
             ->line(
-                'If it has expired by the time you get to it, no problem -- go to the site, choose '
+                'If it has expired by the time you get to it, no problem — go to the site, choose '
                 .'"Forgot your password?", and enter this email address to get a fresh one.'
             )
-            ->salutation('See you at the tables.');
+            ->salutation('See you at the tables,');
     }
 
     /** @return array<string, mixed> */

@@ -30,8 +30,9 @@ class PlayerApproved extends Notification
             ->subject("You're in - ".config('app.name'))
             ->greeting('Hi '.$notifiable->first_name.',')
             ->line('A league administrator has approved your account, so you can now register for tournaments.')
-            ->action('See what is coming up', route('events'))
-            ->line('The games are free to play. Turn up, and someone will happily explain the rules at the table.');
+            ->action('See upcoming tournaments', route('events'))
+            ->line('The games are free to play. Turn up, and someone will happily explain the rules at the table.')
+            ->salutation('See you at the tables,');
 
         // Verification is a separate gate, and a player can be past one and not
         // the other. Saying "you're approved" to someone who still cannot reach

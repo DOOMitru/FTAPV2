@@ -112,7 +112,13 @@ return [
 
     'from' => [
         'address' => env('MAIL_FROM_ADDRESS', 'hello@example.com'),
-        'name' => env('MAIL_FROM_NAME', 'Example'),
+        // Laravel ships 'Example' here. A missing MAIL_FROM_NAME on one server
+        // is all it takes for several hundred players to receive a message from
+        // "Example" -- which is what happened, and which mail:check did not
+        // catch because it only ever looked at the address. The fallback is the
+        // league's own name so that the failure mode is a correct name rather
+        // than someone else's placeholder.
+        'name' => env('MAIL_FROM_NAME') ?: env('APP_NAME', 'First to Act Poker'),
     ],
 
     /*

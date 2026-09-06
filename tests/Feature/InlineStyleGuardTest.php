@@ -18,6 +18,24 @@ use Tests\TestCase;
  */
 class InlineStyleGuardTest extends TestCase
 {
+    /**
+     * Where the rule genuinely inverts.
+     *
+     * HTML email is the one medium that requires the opposite of everything
+     * this guard enforces. Gmail and Outlook.com strip <style> blocks outright,
+     * so a stylesheet reaches nobody -- which is why Laravel's mail pipeline
+     * reads themes/default.css at send time and writes every declaration back
+     * out as a style attribute on the element it applies to. The published
+     * templates carry a <style> block for exactly that reason, and Outlook
+     * needs style="border: hidden !important" because it does not honour the
+     * cellspacing attribute.
+     *
+     * So the styling for these views still lives in one stylesheet, as the
+     * design system requires. It is themes/default.css rather than
+     * resources/css/, because the destination is an inbox rather than a page.
+     */
+    private const EXEMPT = ['vendor/mail'];
+
     public function test_no_view_contains_an_inline_style_attribute(): void
     {
         $offenders = [];
@@ -70,7 +88,13 @@ class InlineStyleGuardTest extends TestCase
         $root = resource_path('views').DIRECTORY_SEPARATOR;
         $views = [];
 
-        foreach (Finder::create()->files()->in(resource_path('views'))->name('*.blade.php') as $file) {
+        $finder = Finder::create()->files()->in(resource_path('views'))->name('*.blade.php');
+
+        foreach (self::EXEMPT as $path) {
+            $finder->notPath($path);
+        }
+
+        foreach ($finder as $file) {
             $views[str_replace($root, '', $file->getRealPath())] = file(
                 $file->getRealPath(),
                 FILE_IGNORE_NEW_LINES
@@ -78,6 +102,15 @@ class InlineStyleGuardTest extends TestCase
         }
 
         return $views;
+    }
+
+    public function test_the_exemption_covers_only_the_mail_templates(): void
+    {
+        // The exemption list is the kind of thing that grows quietly once it
+        // exists -- a directory added here is a directory the design system no
+        // longer governs. Pinned, so widening it is a deliberate edit to a test
+        // rather than a line in a diff nobody reads.
+        $this->assertSame(['vendor/mail'], self::EXEMPT);
     }
 
     /**
