@@ -219,6 +219,56 @@ class AvatarTest extends TestCase
         $this->assertStringContainsString('>MI<', $html);
     }
 
+    public function test_the_stock_face_is_gone_from_the_repository(): void
+    {
+        // Deleted, not merely unreferenced: 1.9MB that rsync shipped on every
+        // deploy for an image no page asked for. The pairing matters -- if the
+        // file goes and a reference comes back, every avatar in the app becomes
+        // a broken image, which is the one outcome worse than the stock face.
+        $this->assertFileDoesNotExist(public_path('images/default_profile.png'));
+
+        $referenced = [];
+
+        foreach ([app_path(), resource_path()] as $root) {
+            foreach (\Symfony\Component\Finder\Finder::create()->files()->in($root) as $file) {
+                // The QUOTED path, so this catches asset('images/default_profile.png')
+                // and leaves alone the comments in User and x-avatar that explain
+                // why it went. Naming a deleted file in prose is history; naming
+                // it in a string is a broken image.
+                if (str_contains(file_get_contents($file->getRealPath()), "'images/default_profile")) {
+                    $referenced[] = $file->getFilename();
+                }
+            }
+        }
+
+        $this->assertSame([], $referenced, 'That image no longer exists; a reference to it renders nothing.');
+    }
+
+    public function test_every_image_a_view_asks_for_actually_exists(): void
+    {
+        // Generalised from the specific case above. An asset() path is resolved
+        // at request time and a missing one fails silently as a broken image --
+        // no exception, no failing test, nothing in a log.
+        $missing = [];
+
+        foreach (\Symfony\Component\Finder\Finder::create()->files()
+            ->in(resource_path('views'))->name('*.blade.php') as $file) {
+            preg_match_all(
+                "/asset\(\s*'((?:images|build|fonts)\/[^']+)'\s*\)/",
+                file_get_contents($file->getRealPath()),
+                $matches
+            );
+
+            foreach ($matches[1] as $path) {
+                if (! file_exists(public_path($path))) {
+                    $missing[] = $file->getFilename().' -> '.$path;
+                }
+            }
+        }
+
+        $this->assertSame([], $missing);
+    }
+
     public function test_no_hand_cut_initials_remain_in_any_view(): void
     {
         // Two views sliced their own first letter out of a name. That is the

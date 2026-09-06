@@ -33,11 +33,25 @@ class ProfilePictureTest extends TestCase
         Storage::disk('public')->assertExists($user->profile_image);
     }
 
-    public function test_user_has_default_profile_picture()
+    public function test_a_user_without_a_photo_has_no_photo_url()
     {
+        // This used to assert images/default_profile.png -- a generic 1024x1024
+        // face at 1.9MB, served to everybody, because nobody has uploaded a
+        // photo. <x-avatar> draws initials in that state now, so the accessor
+        // says plainly that there is nothing to draw rather than handing back a
+        // URL that is always truthy. See AvatarTest.
         $user = User::factory()->create(['profile_image' => null]);
 
-        $this->assertStringContainsString('default_profile.png', $user->profile_image_url);
+        $this->assertNull($user->profile_image_url);
+    }
+
+    public function test_an_uploaded_photo_is_served_from_public_storage()
+    {
+        // The other half, which nothing covered: the accessor could have been
+        // changed to return null always and only the test above would notice.
+        $user = User::factory()->create(['profile_image' => 'profile-images/wanda.jpg']);
+
+        $this->assertSame(asset('storage/profile-images/wanda.jpg'), $user->profile_image_url);
     }
 
     public function test_admin_can_update_another_user_profile_picture()

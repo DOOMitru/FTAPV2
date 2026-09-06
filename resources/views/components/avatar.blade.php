@@ -35,10 +35,9 @@
         default => '',
     };
 
-    // The photo, only when there is a real one. profile_image_url is not asked
-    // here on purpose: it answers with the placeholder rather than with
-    // nothing, so it cannot be used to tell the two states apart.
-    $photo = filled($user?->profile_image) ? $user->profile_image_url : null;
+    // Null when they have not uploaded one, which is what makes this a question
+    // worth asking rather than a URL that is always there.
+    $photo = $user?->profile_image_url;
 
     // What to announce. display_name prefers a nickname and falls back to the
     // first name alone, which is the right thing to say out loud.

@@ -5,7 +5,7 @@ poker nights in Regina.
 
 ## Where things stand
 
-Suite: **515 passed.** Run `php artisan test`.
+Suite: **518 passed.** Run `php artisan test`.
 
 **The design-system work is finished and is no longer what this project is
 about.** Phases 0-5 moved all 86 views off Tailwind onto hand-built CSS
@@ -333,9 +333,18 @@ are recorded so they are not rediscovered as if new:
   are deliberately not done -- see the notes on that survey: several need their
   controllers reshaped to carry a model instead of a name string, and the public
   points-structure page raises a privacy question the owner has not answered.
-- **Still outstanding:** `public/images/default_profile.png` is now unreachable
-  from any view, but the file (1.9MB) and `User::profile_image_url`'s fallback
-  branch remain, along with `ProfilePictureTest` asserting them.
+- **The stock face is deleted**, not merely unreferenced -- 1.9MB that rsync
+  shipped on every deploy for an image no page asked for. `profile_image_url`
+  answers **null** when there is no photo, which is what makes it a question
+  worth asking: while it always returned a URL it could not distinguish "has a
+  photo" from "has none", and `<x-avatar>` had to consult `profile_image`
+  itself. Two guards keep the pair honest, because a reference surviving the
+  file is worse than either alone -- every avatar would be a broken image.
+  `AvatarTest` checks the file is gone AND that nothing quoted still names it
+  (prose in `User` and `x-avatar` explaining the history is deliberately left
+  alone), and a second test resolves every `asset('images|build|fonts/...')`
+  path in every view against `public/`. A missing asset otherwise fails
+  silently: no exception, no failing test, nothing in a log.
 
 ### The application timezone is America/Regina (2026-09-05)
 
