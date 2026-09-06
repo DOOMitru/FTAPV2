@@ -26,6 +26,9 @@ class MailCheck extends Command
     /** Stock Laravel values that mean "nobody configured this". */
     private const PLACEHOLDERS = ['hello@example.com', 'example@example.com', ''];
 
+    /** What a from-NAME says when nobody set one. 'example' is Laravel's own default. */
+    private const PLACEHOLDER_NAMES = ['example', 'laravel', ''];
+
     /** Hosts that only resolve on the machine that sent the mail. */
     private const LOCAL_HOSTS = ['localhost', '127.0.0.1', '::1', '0.0.0.0'];
 
@@ -67,6 +70,19 @@ class MailCheck extends Command
             );
         }
 
+        // The address was checked from the first version of this command and
+        // the name was not, so "Nothing here would silently fail" was reported
+        // for a mailer whose messages arrived from "Example". A from-name is
+        // the first thing a recipient reads, and the wrong one is the whole
+        // difference between a league email and a suspicious one.
+        if (in_array(strtolower((string) $fromName), self::PLACEHOLDER_NAMES, true)) {
+            $problems[] = sprintf(
+                'MAIL_FROM_NAME is "%s". That is the name every recipient sees in their inbox '
+                .'before they see the subject. Set MAIL_FROM_NAME in this server\'s .env.',
+                $fromName
+            );
+        }
+
         if (in_array(strtolower((string) $contact), self::PLACEHOLDERS, true)) {
             $problems[] = sprintf(
                 'LEAGUE_CONTACT_EMAIL is still the placeholder (%s). Contact-form submissions are '
@@ -105,8 +121,8 @@ class MailCheck extends Command
                 'Sending a test message to '.$address,
                 function () use ($address) {
                     Mail::raw(
-                        "This is a test message from ".config('app.name').".\n\n"
-                        ."If you are reading it, the mailer is configured and delivering.",
+                        'This is a test message from '.config('app.name').".\n\n"
+                        .'If you are reading it, the mailer is configured and delivering.',
                         fn ($message) => $message->to($address)->subject(config('app.name').' — mail check')
                     );
 

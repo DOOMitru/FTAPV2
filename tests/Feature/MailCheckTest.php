@@ -41,6 +41,62 @@ class MailCheckTest extends TestCase
             ->assertExitCode(1);
     }
 
+    public function test_it_fails_when_the_from_name_is_still_the_placeholder(): void
+    {
+        // The case this command missed. It reported "nothing here would
+        // silently fail" for a production mailer whose messages arrived from
+        // "Example", because it had only ever looked at the from ADDRESS -- and
+        // the name is what a recipient reads first, before the subject.
+        config([
+            'mail.default' => 'smtp',
+            'mail.from.address' => 'league@firsttoact.com',
+            'mail.from.name' => 'Example',
+            'mail.league_contact' => 'league@firsttoact.com',
+        ]);
+
+        $this->artisan('mail:check')
+            ->expectsOutputToContain('MAIL_FROM_NAME')
+            ->assertExitCode(1);
+    }
+
+    public function test_it_passes_a_real_from_name(): void
+    {
+        // The other half. Without this the test above passes just as well
+        // against a command that complains about every from-name there is.
+        config([
+            'mail.default' => 'smtp',
+            'mail.from.address' => 'league@firsttoact.com',
+            'mail.from.name' => 'First to Act Poker',
+            'mail.league_contact' => 'league@firsttoact.com',
+            'app.url' => 'https://firsttoactpoker.com',
+        ]);
+
+        $this->artisan('mail:check')->assertExitCode(0);
+    }
+
+    public function test_the_from_name_falls_back_to_the_league_rather_than_to_laravels_placeholder(): void
+    {
+        // A server .env missing MAIL_FROM_NAME is exactly what happened, and
+        // Laravel's stock config answers 'Example'. The fallback is checked by
+        // evaluating the config file itself with the variable cleared, because
+        // config('mail.from.name') only ever reports what THIS machine's .env
+        // happens to say.
+        $repository = \Illuminate\Support\Env::getRepository();
+        $before = $repository->get('MAIL_FROM_NAME');
+        $repository->clear('MAIL_FROM_NAME');
+
+        try {
+            $mail = require config_path('mail.php');
+
+            $this->assertNotSame('Example', $mail['from']['name']);
+            $this->assertSame(env('APP_NAME'), $mail['from']['name']);
+        } finally {
+            if ($before !== null) {
+                $repository->set('MAIL_FROM_NAME', $before);
+            }
+        }
+    }
+
     public function test_it_fails_when_the_league_contact_is_still_the_placeholder(): void
     {
         config([
