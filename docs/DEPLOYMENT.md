@@ -112,16 +112,23 @@ DreamHost gives you -- it is a `mysql.yourdomain.com` style name, not
 ## 3. The server's `.env`
 
 The deploy never touches `.env`; it is excluded from the sync precisely so a
-release cannot overwrite production configuration. Create it once by hand:
+release cannot overwrite production configuration. Create it once by hand.
+
+The deploy creates the directory itself, so the order that works is: let the
+first deploy run, then fill in `.env`, then re-run it. The first attempt stops
+with a message telling you exactly that.
 
 ```
 ssh you@host
-mkdir -p ~/apps/ftap && cd ~/apps/ftap
-# after the first deploy has put the code here:
+cd /home/you/apps/ftap          # absolute path, the same one in DEPLOY_PATH
 cp .env.example .env
 /usr/local/php85/bin/php artisan key:generate
 nano .env
 ```
+
+**`DEPLOY_PATH` must be absolute.** A leading `~` does not expand inside the
+quoted commands the deploy runs, and the resulting error is unhelpful -- so the
+workflow checks it and fails early with a clear message instead.
 
 The values that matter:
 

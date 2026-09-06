@@ -180,14 +180,35 @@ jobs:
           # deploy fails instead of handing the release to whoever answers.
           ssh-keyscan -H "$HOST" >> ~/.ssh/known_hosts 2>/dev/null
 
+      - name: Make sure the deploy directory exists
+        # rsync creates only the LAST component of a destination path, so a
+        # DEPLOY_PATH of /home/you/apps/ftap fails with "mkdir ... No such file
+        # or directory" whenever apps/ is not already there. mkdir -p makes the
+        # whole chain, and is a no-op on every deploy after the first.
+        #
+        # DEPLOY_PATH must be absolute. A leading ~ will not expand inside the
+        # quoted cd below, and the failure is confusing when it does not.
+        env:
+          SSH: ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}
+          PATH_ON_SERVER: ${{ secrets.DEPLOY_PATH }}
+        run: |
+          case "$PATH_ON_SERVER" in
+            /*) ;;
+            *) echo "DEPLOY_PATH must be an absolute path, not '$PATH_ON_SERVER'"; exit 1 ;;
+          esac
+          ssh -i ~/.ssh/id_deploy "$SSH" "mkdir -p '$PATH_ON_SERVER'"
+
       - name: Put the site into maintenance mode
         env:
           SSH: ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}
           PATH_ON_SERVER: ${{ secrets.DEPLOY_PATH }}
           PHP: ${{ vars.DEPLOY_PHP || '/usr/local/php85/bin/php' }}
         run: |
+          # Nothing to take down before the first release has landed. Testing
+          # for artisan says that precisely, where "|| true" would also swallow
+          # a genuine failure on every deploy after this one.
           ssh -i ~/.ssh/id_deploy "$SSH" \
-            "cd '$PATH_ON_SERVER' && $PHP artisan down --retry=30 || true"
+            "[ -f '$PATH_ON_SERVER/artisan' ] || exit 0; cd '$PATH_ON_SERVER' && $PHP artisan down --retry=30"
 
       - name: Sync the release
         env:
@@ -225,6 +246,15 @@ jobs:
             set -euo pipefail
             cd '$PATH_ON_SERVER'
 
+            # .env is excluded from the sync -- a release must never overwrite
+            # production configuration -- so it is created by hand, once. Saying
+            # that here turns an otherwise baffling "no application encryption
+            # key" or connection-refused trace into an instruction.
+            if [ ! -f .env ]; then
+              echo "::error::No .env at \$PATH_ON_SERVER. Create it once by hand -- see docs/DEPLOYMENT.md section 3 -- then re-run this deploy."
+              exit 1
+            fi
+
             # --force: migrate refuses to run unprompted in production without
             # it, and there is nobody here to answer the prompt.
             $PHP artisan migrate --force
@@ -253,5 +283,8 @@ jobs:
           PATH_ON_SERVER: ${{ secrets.DEPLOY_PATH }}
           PHP: ${{ vars.DEPLOY_PHP || '/usr/local/php85/bin/php' }}
         run: |
+          # Same guard. This step is if: always(), so it also runs after a
+          # deploy that failed before any code arrived -- and a site that was
+          # never there does not need bringing back.
           ssh -i ~/.ssh/id_deploy "$SSH" \
-            "cd '$PATH_ON_SERVER' && $PHP artisan up"
+            "[ -f '$PATH_ON_SERVER/artisan' ] || exit 0; cd '$PATH_ON_SERVER' && $PHP artisan up"
