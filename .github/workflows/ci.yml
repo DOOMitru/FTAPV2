@@ -227,7 +227,29 @@ jobs:
             /*) ;;
             *) echo "DEPLOY_PATH must be an absolute path, not '$PATH_ON_SERVER'"; exit 1 ;;
           esac
-          ssh -o ConnectTimeout=20 -o IdentitiesOnly=yes -i ~/.ssh/id_deploy "$SSH" "mkdir -p '$PATH_ON_SERVER'"
+          # The app directory, and the writable skeleton underneath it.
+          #
+          # storage/ is excluded from the sync -- it holds the logs, the
+          # sessions and the uploaded sponsor logos, none of which a release may
+          # overwrite -- so those directories never arrive with the code and
+          # have to exist here instead. Without them `view:cache` fails with
+          # "View path not found", because it clears before it compiles.
+          #
+          # mkdir -p is idempotent: it creates what is missing and leaves
+          # everything already there, including the uploads, untouched.
+          ssh -o ConnectTimeout=20 -o IdentitiesOnly=yes -i ~/.ssh/id_deploy "$SSH" "
+            set -e
+            mkdir -p '$PATH_ON_SERVER'
+            cd '$PATH_ON_SERVER'
+            mkdir -p storage/framework/cache/data
+            mkdir -p storage/framework/sessions
+            mkdir -p storage/framework/views
+            mkdir -p storage/framework/testing
+            mkdir -p storage/logs
+            mkdir -p storage/app/public
+            mkdir -p bootstrap/cache
+            chmod -R 775 storage bootstrap/cache
+          "
 
       - name: Put the site into maintenance mode
         env:
