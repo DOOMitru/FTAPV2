@@ -12,3 +12,17 @@ updates:
     open-pull-requests-limit: 5
     commit-message:
       prefix: ci
+    groups:
+      # Routine bumps arrive as ONE pull request rather than one per action:
+      # four separate PRs a week for patch releases is noise, and noise gets
+      # rubber-stamped.
+      actions-minor:
+        patterns: ['*']
+        update-types: [minor, patch]
+      # Majors stay separate and are reviewed one at a time. A major version of
+      # a GitHub action usually means a new runner or Node runtime underneath
+      # it, which is exactly the change worth reading before merging -- and
+      # worth being able to revert on its own.
+      actions-major:
+        patterns: ['*']
+        update-types: [major]
