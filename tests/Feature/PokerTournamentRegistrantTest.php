@@ -16,7 +16,7 @@ class PokerTournamentRegistrantTest extends TestCase
     {
         $admin = User::factory()->create(['is_admin' => true]);
         $player = User::factory()->create();
-        $tournament = PokerTournament::factory()->create(['start_time' => now(), 'scheduled_at' => now()]);
+        $tournament = PokerTournament::factory()->create(['start_time' => now()]);
 
         $response = $this->actingAs($admin)->post(route('poker.registrants.store'), [
             'tournament_id' => $tournament->id,
@@ -39,7 +39,7 @@ class PokerTournamentRegistrantTest extends TestCase
         $admin = User::factory()->create(['is_admin' => true]);
         $player = User::factory()->create();
         $startTime = now()->subHour();
-        $tournament = PokerTournament::factory()->create(['start_time' => $startTime, 'scheduled_at' => $startTime]);
+        $tournament = PokerTournament::factory()->create(['start_time' => $startTime]);
 
         $response = $this->actingAs($admin)->post(route('poker.registrants.store'), [
             'tournament_id' => $tournament->id,
@@ -59,7 +59,7 @@ class PokerTournamentRegistrantTest extends TestCase
     {
         $admin = User::factory()->create(['is_admin' => true]);
         $player = User::factory()->create();
-        $tournament = PokerTournament::factory()->create(['start_time' => now(), 'scheduled_at' => now()]);
+        $tournament = PokerTournament::factory()->create(['start_time' => now()]);
 
         $registrant = PokerTournamentRegistrant::create([
             'tournament_id' => $tournament->id,

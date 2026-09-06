@@ -41,18 +41,12 @@
              not the card's top-end corner. --}}
         <div class="p-event__status">
             <div class="l-cluster">
-            {{-- Conditional, deliberately. This badge used to render
-                 unconditionally on every upcoming tournament, so a tournament
-                 whose registration had closed still announced "Registration
-                 Open" while showing no register button. registration_open is
-                 true only when scheduled_at is set AND not past -- which is not
-                 the same as "play has not started". --}}
-            @if ($tournament->registration_open)
-                <x-badge variant="open">{{ __('Registration Open') }}</x-badge>
-            @else
-                <x-badge>{{ __('Registration Closed') }}</x-badge>
-            @endif
-
+            {{-- No Registration Open / Registration Closed badge here any
+                 more. Its only input was the deadline, and there is no deadline
+                 -- a badge reading "Registration Open" on every card forever
+                 tells a reader nothing they could act on. What governs entry
+                 now is whether the tournament has results, and the card already
+                 shows that: a settled field shows finishes, not a button. --}}
             <x-badge>{{ $tournament->season->name }}</x-badge>
 
             @auth
@@ -173,16 +167,6 @@
             </div>
         </div>
 
-        <div class="p-event__facts">
-            <div>
-                <span class="p-contact__label">{{ __('Registration Closes') }}</span>
-                <span class="p-contact__value">
-                    {{ ($tournament->scheduled_at ?? $tournament->start_time)->format('M d, Y') }}
-                    &middot; {{ ($tournament->scheduled_at ?? $tournament->start_time)->format('g:i A') }}
-                </span>
-            </div>
-        </div>
-
         {{-- Anything a consumer wants between the facts and the actions -- the
              tournament's own description, contextual links. Empty on the events
              and home pages, which pass no slot. --}}
@@ -198,13 +182,22 @@
 
             // The two states of one control. A player either joins from here or
             // leaves from here, and the row holds whichever applies.
+            // No deadline condition. Entering late is safe -- the shift hook
+            // moves recorded finishes down to match the bigger field -- so the
+            // only things stopping a player entering are being in already and
+            // not being approved yet.
             $canRegister = auth()->check()
                 && ! $isRegistered
-                && auth()->user()->isApproved()
-                && $tournament->registration_open;
+                && auth()->user()->isApproved();
 
-            // Both conditions are the controller's: it refuses a withdrawal
-            // once registration has closed.
+            // The controller's one rule, restated. Withdrawing is refused only
+            // once a finish is on record, because a place is a position in a
+            // field and taking a player out of a settled one makes every
+            // recorded place describe a tournament that never happened.
+            //
+            // Asymmetric with $canRegister above, deliberately: joining a field
+            // of ten makes it a field of eleven, unambiguously, while leaving
+            // one leaves the question of whether you played at all.
             //
             // This used to arrive through an `actions` slot that only the
             // details page filled, on the reasoning that leaving a tournament
@@ -212,7 +205,7 @@
             // card is willing to tell you that you are registered, it should be
             // willing to let you undo it. The slot had no other caller, so it
             // is gone rather than left as an extension point nothing extends.
-            $canUnregister = $isRegistered && $tournament->registration_open;
+            $canUnregister = $isRegistered && ! $tournament->hasRecordedResults();
         @endphp
 
         @if ($isRegistered || $canRegister || $canUnregister)
@@ -245,7 +238,7 @@
                      whichever one you happened to click. --}}
                 @if ($canUnregister)
                     <form action="{{ route('tournaments.unregister', $tournament) }}" method="POST"
-                          data-confirm="{{ __('Unregister from :tournament? You can enter again while registration is open.', [
+                          data-confirm="{{ __('Unregister from :tournament? You can enter again any time before results are recorded.', [
                               'tournament' => $tournament->name,
                           ]) }}">
                         @csrf

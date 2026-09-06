@@ -29,7 +29,18 @@ class EventCardTest extends TestCase
 {
     use RefreshDatabase;
 
-    private function tournament(string $closesIn = '+3 days'): PokerTournament
+    private function recordAFinish(PokerTournament $tournament, User $player): void
+    {
+        \App\Models\PokerTournamentResult::create([
+            'tournament_id' => $tournament->id,
+            'user_id' => $player->id,
+            'player_name' => $player->first_name.' '.$player->last_name,
+            'place' => 1,
+            'points' => 0,
+        ]);
+    }
+
+    private function tournament(): PokerTournament
     {
         $season = PokerSeason::create([
             'name' => 'Season 12',
@@ -40,8 +51,6 @@ class EventCardTest extends TestCase
 
         return PokerTournament::create([
             'name' => 'Ironclad Invitational',
-            // registration_open reads scheduled_at, not start_time.
-            'scheduled_at' => now()->modify($closesIn),
             'start_time' => now()->addDays(4),
             'venue_id' => Venue::create(['name' => 'Ironclad Hall', 'address' => '9 Chip Row'])->id,
             'season_id' => $season->id,
@@ -109,14 +118,16 @@ class EventCardTest extends TestCase
             ->assertSee(route('tournaments.unregister', $tournament), false);
     }
 
-    public function test_unregister_is_not_offered_once_registration_has_closed(): void
+    public function test_unregister_is_not_offered_once_a_finish_is_recorded(): void
     {
-        // The controller refuses it, so offering the control would be a button
-        // that fails. registration_open is false once scheduled_at is past,
-        // which is not the same as play having begun.
-        $tournament = $this->tournament(closesIn: '-1 day');
+        // The controller refuses it then, so offering the control would be a
+        // button that fails. Nothing about the clock enters into it: this
+        // tournament is four days away and the way out is still shut, because a
+        // recorded place describes a field of a particular size.
+        $tournament = $this->tournament();
         $player = User::factory()->create();
         $this->register($tournament, $player);
+        $this->recordAFinish($tournament, $player);
 
         $this->actingAs($player)
             ->get(route('tournaments.show', $tournament))
@@ -234,13 +245,15 @@ class EventCardTest extends TestCase
         }
     }
 
-    public function test_the_badge_stands_alone_once_registration_has_closed(): void
+    public function test_the_badge_stands_alone_once_a_finish_is_recorded(): void
     {
-        // The controller refuses a withdrawal past the cutoff, so the row keeps
-        // the badge and draws no button group beside it.
-        $tournament = $this->tournament(closesIn: '-1 day');
+        // The same on the home page's copy of the card, which builds its own
+        // query -- so a page that forgot the results count would show a
+        // different answer from the details page for the same tournament.
+        $tournament = $this->tournament();
         $player = User::factory()->create();
         $this->register($tournament, $player);
+        $this->recordAFinish($tournament, $player);
 
         $this->actingAs($player)->get('/')->assertOk()
             ->assertSee('Registered')

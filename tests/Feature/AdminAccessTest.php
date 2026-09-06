@@ -109,7 +109,6 @@ class AdminAccessTest extends TestCase
 
         return PokerTournament::create([
             'name' => 'Weekly Freezeout',
-            'scheduled_at' => now()->addDays(7),
             'start_time' => now()->addDays(7)->addMinutes(30),
             'venue_id' => $venue->id,
             'season_id' => $season->id,

@@ -60,12 +60,30 @@ return [
     |--------------------------------------------------------------------------
     |
     | Here you may specify the default timezone for your application, which
-    | will be used by the PHP date and date-time functions. The timezone
-    | is set to "UTC" by default as it is suitable for most use cases.
+    | will be used by the PHP date and date-time functions.
+    |
+    | The league plays in Regina, and every date this app holds is a local wall
+    | clock time somebody typed into a form: a tournament starts at 7pm, venue
+    | points were earned on the 9th. A datetime-local input posts naive text
+    | with no zone, so under UTC those were stored as 7pm UTC -- which reads
+    | back as 7pm and therefore looks perfectly correct, while being a real
+    | instant six hours earlier than the one intended. now() is a genuine
+    | moment, so every comparison against one of these was six hours out: a
+    | tournament starting at 7pm dropped off "upcoming" at 1pm, and the details
+    | page showed Final Standings before anyone sat down.
+    |
+    | Saskatchewan does not observe daylight saving -- America/Regina is CST at
+    | a fixed -06:00 all year. The usual reason to insist on UTC storage is
+    | ambiguous and skipped local times at the DST changeover, and this zone has
+    | none, so the wall clock in the database is unambiguous.
+    |
+    | Not read from the environment. An APP_TIMEZONE that nobody sets on one
+    | server reintroduces exactly the bug this fixes, silently, and a league in
+    | Regina is not going to be reconfigured per environment.
     |
     */
 
-    'timezone' => 'UTC',
+    'timezone' => 'America/Regina',
 
     /*
     |--------------------------------------------------------------------------

@@ -252,7 +252,6 @@ class FinaleQualificationTest extends TestCase
     {
         $tournament = PokerTournament::create([
             'name' => 'Heat '.uniqid(),
-            'scheduled_at' => now()->subDays(5),
             'start_time' => now()->subDays(5),
             'venue_id' => Venue::create(['name' => 'Room '.uniqid(), 'address' => 'x'])->id,
             'season_id' => $season->id,

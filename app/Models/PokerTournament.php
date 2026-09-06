@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -20,28 +19,14 @@ class PokerTournament extends Model
     protected $fillable = [
         'name',
         'description',
-        'scheduled_at',
         'start_time',
         'venue_id',
         'season_id',
     ];
 
     protected $casts = [
-        'scheduled_at' => 'datetime',
         'start_time' => 'datetime',
     ];
-
-    /**
-     * Registration closes at scheduled_at, which is earlier than start_time.
-     * "Not started" is not the same as "still open".
-     */
-    protected function registrationOpen(): Attribute
-    {
-        return Attribute::make(
-            get: fn () => $this->scheduled_at !== null
-                && ! \Illuminate\Support\Carbon::parse($this->scheduled_at)->isPast(),
-        );
-    }
 
     /**
      * The podium, but only the places that are actually settled.

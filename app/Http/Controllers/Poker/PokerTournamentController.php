@@ -44,8 +44,7 @@ class PokerTournamentController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
-            'scheduled_at' => 'required|date',
-            'start_time' => 'required|date|after_or_equal:scheduled_at',
+            'start_time' => 'required|date',
             'venue_id' => 'required|exists:venues,id',
         ]);
 
@@ -92,8 +91,7 @@ class PokerTournamentController extends Controller
         // already computed here so the card and the page around it cannot
         // disagree about whether you are in this tournament.
         $tournament->viewer_registered = $isUserRegistered;
-        // "Past" means play has begun, which is start_time — not the
-        // registration cutoff held in scheduled_at.
+        // "Past" means play has begun.
         $isPast = \Illuminate\Support\Carbon::parse($tournament->start_time)->isPast();
 
         $pointsStructure = PointsStructure::orderBy('place')->get();
@@ -154,14 +152,11 @@ class PokerTournamentController extends Controller
     {
         $validated = $request->validate(['user_id' => ['required', 'string']]);
 
-        // Registration still open means the field is not settled: a late entry
-        // would change how many places there are to hand out, and the ones
-        // already awarded would be wrong. The button is not rendered in this
-        // state either, but the route is reachable without it.
-        if ($tournament->registration_open) {
-            return back()->with('error', __('Registration is still open for this tournament, so no one can be eliminated yet.'));
-        }
-
+        // No gate on timing. This used to require registration closed, on the
+        // reasoning that a late entry would change how many places there are to
+        // hand out -- but the shift hook already handles exactly that, moving
+        // every recorded finish down when someone registers after the fact. The
+        // arithmetic below is a live count either way.
         $registrant = $tournament->registrants()->where('user_id', $validated['user_id'])->first();
 
         if (! $registrant) {
@@ -207,11 +202,14 @@ class PokerTournamentController extends Controller
     {
         $isAdmin = auth()->user()->is_admin;
         $targetUserId = ($isAdmin && $request->has('user_id')) ? $request->user_id : auth()->id();
-        
-        // Only enforce "past" check for non-admins
-        if (!$isAdmin && \Illuminate\Support\Carbon::parse($tournament->scheduled_at)->isPast()) {
-            return back()->with('error', 'Registration has closed for this tournament.');
-        }
+
+        // No deadline check any more, for anyone. Entering a tournament that
+        // already has results is deliberately still allowed: a late entry
+        // changes the size of the field, and PokerTournamentRegistrant's shift
+        // hook moves every recorded finish down to match. That is why joining
+        // late is safe where leaving late is not -- adding a player to a field
+        // of ten makes it a field of eleven, unambiguously, while removing one
+        // leaves the question of whether they played at all.
 
         // Check if the target user is already registered
         if ($tournament->registrants()->where('user_id', $targetUserId)->exists()) {
@@ -256,15 +254,12 @@ class PokerTournamentController extends Controller
      */
     public function unregister(PokerTournament $tournament): RedirectResponse
     {
-        if (\Illuminate\Support\Carbon::parse($tournament->scheduled_at)->isPast()) {
-            return back()->with('error', 'Registration has closed, so this entry can no longer be withdrawn.');
-        }
-
-        // Belt and braces: a player cannot reach this once results exist,
-        // because withdrawing needs registration open and eliminating needs it
-        // closed. That is two other guards happening to agree rather than this
-        // rule being enforced, and the day either one moves, this becomes the
-        // hole that lets a settled field change size.
+        // The only rule left, and the one that was always doing the work. A
+        // place is a position in a field -- tenth of ten -- so once a finish is
+        // recorded, taking a player out makes that finish describe a tournament
+        // that never happened. The deadline used to sit in front of this and
+        // refuse first; it refused plenty of withdrawals this rule has no
+        // objection to, from players who simply changed their mind on the day.
         if ($tournament->hasRecordedResults()) {
             return back()->with('error', __(
                 'Results have been recorded for this tournament, so entries can no longer be withdrawn.'
@@ -300,8 +295,7 @@ class PokerTournamentController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
-            'scheduled_at' => 'required|date',
-            'start_time' => 'required|date|after_or_equal:scheduled_at',
+            'start_time' => 'required|date',
             'venue_id' => 'required|exists:venues,id',
             'season_id' => 'required|exists:seasons,id',
         ]);

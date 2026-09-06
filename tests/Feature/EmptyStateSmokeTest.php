@@ -155,9 +155,8 @@ class EmptyStateSmokeTest extends TestCase
      *
      * poker/tournaments/show.blade.php's Final Standings @forelse/@empty
      * block only renders at all when $isPast is true, and $isPast is
-     * derived from start_time — not scheduled_at, which is what the
-     * registration guards use (they are deliberately different cutoffs).
-     * A single future-dated fixture therefore only ever exercises the
+     * derived from start_time. A single future-dated fixture therefore
+     * only ever exercises the
      * Registered Players @empty branch: $isPast is false, so the Final
      * Standings section (and its "No results recorded yet." empty arm)
      * is skipped by the @if($isPast) wrapper and never rendered at all —
@@ -188,18 +187,15 @@ class EmptyStateSmokeTest extends TestCase
 
         $futureTournament = PokerTournament::create([
             'name' => 'Untouched Tournament',
-            'scheduled_at' => now()->addDays(7),
             'start_time' => now()->addDays(7)->addMinutes(30),
             'venue_id' => $venue->id,
             'season_id' => $season->id,
         ]);
 
-        // Both scheduled_at and start_time are in the past, so $isPast is
-        // true and the Final Standings section (and its @empty arm)
-        // actually renders.
+        // start_time is in the past, so $isPast is true and the Final
+        // Standings section (and its @empty arm) actually renders.
         $pastTournament = PokerTournament::create([
             'name' => 'Concluded Untouched Tournament',
-            'scheduled_at' => now()->subWeeks(2),
             'start_time' => now()->subWeeks(2)->addMinutes(30),
             'venue_id' => $venue->id,
             'season_id' => $season->id,

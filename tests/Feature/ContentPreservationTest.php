@@ -48,7 +48,6 @@ class ContentPreservationTest extends TestCase
 
         $tournamentOne = PokerTournament::create([
             'name' => 'Preservation Opener',
-            'scheduled_at' => now()->subWeeks(3),
             'start_time' => now()->subWeeks(3)->addMinutes(30),
             'venue_id' => $venue->id,
             'season_id' => $season->id,
@@ -56,7 +55,6 @@ class ContentPreservationTest extends TestCase
 
         $tournamentTwo = PokerTournament::create([
             'name' => 'Preservation Rematch',
-            'scheduled_at' => now()->subWeek(),
             'start_time' => now()->subWeek()->addMinutes(30),
             'venue_id' => $venue->id,
             'season_id' => $season->id,
@@ -117,7 +115,6 @@ class ContentPreservationTest extends TestCase
 
         $tournament = PokerTournament::create([
             'name' => 'Ironclad Invitational',
-            'scheduled_at' => now()->subWeeks(2),
             'start_time' => now()->subWeeks(2)->addMinutes(30),
             'venue_id' => $venue->id,
             'season_id' => $season->id,
@@ -214,7 +211,6 @@ class ContentPreservationTest extends TestCase
         foreach ($places as $index => $place) {
             $tournament = PokerTournament::create([
                 'name' => "Career Stats Event {$index}",
-                'scheduled_at' => now()->subWeeks(4 - $index),
                 'start_time' => now()->subWeeks(4 - $index)->addMinutes(30),
                 'venue_id' => $venue->id,
                 'season_id' => $season->id,
@@ -577,7 +573,6 @@ class ContentPreservationTest extends TestCase
                 'season_id' => $season->id,
                 'venue_id' => $venue->id,
                 'start_time' => now()->subWeeks($index + 1),
-                'scheduled_at' => now()->subWeeks($index + 2),
             ]);
 
             PokerTournamentResult::factory()->create([

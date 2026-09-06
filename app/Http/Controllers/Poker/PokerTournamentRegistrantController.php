@@ -63,7 +63,11 @@ class PokerTournamentRegistrantController extends Controller
         $validated['registered_by'] = $request->user()?->id;
 
         $tournament = PokerTournament::findOrFail($validated['tournament_id']);
-        $validated['is_late_entry'] = strtotime($validated['registered_at']) > strtotime($tournament->scheduled_at);
+        // Measured against start_time now that there is no registration
+        // deadline to be late for. "Late" means play had already begun, which
+        // is what the flag was read as anyway -- and what its test has always
+        // been named after, though the arithmetic said otherwise.
+        $validated['is_late_entry'] = strtotime($validated['registered_at']) > strtotime($tournament->start_time);
 
         PokerTournamentRegistrant::create($validated);
 
@@ -125,8 +129,18 @@ class PokerTournamentRegistrantController extends Controller
             ));
         }
 
+        $name = $registrant->player_name;
+        $tournament = $registrant->tournament->name;
+
         $registrant->delete();
 
-        return redirect()->route('poker.registrants.index')->with('status', 'Tournament registrant removed successfully!');
+        // back(), not the registrants index. This is now reached from the
+        // tournament page as well, and landing an admin in a list of every
+        // entry in the league after removing one is a page they did not ask
+        // for. From the index, back() IS the index.
+        return back()->with('status', __(':name has been removed from :tournament.', [
+            'name' => $name,
+            'tournament' => $tournament,
+        ]));
     }
 }

@@ -26,7 +26,6 @@ class PokerTournamentTest extends TestCase
 
         $response = $this->actingAs($user)->post(route('poker.tournaments.store'), [
             'name' => 'Tournament 1',
-            'scheduled_at' => now()->addDays(7)->format('Y-m-d H:i:s'),
             'start_time' => now()->addDays(7)->format('Y-m-d H:i:s'),
             'venue_id' => $venue->id,
             // 'season_id' no longer needed in request
@@ -46,7 +45,6 @@ class PokerTournamentTest extends TestCase
 
         $response = $this->actingAs($user)->post(route('poker.tournaments.store'), [
             'name' => 'Tournament 1',
-            'scheduled_at' => now()->addDays(7)->format('Y-m-d H:i:s'),
             'start_time' => now()->addDays(7)->format('Y-m-d H:i:s'),
             'venue_id' => $venue->id,
         ]);

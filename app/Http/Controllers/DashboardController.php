@@ -18,6 +18,9 @@ class DashboardController extends Controller
 
         // 1. Upcoming Tournaments
         $upcomingTournaments = PokerTournament::with(['venue', 'registrants'])
+            // The row offers a withdrawal only while nothing is recorded, and
+            // hasRecordedResults() queries per tournament without a count.
+            ->withCount('results')
             ->where('start_time', '>', $now)
             ->orderBy('start_time', 'asc')
             ->take(5)

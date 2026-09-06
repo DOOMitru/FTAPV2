@@ -98,13 +98,6 @@ class DatabaseSeeder extends Seeder
                 $tournament = PokerTournament::create([
                     'name'        => ($tournamentNames[$t % count($tournamentNames)]) . ' ' . $sd['name'],
                     'description' => null,
-                    // One derived from the other, never two independent rolls.
-                    // rand(17, 19) called TWICE produced unrelated hours in the
-                    // same window, so seeded tournaments closed registration up
-                    // to two hours AFTER play began -- data the app's own
-                    // validation rejects (start_time is after_or_equal
-                    // scheduled_at on both store and update).
-                    'scheduled_at'=> $tournamentDate->copy()->setTime($startHour - 1, 0),
                     'start_time'  => $tournamentDate->copy()->setTime($startHour, 0),
                     'season_id'   => $season->id,
                     'venue_id'    => $venues->random()->id,

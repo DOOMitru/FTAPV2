@@ -58,7 +58,6 @@ class VenuePointsSeasonTest extends TestCase
     {
         $tournament = PokerTournament::create([
             'name' => 'Wednesday Night Poker',
-            'scheduled_at' => now()->subDays(3),
             'start_time' => now()->subDays(3),
             'venue_id' => Venue::create(['name' => 'Hall '.uniqid(), 'address' => 'x'])->id,
             'season_id' => $season->id,

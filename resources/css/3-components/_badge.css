@@ -28,11 +28,11 @@
     color: var(--c-primary);
 }
 
-/* Felt green, for a state that is OPEN or WON -- registration open, you're
-   registered, the current season. Distinct from .badge--primary, which marks
-   IDENTITY (Admin, Podium Level) rather than state. The two were the same
-   variant until now, so a badge saying "Registration Open" and one saying
-   "Admin" looked like the same kind of fact. */
+/* Felt green, for a state that is OPEN or WON -- you're registered, the current
+   season. Distinct from .badge--primary, which marks IDENTITY (Admin, Podium
+   Level) rather than state. The two were the same variant until they were
+   split, so a badge saying "Registered" and one saying "Admin" looked like the
+   same kind of fact. */
 .badge--open {
     border-color: var(--c-open);
     color: var(--c-open);

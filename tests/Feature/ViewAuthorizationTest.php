@@ -45,7 +45,6 @@ class ViewAuthorizationTest extends TestCase
         ]);
         $tournament = PokerTournament::create([
             'name' => 'Tournament 1',
-            'scheduled_at' => now()->addDays(7),
             'start_time' => now()->addDays(7),
             'venue_id' => $venue->id,
             'season_id' => $season->id,
@@ -69,7 +68,6 @@ class ViewAuthorizationTest extends TestCase
         ]);
         $tournament = PokerTournament::create([
             'name' => 'Tournament 1',
-            'scheduled_at' => now()->addDays(7),
             'start_time' => now()->addDays(7),
             'venue_id' => $venue->id,
             'season_id' => $season->id,
@@ -113,8 +111,12 @@ class ViewAuthorizationTest extends TestCase
         $response->assertSee(route('poker.seasons.edit', $season), false);
     }
 
-    public function test_register_control_hidden_when_registration_closed_but_not_started()
+    public function test_register_control_offered_when_play_has_not_started()
     {
+        // Inverted with the deadline's removal. This tournament is a day away
+        // and its registration used to be "closed" because scheduled_at was
+        // never set -- registration_open required a non-null value, so a
+        // tournament created without one could never be entered.
         $user = User::factory()->create(['is_admin' => false]);
         $venue = Venue::create(['name' => 'Venue 1', 'address' => '123 Test St']);
         $season = PokerSeason::create([
@@ -125,7 +127,6 @@ class ViewAuthorizationTest extends TestCase
         ]);
         $tournament = PokerTournament::create([
             'name' => 'Tournament 1',
-            'scheduled_at' => now()->subDay(),
             'start_time' => now()->addDay(),
             'venue_id' => $venue->id,
             'season_id' => $season->id,
@@ -134,7 +135,7 @@ class ViewAuthorizationTest extends TestCase
         $response = $this->actingAs($user)->get(route('tournaments.show', $tournament));
 
         $response->assertOk();
-        $response->assertDontSee(route('tournaments.register', $tournament), false);
+        $response->assertSee(route('tournaments.register', $tournament), false);
     }
 
     public function test_register_control_shown_when_registration_still_open()
@@ -149,7 +150,6 @@ class ViewAuthorizationTest extends TestCase
         ]);
         $tournament = PokerTournament::create([
             'name' => 'Tournament 1',
-            'scheduled_at' => now()->addDay(),
             'start_time' => now()->addDays(2),
             'venue_id' => $venue->id,
             'season_id' => $season->id,

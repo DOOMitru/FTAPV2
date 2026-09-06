@@ -27,7 +27,10 @@
                     @forelse ($upcomingTournaments as $tournament)
                         @php
                             $isReg = $tournament->registrants->contains('user_id', Auth::id());
-                            $when = \Illuminate\Support\Carbon::parse($tournament->scheduled_at);
+                            // The date you play. This chip used to read the
+                            // registration deadline, an hour earlier, so it
+                            // could show the wrong day either side of midnight.
+                            $when = $tournament->start_time;
                         @endphp
 
                         <div class="entry">
@@ -40,7 +43,12 @@
                                 <div class="entry__title">{{ $tournament->name }}</div>
 
                                 <div class="entry__meta">
-                                    <span>{{ __('Closes') }} {{ $when->format('h:i A') }}</span>
+                                    {{-- "Closes 7:00 PM" until the deadline went.
+                                         It read the deadline then; with that gone
+                                         it would have gone on saying "Closes"
+                                         over the time play STARTS, which is a
+                                         label that actively misleads. --}}
+                                    <span>{{ $when->format('g:i A') }}</span>
                                     <span>{{ $tournament->venue->name ?? __('TBD') }}</span>
                                 </div>
                             </div>
@@ -59,13 +67,12 @@
                                          this row is asking you to do.
 
                                          The condition is the controller's --
-                                         it refuses a withdrawal once
-                                         registration has closed -- so past that
-                                         point the badge stands alone, which is
-                                         the truth of it. --}}
-                                    @if ($tournament->registration_open)
+                                         it refuses a withdrawal once a finish is
+                                         recorded -- so past that point the badge
+                                         stands alone, which is the truth of it. --}}
+                                    @if (! $tournament->hasRecordedResults())
                                         <form action="{{ route('tournaments.unregister', $tournament) }}" method="POST"
-                                              data-confirm="{{ __('Unregister from :tournament? You can enter again while registration is open.', [
+                                              data-confirm="{{ __('Unregister from :tournament? You can enter again any time before results are recorded.', [
                                                   'tournament' => $tournament->name,
                                               ]) }}">
                                             @csrf
@@ -74,7 +81,7 @@
                                             <x-btn variant="ghost" size="sm" type="submit">{{ __('Unregister') }}</x-btn>
                                         </form>
                                     @endif
-                                @elseif ($tournament->registration_open)
+                                @else
                                     {{-- Approval is the controller's gate too, and
                                          it refuses an unapproved account. Offering
                                          the button anyway is offering a click that
