@@ -41,3 +41,116 @@
     height: 1.125rem;
 }
 
+
+/* The season standings on a phone.
+   =================================================================
+   Seven columns do not fit 375px, and the meter cell alone asks for 12rem.
+   The house .table--stacked modifier would fit, but it turns each row into
+   seven label/value lines -- twenty players become a hundred and forty, and the
+   ranking, which is the entire point of a standings table, disappears into a
+   list.
+
+   So the row becomes a card instead, and the cells are placed rather than
+   stacked. The rank badge spans the full height as a vertical anchor, which is
+   what makes the column read as a ranking at a glance; the medal colours it
+   already carries for the top three do real work there. Below the name sits
+   the meter, which is the most characteristic thing this table has and was
+   previously squeezed into a narrow column. The three secondary numbers run
+   together on one line, because they answer follow-up questions rather than
+   the first one.
+
+   Desktop is untouched: everything here is inside the query. */
+@media (max-width: 48rem) {
+    /* The header row describes columns that no longer exist in this layout.
+       Hidden the way .table--stacked hides its own -- clipped rather than
+       display:none, so it still names the cells for a screen reader. */
+    .season-show__standings .table thead {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        margin: -1px;
+        padding: 0;
+        overflow: hidden;
+        clip-path: inset(50%);
+        white-space: nowrap;
+    }
+
+    /* Five columns, and the three middle ones exist so the stat run has real
+       columns to sit in. Three grid items cannot share one named area -- they
+       stack on top of each other -- so each stat is placed in its own. */
+    .season-show__standings .table tbody tr {
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr) auto;
+        grid-template-areas:
+            "rank player player player finale"
+            "rank meter  meter  meter  meter"
+            "rank played won    venue  venue";
+        align-items: center;
+        gap: var(--space-1) var(--space-3);
+        padding: var(--space-3) var(--space-4);
+        border-block-end: var(--border-width) solid var(--c-border);
+    }
+
+    .season-show__standings .table tbody tr:last-child {
+        border-block-end: 0;
+    }
+
+    /* Cells stop being cells: no borders, no padding of their own, placed by
+       area. */
+    .season-show__standings .table td {
+        padding: 0;
+        border-block-end: 0;
+        text-align: start;
+    }
+
+    .season-show__standings .season-show__rank {
+        grid-area: rank;
+        align-self: center;
+    }
+
+    .season-show__standings .season-show__player {
+        grid-area: player;
+        display: flex;
+        align-items: center;
+        gap: var(--space-2);
+        font-weight: 600;
+    }
+
+    /* The meter loses the 12rem floor that forced the scroll in the first
+       place; here it has the whole card to spread into. */
+    .season-show__standings .season-show__meter-cell {
+        grid-area: meter;
+        min-width: 0;
+    }
+
+    /* Value first -- "12 played", not "played 12" -- because a stat line reads
+       that way, which is also why this uses ::after where .table--stacked uses
+       ::before for its label/value pairs. */
+    .season-show__standings .season-show__stat {
+        display: inline-flex;
+        align-items: baseline;
+        /* em, so the space tracks the type size rather than a fixed step. */
+        gap: 0.4em;
+        font-family: var(--font-mono);
+        font-size: var(--step--2);
+        color: var(--c-text-muted);
+    }
+
+    .season-show__standings .season-show__stat::after {
+        content: attr(data-label);
+        font-family: var(--font-body);
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+    }
+
+    .season-show__standings .season-show__stat--played { grid-area: played; }
+    .season-show__standings .season-show__stat--won { grid-area: won; }
+    .season-show__standings .season-show__stat--venue { grid-area: venue; }
+
+    /* The finale mark belongs beside the name it qualifies, not in a column of
+       its own. */
+    .season-show__standings .season-show__finale {
+        grid-area: finale;
+        justify-self: end;
+    }
+}
