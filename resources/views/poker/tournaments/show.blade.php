@@ -160,7 +160,7 @@
                         <x-badge>{{ $registrantsCount }}</x-badge>
                     </x-slot>
 
-                    @forelse ($tournament->registrants->sortBy('player_name') as $registrant)
+                    @forelse ($orderedRegistrants as $registrant)
                         @php $result = $resultsByUser[$registrant->user_id] ?? null; @endphp
 
                         <div class="entry">

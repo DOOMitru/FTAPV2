@@ -14,6 +14,7 @@ use Illuminate\Http\Request;
 use Illuminate\Notifications\DatabaseNotification;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Number;
+use Illuminate\Support\Str;
 use Illuminate\View\View;
 
 class PokerTournamentController extends Controller
@@ -67,6 +68,25 @@ class PokerTournamentController extends Controller
     /**
      * Display the specified resource.
      */
+    /**
+     * The name a registrant sorts under.
+     *
+     * The account's surname when there is one. user_id is nullable with
+     * nullOnDelete on registrants, so a deleted player leaves only the
+     * player_name snapshotted at registration -- and the last word of that is
+     * the best surname available. A single-word name sorts under itself.
+     */
+    private function surnameOf(\App\Models\PokerTournamentRegistrant $registrant): string
+    {
+        if (filled($registrant->user?->last_name)) {
+            return $registrant->user->last_name;
+        }
+
+        $words = preg_split('/\s+/u', trim((string) $registrant->player_name), -1, PREG_SPLIT_NO_EMPTY) ?: [];
+
+        return $words === [] ? '' : end($words);
+    }
+
     public function show(PokerTournament $tournament): View
     {
         $tournament->load([
@@ -111,6 +131,23 @@ class PokerTournamentController extends Controller
         // each. user_id, because that is what a registrant carries.
         $resultsByUser = $tournament->results->keyBy('user_id');
 
+        // The panel reads as live standings rather than as an address book.
+        //
+        // Players still in sit at the top, because they are competing for the
+        // places above the ones already awarded -- with three of ten out
+        // holding 8th, 9th and 10th, the seven still playing will finish
+        // somewhere in 1st to 7th. Below them the finishers appear best first,
+        // matching the Final Standings table further up the same page.
+        //
+        // Places count DOWN as players go out, so the first player eliminated
+        // holds the highest number and appears last. That is a standings order,
+        // not an elimination log.
+        $orderedRegistrants = $tournament->registrants->sortBy(fn ($registrant) => [
+            isset($resultsByUser[$registrant->user_id]) ? 1 : 0,
+            $resultsByUser[$registrant->user_id]->place ?? 0,
+            Str::lower($this->surnameOf($registrant)),
+        ]);
+
         $availableUsers = collect();
         if (auth()->user()->is_admin) {
             $registeredUserIds = $tournament->registrants()->pluck('user_id')->toArray();
@@ -137,7 +174,8 @@ class PokerTournamentController extends Controller
             'availableUsers',
             'nextPlace',
             'nextPlacePoints',
-            'resultsByUser'
+            'resultsByUser',
+            'orderedRegistrants'
         ));
     }
 
