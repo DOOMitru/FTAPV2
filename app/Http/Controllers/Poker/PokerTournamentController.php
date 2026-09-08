@@ -7,9 +7,12 @@ use App\Models\PointsStructure;
 use App\Models\PokerSeason;
 use App\Models\PokerTournament;
 use App\Models\Venue;
+use App\Notifications\TournamentPlacement;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Notifications\DatabaseNotification;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Number;
 use Illuminate\View\View;
 
@@ -148,6 +151,86 @@ class PokerTournamentController extends Controller
      * many players are still in, so an administrator cannot award a place out
      * of order by clicking the wrong row.
      */
+    /**
+     * Declare the results final: tell the players who scored, and lock it.
+     *
+     * The two happen together, in one transaction. Sending without locking
+     * leaves every message open to a late registration shifting the places
+     * underneath it; locking without sending closes a tournament nobody was
+     * told about.
+     */
+    public function publish(PokerTournament $tournament): RedirectResponse
+    {
+        if ($tournament->isPublished()) {
+            return back()->with('error', __('Results for :tournament have already been published.', [
+                'tournament' => $tournament->name,
+            ]));
+        }
+
+        if (! $tournament->isComplete()) {
+            return back()->with('error', __(
+                'Every registered player needs a finish before results can be published.'
+            ));
+        }
+
+        // points > 0 is the whole recipient rule. A place the structure does
+        // not pay scores nothing, and there is nothing to celebrate about
+        // nothing.
+        $scored = $tournament->results()
+            ->where('points', '>', 0)
+            ->whereNotNull('user_id')
+            ->with('user')
+            ->get();
+
+        DB::transaction(function () use ($tournament, $scored) {
+            foreach ($scored as $result) {
+                $result->user?->notify(new TournamentPlacement($result));
+            }
+
+            $tournament->forceFill(['published_at' => now()])->save();
+        });
+
+        return back()->with('status', trans_choice(
+            '{0}Results published. Nobody scored points, so no one was notified.'
+            .'|{1}Results published. 1 player was notified.'
+            .'|[2,*]Results published. :count players were notified.',
+            $scored->count(),
+            ['count' => $scored->count()]
+        ));
+    }
+
+    /**
+     * Reopen a tournament, and retract what publishing claimed.
+     *
+     * The notifications go with it. Unpublishing means the results were not
+     * final, so a message still saying "you finished 1st" is a statement the
+     * league no longer stands behind -- and deleting them means republishing
+     * sends one clean set rather than a duplicate for everybody whose placing
+     * did not change.
+     */
+    public function unpublish(PokerTournament $tournament): RedirectResponse
+    {
+        if (! $tournament->isPublished()) {
+            return back()->with('error', __('Results for :tournament have not been published.', [
+                'tournament' => $tournament->name,
+            ]));
+        }
+
+        DB::transaction(function () use ($tournament) {
+            // Scoped by type as well as by tournament: a player's unrelated
+            // notifications are not this action's to delete.
+            DatabaseNotification::where('type', TournamentPlacement::class)
+                ->where('data->tournament_id', $tournament->id)
+                ->delete();
+
+            $tournament->forceFill(['published_at' => null])->save();
+        });
+
+        return back()->with('status', __('Results for :tournament are open again, and the notifications have been withdrawn.', [
+            'tournament' => $tournament->name,
+        ]));
+    }
+
     public function eliminate(PokerTournament $tournament, Request $request): RedirectResponse
     {
         $validated = $request->validate(['user_id' => ['required', 'string']]);

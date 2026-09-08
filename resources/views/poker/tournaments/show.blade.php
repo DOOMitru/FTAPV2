@@ -4,7 +4,42 @@
             @if (auth()->user()->is_admin)
                 <x-slot name="actions">
                     <x-btn variant="ghost" :href="route('poker.tournaments.index')">{{ __('Back') }}</x-btn>
-                    <x-btn variant="primary" :href="route('poker.tournaments.edit', $tournament)">{{ __('Edit') }}</x-btn>
+
+                    {{-- Publishing is the end of the tournament: it tells the
+                         players who scored and locks the record. Offered only
+                         when it can act, so it is never a click that fails --
+                         the controller refuses an incomplete field too. --}}
+                    @if (! $tournament->isPublished() && $tournament->isComplete())
+                        <form action="{{ route('poker.tournaments.publish', $tournament) }}" method="POST"
+                              data-confirm-tone="primary"
+                              data-confirm="{{ __('Publish results for :tournament? Every player who scored points will be notified, and the tournament will be locked.', [
+                                  'tournament' => $tournament->name,
+                              ]) }}">
+                            @csrf
+                            <x-btn variant="primary" type="submit">{{ __('Publish results') }}</x-btn>
+                        </form>
+                    @endif
+
+                    {{-- Reopening retracts what publishing said, so the
+                         confirmation says so rather than only asking. --}}
+                    @if ($tournament->isPublished())
+                        <form action="{{ route('poker.tournaments.unpublish', $tournament) }}" method="POST"
+                              data-confirm="{{ __('Unpublish :tournament? The notifications sent to players will be withdrawn.', [
+                                  'tournament' => $tournament->name,
+                              ]) }}">
+                            @csrf
+                            @method('DELETE')
+
+                            <x-btn variant="ghost" type="submit">{{ __('Unpublish') }}</x-btn>
+                        </form>
+                    @endif
+
+                    {{-- Edit steps down while Publish is on offer. Two primary
+                         buttons side by side is two calls to action and
+                         therefore none; when a tournament is finished, the
+                         thing to do with it is publish it. --}}
+                    <x-btn :variant="! $tournament->isPublished() && $tournament->isComplete() ? 'ghost' : 'primary'"
+                           :href="route('poker.tournaments.edit', $tournament)">{{ __('Edit') }}</x-btn>
                 </x-slot>
             @endif
         </x-page-header>

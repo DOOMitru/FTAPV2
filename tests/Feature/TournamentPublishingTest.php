@@ -2,13 +2,9 @@
 
 namespace Tests\Feature;
 
-use App\Models\PokerSeason;
-use App\Models\PokerTournament;
-use App\Models\PokerTournamentRegistrant;
-use App\Models\PokerTournamentResult;
 use App\Models\User;
-use App\Models\Venue;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\BuildsTournaments;
 use Tests\TestCase;
 
 /**
@@ -18,49 +14,10 @@ use Tests\TestCase;
  * late player shifts every recorded finish down, and results can be edited
  * through the admin CRUD. So completeness is a question an administrator asks
  * before publishing, and publishing is what freezes the answer.
- *
- * PublishResultsTest and PublishedTournamentLockTest extend this class for its
- * three helpers, so changing their signatures changes those files too.
  */
 class TournamentPublishingTest extends TestCase
 {
-    use RefreshDatabase;
-
-    protected function tournament(): PokerTournament
-    {
-        $season = PokerSeason::create([
-            'name' => 'Season 40', 'start_date' => '2026-08-01',
-            'end_date' => '2026-10-31', 'is_current' => true,
-        ]);
-
-        return PokerTournament::create([
-            'name' => 'Autumn Showdown',
-            'start_time' => now()->subHour(),
-            'venue_id' => Venue::create(['name' => 'Hall', 'address' => '1 St'])->id,
-            'season_id' => $season->id,
-        ]);
-    }
-
-    protected function enter(PokerTournament $tournament, User $player): void
-    {
-        PokerTournamentRegistrant::create([
-            'tournament_id' => $tournament->id,
-            'user_id' => $player->id,
-            'player_name' => $player->first_name.' '.$player->last_name,
-            'registered_at' => now(),
-        ]);
-    }
-
-    protected function score(PokerTournament $tournament, User $player, int $place, int $points): PokerTournamentResult
-    {
-        return PokerTournamentResult::create([
-            'tournament_id' => $tournament->id,
-            'user_id' => $player->id,
-            'player_name' => $player->first_name.' '.$player->last_name,
-            'place' => $place,
-            'points' => $points,
-        ]);
-    }
+    use BuildsTournaments, RefreshDatabase;
 
     public function test_an_empty_tournament_is_not_complete(): void
     {

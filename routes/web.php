@@ -196,6 +196,14 @@ Route::middleware('auth')->group(function () {
         // resource rather than inside it. Admin-only by this group.
         Route::post('tournaments/{tournament}/eliminate', [\App\Http\Controllers\Poker\PokerTournamentController::class, 'eliminate'])
             ->name('tournaments.eliminate');
+
+        // Declaring results final. Not part of the tournaments resource: it
+        // sends messages to players and closes the record, which is not what
+        // "update a tournament" means.
+        Route::post('tournaments/{tournament}/publish', [\App\Http\Controllers\Poker\PokerTournamentController::class, 'publish'])
+            ->name('tournaments.publish');
+        Route::delete('tournaments/{tournament}/publish', [\App\Http\Controllers\Poker\PokerTournamentController::class, 'unpublish'])
+            ->name('tournaments.unpublish');
         Route::resource('results', \App\Http\Controllers\Poker\PokerTournamentResultController::class)->except(['show']);
         Route::resource('registrants', \App\Http\Controllers\Poker\PokerTournamentRegistrantController::class)->except(['show']);
         Route::resource('venue-points', \App\Http\Controllers\Poker\VenuePointsController::class)->except(['show']);
