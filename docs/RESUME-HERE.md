@@ -177,6 +177,37 @@ been running fine for weeks:
   took an hour to clear. Every ssh call in the workflow names its key and only
   its key.
 
+## PHP 8.5.4 segfaults on a full-suite run (2026-09-08, unresolved)
+
+`./vendor/bin/phpunit` with no arguments dies with **exit 139, SIGSEGV**, most
+runs, at a different point each time -- sometimes 24 tests in, sometimes 567 of
+671. It is not the project's code:
+
+- It reproduces with recent changes reverted.
+- Every test file passes when run alone, including the one a crash lands in.
+- `MonogramTest` crashed inside a ten-file chunk and then passed four times in a
+  row on its own.
+- Not memory (55GB free), not disk, not opcache (off for CLI), not JIT
+  (disabled), and **not PCRE JIT** -- `-d pcre.jit=0` still segfaults.
+
+**Work around it by running in chunks**, which covers all 671:
+
+```bash
+for c in 1 2 3 4 5 6 7; do
+  s=$(( (c-1)*10 + 1 ))
+  ./vendor/bin/phpunit $(ls tests/Feature/*.php | sed -n "$s,$((s+9))p")
+done
+./vendor/bin/phpunit $(find tests/Feature -mindepth 2 -name '*.php')
+./vendor/bin/phpunit tests/Unit
+```
+
+That last line matters: `ls tests/Feature/*.php` misses `tests/Feature/Auth/`,
+which is 21 tests. 639 + 21 + 11 = 671.
+
+CI runs on its own PHP build and has never shown this, so it is a local
+toolchain problem rather than something to fix in the app. Worth a look at the
+PHP 8.5 build on this machine before it eats another afternoon.
+
 ## The screenshot harness cannot show you a phone
 
 **`chromium --headless --window-size=375,…` does NOT give a 375px viewport.**
