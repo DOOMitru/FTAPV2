@@ -97,9 +97,17 @@ class TournamentPlacementNotificationTest extends TestCase
         // against a schema that would fail on MySQL in CI. Asserting the column
         // itself is what makes the fault visible on the driver we develop on.
         //
-        // varchar with ulidMorphs, integer with morphs -- both measured rather
-        // than assumed.
-        $this->assertSame('varchar', Schema::getColumnType('notifications', 'notifiable_id'));
+        // The TYPE NAME differs by driver, though, which this test learned the
+        // hard way -- it asserted 'varchar' and broke the MySQL leg of the very
+        // pipeline it exists to protect. ulidMorphs creates a CHAR(26); SQLite
+        // reports that as varchar and MySQL as char. What matters is that it is
+        // a string type at all: morphs would give integer on SQLite and bigint
+        // on MySQL, and either fails this list.
+        $this->assertContains(
+            Schema::getColumnType('notifications', 'notifiable_id'),
+            ['char', 'varchar'],
+            'notifiable_id must hold a ULID. An integer type means the migration used morphs().'
+        );
     }
 
     public function test_it_is_stored_rather_than_mailed(): void

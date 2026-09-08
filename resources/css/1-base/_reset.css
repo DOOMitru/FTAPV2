@@ -74,7 +74,20 @@ table {
     border-collapse: collapse;
 }
 
-/* An <a> with no href is a placeholder, not a link. */
+/* An <a> with no href is a placeholder, not a link.
+ *
+ * text-decoration: none is the deliberate half. The browser underlines every
+ * anchor, and in this system most anchors are not prose links -- they are rows,
+ * cards, menu items, icon buttons, pagination and a logo, each of which had to
+ * remember to switch the underline off. Two shipped having forgotten: the venue
+ * page drew ten linked rows as thirty underlined fragments, and the tournament
+ * picker underlined every option's name AND its date.
+ *
+ * So underlining is opt-in now. .link is the opt-in, and prose that reads as a
+ * link must carry it. Anything that wants an underline says so; nothing gets
+ * one by accident.
+ */
 a {
     color: inherit;
+    text-decoration: none;
 }
