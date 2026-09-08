@@ -1,0 +1,94 @@
+/* One placement in a notification list. */
+.notification {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-3) var(--space-4);
+    border-block-end: var(--border-width) solid var(--c-border);
+}
+
+.notification:last-child {
+    border-block-end: 0;
+}
+
+/* The unread mark is the leading edge, not a colour on the text: a list has to
+   stay readable, and reading it is what makes these read. */
+.notification--unread {
+    border-inline-start: 3px solid var(--c-primary);
+    background-color: var(--c-surface-raised);
+}
+
+.notification__place {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    /* min-width, not width: "1st" through "99th" sit in a circle, and anything
+       longer grows it into a pill rather than spilling out of a fixed box. A
+       field of a hundred is not going to happen in this league, but a clipped
+       number would be the kind of fault only a screenshot ever catches. */
+    min-width: 2.5rem;
+    height: 2.5rem;
+    padding-inline: var(--space-1);
+    border-radius: var(--radius-pill);
+    background-color: var(--c-surface-raised);
+    font-family: var(--font-mono);
+    font-size: var(--step--1);
+    font-weight: 700;
+    color: var(--c-text-muted);
+}
+
+/* The medals, reusing the podium's tokens and its fixed ink -- those contrast
+   ratios were measured against these three grounds in both themes, so the ink
+   must not be re-themed here. */
+.notification--gold .notification__place {
+    background-color: var(--c-gold);
+    color: var(--c-medal-ink);
+}
+
+.notification--silver .notification__place {
+    background-color: var(--c-silver);
+    color: var(--c-medal-ink);
+}
+
+.notification--bronze .notification__place {
+    background-color: var(--c-bronze);
+    color: var(--c-medal-ink);
+}
+
+/* Scored, but not a medal. */
+.notification--scored .notification__place {
+    background-color: var(--c-primary-fill);
+    color: var(--c-primary-ink);
+}
+
+.notification__body {
+    min-width: 0;
+    flex: 1;
+}
+
+.notification__title {
+    margin: 0;
+    font-weight: 600;
+    line-height: var(--leading-tight);
+}
+
+.notification__meta {
+    margin: 0;
+    font-size: var(--step--2);
+    color: var(--c-text-muted);
+}
+
+.notification__actions {
+    display: flex;
+    align-items: center;
+    gap: var(--space-1);
+    flex-shrink: 0;
+}
+
+/* The list itself: capped so a long history scrolls inside the panel rather
+   than growing it past the bottom of the window. */
+.notification-list {
+    max-height: 20rem;
+    overflow-y: auto;
+}
