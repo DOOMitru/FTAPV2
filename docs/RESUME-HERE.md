@@ -5,7 +5,9 @@ poker nights in Regina.
 
 ## Where things stand
 
-Suite: **595 passed.** Run `php artisan test`.
+Suite: **674 passed.** `php artisan test` is the command, but see the segfault
+note below -- a full-suite run dies on this machine and has to be taken in
+chunks, which is also how that 674 was counted.
 
 **The design-system work is finished and is no longer what this project is
 about.** Phases 0-5 moved all 86 views off Tailwind onto hand-built CSS
@@ -103,9 +105,22 @@ unfinished feature and do not send it to "finish" the work.
    assertion failed. Confirmed by forcing an admin named Aaron. The helper now
    returns every confirmation and the test asserts one of them matches; five
    full runs clean since.
-4. `docs/` holds six audit documents from finished phases. Their open-items
+4. **Merge `feature/user-notifications` and watch the MySQL leg of CI.**
+   Everything from 2026-09-05 onwards lives on that branch. The unpublish action
+   uses `where('data->tournament_id', ...)`, which compiles differently per
+   driver, and there is no local MySQL to run it against -- both grammars were
+   checked by compiling the query, which is a good signal and not proof. Five
+   migrations land together (notifications, `tournaments.published_at`, and the
+   drops of `scheduled_at` and `users.profile_image`); none destroys data that
+   exists, since the tournaments table is still empty in production.
+5. **The monogram survey's Tier 2 and 3 — ten sites, never actioned.** The two
+   admin player pickers are the ones with real utility; the leaderboards are
+   decoration. Several need their controllers reshaped to carry a model rather
+   than a name string. The privacy objection to the public Current Season
+   Leaders page died with profile pictures: initials are not a face.
+6. `docs/` holds six audit documents from finished phases. Their open-items
    sections are largely resolved; treat this file as the index, not them.
-5. `.superpowers/sdd/` can be deleted whenever convenient — see the end of this
+7. `.superpowers/sdd/` can be deleted whenever convenient — see the end of this
    file.
 
 Nothing else is known-broken. There are no TODO, FIXME or HACK markers anywhere
@@ -202,7 +217,8 @@ done
 ```
 
 That last line matters: `ls tests/Feature/*.php` misses `tests/Feature/Auth/`,
-which is 21 tests. 639 + 21 + 11 = 671.
+which is 21 tests. The three parts must add up to the whole suite -- if they do
+not, a directory is being skipped rather than passing.
 
 CI runs on its own PHP build and has never shown this, so it is a local
 toolchain problem rather than something to fix in the app. Worth a look at the
@@ -356,6 +372,91 @@ are recorded so they are not rediscovered as if new:
   view windows page numbers, so it calls `total()` and `lastPage()`, which a simple
   paginator does not have. Pointing it there made the first ever `simplePaginate()` call a
   fatal error. Simple pagination falls back to Laravel's stock view: unstyled, but working.
+
+### Players can read the league's records (2026-09-08)
+
+- **The seasons, venues and tournaments INDEXES are open to anyone signed in.**
+  They sat behind the admin gate because the only reason to open them was to
+  edit something; a player has a reason to read them. Declared in their own
+  `prefix('poker')->name('poker.')` block so every existing link resolves
+  unchanged, while the resources keep `->except(['index'])`.
+- **Everything that changes a record stayed shut, and so did the venue DETAIL
+  page** -- it carries takings, leaderboards and per-player point histories.
+- **The venue list therefore drops its whole Actions column for a player**, not
+  just its contents. With View Stats gone (it would link to a 403) an empty
+  column is a heading over nothing, so the `<th>`, the `<td>` and the empty
+  state's colspan are all conditional.
+- **The League menu opened with them.** Access nobody can navigate to is half a
+  feature. Play and Setup stay admin-only.
+- `AdminAccessTest` swapped those three indexes for the three CREATE pages, so
+  it still proves the `/poker` prefix refuses a player.
+
+### Filtering the admin lists by tournament (2026-09-08)
+
+- **Results, registrants and venue points open on one tournament**, chosen by
+  `PokerTournament::nearest()` -- the tournament closest to now in either
+  direction. Not "last played" or "next scheduled", because registrants are
+  entered before a game and results after, so neither serves both pages.
+- **`nearest()` runs two indexed queries and compares in PHP.** Ordering by an
+  absolute date difference needs arithmetic spelled differently on SQLite and
+  MySQL, and CI runs both. A tie goes to the past: a tournament starting this
+  instant is being played, not awaited.
+- **Venue points have no tournament.** The table records a player, a venue, a
+  date and an amount. Filtering them by tournament INFERS the link -- points at
+  that tournament's venue on its date -- which the owner chose knowing it can be
+  wrong two ways: points awarded on a night with no game appear under none of
+  them, and a venue running two events in a day shows both under either. **The
+  page states what it matched on**, because an inferred filter that looks like a
+  real one turns "nothing matched" into "nothing was awarded".
+- **`event_date` is a plain `Y-m-d` string, deliberately uncast.** The
+  tournament has to come down to a date to meet it; compared against the raw 7pm
+  `start_time` the filter matches nothing, for every tournament, silently.
+- Options are links carrying `?tournament=`, so the filter bookmarks and
+  survives the back button. An unknown id falls back rather than 404ing.
+- **`x-dropdown` closes its panel on any click inside it.** Right for a menu of
+  links, fatal for the filter's search box, which shut the moment you clicked
+  it. `x-on:click.stop` on that input contains the exception rather than
+  changing the shared component, which the nav and row-action menus rely on.
+
+### Admin lists become cards on a phone (2026-09-07/08)
+
+- **`x-table` takes a `cards` prop**; `.table--cards` in `_table.css` owns the
+  shell -- grid row, clipped header, cell reset, actions, empty state -- and each
+  page declares only its own `grid-template-areas`, because what leads a card
+  differs: a result by rank badge, a sponsor by logo.
+- **`.table--stacked` was the obvious answer and the wrong one.** It prints
+  every cell as a labelled line, so a five-column list becomes five lines per
+  record and the identifier you came to find sits between two labels.
+- **One fact per line, with only a short value sharing the first.** At a true
+  375px the actions take about 128px of a 317px card, and pairing facts
+  overflowed the grid every time -- a long venue name once pushed the actions on
+  top of the season text.
+- **`grid-template-areas` must name exactly as many cells as there are columns**
+  or CSS drops the declaration in silence. Three of five did not, and those rows
+  fell back to an unstyled grid with nothing reported.
+- **A spanning cell inflates every auto column it crosses.** The actions column
+  measured 128 around buttons measuring 104, and a badge's cell 88 around a
+  badge of 64; those phantom pixels came off the name.
+- **The season card is NOT a grid, after five attempts at one.** Its two lines
+  share column tracks, so they fight. It is two lines of flowing text with the
+  actions taken out of flow -- `display: block`, inline cells, one forced break
+  via `::before { display: block }`, and `position: absolute` for the actions
+  with padding reserving their space.
+
+### Link underlines are opt-in (2026-09-08)
+
+- **The reset takes the browser's underline off every anchor; `.link` puts it
+  back.** Most anchors here are not prose links -- rows, cards, menu items, icon
+  buttons, pagination, a logo -- and each had to remember to switch it off. Two
+  shipped having forgotten, weeks apart, both found by eye with a green suite:
+  the venue page drew ten linked rows as thirty underlined fragments, and the
+  tournament picker underlined each option's name AND its date.
+- Audited before flipping: of every anchor class in the app, only
+  `.sponsor-thumb-link` relied on the default, and it wraps an image.
+- **`.entry--link` marks a row that is a whole link** -- no underline, a hover
+  that colours the title, and a chevron that is ALWAYS drawn, because a hover
+  state says nothing on a touch screen. A guard scans views for an `<a
+  class="entry">` that is not marked.
 
 ### Player notifications (2026-09-06)
 
