@@ -1,4 +1,4 @@
-@props(['links' => null, 'actions' => null])
+@props(['links' => null, 'actions' => null, 'leading' => null])
 
 {{-- Shared between the authenticated and public shells (Task 9 consumes this
      same component for the public site) so the mobile-menu logic exists
@@ -14,6 +14,13 @@
         x-on:click.outside="menuOpen = false">
     <div class="topbar__inner">
         <x-brand />
+
+        {{-- Anything that belongs beside the burger rather than inside the
+             collapsing panel. The authenticated shell puts the notification
+             bell here; the public shell passes nothing and is unchanged. --}}
+        @if ($leading)
+            {{ $leading }}
+        @endif
 
         <button type="button" class="topbar__burger" x-on:click="menuOpen = ! menuOpen"
                 x-bind:aria-expanded="menuOpen.toString()" aria-controls="topbar-menu">

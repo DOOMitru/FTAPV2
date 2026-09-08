@@ -125,7 +125,14 @@ class NotificationBellTest extends TestCase
         $response = $this->actingAs($user)->get(route('dashboard'))->assertOk();
         $html = $response->getContent();
 
-        $this->assertSame(10, substr_count($html, 'class="notification '), 'The list is not capped at ten.');
+        // Ten per surface, and an authenticated page draws two of them -- the
+        // desktop user menu and the mobile bell panel, both rendered, each
+        // hidden at the other's breakpoint.
+        $this->assertSame(
+            10 * 2,
+            substr_count($html, 'class="notification '),
+            'The list is not capped at ten per surface.'
+        );
 
         $response->assertSeeInOrder(['Tournament 12', 'Tournament 11', 'Tournament 03'])
             ->assertDontSee('Tournament 02')
@@ -141,6 +148,85 @@ class NotificationBellTest extends TestCase
         $this->actingAs($mine)->get(route('dashboard'))->assertOk()
             ->assertDontSee('Not Mine')
             ->assertDontSee('nav-link__badge', false);
+    }
+
+    public function test_the_mobile_bell_is_rendered_for_a_signed_in_player(): void
+    {
+        $user = $this->player();
+        $this->notify($user);
+
+        $this->actingAs($user)->get(route('dashboard'))->assertOk()
+            ->assertSee('topbar__bell', false);
+    }
+
+    public function test_the_bell_carries_its_own_badge(): void
+    {
+        $user = $this->player();
+        $this->notify($user);
+        $this->notify($user);
+
+        $html = $this->actingAs($user)->get(route('dashboard'))->assertOk()->getContent();
+
+        $bell = substr($html, (int) strpos($html, 'topbar__bell'));
+        $bell = substr($bell, 0, (int) strpos($bell, '</button>'));
+
+        $this->assertStringContainsString('topbar__bell-badge', $bell);
+        $this->assertStringContainsString('2', $bell);
+    }
+
+    public function test_the_bell_has_no_badge_at_zero(): void
+    {
+        $user = $this->player();
+        $this->notify($user, read: true);
+
+        $this->actingAs($user)->get(route('dashboard'))->assertOk()
+            ->assertSee('topbar__bell', false)
+            ->assertDontSee('topbar__bell-badge', false);
+    }
+
+    public function test_the_bell_sits_before_the_burger(): void
+    {
+        // "Left of the menu button" is the requirement, and in a
+        // direction-agnostic layout that is document order.
+        $html = $this->actingAs($this->player())->get(route('dashboard'))->assertOk()->getContent();
+
+        // Both markers asserted present first. strpos returns false for a
+        // missing needle, and assertLessThan coerces that to 0 -- so without
+        // this the comparison passes when there is no bell at all.
+        $this->assertStringContainsString('topbar__bell', $html);
+        $this->assertStringContainsString('topbar__burger', $html);
+
+        $this->assertLessThan(
+            strpos($html, 'topbar__burger'),
+            strpos($html, 'topbar__bell'),
+            'The bell must be rendered before the burger.'
+        );
+    }
+
+    public function test_the_bell_panel_lists_the_same_notifications(): void
+    {
+        $user = $this->player();
+        $this->notify($user, 'Autumn Showdown');
+
+        $html = $this->actingAs($user)->get(route('dashboard'))->assertOk()->getContent();
+
+        // Two surfaces, one list: the card appears in the bell panel and in the
+        // user menu, so the tournament name is rendered twice.
+        $this->assertSame(2, substr_count($html, 'Autumn Showdown'));
+    }
+
+    public function test_the_public_shell_has_no_bell(): void
+    {
+        // x-topbar is shared with the public site, which has no signed-in user
+        // and must be untouched by the new slot.
+        $this->get(route('home'))->assertOk()->assertDontSee('topbar__bell', false);
+    }
+
+    public function test_a_guest_visiting_a_public_page_sees_no_notifications(): void
+    {
+        $this->get(route('events'))->assertOk()
+            ->assertDontSee('topbar__bell', false)
+            ->assertDontSee('notification--gold', false);
     }
 
     public function test_a_guest_page_has_no_notification_surface(): void
