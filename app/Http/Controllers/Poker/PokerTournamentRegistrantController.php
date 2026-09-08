@@ -118,6 +118,14 @@ class PokerTournamentRegistrantController extends Controller
      */
     public function destroy(PokerTournamentRegistrant $registrant): RedirectResponse
     {
+        // Checked before the results rule below, which would also refuse this
+        // -- a published tournament has a finish for everyone -- but for a
+        // reason that is true of any scored tournament. "Results have been
+        // published" is what an administrator here needs to hear.
+        if ($refusal = $registrant->tournament->publishedRefusal()) {
+            return back()->with('error', $refusal);
+        }
+
         // Not even for an administrator. Once finishes are recorded, the field
         // they describe is settled, and removing someone from it silently makes
         // every one of those places wrong.

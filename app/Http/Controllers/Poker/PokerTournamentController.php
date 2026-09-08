@@ -235,6 +235,13 @@ class PokerTournamentController extends Controller
     {
         $validated = $request->validate(['user_id' => ['required', 'string']]);
 
+        // A published tournament is finished. Its players have been told where
+        // they came, and a place is a position in a field -- so nothing may
+        // change the field's size or any finish in it.
+        if ($refusal = $tournament->publishedRefusal()) {
+            return back()->with('error', $refusal);
+        }
+
         // No gate on timing. This used to require registration closed, on the
         // reasoning that a late entry would change how many places there are to
         // hand out -- but the shift hook already handles exactly that, moving
@@ -283,6 +290,13 @@ class PokerTournamentController extends Controller
 
     public function register(PokerTournament $tournament, Request $request): RedirectResponse
     {
+        // A published tournament is finished. Its players have been told where
+        // they came, and a place is a position in a field -- so nothing may
+        // change the field's size or any finish in it.
+        if ($refusal = $tournament->publishedRefusal()) {
+            return back()->with('error', $refusal);
+        }
+
         $isAdmin = auth()->user()->is_admin;
         $targetUserId = ($isAdmin && $request->has('user_id')) ? $request->user_id : auth()->id();
 
@@ -337,6 +351,13 @@ class PokerTournamentController extends Controller
      */
     public function unregister(PokerTournament $tournament): RedirectResponse
     {
+        // A published tournament is finished. Its players have been told where
+        // they came, and a place is a position in a field -- so nothing may
+        // change the field's size or any finish in it.
+        if ($refusal = $tournament->publishedRefusal()) {
+            return back()->with('error', $refusal);
+        }
+
         // The only rule left, and the one that was always doing the work. A
         // place is a position in a field -- tenth of ten -- so once a finish is
         // recorded, taking a player out makes that finish describe a tournament
