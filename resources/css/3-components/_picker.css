@@ -87,15 +87,6 @@
     gap: var(--space-3);
 }
 
-.tournament-filter__label {
-    font-family: var(--font-body);
-    font-size: var(--step--2);
-    font-weight: 600;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    color: var(--c-text-muted);
-}
-
 .tournament-filter__trigger {
     display: inline-flex;
     align-items: center;

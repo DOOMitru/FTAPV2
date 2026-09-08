@@ -16,8 +16,6 @@
 --}}
 @if ($tournaments->isNotEmpty())
     <div class="tournament-filter" x-data="{ q: '' }">
-        <span class="tournament-filter__label">{{ __('Showing') }}</span>
-
         <x-dropdown align="left" class="tournament-filter__menu">
             <x-slot name="trigger">
                 <button type="button" class="tournament-filter__trigger">
@@ -32,8 +30,14 @@
 
             <x-slot name="content">
                 {{-- x-model, not a form field: this box filters what is drawn and
-                     is never submitted. --}}
+                     is never submitted.
+
+                     click.stop because x-dropdown closes its panel on any click
+                     inside it -- correct for a menu of links, and fatal for an
+                     input, which shut the panel the moment you tried to type in
+                     it. Stopping it here leaves every other dropdown alone. --}}
                 <input type="search" class="tournament-filter__search" x-model="q"
+                       x-on:click.stop
                        placeholder="{{ __('Search tournaments') }}"
                        aria-label="{{ __('Search tournaments') }}">
 

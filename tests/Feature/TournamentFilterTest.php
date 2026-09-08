@@ -165,6 +165,36 @@ class TournamentFilterTest extends TestCase
     }
 
     #[DataProvider('filteredPages')]
+    public function test_the_search_box_does_not_close_the_menu_it_lives_in(string $route): void
+    {
+        // x-dropdown closes its panel on any click inside it, which is right
+        // for a menu of links and fatal for an input: the panel shut the moment
+        // you clicked the search box. Only the markup is checkable here -- this
+        // project has no browser tests -- but the attribute is the whole fix,
+        // and without it the filter cannot be typed into at all.
+        $this->schedule();
+
+        $html = $this->actingAs($this->admin())->get(route($route))->assertOk()->getContent();
+
+        $this->assertMatchesRegularExpression(
+            '/<input[^>]*tournament-filter__search[^>]*x-on:click\.stop/s',
+            $html,
+            'The search box must stop its click reaching the dropdown.'
+        );
+    }
+
+    #[DataProvider('filteredPages')]
+    public function test_the_filter_does_not_label_itself(string $route): void
+    {
+        // The trigger already names the tournament in view; "Showing" in front
+        // of it says nothing the button does not.
+        $this->schedule();
+
+        $this->actingAs($this->admin())->get(route($route))->assertOk()
+            ->assertDontSee('tournament-filter__label', false);
+    }
+
+    #[DataProvider('filteredPages')]
     public function test_the_picker_names_the_tournament_in_view(string $route): void
     {
         $s = $this->schedule();
