@@ -103,11 +103,27 @@ class PodiumTest extends TestCase
         $this->assertSame([3], $this->places($tournament));
     }
 
-    public function test_third_alone_still_shows_with_one_player_left(): void
+    public function test_second_joins_third_once_one_player_is_left(): void
     {
-        // Second is awarded but first is not, so second waits for it.
+        // Second is awarded the moment the second-to-last player goes out, and
+        // it now appears then. It used to wait for first on the reasoning that
+        // silver beside an empty gold reads as a rendering fault -- but a
+        // settled place the page refuses to show is a page withholding a
+        // result that already happened.
         $tournament = $this->tournament();
         $this->played($tournament, size: 10, out: 9);
+
+        $this->assertSame([2, 3], $this->places($tournament));
+    }
+
+    public function test_first_still_waits_until_it_is_actually_won(): void
+    {
+        // The rule that has not changed, and the one this whole method exists
+        // for: with two players left the best RECORDED finish is third, and
+        // showing the current top three would put two people on a podium
+        // nobody has won yet.
+        $tournament = $this->tournament();
+        $this->played($tournament, size: 10, out: 8);
 
         $this->assertSame([3], $this->places($tournament));
     }

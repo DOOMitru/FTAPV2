@@ -89,18 +89,26 @@ class PokerTournament extends Model
      * third; first and second are still being played for, and showing the
      * current top three would put two players on a podium nobody has won.
      *
-     * Third is settled once two players are left, which is the moment it was
-     * awarded. First and second appear together and only once everyone has a
-     * result: second is technically known when one player remains, but a
-     * silver medal beside an empty gold one reads as a rendering fault.
+     * Each place appears the moment it is actually awarded, and not before:
+     * third once two players are left, second once one is, first once the last
+     * hand is played. So the podium fills from the right as the field shrinks.
+     *
+     * Second used to wait for first, on the reasoning that a silver medal
+     * beside an empty gold one reads as a rendering fault. It does not -- it
+     * reads as a tournament still being played, which is what it is, and
+     * withholding a settled place is the page keeping back a result that has
+     * already happened.
      */
     public function podium(): Collection
     {
         $remaining = max(0, $this->countOf('registrants') - $this->countOf('results'));
 
+        // Arms are ordered narrowest first: 0 remaining is also <= 2, so a
+        // looser arm above would swallow it.
         $settled = match (true) {
             $remaining === 0 => [1, 2, 3],
-            $remaining <= 2 => [3],
+            $remaining === 1 => [2, 3],
+            $remaining === 2 => [3],
             default => [],
         };
 
