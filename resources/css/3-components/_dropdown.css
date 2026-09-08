@@ -129,3 +129,37 @@
     opacity: 1;
     transform: scale(1);
 }
+
+/* The menu holds two things now -- a notification list and the account links --
+   so it needs a rule between them, and enough width to hold a card. */
+.dropdown__section + .dropdown__section {
+    border-block-start: var(--border-width) solid var(--c-border);
+}
+
+.dropdown__heading {
+    margin: 0;
+    padding: var(--space-3) var(--space-4);
+    font-size: var(--step--2);
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--c-text-muted);
+}
+
+.dropdown__empty {
+    margin: 0;
+    padding: var(--space-4);
+    font-size: var(--step--1);
+    color: var(--c-text-muted);
+}
+
+/* Wide enough for a place, a tournament name and two row actions. The account
+   links alone never needed this much, so it is scoped to this one dropdown
+   rather than widening every menu in the app.
+
+   Two classes, so it beats the single-class .dropdown__menu regardless of which
+   stylesheet loads first. Three defects in this project have come from two
+   single-class selectors colliding. */
+.dropdown--notifications .dropdown__menu {
+    width: min(22rem, calc(100vw - var(--space-6)));
+}

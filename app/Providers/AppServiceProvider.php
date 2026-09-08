@@ -7,6 +7,7 @@ use Illuminate\Auth\Notifications\VerifyEmail;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Pagination\Paginator;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -45,6 +46,35 @@ class AppServiceProvider extends ServiceProvider
         // exist.
 
         $this->composeAuthenticationEmails();
+        $this->composeNotifications();
+    }
+
+    /**
+     * The topbar's notification data, on every page that draws it.
+     *
+     * A composer rather than a per-controller concern: this is layout data, and
+     * thirty-odd controllers should not each remember to supply it -- the one
+     * that forgot would render a page with no badge and no list, and nothing
+     * would say so.
+     *
+     * Guests get nothing. layouts/public renders the same x-topbar and must not
+     * pay for a query it has no user for.
+     */
+    private function composeNotifications(): void
+    {
+        View::composer('layouts.navigation', function ($view) {
+            $user = auth()->user();
+
+            $view->with([
+                'unreadNotificationCount' => $user?->unreadNotifications()->count() ?? 0,
+                // Capped. The panel scrolls, but a player with three seasons of
+                // history should not have all of it serialised into every page
+                // they load.
+                'recentNotifications' => $user
+                    ? $user->notifications()->latest()->limit(10)->get()
+                    : collect(),
+            ]);
+        });
     }
 
     /**

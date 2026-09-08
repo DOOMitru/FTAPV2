@@ -62,21 +62,56 @@
         <div class="topbar__actions-desktop">
             <x-theme-toggle />
 
-            <x-dropdown align="right">
+            {{-- Two regions now: the notifications a player came to read, and
+                 the account links the menu already held. --}}
+            <x-dropdown align="right" class="dropdown--notifications">
                 <x-slot name="trigger">
                     <button type="button" class="nav-link nav-link--user">
                         <x-monogram :user="auth()->user()" size="sm" decorative />
                         <span>{{ auth()->user()->display_name }}</span>
+
+                        {{-- Absent at zero. A badge reading 0 is a badge saying
+                             nothing, loudly. --}}
+                        @if ($unreadNotificationCount > 0)
+                            <span class="nav-link__badge">
+                                {{ $unreadNotificationCount }}
+                                <span class="u-visually-hidden">{{ __('unread notifications') }}</span>
+                            </span>
+                        @endif
                     </button>
                 </x-slot>
 
                 <x-slot name="content">
-                    <x-dropdown-link :href="route('profile.edit')">{{ __('Your profile') }}</x-dropdown-link>
+                    <div class="dropdown__section">
+                        <p class="dropdown__heading">{{ __('Notifications') }}</p>
 
-                    <form method="POST" action="{{ route('logout') }}">
-                        @csrf
-                        <button type="submit" class="dropdown__item">{{ __('Log out') }}</button>
-                    </form>
+                        <div class="notification-list">
+                            @forelse ($recentNotifications as $notification)
+                                <x-notification-card :notification="$notification" />
+                            @empty
+                                <p class="dropdown__empty">{{ __('No notifications yet.') }}</p>
+                            @endforelse
+                        </div>
+
+                        @if ($recentNotifications->whereNotNull('read_at')->isNotEmpty())
+                            <form action="{{ route('notifications.clear-read') }}" method="POST"
+                                  data-confirm="{{ __('Delete every notification you have already read?') }}">
+                                @csrf
+                                @method('DELETE')
+
+                                <button type="submit" class="dropdown__item">{{ __('Clear read notifications') }}</button>
+                            </form>
+                        @endif
+                    </div>
+
+                    <div class="dropdown__section">
+                        <x-dropdown-link :href="route('profile.edit')">{{ __('Your profile') }}</x-dropdown-link>
+
+                        <form method="POST" action="{{ route('logout') }}">
+                            @csrf
+                            <button type="submit" class="dropdown__item">{{ __('Log out') }}</button>
+                        </form>
+                    </div>
                 </x-slot>
             </x-dropdown>
         </div>
