@@ -93,12 +93,16 @@ unfinished feature and do not send it to "finish" the work.
      and most of the league would need "Forgot your password?" instead.
    - Someone should watch `info@firsttoactpoker.com` that evening. The
      invitation sets no Reply-To, so replies land there.
-3. **One unreproduced test failure**, seen once on 2026-09-05: a full run
-   reported `1 failed, 435 passed`, and the name was not captured. It did not
-   recur in 45 further full runs or 120 targeted ones against everything in the
-   suite that uses randomness or the clock. Recorded rather than dismissed: a
-   test that fails once in fifty runs will eventually fail in CI, and the next
-   person to see it should know it is not new.
+3. ~~One unreproduced test failure~~ **FOUND AND FIXED, 2026-09-08.** It
+   surfaced again during the tournament-filter work and this time the name was
+   captured: `DeleteConfirmationTest::deleting an actual person still says so`.
+   The users listing orders by first name, the helper read only the FIRST
+   `data-confirm` form on the page, and the test seeds its admin from the
+   factory -- so whenever that random first name sorted before "Ada" (Aaron,
+   Abbie, Abigail), the first confirmation belonged to the admin and the
+   assertion failed. Confirmed by forcing an admin named Aaron. The helper now
+   returns every confirmation and the test asserts one of them matches; five
+   full runs clean since.
 4. `docs/` holds six audit documents from finished phases. Their open-items
    sections are largely resolved; treat this file as the index, not them.
 5. `.superpowers/sdd/` can be deleted whenever convenient — see the end of this

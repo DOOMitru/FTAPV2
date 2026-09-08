@@ -8,6 +8,10 @@
     </x-slot>
 
     <div class="l-container l-stack">
+        {{-- The filter leads the page: what you are looking at, before what
+             is in it. --}}
+        <x-tournament-filter :tournaments="$tournaments" :selected="$selected" />
+
         @if (session('status'))
             <x-alert variant="success">{{ session('status') }}</x-alert>
         @endif

@@ -17,10 +17,26 @@ class PokerTournamentResultController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index(): View
+    public function index(Request $request): View
     {
-        $results = PokerTournamentResult::with(['user', 'tournament'])->latest()->paginate(10);
-        return view('poker.results.index', compact('results'));
+        // The list is the league's whole history in one table. Narrowed to the
+        // night an administrator is working on -- nearest to now, behind or
+        // ahead -- and changeable from the picker at the top of the page.
+        //
+        // firstWhere rather than findOrFail: a stale bookmark or a tournament
+        // deleted since should show the default, not a 404.
+        $tournaments = PokerTournament::orderByDesc('start_time')->get();
+
+        $selected = $tournaments->firstWhere('id', $request->query('tournament'))
+            ?? PokerTournament::nearest();
+
+        $results = PokerTournamentResult::with(['user', 'tournament'])
+            ->when($selected, fn ($query) => $query->where('tournament_id', $selected->id))
+            ->latest()
+            ->paginate(10)
+            ->withQueryString();
+
+        return view('poker.results.index', compact('results', 'tournaments', 'selected'));
     }
 
     /**

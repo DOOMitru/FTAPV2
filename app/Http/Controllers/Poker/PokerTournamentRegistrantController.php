@@ -15,15 +15,27 @@ class PokerTournamentRegistrantController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index(): View
+    public function index(Request $request): View
     {
         // withCount on the tournament, because the view asks every row whether
         // its tournament has results yet -- countOf() reads the alias, so this
         // is one query rather than one per row.
+        // Narrowed to one tournament -- see PokerTournamentResultController for
+        // the same reasoning. Nearest to now by default, because registrants are
+        // entered before a game and results after it, so neither "last played"
+        // nor "next scheduled" suits both pages.
+        $tournaments = PokerTournament::orderByDesc('start_time')->get();
+
+        $selected = $tournaments->firstWhere('id', $request->query('tournament'))
+            ?? PokerTournament::nearest();
+
         $registrants = PokerTournamentRegistrant::with(['user', 'tournament' => fn ($q) => $q->withCount('results')])
+            ->when($selected, fn ($query) => $query->where('tournament_id', $selected->id))
             ->latest()
-            ->paginate(10);
-        return view('poker.registrants.index', compact('registrants'));
+            ->paginate(10)
+            ->withQueryString();
+
+        return view('poker.registrants.index', compact('registrants', 'tournaments', 'selected'));
     }
 
     /**
