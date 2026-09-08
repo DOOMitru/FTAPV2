@@ -13,7 +13,11 @@
         @endif
 
         <x-card flush>
-            <x-table>
+            {{-- The mobile layout is CSS only: same cells, reflowed by
+                 _seasons-index.css below 48rem. Start and end are two columns
+                 holding one fact -- a season's span -- so on a phone they read
+                 as the range they are. --}}
+            <x-table class="seasons-index__table">
                 <x-slot name="head">
                     <th scope="col">{{ __('Name') }}</th>
                     <th scope="col">{{ __('Current') }}</th>
@@ -24,16 +28,16 @@
 
                 @forelse ($seasons as $season)
                     <tr>
-                        <td>{{ $season->name }}</td>
+                        <td class="seasons-index__name">{{ $season->name }}</td>
 
-                        <td>
+                        <td class="seasons-index__current">
                             @if ($season->is_current)
                                 <x-badge variant="open">{{ __('Current') }}</x-badge>
                             @endif
                         </td>
 
-                        <td>{{ $season->start_date?->format('M d, Y') ?? '—' }}</td>
-                        <td>{{ $season->end_date?->format('M d, Y') ?? '—' }}</td>
+                        <td class="seasons-index__start">{{ $season->start_date?->format('M d, Y') ?? '—' }}</td>
+                        <td class="seasons-index__end">{{ $season->end_date?->format('M d, Y') ?? '—' }}</td>
 
                         <td class="table__actions">
                             <div class="l-cluster l-cluster--end">

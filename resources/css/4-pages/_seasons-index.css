@@ -1,0 +1,107 @@
+/* The season list on a phone.
+   =================================================================
+   Five columns -- name, current, start, end, actions -- do not fit 375px, and
+   the row scrolled sideways with the actions off the edge, which is where the
+   only reason to visit this page lives.
+
+   The row becomes a card. Two things drove the shape: the actions are the point
+   of an admin index, so they hold the end of the card and span its height; and
+   start and end are two columns carrying ONE fact, a season's span, so they
+   read as the range they always were rather than as two labelled dates.
+
+   Desktop is untouched: everything here is inside the query. */
+@media (max-width: 48rem) {
+    /* Hidden the way .table--stacked hides its own -- clipped, not
+       display:none, so the cells keep their names for a screen reader. */
+    .seasons-index__table .table thead {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        margin: -1px;
+        padding: 0;
+        overflow: hidden;
+        clip-path: inset(50%);
+        white-space: nowrap;
+    }
+
+    /* Four columns, and which one flexes is the whole point. The name was in
+       an auto column, so a long one widened it, squeezed the actions and broke
+       them onto two lines while the end date wrapped to three. Now the name is
+       the ONLY thing that gives: it spans the first two columns and wraps
+       inside them, while the badge, the dates and the actions keep the width
+       their content needs. */
+    .seasons-index__table .table tbody tr {
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr) auto auto;
+        grid-template-areas:
+            "name  name current actions"
+            "start end  end     actions";
+        align-items: center;
+        gap: var(--space-1) var(--space-3);
+        padding: var(--space-3) var(--space-4);
+        border-block-end: var(--border-width) solid var(--c-border);
+    }
+
+    .seasons-index__table .table tbody tr:last-child {
+        border-block-end: 0;
+    }
+
+    .seasons-index__table .table td {
+        padding: 0;
+        border-block-end: 0;
+        text-align: start;
+    }
+
+    .seasons-index__table .seasons-index__name {
+        grid-area: name;
+        font-weight: 600;
+    }
+
+    .seasons-index__table .seasons-index__current {
+        grid-area: current;
+        /* Empty for every season but one, and an empty grid item still claims
+           its row height. Nothing to align when there is no badge. */
+        justify-self: start;
+    }
+
+    .seasons-index__table .seasons-index__start {
+        grid-area: start;
+    }
+
+    .seasons-index__table .seasons-index__end {
+        grid-area: end;
+    }
+
+    /* The dash makes the pair a range. Without it two dates sit side by side
+       under a hidden header and there is nothing to say which is which. */
+    .seasons-index__table .seasons-index__end::before {
+        content: "–";
+        margin-inline-end: 0.4em;
+    }
+
+    .seasons-index__table .seasons-index__start,
+    .seasons-index__table .seasons-index__end {
+        font-family: var(--font-mono);
+        font-size: var(--step--2);
+        color: var(--c-text-muted);
+    }
+
+    /* The reason the page exists, held at the end of the card and spanning it.
+       nowrap because .l-cluster wraps by default, which is right for a row of
+       badges and wrong for three icon buttons that belong together. */
+    .seasons-index__table .table__actions {
+        grid-area: actions;
+        align-self: center;
+    }
+
+    .seasons-index__table .table__actions .l-cluster {
+        flex-wrap: nowrap;
+    }
+
+    /* The empty state is one cell pretending to be a row, so it has to cross
+       every column rather than land in "name". */
+    .seasons-index__table .table tbody td[colspan] {
+        grid-area: auto;
+        grid-column: 1 / -1;
+    }
+}
