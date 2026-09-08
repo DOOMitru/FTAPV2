@@ -39,8 +39,8 @@
                     <div class="venue-show__stats">
                         <x-stat :label="__('Tournaments')" :value="$totalTournaments" />
                         <x-stat :label="__('Point Earners')" :value="$uniqueVenuePointPlayers" />
-                        <x-stat :label="__('Venue Points')" :value="number_format($totalVenuePoints)" />
-                        <x-stat :label="__('Tournament Points')" :value="number_format($totalTournamentPoints)" />
+                        <x-stat :label="__('Venue pts')" :value="number_format($totalVenuePoints)" />
+                        <x-stat :label="__('Tournament pts')" :value="number_format($totalTournamentPoints)" />
                     </div>
                 </div>
             </div>
@@ -49,13 +49,13 @@
         {{-- align-items: start, so an empty leaderboard does not stretch to
              match a list of nineteen tournaments beside it. --}}
         <div class="l-sidebar venue-show__panels">
-            <x-card :title="__('Venue Points Leaderboard')" flush>
+            <x-card :title="__('Venue pts leaderboard')" flush>
                 <x-table>
                     <x-slot name="head">
                         <th scope="col">{{ __('Rank') }}</th>
                         <th scope="col">{{ __('Player') }}</th>
                         <th scope="col" class="table__num">{{ __('Earned Count') }}</th>
-                        <th scope="col" class="table__num">{{ __('Total Points') }}</th>
+                        <th scope="col" class="table__num">{{ __('Total pts') }}</th>
                     </x-slot>
 
                     @forelse ($venueLeaderboard as $index => $entry)
@@ -82,6 +82,9 @@
                     @empty
                         <tr>
                             <td colspan="4">
+                                {{-- Still the whole word: this is a sentence, not a label. "No venue
+                                     pts awarded here yet" is an abbreviation
+                                     read as prose. --}}
                                 <x-empty-state :title="__('No venue points awarded here yet.')" />
                             </td>
                         </tr>

@@ -637,7 +637,9 @@ class ContentPreservationTest extends TestCase
         // and "2" survives almost any edit -- so those two were unguarded.
         // Matched as stat markup, because "Tournaments" on its own also
         // appears in the Recent Tournaments heading.
-        foreach (['Tournaments', 'Point Earners', 'Venue Points', 'Tournament Points'] as $label) {
+        // "Venue pts" and "Tournament pts" since the page abbreviated its data
+        // labels; the tiles themselves are unchanged, which is what this guards.
+        foreach (['Tournaments', 'Point Earners', 'Venue pts', 'Tournament pts'] as $label) {
             $response->assertSee('<span class="stat__label">'.$label.'</span>', false);
         }
 
