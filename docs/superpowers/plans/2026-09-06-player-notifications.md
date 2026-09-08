@@ -66,7 +66,8 @@ class TournamentPlacementNotificationTest extends TestCase
 {
     use RefreshDatabase;
 
-    private function result(int $place, int $points): PokerTournamentResult
+    // NOT result(): PHPUnit\TestCase::result() is final and cannot be overridden.
+    private function scoredResult(int $place, int $points): PokerTournamentResult
     {
         $season = PokerSeason::create([
             'name' => 'Season 40', 'start_date' => '2026-08-01',
@@ -93,7 +94,7 @@ class TournamentPlacementNotificationTest extends TestCase
 
     public function test_a_placement_is_stored_against_a_ulid_user(): void
     {
-        $result = $this->result(place: 1, points: 100);
+        $result = $this->scoredResult(place: 1, points: 100);
 
         $result->user->notify(new TournamentPlacement($result));
 
@@ -109,7 +110,7 @@ class TournamentPlacementNotificationTest extends TestCase
     {
         // A copy, not a join. The tournament can be renamed or deleted later,
         // and the message should keep saying what was true when it was sent.
-        $result = $this->result(place: 2, points: 75);
+        $result = $this->scoredResult(place: 2, points: 75);
 
         $result->user->notify(new TournamentPlacement($result));
 
@@ -124,7 +125,7 @@ class TournamentPlacementNotificationTest extends TestCase
 
     public function test_a_stored_placement_starts_unread(): void
     {
-        $result = $this->result(place: 3, points: 50);
+        $result = $this->scoredResult(place: 3, points: 50);
 
         $result->user->notify(new TournamentPlacement($result));
 
@@ -135,7 +136,7 @@ class TournamentPlacementNotificationTest extends TestCase
     {
         // via() is database only. A mass mail on every league night is a
         // different decision with a different cost.
-        $result = $this->result(place: 1, points: 100);
+        $result = $this->scoredResult(place: 1, points: 100);
 
         $this->assertSame(['database'], (new TournamentPlacement($result))->via($result->user));
     }
@@ -248,7 +249,25 @@ Expected: PASS, 4 tests.
 
 - [ ] **Step 6: Prove the ULID column is load-bearing**
 
-Temporarily change `ulidMorphs` to `morphs` in the migration, run the test, and confirm it fails with a database error rather than passing. Change it back and confirm the suite is green again. A schema that only looks right is the exact failure this task exists to prevent.
+Temporarily change `ulidMorphs` to `morphs` in the migration and run the test.
+
+**The send tests will still pass, and that is the finding.** SQLite is
+dynamically typed: it stores a 26-character ULID in a bigint column without
+complaint. So every assertion above goes green against a schema that fails on
+MySQL in CI — the exact SQLite-versus-MySQL split this project has been bitten by
+before. Add an assertion on the column itself, which discriminates on both
+drivers:
+
+```php
+    public function test_the_notifiable_column_holds_a_ulid_rather_than_an_integer(): void
+    {
+        // varchar with ulidMorphs, integer with morphs -- both measured.
+        $this->assertSame('varchar', Schema::getColumnType('notifications', 'notifiable_id'));
+    }
+```
+
+Re-run with `morphs` and confirm exactly that one test fails, then restore
+`ulidMorphs`. Requires `use Illuminate\Support\Facades\Schema;`.
 
 - [ ] **Step 7: Run the full suite**
 
