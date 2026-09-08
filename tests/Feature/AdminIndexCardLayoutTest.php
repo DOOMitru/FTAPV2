@@ -44,10 +44,13 @@ class AdminIndexCardLayoutTest extends TestCase
         $this->enter($tournament, $player);
         $this->score($tournament, $player, 1, 100);
 
+        // At the tournament's venue on its date. The venue-points list filters
+        // to the nearest tournament by inferring that link, so a point awarded
+        // on any other day would leave this page with no rows to class.
         VenuePoints::create([
             'user_id' => $player->id, 'user_name' => 'Wanda Reeve',
-            'venue_id' => Venue::first()->id, 'amount' => 40,
-            'event_date' => now()->subDay()->toDateString(),
+            'venue_id' => $tournament->venue_id, 'amount' => 40,
+            'event_date' => $tournament->start_time->toDateString(),
             'season_id' => PokerSeason::first()->id,
         ]);
 
