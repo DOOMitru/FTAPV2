@@ -13,14 +13,19 @@ class ViewAuthorizationTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_non_admin_does_not_see_poker_seasons_link_on_dashboard()
+    public function test_non_admin_sees_the_league_menu_but_not_the_admin_ones()
     {
+        // Inverted: the seasons, venues and tournaments lists are readable by
+        // any signed-in player now, so the League menu is offered to them. What
+        // a player must still not see is the machinery for running the league.
         $user = User::factory()->create(['is_admin' => false]);
 
         $response = $this->actingAs($user)->get(route('dashboard'));
 
         $response->assertOk();
-        $response->assertDontSee(route('poker.seasons.index'), false);
+        $response->assertSee(route('poker.seasons.index'), false);
+        $response->assertDontSee(route('poker.results.index'), false);
+        $response->assertDontSee(route('users.index'), false);
     }
 
     public function test_admin_sees_poker_seasons_link_on_dashboard()

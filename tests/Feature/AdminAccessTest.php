@@ -14,14 +14,19 @@ class AdminAccessTest extends TestCase
     use RefreshDatabase;
 
     /**
-     * Every index route inside the admin-only /poker prefix.
+     * Every index route that is still admin-only.
+     *
+     * Seasons, venues and tournaments are NOT here any more: their lists are
+     * readable by any signed-in player, and PlayerLeagueAccessTest covers what
+     * that opened and what it did not. Their create pages stand in for them
+     * here, so this provider still proves the /poker prefix refuses a player.
      */
     public static function adminRouteProvider(): array
     {
         return [
-            'seasons' => ['poker.seasons.index'],
-            'venues' => ['poker.venues.index'],
-            'tournaments' => ['poker.tournaments.index'],
+            'create a season' => ['poker.seasons.create'],
+            'create a venue' => ['poker.venues.create'],
+            'create a tournament' => ['poker.tournaments.create'],
             'results' => ['poker.results.index'],
             'registrants' => ['poker.registrants.index'],
             'venue points' => ['poker.venue-points.index'],

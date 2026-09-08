@@ -1,9 +1,11 @@
 <x-app-layout>
     <x-slot name="header">
         <x-page-header :eyebrow="__('League')" :title="__('Poker Tournaments')">
-            <x-slot name="actions">
-                <x-btn variant="primary" :href="route('poker.tournaments.create')">{{ __('Schedule Tournament') }}</x-btn>
-            </x-slot>
+            @if (auth()->user()->is_admin)
+                <x-slot name="actions">
+                    <x-btn variant="primary" :href="route('poker.tournaments.create')">{{ __('Schedule Tournament') }}</x-btn>
+                </x-slot>
+            @endif
         </x-page-header>
     </x-slot>
 
@@ -34,8 +36,12 @@
 
                         <td class="table__actions">
                             <div class="l-cluster l-cluster--end">
+                            {{-- tournaments.show is open to anyone signed in --
+                                 it is where a player registers. Everything
+                                 below it changes a record. --}}
                             <x-action icon="view" :label="__('View')" :href="route('tournaments.show', $tournament)" />
 
+                                @if (auth()->user()->is_admin)
                                 <x-action icon="edit" :label="__('Edit')" :href="route('poker.tournaments.edit', $tournament)" />
 
                                 <form action="{{ route('poker.tournaments.destroy', $tournament) }}" method="POST"
@@ -45,6 +51,7 @@
 
                                     <x-action icon="delete" :label="__('Delete')" danger />
                                 </form>
+                                @endif
                             </div>
                         </td>
                     </tr>

@@ -1,9 +1,11 @@
 <x-app-layout>
     <x-slot name="header">
         <x-page-header :eyebrow="__('League')" :title="__('Venues')">
-            <x-slot name="actions">
-                <x-btn variant="primary" :href="route('poker.venues.create')">{{ __('Add Venue') }}</x-btn>
-            </x-slot>
+            @if (auth()->user()->is_admin)
+                <x-slot name="actions">
+                    <x-btn variant="primary" :href="route('poker.venues.create')">{{ __('Add Venue') }}</x-btn>
+                </x-slot>
+            @endif
         </x-page-header>
     </x-slot>
 
@@ -17,7 +19,15 @@
                 <x-slot name="head">
                     <th scope="col">{{ __('Name') }}</th>
                     <th scope="col">{{ __('Description') }}</th>
-                    <th scope="col" class="table__actions">{{ __('Actions') }}</th>
+
+                    {{-- The whole column, not just its contents. A player gets
+                         no control here at all -- not even View Stats, because
+                         the venue detail page is admin-only and a link to it is
+                         a link to a 403 -- so an empty Actions column would be
+                         a heading over nothing. --}}
+                    @if (auth()->user()->is_admin)
+                        <th scope="col" class="table__actions">{{ __('Actions') }}</th>
+                    @endif
                 </x-slot>
 
                 @forelse ($venues as $venue)
@@ -29,6 +39,7 @@
                              a cell with content as far as CSS is concerned. --}}
                         <td class="venue-row__desc">{{ $venue->description }}</td>
 
+                        @if (auth()->user()->is_admin)
                         <td class="table__actions venue-row__actions">
                             <div class="l-cluster l-cluster--end">
                                 <x-action icon="stats" :label="__('View Stats')" :href="route('poker.venues.show', $venue)" />
@@ -44,10 +55,11 @@
                                 </form>
                             </div>
                         </td>
+                        @endif
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="3">
+                        <td colspan="{{ auth()->user()->is_admin ? 3 : 2 }}">
                             <x-empty-state :title="__('No venues found.')" />
                         </td>
                     </tr>

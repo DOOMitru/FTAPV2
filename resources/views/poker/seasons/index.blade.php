@@ -1,9 +1,11 @@
 <x-app-layout>
     <x-slot name="header">
         <x-page-header :eyebrow="__('League')" :title="__('Poker Seasons')">
-            <x-slot name="actions">
-                <x-btn variant="primary" :href="route('poker.seasons.create')">{{ __('Create Season') }}</x-btn>
-            </x-slot>
+            @if (auth()->user()->is_admin)
+                <x-slot name="actions">
+                    <x-btn variant="primary" :href="route('poker.seasons.create')">{{ __('Create Season') }}</x-btn>
+                </x-slot>
+            @endif
         </x-page-header>
     </x-slot>
 
@@ -41,8 +43,12 @@
 
                         <td class="table__actions">
                             <div class="l-cluster l-cluster--end">
+                                {{-- Reading a season is why a player is on this
+                                     page; seasons.show is open to anyone signed
+                                     in. Everything below it changes a record. --}}
                                 <x-action icon="stats" :label="__('View Stats')" :href="route('seasons.show', $season)" />
 
+                                @if (auth()->user()->is_admin)
                                 <x-action icon="edit" :label="__('Edit')" :href="route('poker.seasons.edit', $season)" />
 
                                 {{-- data-confirm, never an inline onsubmit. Blade escapes
@@ -57,6 +63,7 @@
 
                                     <x-action icon="delete" :label="__('Delete')" danger />
                                 </form>
+                                @endif
                             </div>
                         </td>
                     </tr>

@@ -58,22 +58,27 @@
            @if (request()->routeIs('dashboard')) aria-current="page" @endif
            href="{{ route('dashboard') }}">{{ __('Dashboard') }}</a>
 
-        @if (Auth::user()->is_admin)
-            <x-dropdown align="left" :inline-mobile="true">
-                <x-slot name="trigger">
-                    <button type="button"
-                            class="nav-link {{ request()->routeIs('poker.seasons.*', 'poker.venues.*', 'poker.tournaments.*') ? 'nav-link--current' : '' }}"
-                            @if (request()->routeIs('poker.seasons.*', 'poker.venues.*', 'poker.tournaments.*')) aria-current="page" @endif>
-                        {{ __('League') }}
-                    </button>
-                </x-slot>
+        {{-- League is open to everyone signed in: the three lists behind it are
+             records a player has a reason to read. Play and Setup below stay
+             behind the admin gate -- they are for running the league, not
+             following it. --}}
+        <x-dropdown align="left" :inline-mobile="true">
+            <x-slot name="trigger">
+                <button type="button"
+                        class="nav-link {{ request()->routeIs('poker.seasons.*', 'poker.venues.*', 'poker.tournaments.*') ? 'nav-link--current' : '' }}"
+                        @if (request()->routeIs('poker.seasons.*', 'poker.venues.*', 'poker.tournaments.*')) aria-current="page" @endif>
+                    {{ __('League') }}
+                </button>
+            </x-slot>
 
-                <x-slot name="content">
-                    <x-dropdown-link :href="route('poker.seasons.index')">{{ __('Seasons') }}</x-dropdown-link>
-                    <x-dropdown-link :href="route('poker.venues.index')">{{ __('Venues') }}</x-dropdown-link>
-                    <x-dropdown-link :href="route('poker.tournaments.index')">{{ __('Tournaments') }}</x-dropdown-link>
-                </x-slot>
-            </x-dropdown>
+            <x-slot name="content">
+                <x-dropdown-link :href="route('poker.seasons.index')">{{ __('Seasons') }}</x-dropdown-link>
+                <x-dropdown-link :href="route('poker.venues.index')">{{ __('Venues') }}</x-dropdown-link>
+                <x-dropdown-link :href="route('poker.tournaments.index')">{{ __('Tournaments') }}</x-dropdown-link>
+            </x-slot>
+        </x-dropdown>
+
+        @if (Auth::user()->is_admin)
 
             <x-dropdown align="left" :inline-mobile="true">
                 <x-slot name="trigger">

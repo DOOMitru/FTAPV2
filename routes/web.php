@@ -197,10 +197,28 @@ Route::middleware('auth')->group(function () {
     Route::get('/seasons/{season}', [\App\Http\Controllers\Poker\PokerSeasonController::class, 'show'])
         ->name('seasons.show');
 
+    // The league's records, readable by anyone signed in. A player has a
+    // reason to look these up -- where the league plays, what is scheduled,
+    // how a season went -- and none of them expose anything a player should
+    // not see.
+    //
+    // Only the three INDEXES. Everything that changes a record, and the venue
+    // detail page (takings, leaderboards, per-player histories), stays in the
+    // admin group below. The names keep their poker. prefix so every existing
+    // link still resolves.
+    Route::prefix('poker')->name('poker.')->group(function () {
+        Route::get('seasons', [\App\Http\Controllers\Poker\PokerSeasonController::class, 'index'])
+            ->name('seasons.index');
+        Route::get('venues', [\App\Http\Controllers\Poker\VenueController::class, 'index'])
+            ->name('venues.index');
+        Route::get('tournaments', [\App\Http\Controllers\Poker\PokerTournamentController::class, 'index'])
+            ->name('tournaments.index');
+    });
+
     Route::middleware('admin')->prefix('poker')->name('poker.')->group(function () {
-        Route::resource('seasons', \App\Http\Controllers\Poker\PokerSeasonController::class)->except(['show']);
-        Route::resource('venues', \App\Http\Controllers\Poker\VenueController::class);
-        Route::resource('tournaments', \App\Http\Controllers\Poker\PokerTournamentController::class)->except(['show']);
+        Route::resource('seasons', \App\Http\Controllers\Poker\PokerSeasonController::class)->except(['show', 'index']);
+        Route::resource('venues', \App\Http\Controllers\Poker\VenueController::class)->except(['index']);
+        Route::resource('tournaments', \App\Http\Controllers\Poker\PokerTournamentController::class)->except(['show', 'index']);
 
         // Recording a knockout, not editing a tournament, so it sits beside the
         // resource rather than inside it. Admin-only by this group.
