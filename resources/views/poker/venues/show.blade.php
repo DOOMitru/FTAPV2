@@ -95,7 +95,11 @@
                 </x-slot>
 
                 @forelse ($venue->tournaments->sortByDesc('start_time')->take(10) as $tournament)
-                    <a class="entry" href="{{ route('tournaments.show', $tournament) }}">
+                    {{-- entry--link, because the whole row is the link. Without
+                         it every piece of text in the row -- title, date and
+                         season -- carries the browser's default underline, and
+                         ten rows read as thirty links rather than ten. --}}
+                    <a class="entry entry--link" href="{{ route('tournaments.show', $tournament) }}">
                         <div class="entry__body">
                             <div class="entry__title">{{ $tournament->name }}</div>
 
@@ -104,6 +108,14 @@
                                 <span>{{ $tournament->season->name ?? '' }}</span>
                             </div>
                         </div>
+
+                        {{-- The affordance the underlines were doing badly. A
+                             mark that is always there, rather than a hover
+                             state a touch screen never shows. --}}
+                        <svg class="entry__go" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                             stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <path d="M9 18l6-6-6-6"/>
+                        </svg>
                     </a>
                 @empty
                     <x-empty-state :title="__('No tournaments held here yet.')" />
