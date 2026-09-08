@@ -53,6 +53,24 @@ class DeleteConfirmationTest extends TestCase
     /** The confirmation attached to the only delete form on a page. */
     private function confirmationOn(string $url): string
     {
+        return $this->confirmationsOn($url)[0];
+    }
+
+    /**
+     * Every confirmation on a page, not just the first.
+     *
+     * The users listing orders by first name and this class seeds an admin from
+     * the factory, which picks one at random. Taking the first form meant the
+     * assertion only held while that random name happened to sort after the
+     * person the test had created -- so roughly one run in fifty, when the
+     * factory rolled an "Aaron" or an "Abigail", the first confirmation on the
+     * page belonged to the admin and the test failed with nothing to explain
+     * it. That is the intermittent failure recorded in RESUME-HERE.
+     *
+     * @return list<string>
+     */
+    private function confirmationsOn(string $url): array
+    {
         $html = $this->actingAs($this->admin())->get($url)->assertOk()->getContent();
 
         $dom = new \DOMDocument();
@@ -62,7 +80,13 @@ class DeleteConfirmationTest extends TestCase
 
         $this->assertGreaterThan(0, $forms->length, "No confirmable form on {$url}.");
 
-        return $forms->item(0)->getAttribute('data-confirm');
+        $confirmations = [];
+
+        foreach ($forms as $form) {
+            $confirmations[] = $form->getAttribute('data-confirm');
+        }
+
+        return $confirmations;
     }
 
     public function test_venue_points_say_they_are_points_and_not_a_player(): void
@@ -127,9 +151,12 @@ class DeleteConfirmationTest extends TestCase
             'first_name' => 'Ada', 'last_name' => 'Lovelace', 'approval_status' => 'approved',
         ]);
 
-        $this->assertStringContainsString(
-            'Delete Ada Lovelace?',
-            $this->confirmationOn(route('users.index'))
+        // Asked of every confirmation on the page rather than the first: the
+        // list is ordered by first name and the admin's is random, so "first"
+        // was a coin toss this test used to lose about once in fifty runs.
+        $this->assertContains(
+            'Delete Ada Lovelace? This cannot be undone.',
+            $this->confirmationsOn(route('users.index'))
         );
     }
 }

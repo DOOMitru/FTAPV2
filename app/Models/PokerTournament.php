@@ -26,7 +26,91 @@ class PokerTournament extends Model
 
     protected $casts = [
         'start_time' => 'datetime',
+        'published_at' => 'datetime',
     ];
+
+    // published_at is deliberately absent from $fillable. Publishing sends
+    // messages to players and locks the record; it is not something the
+    // tournament edit form should be able to do by posting a field.
+
+    /**
+     * The tournament nearest to now, behind or ahead.
+     *
+     * The default for the results and registrants lists, which are worked from
+     * opposite sides of a game -- registrants before it, results after -- so
+     * neither "the last one played" nor "the next one scheduled" serves both.
+     * Whichever is closer is the night an administrator has in front of them.
+     *
+     * Two indexed queries and a comparison in PHP, deliberately: ordering by
+     * the absolute difference needs date arithmetic that is spelled differently
+     * on SQLite and MySQL, and this project runs on both.
+     *
+     * A tie goes to the past, because a tournament starting this instant is one
+     * being played rather than one being awaited.
+     */
+    public static function nearest(): ?self
+    {
+        $now = now();
+
+        $behind = static::where('start_time', '<=', $now)->orderByDesc('start_time')->first();
+        $ahead = static::where('start_time', '>', $now)->orderBy('start_time')->first();
+
+        if (! $behind || ! $ahead) {
+            return $behind ?? $ahead;
+        }
+
+        return $now->diffInSeconds($behind->start_time, absolute: true)
+            <= $now->diffInSeconds($ahead->start_time, absolute: true)
+                ? $behind
+                : $ahead;
+    }
+
+    /** Results have been declared final, and the tournament is locked. */
+    public function isPublished(): bool
+    {
+        return $this->published_at !== null;
+    }
+
+    /**
+     * Every player who entered has a finish, and somebody entered.
+     *
+     * Comparing counts would be wrong twice over. An empty tournament has zero
+     * of each and would read as finished, and the admin results form validates
+     * that a user EXISTS rather than that they registered -- so a result for
+     * somebody who never played can make the numbers match while a registrant
+     * is still unscored.
+     */
+    public function isComplete(): bool
+    {
+        $entered = $this->registrants()->whereNotNull('user_id')->pluck('user_id')->unique();
+
+        if ($entered->isEmpty()) {
+            return false;
+        }
+
+        $scored = $this->results()->whereIn('user_id', $entered)->distinct()->count('user_id');
+
+        return $scored === $entered->count();
+    }
+
+    /**
+     * Why this tournament cannot be changed, or null if it can.
+     *
+     * One method for six call sites -- register, unregister, eliminate, remove
+     * registrant, and result create/update/delete -- because six copies of a
+     * rule are six chances for it to drift, which is the same reasoning that
+     * put hasRecordedResults() here.
+     */
+    public function publishedRefusal(): ?string
+    {
+        if (! $this->isPublished()) {
+            return null;
+        }
+
+        return __('Results for :tournament have been published. Unpublish them first to make changes.', [
+            'tournament' => $this->name,
+        ]);
+    }
 
     /**
      * The podium, but only the places that are actually settled.
@@ -37,18 +121,26 @@ class PokerTournament extends Model
      * third; first and second are still being played for, and showing the
      * current top three would put two players on a podium nobody has won.
      *
-     * Third is settled once two players are left, which is the moment it was
-     * awarded. First and second appear together and only once everyone has a
-     * result: second is technically known when one player remains, but a
-     * silver medal beside an empty gold one reads as a rendering fault.
+     * Each place appears the moment it is actually awarded, and not before:
+     * third once two players are left, second once one is, first once the last
+     * hand is played. So the podium fills from the right as the field shrinks.
+     *
+     * Second used to wait for first, on the reasoning that a silver medal
+     * beside an empty gold one reads as a rendering fault. It does not -- it
+     * reads as a tournament still being played, which is what it is, and
+     * withholding a settled place is the page keeping back a result that has
+     * already happened.
      */
     public function podium(): Collection
     {
         $remaining = max(0, $this->countOf('registrants') - $this->countOf('results'));
 
+        // Arms are ordered narrowest first: 0 remaining is also <= 2, so a
+        // looser arm above would swallow it.
         $settled = match (true) {
             $remaining === 0 => [1, 2, 3],
-            $remaining <= 2 => [3],
+            $remaining === 1 => [2, 3],
+            $remaining === 2 => [3],
             default => [],
         };
 

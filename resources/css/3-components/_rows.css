@@ -37,6 +37,19 @@
     text-align: end;
 }
 
+/* A unit beside a number -- "120 PTS". Uppercased here rather than written
+   upper in the template, so the string stays the same 'Pts' the public points
+   page uses; that page does the same thing with .p-points__unit, which cannot
+   be reused because PublicRegisterTest fences 5-public/ off from the dashboard.
+   
+   Letter-spacing is not decoration: every uppercase run in this design system
+   carries it, and four capitals set solid read as an abbreviation nobody
+   spaced. */
+.row__unit {
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
 /* A calendar chip: month above day. Used where a date has to be scannable in a
    list rather than read as a sentence. */
 .date-chip {
@@ -214,4 +227,61 @@
     text-overflow: ellipsis;
     white-space: nowrap;
     color: var(--c-text-muted);
+}
+
+/* A whole row that is a link.
+ *
+ * Nothing in this system strips the browser's default underline from an <a>,
+ * and .entry has three pieces of text in it -- title, date, season -- so a
+ * linked row arrived with all three underlined and a list of ten read as a
+ * wall of thirty links. The row is one target; it should look like one.
+ *
+ * The public archive card solves the same problem in 5-public/_register.css,
+ * but PublicRegisterTest fences that file off from the dashboard, so this is
+ * the dashboard's own version of the same idea. */
+.entry--link {
+    color: inherit;
+    text-decoration: none;
+    transition: background-color var(--transition-fast);
+}
+
+.entry--link:hover {
+    background-color: var(--c-surface-raised);
+}
+
+/* The title carries the hover, not the whole row: it is the thing you are
+   going to. */
+.entry--link:hover .entry__title {
+    color: var(--c-primary);
+}
+
+.entry--link:focus-visible {
+    outline: 2px solid var(--c-primary);
+    outline-offset: -2px;
+}
+
+/* The chevron is always visible, because a hover state says nothing on a touch
+   screen. It only MOVES on hover. */
+.entry__go {
+    flex-shrink: 0;
+    width: 1rem;
+    height: 1rem;
+    color: var(--c-text-muted);
+    transition: transform var(--transition-fast), color var(--transition-fast);
+}
+
+.entry--link:hover .entry__go {
+    transform: translateX(3px);
+    color: var(--c-primary);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .entry--link,
+    .entry__go {
+        transition: none;
+    }
+
+    .entry--link:hover .entry__go {
+        transform: none;
+    }
 }

@@ -21,7 +21,11 @@
     margin-block-start: var(--space-2);
     font-family: var(--font-mono);
     font-variant-numeric: tabular-nums;
-    font-size: var(--step-3);
+    /* step-4, up from step-3. A KPI tile exists to be read across a room, and
+       at 2rem the number carried no more weight than the heading above it.
+       Fluid by definition -- clamp(2.5rem, 5vw, 3.5rem) -- so it grows with the
+       page and stops before it dwarfs the tile. */
+    font-size: var(--step-4);
     font-weight: 600;
     line-height: 1;
 }
@@ -35,7 +39,14 @@
         padding: var(--space-3);
     }
 
+    /* step-2, up from step-1, alongside the base going to step-4.
+
+       The original note here was about the NUMBER overflowing -- "7,154" at
+       the base size is wider than a third of a 375px screen. That is still
+       true, so the trio is still capped; but step-2 clears it with room, which
+       a screenshot confirms. The two-word "Not set" placeholder wraps at this
+       size and wrapped at the old one too, so nothing regressed. */
     .l-grid--trio .stat__value {
-        font-size: var(--step-1);
+        font-size: var(--step-2);
     }
 }

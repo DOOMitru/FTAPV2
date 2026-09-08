@@ -8,12 +8,28 @@
     </x-slot>
 
     <div class="l-container l-stack">
+        {{-- Venue points are not recorded against a tournament: the table
+             holds a player, a venue, a date and an amount. Filtering by
+             tournament therefore matches on the venue and the day, and the
+             note below says so -- an inferred filter that looks like a real
+             one turns "nothing matched" into "nothing was awarded". --}}
+        <x-tournament-filter :tournaments="$tournaments" :selected="$selected" />
+
+        @if ($selected)
+            <p class="field__hint">
+                {{ __('Venue points are not linked to a tournament, so this shows points earned at :venue on :date.', [
+                    'venue' => $selected->venue->name ?? __('its venue'),
+                    'date' => $selected->start_time?->format('M d, Y') ?? __('its date'),
+                ]) }}
+            </p>
+        @endif
+
         @if (session('status'))
             <x-alert variant="success">{{ session('status') }}</x-alert>
         @endif
 
         <x-card flush>
-            <x-table>
+            <x-table cards class="venue-points-index__table">
                 <x-slot name="head">
                     <th scope="col">{{ __('Date') }}</th>
                     <th scope="col">{{ __('Player') }}</th>
@@ -51,13 +67,13 @@
                     @endphp
 
                     <tr>
-                        <td>{{ $date ?? '—' }}</td>
+                        <td class="venue-points-index__date">{{ $date ?? '—' }}</td>
 
-                        <td>{{ $point->user_name }}</td>
+                        <td class="venue-points-index__player">{{ $point->user_name }}</td>
 
-                        <td>{{ $venueName ?? __('TBD') }}</td>
+                        <td class="venue-points-index__venue">{{ $venueName ?? __('TBD') }}</td>
 
-                        <td class="table__num">{{ number_format($point->amount) }}</td>
+                        <td class="table__num venue-points-index__amount">{{ number_format($point->amount) }}</td>
 
                         <td class="table__actions">
                             <div class="l-cluster l-cluster--end">

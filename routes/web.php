@@ -176,6 +176,16 @@ Route::middleware('auth')->group(function () {
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
+    // The literal path is declared FIRST. Behind /notifications/{notification}
+    // it would be matched as an id and 404 -- and because ids are UUIDs, no
+    // real notification could ever shadow it, so the bug would be invisible.
+    Route::delete('/notifications/read', [\App\Http\Controllers\NotificationController::class, 'clearRead'])
+        ->name('notifications.clear-read');
+    Route::patch('/notifications/{notification}', [\App\Http\Controllers\NotificationController::class, 'update'])
+        ->name('notifications.update');
+    Route::delete('/notifications/{notification}', [\App\Http\Controllers\NotificationController::class, 'destroy'])
+        ->name('notifications.destroy');
+
     // Player-facing tournament and season views. Deliberately outside the
     // /poker prefix, which is admin-only.
     Route::get('/tournaments/{tournament}', [\App\Http\Controllers\Poker\PokerTournamentController::class, 'show'])
@@ -187,15 +197,41 @@ Route::middleware('auth')->group(function () {
     Route::get('/seasons/{season}', [\App\Http\Controllers\Poker\PokerSeasonController::class, 'show'])
         ->name('seasons.show');
 
+    // The league's records, readable by anyone signed in. A player has a
+    // reason to look these up -- where the league plays, what is scheduled,
+    // how a season went -- and none of them expose anything a player should
+    // not see.
+    //
+    // Only the three INDEXES. Everything that changes a record, and the venue
+    // detail page (takings, leaderboards, per-player histories), stays in the
+    // admin group below. The names keep their poker. prefix so every existing
+    // link still resolves.
+    Route::prefix('poker')->name('poker.')->group(function () {
+        Route::get('seasons', [\App\Http\Controllers\Poker\PokerSeasonController::class, 'index'])
+            ->name('seasons.index');
+        Route::get('venues', [\App\Http\Controllers\Poker\VenueController::class, 'index'])
+            ->name('venues.index');
+        Route::get('tournaments', [\App\Http\Controllers\Poker\PokerTournamentController::class, 'index'])
+            ->name('tournaments.index');
+    });
+
     Route::middleware('admin')->prefix('poker')->name('poker.')->group(function () {
-        Route::resource('seasons', \App\Http\Controllers\Poker\PokerSeasonController::class)->except(['show']);
-        Route::resource('venues', \App\Http\Controllers\Poker\VenueController::class);
-        Route::resource('tournaments', \App\Http\Controllers\Poker\PokerTournamentController::class)->except(['show']);
+        Route::resource('seasons', \App\Http\Controllers\Poker\PokerSeasonController::class)->except(['show', 'index']);
+        Route::resource('venues', \App\Http\Controllers\Poker\VenueController::class)->except(['index']);
+        Route::resource('tournaments', \App\Http\Controllers\Poker\PokerTournamentController::class)->except(['show', 'index']);
 
         // Recording a knockout, not editing a tournament, so it sits beside the
         // resource rather than inside it. Admin-only by this group.
         Route::post('tournaments/{tournament}/eliminate', [\App\Http\Controllers\Poker\PokerTournamentController::class, 'eliminate'])
             ->name('tournaments.eliminate');
+
+        // Declaring results final. Not part of the tournaments resource: it
+        // sends messages to players and closes the record, which is not what
+        // "update a tournament" means.
+        Route::post('tournaments/{tournament}/publish', [\App\Http\Controllers\Poker\PokerTournamentController::class, 'publish'])
+            ->name('tournaments.publish');
+        Route::delete('tournaments/{tournament}/publish', [\App\Http\Controllers\Poker\PokerTournamentController::class, 'unpublish'])
+            ->name('tournaments.unpublish');
         Route::resource('results', \App\Http\Controllers\Poker\PokerTournamentResultController::class)->except(['show']);
         Route::resource('registrants', \App\Http\Controllers\Poker\PokerTournamentRegistrantController::class)->except(['show']);
         Route::resource('venue-points', \App\Http\Controllers\Poker\VenuePointsController::class)->except(['show']);

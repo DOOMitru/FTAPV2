@@ -15,15 +15,27 @@ class PokerTournamentRegistrantController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index(): View
+    public function index(Request $request): View
     {
         // withCount on the tournament, because the view asks every row whether
         // its tournament has results yet -- countOf() reads the alias, so this
         // is one query rather than one per row.
+        // Narrowed to one tournament -- see PokerTournamentResultController for
+        // the same reasoning. Nearest to now by default, because registrants are
+        // entered before a game and results after it, so neither "last played"
+        // nor "next scheduled" suits both pages.
+        $tournaments = PokerTournament::orderByDesc('start_time')->get();
+
+        $selected = $tournaments->firstWhere('id', $request->query('tournament'))
+            ?? PokerTournament::nearest();
+
         $registrants = PokerTournamentRegistrant::with(['user', 'tournament' => fn ($q) => $q->withCount('results')])
+            ->when($selected, fn ($query) => $query->where('tournament_id', $selected->id))
             ->latest()
-            ->paginate(10);
-        return view('poker.registrants.index', compact('registrants'));
+            ->paginate(10)
+            ->withQueryString();
+
+        return view('poker.registrants.index', compact('registrants', 'tournaments', 'selected'));
     }
 
     /**
@@ -118,6 +130,14 @@ class PokerTournamentRegistrantController extends Controller
      */
     public function destroy(PokerTournamentRegistrant $registrant): RedirectResponse
     {
+        // Checked before the results rule below, which would also refuse this
+        // -- a published tournament has a finish for everyone -- but for a
+        // reason that is true of any scored tournament. "Results have been
+        // published" is what an administrator here needs to hear.
+        if ($refusal = $registrant->tournament->publishedRefusal()) {
+            return back()->with('error', $refusal);
+        }
+
         // Not even for an administrator. Once finishes are recorded, the field
         // they describe is settled, and removing someone from it silently makes
         // every one of those places wrong.

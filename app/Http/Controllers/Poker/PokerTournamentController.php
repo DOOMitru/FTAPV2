@@ -7,10 +7,14 @@ use App\Models\PointsStructure;
 use App\Models\PokerSeason;
 use App\Models\PokerTournament;
 use App\Models\Venue;
+use App\Notifications\TournamentPlacement;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Notifications\DatabaseNotification;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Number;
+use Illuminate\Support\Str;
 use Illuminate\View\View;
 
 class PokerTournamentController extends Controller
@@ -64,6 +68,25 @@ class PokerTournamentController extends Controller
     /**
      * Display the specified resource.
      */
+    /**
+     * The name a registrant sorts under.
+     *
+     * The account's surname when there is one. user_id is nullable with
+     * nullOnDelete on registrants, so a deleted player leaves only the
+     * player_name snapshotted at registration -- and the last word of that is
+     * the best surname available. A single-word name sorts under itself.
+     */
+    private function surnameOf(\App\Models\PokerTournamentRegistrant $registrant): string
+    {
+        if (filled($registrant->user?->last_name)) {
+            return $registrant->user->last_name;
+        }
+
+        $words = preg_split('/\s+/u', trim((string) $registrant->player_name), -1, PREG_SPLIT_NO_EMPTY) ?: [];
+
+        return $words === [] ? '' : end($words);
+    }
+
     public function show(PokerTournament $tournament): View
     {
         $tournament->load([
@@ -108,6 +131,23 @@ class PokerTournamentController extends Controller
         // each. user_id, because that is what a registrant carries.
         $resultsByUser = $tournament->results->keyBy('user_id');
 
+        // The panel reads as live standings rather than as an address book.
+        //
+        // Players still in sit at the top, because they are competing for the
+        // places above the ones already awarded -- with three of ten out
+        // holding 8th, 9th and 10th, the seven still playing will finish
+        // somewhere in 1st to 7th. Below them the finishers appear best first,
+        // matching the Final Standings table further up the same page.
+        //
+        // Places count DOWN as players go out, so the first player eliminated
+        // holds the highest number and appears last. That is a standings order,
+        // not an elimination log.
+        $orderedRegistrants = $tournament->registrants->sortBy(fn ($registrant) => [
+            isset($resultsByUser[$registrant->user_id]) ? 1 : 0,
+            $resultsByUser[$registrant->user_id]->place ?? 0,
+            Str::lower($this->surnameOf($registrant)),
+        ]);
+
         $availableUsers = collect();
         if (auth()->user()->is_admin) {
             $registeredUserIds = $tournament->registrants()->pluck('user_id')->toArray();
@@ -134,7 +174,8 @@ class PokerTournamentController extends Controller
             'availableUsers',
             'nextPlace',
             'nextPlacePoints',
-            'resultsByUser'
+            'resultsByUser',
+            'orderedRegistrants'
         ));
     }
 
@@ -148,9 +189,96 @@ class PokerTournamentController extends Controller
      * many players are still in, so an administrator cannot award a place out
      * of order by clicking the wrong row.
      */
+    /**
+     * Declare the results final: tell the players who scored, and lock it.
+     *
+     * The two happen together, in one transaction. Sending without locking
+     * leaves every message open to a late registration shifting the places
+     * underneath it; locking without sending closes a tournament nobody was
+     * told about.
+     */
+    public function publish(PokerTournament $tournament): RedirectResponse
+    {
+        if ($tournament->isPublished()) {
+            return back()->with('error', __('Results for :tournament have already been published.', [
+                'tournament' => $tournament->name,
+            ]));
+        }
+
+        if (! $tournament->isComplete()) {
+            return back()->with('error', __(
+                'Every registered player needs a finish before results can be published.'
+            ));
+        }
+
+        // points > 0 is the whole recipient rule. A place the structure does
+        // not pay scores nothing, and there is nothing to celebrate about
+        // nothing.
+        $scored = $tournament->results()
+            ->where('points', '>', 0)
+            ->whereNotNull('user_id')
+            ->with('user')
+            ->get();
+
+        DB::transaction(function () use ($tournament, $scored) {
+            foreach ($scored as $result) {
+                $result->user?->notify(new TournamentPlacement($result));
+            }
+
+            $tournament->forceFill(['published_at' => now()])->save();
+        });
+
+        return back()->with('status', trans_choice(
+            '{0}Results published. Nobody scored points, so no one was notified.'
+            .'|{1}Results published. 1 player was notified.'
+            .'|[2,*]Results published. :count players were notified.',
+            $scored->count(),
+            ['count' => $scored->count()]
+        ));
+    }
+
+    /**
+     * Reopen a tournament, and retract what publishing claimed.
+     *
+     * The notifications go with it. Unpublishing means the results were not
+     * final, so a message still saying "you finished 1st" is a statement the
+     * league no longer stands behind -- and deleting them means republishing
+     * sends one clean set rather than a duplicate for everybody whose placing
+     * did not change.
+     */
+    public function unpublish(PokerTournament $tournament): RedirectResponse
+    {
+        if (! $tournament->isPublished()) {
+            return back()->with('error', __('Results for :tournament have not been published.', [
+                'tournament' => $tournament->name,
+            ]));
+        }
+
+        DB::transaction(function () use ($tournament) {
+            // Scoped by type as well as by tournament: a player's unrelated
+            // notifications are not this action's to delete.
+            DatabaseNotification::where('type', TournamentPlacement::class)
+                ->where('data->tournament_id', $tournament->id)
+                ->delete();
+
+            $tournament->forceFill(['published_at' => null])->save();
+        });
+
+        return back()->with('status', __('Results for :tournament are open again, and the notifications have been withdrawn.', [
+            'tournament' => $tournament->name,
+        ]));
+    }
+
     public function eliminate(PokerTournament $tournament, Request $request): RedirectResponse
     {
         $validated = $request->validate(['user_id' => ['required', 'string']]);
+
+        // A published tournament is finished. Its players have been told where
+        // they came, and a place is a position in a field -- so nothing may
+        // change the field's size or any finish in it.
+        if ($refusal = $tournament->publishedRefusal()) {
+            return back()->with('error', $refusal);
+        }
 
         // No gate on timing. This used to require registration closed, on the
         // reasoning that a late entry would change how many places there are to
@@ -200,6 +328,13 @@ class PokerTournamentController extends Controller
 
     public function register(PokerTournament $tournament, Request $request): RedirectResponse
     {
+        // A published tournament is finished. Its players have been told where
+        // they came, and a place is a position in a field -- so nothing may
+        // change the field's size or any finish in it.
+        if ($refusal = $tournament->publishedRefusal()) {
+            return back()->with('error', $refusal);
+        }
+
         $isAdmin = auth()->user()->is_admin;
         $targetUserId = ($isAdmin && $request->has('user_id')) ? $request->user_id : auth()->id();
 
@@ -254,6 +389,13 @@ class PokerTournamentController extends Controller
      */
     public function unregister(PokerTournament $tournament): RedirectResponse
     {
+        // A published tournament is finished. Its players have been told where
+        // they came, and a place is a position in a field -- so nothing may
+        // change the field's size or any finish in it.
+        if ($refusal = $tournament->publishedRefusal()) {
+            return back()->with('error', $refusal);
+        }
+
         // The only rule left, and the one that was always doing the work. A
         // place is a position in a field -- tenth of ten -- so once a finish is
         // recorded, taking a player out makes that finish describe a tournament

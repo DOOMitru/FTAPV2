@@ -139,3 +139,84 @@
         display: none;
     }
 }
+
+/* Card rows on a narrow screen.
+   =================================================================
+   The shell only. A row becomes a grid, the header is clipped, and the cells
+   give up the padding and rules the row now owns -- but WHERE each cell lands
+   is the page's business, because that is the part that differs: a result leads
+   with a rank badge, a venue point leads with a player, a sponsor leads with a
+   logo. Each page supplies grid-template-areas and assigns its own cells.
+
+   Distinct from .table--stacked, which prints every cell as a labelled
+   label/value line. That is right for a record you read field by field and
+   wrong for a list you scan: five columns become five lines per row, and the
+   identifier you came to find sits between two labels.
+
+   Everything here is inside the query; wide screens keep the table. */
+@media (max-width: 48rem) {
+    /* Clipped rather than display:none, so the cells keep their names for a
+       screen reader even though the strip no longer lines up with anything. */
+    .table--cards thead {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        margin: -1px;
+        padding: 0;
+        overflow: hidden;
+        clip-path: inset(50%);
+        white-space: nowrap;
+    }
+
+    .table--cards tbody tr {
+        display: grid;
+        align-items: center;
+        gap: var(--space-1) var(--space-3);
+        padding: var(--space-3) var(--space-4);
+        border-block-end: var(--border-width) solid var(--c-border);
+    }
+
+    .table--cards tbody tr:last-child {
+        border-block-end: 0;
+    }
+
+    /* The row owns the padding and the rule now, so the cells give up both --
+       otherwise every cell draws its own line across the grid. */
+    .table--cards td {
+        padding: 0;
+        border-block-end: 0;
+        text-align: start;
+    }
+
+    /* The reason an admin index exists, held at the end of every card. nowrap
+       because .l-cluster wraps by default, which is right for a row of badges
+       and wrong for a fixed trio of icon buttons. */
+    .table--cards .table__actions {
+        grid-area: actions;
+        align-self: center;
+    }
+
+    .table--cards .table__actions .l-cluster {
+        flex-wrap: nowrap;
+        /* space-3 between three icon buttons costs 144px of a 343px card, and
+           what is left has to hold a name, a badge and two dates. The buttons
+           are 36px tap targets either way; only the air between them shrinks. */
+        gap: var(--space-1);
+    }
+
+    /* A badge in a card is a denser context than a badge in a table cell. The
+       wide tracking earns its place across a column of them; inside a card it
+       is 14px of a 317px row, and that 14px is the difference between a season
+       name fitting on one line and breaking across two. */
+    .table--cards .badge {
+        padding-inline: var(--space-1);
+        letter-spacing: 0.04em;
+    }
+
+    /* The empty state is one cell pretending to be a row, so it crosses every
+       column rather than landing in whichever area comes first. */
+    .table--cards tbody td[colspan] {
+        grid-area: auto;
+        grid-column: 1 / -1;
+    }
+}

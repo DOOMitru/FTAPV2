@@ -52,3 +52,29 @@
     align-items: center;
     gap: var(--space-2);
 }
+
+/* The unread count, on the trigger's top-end corner. position:relative goes on
+   the trigger so the badge is placed against the button rather than against
+   whatever ancestor happens to be positioned. */
+.nav-link--user {
+    position: relative;
+}
+
+.nav-link__badge {
+    position: absolute;
+    inset-block-start: -0.25rem;
+    inset-inline-end: -0.25rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 1.125rem;
+    height: 1.125rem;
+    padding-inline: 0.25rem;
+    border-radius: var(--radius-pill);
+    background-color: var(--c-primary-fill);
+    font-family: var(--font-mono);
+    font-size: var(--step--2);
+    font-weight: 700;
+    line-height: 1;
+    color: var(--c-primary-ink);
+}

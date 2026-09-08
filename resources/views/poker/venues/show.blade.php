@@ -39,8 +39,8 @@
                     <div class="venue-show__stats">
                         <x-stat :label="__('Tournaments')" :value="$totalTournaments" />
                         <x-stat :label="__('Point Earners')" :value="$uniqueVenuePointPlayers" />
-                        <x-stat :label="__('Venue Points')" :value="number_format($totalVenuePoints)" />
-                        <x-stat :label="__('Tournament Points')" :value="number_format($totalTournamentPoints)" />
+                        <x-stat :label="__('Venue pts')" :value="number_format($totalVenuePoints)" />
+                        <x-stat :label="__('Tournament pts')" :value="number_format($totalTournamentPoints)" />
                     </div>
                 </div>
             </div>
@@ -49,13 +49,13 @@
         {{-- align-items: start, so an empty leaderboard does not stretch to
              match a list of nineteen tournaments beside it. --}}
         <div class="l-sidebar venue-show__panels">
-            <x-card :title="__('Venue Points Leaderboard')" flush>
+            <x-card :title="__('Venue pts leaderboard')" flush>
                 <x-table>
                     <x-slot name="head">
                         <th scope="col">{{ __('Rank') }}</th>
                         <th scope="col">{{ __('Player') }}</th>
                         <th scope="col" class="table__num">{{ __('Earned Count') }}</th>
-                        <th scope="col" class="table__num">{{ __('Total Points') }}</th>
+                        <th scope="col" class="table__num">{{ __('Total pts') }}</th>
                     </x-slot>
 
                     @forelse ($venueLeaderboard as $index => $entry)
@@ -82,6 +82,9 @@
                     @empty
                         <tr>
                             <td colspan="4">
+                                {{-- Still the whole word: this is a sentence, not a label. "No venue
+                                     pts awarded here yet" is an abbreviation
+                                     read as prose. --}}
                                 <x-empty-state :title="__('No venue points awarded here yet.')" />
                             </td>
                         </tr>
@@ -95,7 +98,11 @@
                 </x-slot>
 
                 @forelse ($venue->tournaments->sortByDesc('start_time')->take(10) as $tournament)
-                    <a class="entry" href="{{ route('tournaments.show', $tournament) }}">
+                    {{-- entry--link, because the whole row is the link. Without
+                         it every piece of text in the row -- title, date and
+                         season -- carries the browser's default underline, and
+                         ten rows read as thirty links rather than ten. --}}
+                    <a class="entry entry--link" href="{{ route('tournaments.show', $tournament) }}">
                         <div class="entry__body">
                             <div class="entry__title">{{ $tournament->name }}</div>
 
@@ -104,6 +111,14 @@
                                 <span>{{ $tournament->season->name ?? '' }}</span>
                             </div>
                         </div>
+
+                        {{-- The affordance the underlines were doing badly. A
+                             mark that is always there, rather than a hover
+                             state a touch screen never shows. --}}
+                        <svg class="entry__go" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                             stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <path d="M9 18l6-6-6-6"/>
+                        </svg>
                     </a>
                 @empty
                     <x-empty-state :title="__('No tournaments held here yet.')" />

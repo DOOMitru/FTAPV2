@@ -8,12 +8,16 @@
     </x-slot>
 
     <div class="l-container l-stack">
+        {{-- The filter leads the page: what you are looking at, before what
+             is in it. --}}
+        <x-tournament-filter :tournaments="$tournaments" :selected="$selected" />
+
         @if (session('status'))
             <x-alert variant="success">{{ session('status') }}</x-alert>
         @endif
 
         <x-card flush>
-            <x-table>
+            <x-table cards class="results-index__table">
                 <x-slot name="head">
                     <th scope="col">{{ __('Tournament') }}</th>
                     <th scope="col">{{ __('Place') }}</th>
@@ -24,11 +28,11 @@
 
                 @forelse ($results as $result)
                     <tr>
-                        <td>{{ $result->tournament->name }}</td>
+                        <td class="results-index__tournament">{{ $result->tournament->name }}</td>
 
-                        <td><x-rank :place="$result->place" /></td>
+                        <td class="results-index__rank"><x-rank :place="$result->place" /></td>
 
-                        <td>
+                        <td class="results-index__player">
                             <div class="entry__title">{{ $result->player_name }}</div>
 
                             @if ($result->player_nickname)
@@ -36,7 +40,7 @@
                             @endif
                         </td>
 
-                        <td class="table__num">{{ number_format($result->points) }}</td>
+                        <td class="table__num results-index__points">{{ number_format($result->points) }}</td>
 
                         <td class="table__actions">
                             <div class="l-cluster l-cluster--end">

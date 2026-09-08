@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Poker;
 
 use App\Http\Controllers\Controller;
+use App\Models\PokerTournament;
 use App\Models\User;
 use App\Models\Venue;
 use App\Models\VenuePoints;
@@ -15,10 +16,33 @@ class VenuePointsController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index(): View
+    public function index(Request $request): View
     {
-        $venue_points = VenuePoints::with(['user', 'venue'])->latest()->paginate(10);
-        return view('poker.venue-points.index', compact('venue_points'));
+        // Venue points carry no tournament. The table records a player, a
+        // venue, a date and an amount -- so filtering by tournament INFERS the
+        // link: points earned at that tournament's venue, on its date.
+        //
+        // The inference can be wrong two ways, which is why the page states
+        // what it matched on rather than just showing a shorter list: points
+        // awarded on a night with no tournament appear under none of them, and
+        // a venue running two events in a day shows both under either.
+        $tournaments = PokerTournament::with('venue')->orderByDesc('start_time')->get();
+
+        $selected = $tournaments->firstWhere('id', $request->query('tournament'))
+            ?? PokerTournament::nearest();
+
+        $venue_points = VenuePoints::with(['user', 'venue'])
+            ->when($selected, fn ($query) => $query
+                ->where('venue_id', $selected->venue_id)
+                // event_date is a plain Y-m-d string, deliberately uncast, so
+                // the tournament has to come down to a date to meet it. Against
+                // the raw start_time this matches nothing at all.
+                ->where('event_date', $selected->start_time?->toDateString()))
+            ->latest()
+            ->paginate(10)
+            ->withQueryString();
+
+        return view('poker.venue-points.index', compact('venue_points', 'tournaments', 'selected'));
     }
 
     /**

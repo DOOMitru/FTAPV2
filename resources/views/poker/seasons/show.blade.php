@@ -12,7 +12,7 @@
     <div class="l-container l-stack">
         <div class="l-grid l-grid--trio">
             <x-stat :label="__('Tournaments')" :value="number_format($totalTournaments)" />
-            <x-stat :label="__('Points awarded')" :value="number_format($totalPoints)" />
+            <x-stat :label="__('Pts awarded')" :value="number_format($totalPoints)" />
             <x-stat :label="__('Players')" :value="number_format($uniquePlayersCount)" />
         </div>
 
@@ -29,7 +29,7 @@
                          partly decided season lands here -- and
                          number_format(null) renders 0, stating a target nobody
                          chose and everybody has already met. --}}
-                    <x-stat :label="__('Season points')"
+                    <x-stat :label="__('Season pts')"
                             :value="$season->finale_points_required !== null
                                 ? number_format($season->finale_points_required)
                                 : __('Not set')" />
@@ -39,7 +39,7 @@
                                 ? (string) $season->finale_wins_required
                                 : __('Not set')" />
 
-                    <x-stat :label="__('Venue points')"
+                    <x-stat :label="__('Venue pts')"
                             :value="$season->finale_venue_points_required !== null
                                 ? number_format($season->finale_venue_points_required)
                                 : __('Not set')" />
@@ -65,11 +65,17 @@
                 @else
                     @php $leaderPoints = $leaderboard->first()['points']; @endphp
 
-                    <x-table :caption="__('Season standings')">
+                    {{-- The mobile layout is CSS only: same markup, same
+                         cells, reflowed by _season-show.css below 48rem. The
+                         house .table--stacked modifier was the obvious answer
+                         and the wrong one -- it turns each row into seven
+                         label/value lines, so twenty players become a hundred
+                         and forty, and the ranking disappears into a list. --}}
+                    <x-table :caption="__('Season standings')" class="season-show__standings">
                         <x-slot name="head">
                             <th scope="col">{{ __('Rank') }}</th>
                             <th scope="col">{{ __('Player') }}</th>
-                            <th scope="col">{{ __('Points') }}</th>
+                            <th scope="col">{{ __('Pts') }}</th>
                             <th scope="col" class="table__num">{{ __('Played') }}</th>
                             <th scope="col" class="table__num">{{ __('Won') }}</th>
                             <th scope="col" class="table__num">{{ __('Venue pts') }}</th>
@@ -78,7 +84,7 @@
 
                         @foreach ($leaderboard as $index => $row)
                             <tr>
-                                <td><x-rank :place="$index + 1" /></td>
+                                <td class="season-show__rank"><x-rank :place="$index + 1" /></td>
                                 @php
                                     // Standings name a player by nickname when they have one,
                                     // otherwise by their full name — deliberately NOT the
@@ -90,7 +96,7 @@
                                     $nickname = $row['user']?->nickname;
                                     $shownName = filled($nickname) ? $nickname : $row['player_name'];
                                 @endphp
-                                <td>
+                                <td class="season-show__player">
                                     @if (filled($nickname))
                                         {{-- Full name on hover, since the visible text is a nickname. --}}
                                         <span title="{{ $row['player_name'] }}">{{ $shownName }}</span>
@@ -99,13 +105,21 @@
                                     @endif
                                 </td>
                                 <td class="season-show__meter-cell">
+                                    {{-- Deliberately still the whole word. This
+                                         is the meter's accessible name, read
+                                         aloud rather than seen, and "PTS for
+                                         Wanda Reeve" is worse to hear than
+                                         "Points for Wanda Reeve". --}}
                                     <x-meter :value="$row['points']" :max="$leaderPoints"
                                              :label="__('Points for :name', ['name' => $shownName])" />
                                 </td>
-                                <td class="table__num">{{ $row['played'] }}</td>
-                                <td class="table__num">{{ $row['wins'] }}</td>
+                                {{-- data-label feeds the mobile stat run through
+                                     ::after -- "12 played", not "played 12",
+                                     because a stat line reads value first. --}}
+                                <td class="table__num season-show__stat season-show__stat--played" data-label="{{ __('played') }}">{{ $row['played'] }}</td>
+                                <td class="table__num season-show__stat season-show__stat--won" data-label="{{ __('won') }}">{{ $row['wins'] }}</td>
 
-                                <td class="table__num">{{ $row['venue_points'] }}</td>
+                                <td class="table__num season-show__stat season-show__stat--venue" data-label="{{ __('venue pts') }}">{{ $row['venue_points'] }}</td>
 
                                 {{-- A mark when they are in, and nothing when they are
                                      not. This column used to name what a player was
@@ -117,7 +131,7 @@
                                      empty cell reads as "blank", which does not say
                                      whether the row failed or the column is not in
                                      use. --}}
-                                <td>
+                                <td class="season-show__finale">
                                     @if (! $season->hasThresholds())
                                         &mdash;
                                     @elseif ($row['qualified'])

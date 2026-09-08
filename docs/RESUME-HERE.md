@@ -5,7 +5,7 @@ poker nights in Regina.
 
 ## Where things stand
 
-Suite: **515 passed.** Run `php artisan test`.
+Suite: **595 passed.** Run `php artisan test`.
 
 **The design-system work is finished and is no longer what this project is
 about.** Phases 0-5 moved all 86 views off Tailwind onto hand-built CSS
@@ -93,12 +93,16 @@ unfinished feature and do not send it to "finish" the work.
      and most of the league would need "Forgot your password?" instead.
    - Someone should watch `info@firsttoactpoker.com` that evening. The
      invitation sets no Reply-To, so replies land there.
-3. **One unreproduced test failure**, seen once on 2026-09-05: a full run
-   reported `1 failed, 435 passed`, and the name was not captured. It did not
-   recur in 45 further full runs or 120 targeted ones against everything in the
-   suite that uses randomness or the clock. Recorded rather than dismissed: a
-   test that fails once in fifty runs will eventually fail in CI, and the next
-   person to see it should know it is not new.
+3. ~~One unreproduced test failure~~ **FOUND AND FIXED, 2026-09-08.** It
+   surfaced again during the tournament-filter work and this time the name was
+   captured: `DeleteConfirmationTest::deleting an actual person still says so`.
+   The users listing orders by first name, the helper read only the FIRST
+   `data-confirm` form on the page, and the test seeds its admin from the
+   factory -- so whenever that random first name sorted before "Ada" (Aaron,
+   Abbie, Abigail), the first confirmation belonged to the admin and the
+   assertion failed. Confirmed by forcing an admin named Aaron. The helper now
+   returns every confirmation and the test asserts one of them matches; five
+   full runs clean since.
 4. `docs/` holds six audit documents from finished phases. Their open-items
    sections are largely resolved; treat this file as the index, not them.
 5. `.superpowers/sdd/` can be deleted whenever convenient — see the end of this
@@ -172,6 +176,31 @@ been running fine for weeks:
   and DreamHost blocks the IP. That happened once, from a home connection, and
   took an hour to clear. Every ssh call in the workflow names its key and only
   its key.
+
+## The screenshot harness cannot show you a phone
+
+**`chromium --headless --window-size=375,…` does NOT give a 375px viewport.**
+This machine's Chromium clamps the layout viewport to a **500px minimum**, in
+both `--headless` and `--headless=new`, and `--force-device-scale-factor` does
+not move it. The screenshot comes out 375px wide, so it looks like a phone and
+is not one -- it is a 500px layout in a narrower frame.
+
+Every mobile check made before 2026-09-08 was therefore taken at 500px. The
+seasons card layout looked correct that way and broke badly at a real 375: the
+Current badge takes 103px and three row actions take 128, which left the season
+name **51px** and wrapped it across two lines with the badge stranded beside it.
+
+**Use an iframe.** A media query keys off the iframe's own width, so a 375px
+iframe inside a 520px window is a true 375px viewport:
+
+```html
+<iframe src="page.html" width="375" height="1400"></iframe>
+```
+
+`~/ftap-shots/frame.html` takes `?page=…&w=375`. Measure inside it by appending
+a script that writes `getBoundingClientRect()` widths into a fixed-position
+`<pre>` -- reading them back from `--dump-dom` gives the 500px numbers, because
+the dump uses the clamped viewport too.
 
 ## Standing constraints
 
@@ -296,6 +325,48 @@ are recorded so they are not rediscovered as if new:
   view windows page numbers, so it calls `total()` and `lastPage()`, which a simple
   paginator does not have. Pointing it there made the first ever `simplePaginate()` call a
   fatal error. Simple pagination falls back to Laravel's stock view: unstyled, but working.
+
+### Player notifications (2026-09-06)
+
+Spec: `docs/superpowers/specs/2026-09-06-notifications-design.md`.
+Plan: `docs/superpowers/plans/2026-09-06-player-notifications.md`.
+
+- **Publishing is an explicit admin act, because "all the results are in" is not
+  a stable state.** Registering a late player shifts every recorded finish, and
+  results can be edited through the admin CRUD -- so firing automatically would
+  send true statements that quietly became false. An administrator presses
+  Publish results; that notifies and **locks** in one transaction, and the lock
+  is what makes the message permanently true.
+- **Recipients are results with `points > 0`**, so the cut is the points
+  structure rather than the podium. Fanfare is tiered: 1st/2nd/3rd reuse the
+  podium's medal tokens and its fixed ink, anything else scoring takes the
+  accent. A tournament nobody scored in still publishes -- locking is the other
+  half of the job.
+- **Unpublishing deletes the placement notifications it sent**, scoped by type
+  so a player's unrelated ones survive. Reopening means the league no longer
+  stands behind those results.
+- **Seven call sites across six paths ask one method**, `publishedRefusal()`.
+  THREE of them were already refused by older rules -- unregister and
+  registrant-removal by `hasRecordedResults()`, and eliminate because a
+  published tournament has a finish for everyone so the place on offer computes
+  to zero. What publishing adds there is the reason, so those three assert the
+  message rather than the refusal. Do not delete them as dead code.
+- **Laravel's stock notifications migration is wrong for this app.** It declares
+  `morphs('notifiable')`, an unsigned bigint, against ULID users. SQLite stores
+  a ULID in that column without complaint, so every send test passes locally
+  against a schema that fails on MySQL -- the column type is asserted directly
+  (`varchar` against `integer`), which discriminates on both drivers.
+- **`assertViewHas` cannot see composer-bound data on an `@include`d view**, and
+  it compares LOOSELY -- so `assertViewHas('unreadNotificationCount', 0)` read
+  null, `assertEquals(0, null)` is true in PHP, and the assertion passed at any
+  count. Those tests assert rendered HTML now.
+- **The same CSS collision bit three times in one component.** `.dropdown` sets
+  `position: relative` and `display: inline-block` as single classes from
+  `_dropdown.css`, which imports AFTER `_topbar.css`. Single-class rules in the
+  topbar for `position: static`, `width` and `display: none` all lost silently.
+  Every one is now two classes (`.dropdown.topbar__bell-menu`). The suite was
+  green through all three; only screenshots at 390px and 1280px found them --
+  including a desktop rendering two bells and two badges.
 
 ### Profile pictures are gone; a player is a monogram (2026-09-06)
 
