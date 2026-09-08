@@ -176,6 +176,16 @@ Route::middleware('auth')->group(function () {
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
+    // The literal path is declared FIRST. Behind /notifications/{notification}
+    // it would be matched as an id and 404 -- and because ids are UUIDs, no
+    // real notification could ever shadow it, so the bug would be invisible.
+    Route::delete('/notifications/read', [\App\Http\Controllers\NotificationController::class, 'clearRead'])
+        ->name('notifications.clear-read');
+    Route::patch('/notifications/{notification}', [\App\Http\Controllers\NotificationController::class, 'update'])
+        ->name('notifications.update');
+    Route::delete('/notifications/{notification}', [\App\Http\Controllers\NotificationController::class, 'destroy'])
+        ->name('notifications.destroy');
+
     // Player-facing tournament and season views. Deliberately outside the
     // /poker prefix, which is admin-only.
     Route::get('/tournaments/{tournament}', [\App\Http\Controllers\Poker\PokerTournamentController::class, 'show'])
