@@ -13,7 +13,7 @@
         @endif
 
         <x-card flush>
-            <x-table>
+            <x-table cards class="registrants-index__table">
                 <x-slot name="head">
                     <th scope="col">{{ __('Tournament') }}</th>
                     <th scope="col">{{ __('Player') }}</th>
@@ -23,9 +23,9 @@
 
                 @forelse ($registrants as $registrant)
                     <tr>
-                        <td>{{ $registrant->tournament->name }}</td>
+                        <td class="registrants-index__tournament">{{ $registrant->tournament->name }}</td>
 
-                        <td>
+                        <td class="registrants-index__player">
                             <div class="entry__title">{{ $registrant->player_name }}</div>
 
                             @if ($registrant->player_nickname)
@@ -33,7 +33,7 @@
                             @endif
                         </td>
 
-                        <td>{{ $registrant->registered_at ? \Illuminate\Support\Carbon::parse($registrant->registered_at)->format('M d, Y') : '—' }}</td>
+                        <td class="registrants-index__date">{{ $registrant->registered_at ? \Illuminate\Support\Carbon::parse($registrant->registered_at)->format('M d, Y') : '—' }}</td>
 
                         <td class="table__actions">
                             <div class="l-cluster l-cluster--end">

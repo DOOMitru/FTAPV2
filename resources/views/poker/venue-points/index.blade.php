@@ -13,7 +13,7 @@
         @endif
 
         <x-card flush>
-            <x-table>
+            <x-table cards class="venue-points-index__table">
                 <x-slot name="head">
                     <th scope="col">{{ __('Date') }}</th>
                     <th scope="col">{{ __('Player') }}</th>
@@ -51,13 +51,13 @@
                     @endphp
 
                     <tr>
-                        <td>{{ $date ?? '—' }}</td>
+                        <td class="venue-points-index__date">{{ $date ?? '—' }}</td>
 
-                        <td>{{ $point->user_name }}</td>
+                        <td class="venue-points-index__player">{{ $point->user_name }}</td>
 
-                        <td>{{ $venueName ?? __('TBD') }}</td>
+                        <td class="venue-points-index__venue">{{ $venueName ?? __('TBD') }}</td>
 
-                        <td class="table__num">{{ number_format($point->amount) }}</td>
+                        <td class="table__num venue-points-index__amount">{{ number_format($point->amount) }}</td>
 
                         <td class="table__actions">
                             <div class="l-cluster l-cluster--end">

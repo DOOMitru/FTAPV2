@@ -17,7 +17,7 @@
                  _seasons-index.css below 48rem. Start and end are two columns
                  holding one fact -- a season's span -- so on a phone they read
                  as the range they are. --}}
-            <x-table class="seasons-index__table">
+            <x-table cards class="seasons-index__table">
                 <x-slot name="head">
                     <th scope="col">{{ __('Name') }}</th>
                     <th scope="col">{{ __('Current') }}</th>

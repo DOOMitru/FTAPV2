@@ -13,7 +13,7 @@
         @endif
 
         <x-card flush>
-            <x-table>
+            <x-table cards class="tournaments-index__table">
                 <x-slot name="head">
                     <th scope="col">{{ __('Name') }}</th>
                     <th scope="col">{{ __('Venue') }}</th>
@@ -24,13 +24,13 @@
 
                 @forelse ($tournaments as $tournament)
                     <tr>
-                        <td>{{ $tournament->name }}</td>
+                        <td class="tournaments-index__name">{{ $tournament->name }}</td>
 
-                        <td>{{ $tournament->venue->name ?? __('TBD') }}</td>
+                        <td class="tournaments-index__venue">{{ $tournament->venue->name ?? __('TBD') }}</td>
 
-                        <td>{{ $tournament->season->name }}</td>
+                        <td class="tournaments-index__season">{{ $tournament->season->name }}</td>
 
-                        <td>{{ $tournament->start_time?->format('M d, Y · h:i A') ?? '—' }}</td>
+                        <td class="tournaments-index__start">{{ $tournament->start_time?->format('M d, Y · h:i A') ?? '—' }}</td>
 
                         <td class="table__actions">
                             <div class="l-cluster l-cluster--end">

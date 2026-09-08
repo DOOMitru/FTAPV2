@@ -15,7 +15,7 @@
         <x-card flush>
             {{-- Listed in ordered() sequence, the same scope the home page
                  uses, so this list is what the page will actually render. --}}
-            <x-table>
+            <x-table cards class="sponsors-index__table">
                 <x-slot name="head">
                     <th scope="col">{{ __('Logo') }}</th>
                     <th scope="col">{{ __('Name') }}</th>
@@ -34,7 +34,7 @@
                              here would leave a screen reader announcing a link
                              with no name at all. Unlinked it stays decorative,
                              because the name sits in the very next cell. --}}
-                        <td>
+                        <td class="sponsors-index__logo">
                             @if ($sponsor->website_url)
                                 <a class="sponsor-thumb-link" href="{{ $sponsor->website_url }}"
                                    target="_blank" rel="noopener noreferrer">
@@ -48,7 +48,7 @@
                             @endif
                         </td>
 
-                        <td>
+                        <td class="sponsors-index__name">
                             <div class="entry__title">{{ $sponsor->name }}</div>
 
                             {{-- The stored value, not a prettied host: this is
@@ -61,7 +61,7 @@
                             @endif
                         </td>
 
-                        <td>
+                        <td class="sponsors-index__tier">
                             @if ($sponsor->isPremium())
                                 <x-badge variant="primary">{{ __('Premium') }}</x-badge>
                             @else
