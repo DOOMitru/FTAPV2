@@ -37,6 +37,19 @@
     text-align: end;
 }
 
+/* A unit beside a number -- "120 PTS". Uppercased here rather than written
+   upper in the template, so the string stays the same 'Pts' the public points
+   page uses; that page does the same thing with .p-points__unit, which cannot
+   be reused because PublicRegisterTest fences 5-public/ off from the dashboard.
+   
+   Letter-spacing is not decoration: every uppercase run in this design system
+   carries it, and four capitals set solid read as an abbreviation nobody
+   spaced. */
+.row__unit {
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
 /* A calendar chip: month above day. Used where a date has to be scannable in a
    list rather than read as a sentence. */
 .date-chip {

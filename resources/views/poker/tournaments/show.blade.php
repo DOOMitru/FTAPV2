@@ -363,7 +363,10 @@
                                         {{ $structure->place }}{{ match ($structure->place) { 1 => 'st', 2 => 'nd', 3 => 'rd', default => 'th' } }}
                                         {{ __('Place') }}
                                     </dt>
-                                    <dd class="row__value">{{ number_format($structure->points) }} {{ __('Pts') }}</dd>
+                                    <dd class="row__value">
+                                        {{ number_format($structure->points) }}
+                                        <span class="row__unit">{{ __('Pts') }}</span>
+                                    </dd>
                                 </div>
                             @endforeach
                         </dl>
