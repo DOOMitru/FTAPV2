@@ -12,7 +12,7 @@
     <div class="l-container l-stack">
         <div class="l-grid l-grid--trio">
             <x-stat :label="__('Tournaments')" :value="number_format($totalTournaments)" />
-            <x-stat :label="__('Points awarded')" :value="number_format($totalPoints)" />
+            <x-stat :label="__('Pts awarded')" :value="number_format($totalPoints)" />
             <x-stat :label="__('Players')" :value="number_format($uniquePlayersCount)" />
         </div>
 
@@ -29,7 +29,7 @@
                          partly decided season lands here -- and
                          number_format(null) renders 0, stating a target nobody
                          chose and everybody has already met. --}}
-                    <x-stat :label="__('Season points')"
+                    <x-stat :label="__('Season pts')"
                             :value="$season->finale_points_required !== null
                                 ? number_format($season->finale_points_required)
                                 : __('Not set')" />
@@ -39,7 +39,7 @@
                                 ? (string) $season->finale_wins_required
                                 : __('Not set')" />
 
-                    <x-stat :label="__('Venue points')"
+                    <x-stat :label="__('Venue pts')"
                             :value="$season->finale_venue_points_required !== null
                                 ? number_format($season->finale_venue_points_required)
                                 : __('Not set')" />
@@ -69,7 +69,7 @@
                         <x-slot name="head">
                             <th scope="col">{{ __('Rank') }}</th>
                             <th scope="col">{{ __('Player') }}</th>
-                            <th scope="col">{{ __('Points') }}</th>
+                            <th scope="col">{{ __('Pts') }}</th>
                             <th scope="col" class="table__num">{{ __('Played') }}</th>
                             <th scope="col" class="table__num">{{ __('Won') }}</th>
                             <th scope="col" class="table__num">{{ __('Venue pts') }}</th>
@@ -99,6 +99,11 @@
                                     @endif
                                 </td>
                                 <td class="season-show__meter-cell">
+                                    {{-- Deliberately still the whole word. This
+                                         is the meter's accessible name, read
+                                         aloud rather than seen, and "PTS for
+                                         Wanda Reeve" is worse to hear than
+                                         "Points for Wanda Reeve". --}}
                                     <x-meter :value="$row['points']" :max="$leaderPoints"
                                              :label="__('Points for :name', ['name' => $shownName])" />
                                 </td>
