@@ -272,9 +272,20 @@
 /* The notification bell, beside the burger. Mobile only: on desktop the same
    list lives in the user menu, and two surfaces showing it at once is one too
    many. Same breakpoint the rest of the topbar splits on. */
+/* The bell does the pushing now: one auto margin, before the pair, sends both
+   controls to the end of the bar. */
 .topbar__bell-menu {
     margin-inline-start: auto;
-    margin-inline-end: var(--space-2);
+}
+
+/* .topbar__burger carries its own margin-inline-start:auto to reach the end of
+   the bar on its own. With a bell in front of it there are TWO auto margins,
+   and flexbox splits the free space between them -- which is what held the two
+   controls 85px apart, not the gap. The gap is only 12px on this breakpoint.
+   Neutralised only when a bell precedes it, so the public shell -- which has no
+   bell and still needs the burger to push itself -- is untouched. */
+.topbar__bell-menu + .topbar__burger {
+    margin-inline-start: 0;
 }
 
 .topbar__bell {
