@@ -173,6 +173,31 @@ been running fine for weeks:
   took an hour to clear. Every ssh call in the workflow names its key and only
   its key.
 
+## The screenshot harness cannot show you a phone
+
+**`chromium --headless --window-size=375,…` does NOT give a 375px viewport.**
+This machine's Chromium clamps the layout viewport to a **500px minimum**, in
+both `--headless` and `--headless=new`, and `--force-device-scale-factor` does
+not move it. The screenshot comes out 375px wide, so it looks like a phone and
+is not one -- it is a 500px layout in a narrower frame.
+
+Every mobile check made before 2026-09-08 was therefore taken at 500px. The
+seasons card layout looked correct that way and broke badly at a real 375: the
+Current badge takes 103px and three row actions take 128, which left the season
+name **51px** and wrapped it across two lines with the badge stranded beside it.
+
+**Use an iframe.** A media query keys off the iframe's own width, so a 375px
+iframe inside a 520px window is a true 375px viewport:
+
+```html
+<iframe src="page.html" width="375" height="1400"></iframe>
+```
+
+`~/ftap-shots/frame.html` takes `?page=…&w=375`. Measure inside it by appending
+a script that writes `getBoundingClientRect()` widths into a fixed-position
+`<pre>` -- reading them back from `--dump-dom` gives the 500px numbers, because
+the dump uses the clamped viewport too.
+
 ## Standing constraints
 
 - **Never run git commands.** The repository owner runs every git operation manually.

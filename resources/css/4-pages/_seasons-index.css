@@ -1,48 +1,81 @@
-/* The season list as cards. The shell -- grid row, clipped header, cell reset,
-   actions at the end -- is .table--cards in _table.css; this file says only
-   where this page's cells go.
+/* The season list on a phone: the name with its Current badge beside it, the
+   season's dates on the line below, and the row actions pinned to the right.
  *
- * Two things drove the shape: the actions are the point of an admin index, so
- * they hold the end and span the height; and start and end are two columns
- * carrying ONE fact, a season's span, so they read as the range they always
- * were rather than as two labelled dates. */
+ * This page takes .table--cards for the clipped header, the cell reset and the
+ * empty state, but NOT its grid -- see the note below for why a grid could not
+ * hold this particular row. */
 @media (max-width: 48rem) {
-    /* Which column flexes is the whole point. With the name in an auto column a
-       long one widened it, squeezed the actions onto two lines and wrapped the
-       end date onto three. The name is now the only thing that gives: it spans
-       the first two columns and wraps inside them, while the badge, the dates
-       and the actions keep the width their content needs. */
+    /* Not a grid. Five attempts at one taught the lesson: the name line and the
+       date line share column tracks, so they fight -- the end date widens the
+       column the badge sits in, or a spanning cell inflates the actions column
+       by 24px it never uses, and the name loses the difference and breaks in
+       two. Grid is for aligning things ACROSS rows, and nothing here needs to
+       align across rows.
+
+       What this actually is: two lines of flowing text with an action group
+       pinned to the right. So the row is a block, the cells are inline and flow
+       naturally, one forced break puts the dates on their own line, and the
+       actions are taken out of flow entirely with room reserved for them. No
+       tracks, nothing to contend over, and it holds at any width. */
     .seasons-index__table .table tbody tr {
-        grid-template-columns: auto minmax(0, 1fr) auto auto;
-        grid-template-areas:
-            "name  name current actions"
-            "start end  end     actions";
+        display: block;
+        position: relative;
+        /* The reserve for the pinned actions: 104px of buttons plus air. */
+        padding: var(--space-3) 7rem var(--space-3) var(--space-4);
+        border-block-end: var(--border-width) solid var(--c-border);
+    }
+
+    .seasons-index__table .table tbody tr:last-child {
+        border-block-end: 0;
+    }
+
+    .seasons-index__table .table td {
+        display: inline;
+        padding: 0;
+        border-block-end: 0;
     }
 
     .seasons-index__table .seasons-index__name {
-        grid-area: name;
         font-weight: 600;
     }
 
     .seasons-index__table .seasons-index__current {
-        grid-area: current;
-        justify-self: start;
+        margin-inline-start: var(--space-2);
     }
 
-    .seasons-index__table .seasons-index__start { grid-area: start; }
-    .seasons-index__table .seasons-index__end { grid-area: end; }
-
-    /* The dash makes the pair a range. Without it two dates sit side by side
-       under a hidden header with nothing to say which is which. */
-    .seasons-index__table .seasons-index__end::before {
-        content: "–";
-        margin-inline-end: 0.4em;
+    /* The one forced break. Everything before it is the name line; the two
+       dates fall after it and flow together as the range they are. */
+    .seasons-index__table .seasons-index__start::before {
+        content: "";
+        display: block;
     }
 
     .seasons-index__table .seasons-index__start,
     .seasons-index__table .seasons-index__end {
-        font-family: var(--font-mono);
         font-size: var(--step--2);
         color: var(--c-text-muted);
+    }
+
+    .seasons-index__table .seasons-index__end::before {
+        content: "–";
+        margin-inline: 0.25em;
+    }
+
+    /* Out of flow, centred in the space the padding reserved. */
+    .seasons-index__table .table__actions {
+        position: absolute;
+        inset-inline-end: var(--space-4);
+        inset-block-start: 50%;
+        transform: translateY(-50%);
+    }
+
+    /* The empty state is a cell pretending to be a row and must not inherit the
+       inline display or the reserve. */
+    .seasons-index__table .table tbody td[colspan] {
+        display: block;
+    }
+
+    .seasons-index__table .table tbody tr:has(td[colspan]) {
+        padding-inline-end: var(--space-4);
     }
 }

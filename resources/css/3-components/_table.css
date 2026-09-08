@@ -198,6 +198,19 @@
 
     .table--cards .table__actions .l-cluster {
         flex-wrap: nowrap;
+        /* space-3 between three icon buttons costs 144px of a 343px card, and
+           what is left has to hold a name, a badge and two dates. The buttons
+           are 36px tap targets either way; only the air between them shrinks. */
+        gap: var(--space-1);
+    }
+
+    /* A badge in a card is a denser context than a badge in a table cell. The
+       wide tracking earns its place across a column of them; inside a card it
+       is 14px of a 317px row, and that 14px is the difference between a season
+       name fitting on one line and breaking across two. */
+    .table--cards .badge {
+        padding-inline: var(--space-1);
+        letter-spacing: 0.04em;
     }
 
     /* The empty state is one cell pretending to be a row, so it crosses every
