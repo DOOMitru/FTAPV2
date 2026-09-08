@@ -26,7 +26,59 @@ class PokerTournament extends Model
 
     protected $casts = [
         'start_time' => 'datetime',
+        'published_at' => 'datetime',
     ];
+
+    // published_at is deliberately absent from $fillable. Publishing sends
+    // messages to players and locks the record; it is not something the
+    // tournament edit form should be able to do by posting a field.
+
+    /** Results have been declared final, and the tournament is locked. */
+    public function isPublished(): bool
+    {
+        return $this->published_at !== null;
+    }
+
+    /**
+     * Every player who entered has a finish, and somebody entered.
+     *
+     * Comparing counts would be wrong twice over. An empty tournament has zero
+     * of each and would read as finished, and the admin results form validates
+     * that a user EXISTS rather than that they registered -- so a result for
+     * somebody who never played can make the numbers match while a registrant
+     * is still unscored.
+     */
+    public function isComplete(): bool
+    {
+        $entered = $this->registrants()->whereNotNull('user_id')->pluck('user_id')->unique();
+
+        if ($entered->isEmpty()) {
+            return false;
+        }
+
+        $scored = $this->results()->whereIn('user_id', $entered)->distinct()->count('user_id');
+
+        return $scored === $entered->count();
+    }
+
+    /**
+     * Why this tournament cannot be changed, or null if it can.
+     *
+     * One method for six call sites -- register, unregister, eliminate, remove
+     * registrant, and result create/update/delete -- because six copies of a
+     * rule are six chances for it to drift, which is the same reasoning that
+     * put hasRecordedResults() here.
+     */
+    public function publishedRefusal(): ?string
+    {
+        if (! $this->isPublished()) {
+            return null;
+        }
+
+        return __('Results for :tournament have been published. Unpublish them first to make changes.', [
+            'tournament' => $this->name,
+        ]);
+    }
 
     /**
      * The podium, but only the places that are actually settled.
