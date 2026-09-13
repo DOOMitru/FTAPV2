@@ -108,22 +108,6 @@
 
         </x-p-event>
 
-        {{-- No Registrants tile: the Registered Players card below carries the
-             same count in its header badge, and a KPI that restates a number
-             already on the page spends a quarter of the row saying nothing new.
-
-             The whole row is conditional now. With that tile gone an upcoming
-             tournament has no figures at all, and the grid would have rendered
-             as an empty band above the panels. --}}
-        @if ($isPast)
-            <div class="l-grid l-grid--tight">
-                <x-stat :label="__('Final Results')" :value="$resultsCount" />
-                <x-stat :label="__('Avg Points')"
-                        :value="$resultsCount ? number_format($totalPoints / $resultsCount) : '0'" />
-                <x-stat :label="__('Points Pot')" :value="number_format($totalPoints)" />
-            </div>
-        @endif
-
         {{-- One panel, so no .l-sidebar. The page was two columns -- the
              standings beside the admin register panel and the points table --
              and both of those have gone: the points table to the public rules
@@ -161,14 +145,19 @@
                          ghost button beside a count badge in a card header, and
                          it read as a second label rather than as the control
                          that adds a player -- it was missed entirely. --}}
-                    <x-btn variant="ghost" size="sm" type="button" class="btn--icon-lead"
+                    {{-- The words are clipped on a phone, not removed: the
+                         button still reads as "Register players" to a screen
+                         reader, where display:none would take its only
+                         accessible name away and leave a plus sign. Same
+                         technique as the pager's Previous and Next. --}}
+                    <x-btn variant="ghost" size="sm" type="button" class="btn--icon-lead tshow__register-btn"
                            x-on:click="$refs.registerDialog.showModal()">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                              stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                             <path d="M12 5v14M5 12h14"/>
                         </svg>
 
-                        {{ __('Register players') }}
+                        <span class="tshow__register-label">{{ __('Register players') }}</span>
                     </x-btn>
                 @endif
             </x-slot>

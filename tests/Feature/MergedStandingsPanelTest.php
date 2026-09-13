@@ -294,4 +294,65 @@ class MergedStandingsPanelTest extends TestCase
         // admin is not -- so the place on offer is 1st and it pays 100.
         $this->assertStringContainsString('are awarded 100 points', $html);
     }
+
+    public function test_the_page_carries_no_stat_tiles(): void
+    {
+        // Final Results, Avg Points and Points Pot. Two of the three restated
+        // what the list below them already showed row by row, and the third was
+        // a number nobody acts on.
+        $tournament = $this->tournament();
+        $player = $this->player('Wanda', 'Reeve');
+        $this->enter($tournament, $player);
+        $this->score($tournament, $player, 1, 100);
+
+        $this->actingAs($this->admin())
+            ->get(route('tournaments.show', $tournament->fresh()))->assertOk()
+            ->assertDontSee('Final Results')
+            ->assertDontSee('Avg Points')
+            ->assertDontSee('Points Pot');
+    }
+
+    public function test_the_register_trigger_keeps_its_words(): void
+    {
+        // Its accessible name. On a phone the label is CLIPPED so the button is
+        // just its plus sign, and clipping is the whole point: display:none
+        // would leave a control announced as nothing at all.
+        //
+        // Which of the two is drawn is CSS and was measured instead: the button
+        // is 173px wide at 1440 and 32x32 at 375 and 320 -- the same box as the
+        // .action delete beside every player -- with innerText still reading
+        // "REGISTER PLAYERS" at every width.
+        $tournament = $this->tournament();
+
+        $html = $this->actingAs($this->admin())
+            ->get(route('tournaments.show', $tournament))->assertOk()->getContent();
+
+        $this->assertStringContainsString(
+            '<span class="tshow__register-label">Register players</span>',
+            $html
+        );
+    }
+
+    public function test_the_stat_tile_data_is_no_longer_computed_for_the_view(): void
+    {
+        // The tiles were the only readers. Left in compact() they would be a
+        // sum over every result on the page, recomputed on every load, for
+        // nobody.
+        $tournament = $this->tournament();
+
+        $response = $this->actingAs($this->admin())
+            ->get(route('tournaments.show', $tournament))->assertOk();
+
+        // The data array itself: viewData() asserts the key is there, which is
+        // the opposite of the question.
+        $data = $response->original->getData();
+
+        $this->assertArrayNotHasKey('totalPoints', $data);
+        $this->assertArrayNotHasKey('resultsCount', $data);
+
+        // And the keys the page still needs are still there, so this is not
+        // passing because the view stopped receiving anything.
+        $this->assertArrayHasKey('standings', $data);
+        $this->assertArrayHasKey('registrantsCount', $data);
+    }
 }

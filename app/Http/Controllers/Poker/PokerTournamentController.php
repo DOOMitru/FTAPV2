@@ -101,7 +101,6 @@ class PokerTournamentController extends Controller
 
         $registrantsCount = $tournament->registrants->count();
         $resultsCount = $tournament->results->count();
-        $totalPoints = $tournament->results->sum('points');
         
         $orderedResults = $tournament->results->sortBy('place')->values();
         $isUserRegistered = $tournament->registrants()->where('user_id', auth()->id())->exists();
@@ -246,8 +245,6 @@ class PokerTournamentController extends Controller
         return view('poker.tournaments.show', compact(
             'tournament',
             'registrantsCount',
-            'resultsCount',
-            'totalPoints',
             'isUserRegistered',
             'isPast',
             'registerCandidates',
