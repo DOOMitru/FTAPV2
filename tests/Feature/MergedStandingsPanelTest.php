@@ -54,7 +54,14 @@ class MergedStandingsPanelTest extends TestCase
         $html = $this->actingAs($this->admin())
             ->get(route('tournaments.show', $tournament->fresh()))->assertOk()->getContent();
 
-        $this->assertSame(1, substr_count($html, 'Wanda Reeve'), 'The player is listed twice.');
+        // Counted as ROWS, not as occurrences of the name in the document. The
+        // register dialog carries every approved player in its x-data payload,
+        // so a page-wide substring count says two and means nothing -- one of
+        // them is data in an attribute, not a list the reader sees.
+        preg_match_all('/<div class="entry__title">([^<]+)<\/div>/', $html, $matches);
+        $rows = array_filter(array_map('trim', $matches[1]), fn ($n) => $n === 'Wanda Reeve');
+
+        $this->assertCount(1, $rows, 'The player is listed twice.');
     }
 
     public function test_a_finisher_keeps_the_medal_from_the_standings_table(): void

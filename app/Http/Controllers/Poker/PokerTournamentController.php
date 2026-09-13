@@ -191,17 +191,48 @@ class PokerTournamentController extends Controller
             Str::lower($this->surnameOf($row['user'], $row['name'])),
         ])->values();
 
-        $availableUsers = collect();
+        // Everyone approved, not everyone available.
+        //
+        // This used to exclude anybody already in this tournament, on the
+        // reasoning that register() refuses them and offering a button that
+        // fails is worse than offering nothing. The dialog shows them instead,
+        // named and unselectable, because absence is ambiguous: an
+        // administrator looking for a player who is not in the list cannot tell
+        // whether they are already entered or simply not approved, and the
+        // first is the common case. The server rule is unchanged -- register()
+        // still refuses -- so this only makes the refusal visible in advance.
+        //
+        // Ordered by how many tournaments a player has entered, most first: a
+        // league's regulars are who an administrator is nearly always looking
+        // for, and the list is capped at ten. Name breaks the ties.
+        $registerCandidates = collect();
+
         if (auth()->user()->is_admin) {
-            $registeredUserIds = $tournament->registrants()->pluck('user_id')->toArray();
-            // approved(), for the same reason the registrant pickers filter:
-            // register() refuses an unapproved target, so offering one here
-            // would let an administrator pick a player the very next request
-            // rejects.
-            $availableUsers = \App\Models\User::approved()
-                ->whereNotIn('id', $registeredUserIds)
+            $entered = $tournament->registrants->pluck('user_id')->filter()->all();
+
+            $registerCandidates = \App\Models\User::approved()
+                ->withCount('tournamentRegistrations')
+                ->orderByDesc('tournament_registrations_count')
                 ->orderBy('first_name')
-                ->get();
+                ->orderBy('last_name')
+                ->get()
+                ->map(fn ($user) => [
+                    'id' => $user->id,
+                    'name' => trim($user->first_name.' '.$user->last_name),
+                    'label' => trim($user->first_name.' '.$user->last_name)
+                        .(filled($user->nickname) ? ' ('.$user->nickname.')' : ''),
+                    'nickname' => $user->nickname,
+                    'email' => $user->email,
+                    'played' => $user->tournament_registrations_count,
+                    'registered' => in_array($user->id, $entered, true),
+                    // One lowercase haystack per row, built here rather than in
+                    // the filter: the search covers name, nickname and email,
+                    // and doing that in the expression would repeat four fields.
+                    'search' => mb_strtolower(trim(
+                        $user->first_name.' '.$user->last_name.' '.$user->nickname.' '.$user->email
+                    )),
+                ])
+                ->values();
         }
 
         return view('poker.tournaments.show', compact(
@@ -211,7 +242,7 @@ class PokerTournamentController extends Controller
             'totalPoints',
             'isUserRegistered',
             'isPast',
-            'availableUsers',
+            'registerCandidates',
             'nextPlace',
             'nextPlacePoints',
             'standings',
@@ -368,14 +399,23 @@ class PokerTournamentController extends Controller
 
     public function register(PokerTournament $tournament, Request $request): RedirectResponse
     {
+        $isAdmin = auth()->user()->is_admin;
+
+        // Registering somebody else means this came from the admin dialog, which
+        // is built to add several players in a row. Every exit below carries the
+        // flag so the dialog reopens on the way back -- including the refusals,
+        // where closing it would hide the list the administrator was working
+        // through behind the message explaining what went wrong.
+        $reopen = fn (RedirectResponse $back) => $isAdmin && $request->has('user_id')
+            ? $back->with('register_open', true)
+            : $back;
+
         // A published tournament is finished. Its players have been told where
         // they came, and a place is a position in a field -- so nothing may
         // change the field's size or any finish in it.
         if ($refusal = $tournament->publishedRefusal()) {
             return back()->with('error', $refusal);
         }
-
-        $isAdmin = auth()->user()->is_admin;
         $targetUserId = ($isAdmin && $request->has('user_id')) ? $request->user_id : auth()->id();
 
         // No deadline check any more, for anyone. Entering a tournament that
@@ -391,7 +431,7 @@ class PokerTournamentController extends Controller
             $errorMsg = ($targetUserId === auth()->id()) 
                 ? 'You are already registered for this tournament.' 
                 : 'That user is already registered for this tournament.';
-            return back()->with('error', $errorMsg);
+            return $reopen(back()->with('error', $errorMsg));
         }
 
         $user = \App\Models\User::findOrFail($targetUserId);
@@ -405,9 +445,9 @@ class PokerTournamentController extends Controller
         // approval or by email verification, and an unexplained refusal turns
         // support into guesswork.
         if (! $user->isApproved()) {
-            return back()->with('error', $targetUserId === auth()->id()
+            return $reopen(back()->with('error', $targetUserId === auth()->id()
                 ? 'Your account is waiting for approval by a league administrator, so you cannot enter tournaments yet.'
-                : 'That account has not been approved by a league administrator yet.');
+                : 'That account has not been approved by a league administrator yet.'));
         }
 
         $tournament->registrants()->create([
@@ -421,7 +461,7 @@ class PokerTournamentController extends Controller
             ? 'You have successfully registered for ' . $tournament->name . '!'
             : 'Successfully registered ' . $user->first_name . ' ' . $user->last_name . ' for the tournament.';
 
-        return back()->with('status', $statusMsg);
+        return $reopen(back()->with('status', $statusMsg));
     }
 
     /**

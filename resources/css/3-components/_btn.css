@@ -107,6 +107,16 @@
     height: 1.125rem;
 }
 
+/* An icon LEADING a label, as against .btn--icon, which is an icon instead of
+   one. .btn is already inline-flex with a gap, so this only has to size the
+   glyph -- and it sizes it in em so it tracks the label through .btn--sm rather
+   than staying the size it would be on a full-size button. */
+.btn--icon-lead svg {
+    width: 1.1em;
+    height: 1.1em;
+    flex: 0 0 auto;
+}
+
 .btn--sm {
     padding: var(--space-1) var(--space-3);
     font-size: var(--step--2);
