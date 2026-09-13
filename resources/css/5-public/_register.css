@@ -1661,7 +1661,13 @@
 /* Shown to a signed-in player in place of the Join / Learn more buttons: they
    have already joined, and offering to sign them up again is asking for
    something they have done. */
+/* Flex rather than plain inline text, so the greeting and the name can take a
+   line each below without a second copy of the markup -- the same arrangement
+   .site-footer__sig and .p-lead__tagline use, and for the same reason. */
 .p-lead__welcome-line {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0 0.3em;
     font-family: var(--font-display);
     font-size: var(--step-3);
     line-height: var(--leading-tight);
@@ -1712,6 +1718,21 @@
     .p-lead__lede {
         margin-block-start: var(--space-3);
         font-size: var(--step-0);
+    }
+
+    /* The greeting on one line, the player's name on the next.
+     *
+     * "Welcome back, Anastacio." does not fit across a phone at this weight and
+     * wrapped wherever it ran out -- three lines at 320, two at 375, and the
+     * break landing inside the greeting rather than after it.
+     *
+     * step-2 as well, matching .p-lead__title above: at step-3 this line was
+     * set LARGER than the page's own heading on the one screen where space is
+     * scarcest. */
+    .p-lead__welcome-line {
+        flex-direction: column;
+        gap: 0;
+        font-size: var(--step-2);
     }
 }
 

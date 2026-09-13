@@ -239,4 +239,52 @@ class HomePageTest extends TestCase
             ->assertDontSee('Season Status')
             ->assertDontSee('No season is running at the moment.');
     }
+
+    public function test_the_welcome_greeting_and_the_name_are_separate_parts(): void
+    {
+        // "Welcome back, Anastacio." does not fit across a phone at the hero's
+        // weight, and as one run of text it wrapped wherever it ran out --
+        // three lines at 320, two at 375, with the break landing inside the
+        // greeting rather than after it. A stylesheet cannot choose where a run
+        // of text breaks, so the two parts are written separately and stack
+        // below 48rem.
+        //
+        // Where they sit is CSS and cannot be asserted here; it was measured:
+        // one line each at 320, 375 and 414 with the name on its own row, both
+        // on one row at 1200, and no horizontal overflow at any of them.
+        $player = User::factory()->create([
+            'first_name' => 'Anastacio', 'approval_status' => 'approved',
+        ]);
+
+        $html = $this->actingAs($player)->get('/')->assertOk()->getContent();
+
+        $at = strpos($html, 'p-lead__welcome-line');
+        $this->assertNotFalse($at, 'No welcome line on the landing page.');
+
+        $line = substr($html, $at, (int) strpos($html, '</p>', $at) - $at);
+
+        $this->assertStringContainsString('<span>Welcome back,</span>', $line);
+
+        // The full stop rides with the name rather than sitting loose. As a
+        // bare text node it would become an anonymous flex item and drop onto a
+        // line of its own -- a third line saying nothing but ".".
+        $this->assertMatchesRegularExpression(
+            '/<span><span class="p-hero__highlight">Anastacio<\/span>\.<\/span>/',
+            $line,
+            'The name and its full stop must be one flex item.'
+        );
+    }
+
+    public function test_the_greeting_still_reads_as_a_sentence(): void
+    {
+        // The split is a layout change, not a copy change.
+        $player = User::factory()->create([
+            'first_name' => 'Anastacio', 'approval_status' => 'approved',
+        ]);
+
+        $html = $this->actingAs($player)->get('/')->assertOk()->getContent();
+        $text = preg_replace('/\s+/', ' ', strip_tags($html));
+
+        $this->assertStringContainsString('Welcome back, Anastacio.', $text);
+    }
 }
