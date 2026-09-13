@@ -152,28 +152,27 @@ class PodiumTest extends TestCase
         $this->assertSame([], $this->places($tournament));
     }
 
-    public function test_the_admin_page_hides_the_podium_until_it_is_settled(): void
+    public function test_the_details_page_draws_no_podium(): void
     {
+        // Removed 2026-09-12. Final Standings sits immediately below where the
+        // podium was, names the same three players in the same order and then
+        // keeps going, so the podium spent a card restating its own first three
+        // rows.
+        //
+        // Two tests stood here, asserting that the page hid an unsettled podium
+        // and dressed a lone third place as third. Both would now pass whatever
+        // the page did -- a page with no podium cannot show a wrong one -- so
+        // they are replaced by the one assertion that can still fail. The rule
+        // they were really about lives in podium() and is tested above, and its
+        // rendering is tested on the public archive below.
         $tournament = $this->tournament();
-        $this->played($tournament, size: 10, out: 7);
+        $this->played($tournament, size: 4, out: 4);
 
         $this->actingAs(User::factory()->create(['is_admin' => true]))
             ->get(route('tournaments.show', $tournament))->assertOk()
-            ->assertDontSee('>Podium<', false);
-    }
-
-    public function test_the_admin_page_shows_a_lone_third_place_as_third(): void
-    {
-        // By index it would have been dressed as first -- gold disc, tallest
-        // riser, the numeral 1 -- for the player who came third.
-        $tournament = $this->tournament();
-        $this->played($tournament, size: 10, out: 8);
-
-        $this->actingAs(User::factory()->create(['is_admin' => true]))
-            ->get(route('tournaments.show', $tournament))->assertOk()
-            ->assertSee('podium__place--3', false)
-            ->assertDontSee('podium__place--1', false)
-            ->assertDontSee('podium__place--2', false);
+            ->assertSee('Final Standings')
+            ->assertDontSee('>Podium<', false)
+            ->assertDontSee('podium__place', false);
     }
 
     public function test_the_public_archive_uses_the_same_rule(): void

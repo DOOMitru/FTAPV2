@@ -62,39 +62,42 @@ Laravel's stock reset notification, which opens "we received a password reset
 request", a false statement about a request nobody made and the shape of a
 phishing message when several hundred people get one at once.
 
-**The mass send is deliberately not done. It waits on the owner, not on code.**
-Verified end to end on 2026-09-05: `mail:check` passes on the server, and a real
-invitation to the administrator's own address arrived, looked right and worked.
-What remains is 204 outstanding accounts and a decision about when a league gets
-204 emails at once. Nothing is blocking it technically — do not treat this as an
-unfinished feature and do not send it to "finish" the work.
+**The mass send is DONE, 2026-09-09.** All 206 outstanding accounts were
+invited, in four hourly batches, with no failures and no bounces. The league is
+live and players are setting their own passwords. `users:invite` now reports
+nobody to invite; `--again` re-sends to somebody who has lost their link, one
+person at a time, and there is no reason to run the mass send ever again.
 
 ### Open, in rough priority
 
-1. **Seed production through the dashboard** — venues, seasons, sponsors and the
-   points structure. Independent of the invites below, and worth doing first:
-   the invitation points players at a site, and an empty schedule is a poor
-   first impression.
-2. **Invite the players — ON THE OWNER'S SAY-SO, deferred 2026-09-05.** 204
-   outstanding. The plan, when it is wanted:
-   - `users:invite --limit=20 --sleep=5 --force` first, then read the bounces at
-     `info@firsttoactpoker.com` before continuing. Twenty is small enough to see
-     a problem before it is two hundred people.
-   - Then `--limit=80 --sleep=5 --force`, an hour apart, three times.
-   - **DreamHost rate-limits outgoing SMTP on shared hosting and the current
-     per-hour figure was never established.** If sends start failing partway
-     through a batch with connection or "too many messages" errors, that is what
-     it is; the answer is smaller batches over more hours, not a retry loop.
-   - Failures are safe. The command records `invited_at` only after the send
-     returns, catches per-recipient throwables, keeps going, and tables what
-     failed — so a dead batch leaves those players outstanding for the next run.
-     A duplicate invitation is a nuisance; a missing one is a player who never
-     gets in.
-   - Check the report says `links valid for 10080 minutes` before a batch. At
-     seven days people can act whenever they read it; at 60 the command warns,
-     and most of the league would need "Forgot your password?" instead.
-   - Someone should watch `info@firsttoactpoker.com` that evening. The
-     invitation sets no Reply-To, so replies land there.
+1. ~~Seed production through the dashboard~~ **DONE, 2026-09-08.** Venues,
+   seasons, sponsors and the points structure were entered by hand by the owner.
+2. ~~Invite the players~~ **DONE, 2026-09-09.** 206 accounts, four batches an
+   hour apart (20, then 65 x 3), `--sleep=5`, every one delivered.
+
+   **The DreamHost figure this document said was never established: 200
+   recipients per server per hour on shared hosting, and 40 recipients per
+   message.** The per-message cap never applied -- `PlayerInvitation` sets one
+   `To` and no cc or bcc, so every invitation is its own message. The hourly cap
+   is the real one, and 206 does not fit in 200, so the send had to span hours
+   whatever the pacing. Batches were sized to peak near 130 in any rolling hour,
+   leaving room for password resets and the contact form, which spend the same
+   allowance.
+
+   The second-order effect is the part worth remembering, because it is invisible
+   until it bites: **an expiring invitation link generates a second email from the
+   same quota.** At the stock 60-minute expiry most of 206 people would have read
+   the mail too late, clicked "Forgot your password?", and turned a 206-email
+   send into roughly 412 -- the second half arriving in a pattern nobody controls
+   or paces. `AUTH_PASSWORD_RESET_EXPIRE=10080` on the server is what stopped
+   that, and is why `users:invite` warns when the expiry is <= 60.
+
+   **Loose end: that seven-day window is still set.** It was widened for the
+   invite period, not on the merits -- a week-long password-reset link is a
+   weaker default than Laravel's hour. The last batch went out 2026-09-09, so
+   every invitation link has expired by 2026-09-16. Drop the variable from the
+   server `.env` after that and `php artisan config:clear`; anyone still locked
+   out then is a `--again` or a normal reset, not a reason to keep it.
 3. ~~One unreproduced test failure~~ **FOUND AND FIXED, 2026-09-08.** It
    surfaced again during the tournament-filter work and this time the name was
    captured: `DeleteConfirmationTest::deleting an actual person still says so`.
@@ -105,14 +108,18 @@ unfinished feature and do not send it to "finish" the work.
    assertion failed. Confirmed by forcing an admin named Aaron. The helper now
    returns every confirmation and the test asserts one of them matches; five
    full runs clean since.
-4. **Merge `feature/user-notifications` and watch the MySQL leg of CI.**
-   Everything from 2026-09-05 onwards lives on that branch. The unpublish action
-   uses `where('data->tournament_id', ...)`, which compiles differently per
-   driver, and there is no local MySQL to run it against -- both grammars were
-   checked by compiling the query, which is a good signal and not proof. Five
-   migrations land together (notifications, `tournaments.published_at`, and the
-   drops of `scheduled_at` and `users.profile_image`); none destroys data that
-   exists, since the tournaments table is still empty in production.
+4. ~~Merge `feature/user-notifications` and watch the MySQL leg of CI~~ **DONE,
+   2026-09-08.** Merged, and the MySQL leg did fail -- though not where this
+   document predicted. The `where('data->tournament_id', ...)` JSON query in
+   `unpublish()`, flagged here as the risk, passed. What broke was a test:
+   `TournamentPlacementNotificationTest` asserted `Schema::getColumnType()`
+   returned `'varchar'`, which is SQLite's word for the `CHAR(26)` that
+   `ulidMorphs` creates. MySQL says `'char'`. The assertion now accepts either
+   and still fails on `integer`/`bigint`, which is the regression it exists to
+   catch. The lesson is narrow and worth keeping: **a test written to guard
+   against SQLite/MySQL divergence can itself be driver-specific**, and asserting
+   a type NAME is how that happens.
+
 5. **The monogram survey's Tier 2 and 3 — ten sites, never actioned.** The two
    admin player pickers are the ones with real utility; the leaderboards are
    decoration. Several need their controllers reshaped to carry a model rather

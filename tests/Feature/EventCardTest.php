@@ -332,4 +332,39 @@ class EventCardTest extends TestCase
         // And no longer a menu item.
         $this->assertStringNotContainsString('class="dropdown__item">Unregister', $html);
     }
+
+    public function test_the_details_page_draws_no_map(): void
+    {
+        // Removed 2026-09-12. The map is the public card's opening image, sold
+        // to somebody deciding whether to come; the details page is reached
+        // from inside the dashboard by people who already know where the league
+        // plays, and the embed pushed the panels that page exists for down.
+        $tournament = $this->tournament();
+
+        $html = $this->actingAs(User::factory()->create())
+            ->get(route('tournaments.show', $tournament))->assertOk()->getContent();
+
+        $this->assertStringNotContainsString('maps.google.com', $html);
+        $this->assertStringNotContainsString('class="map"', $html);
+
+        // The venue is still named. Hiding the map must not hide where it is.
+        $this->assertStringContainsString($tournament->venue->name, $html);
+    }
+
+    public function test_the_public_cards_keep_their_map(): void
+    {
+        // The other half, and the one that could regress silently: `map` is a
+        // prop with a default, so a typo in the default -- or in the one call
+        // site that passes false -- takes the map off the events and home pages
+        // too, where it is the first thing on the card.
+        $this->tournament();
+
+        foreach (['/events', '/'] as $path) {
+            $this->assertStringContainsString(
+                'maps.google.com',
+                $this->get($path)->assertOk()->getContent(),
+                $path.' lost its map.'
+            );
+        }
+    }
 }

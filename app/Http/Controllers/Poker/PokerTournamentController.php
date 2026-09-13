@@ -101,12 +101,6 @@ class PokerTournamentController extends Controller
         $totalPoints = $tournament->results->sum('points');
         
         $orderedResults = $tournament->results->sortBy('place')->values();
-        // The settled places only -- see PokerTournament::podium(). take(3) on
-        // the sorted results was the current best three, which mid-tournament
-        // are not the podium at all: places count down from the bottom, so the
-        // lowest numbers on record are simply the last few knocked out.
-        $podium = $tournament->podium();
-
         $isUserRegistered = $tournament->registrants()->where('user_id', auth()->id())->exists();
 
         // The shared event card reads viewer_registered -- the attribute the
@@ -167,7 +161,6 @@ class PokerTournamentController extends Controller
             'resultsCount',
             'totalPoints',
             'orderedResults',
-            'podium',
             'isUserRegistered',
             'isPast',
             'pointsStructure',

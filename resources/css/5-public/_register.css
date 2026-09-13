@@ -1046,6 +1046,15 @@
     overflow: hidden;
 }
 
+/* No map, no floor. The 20rem above is the map's 18rem plus padding -- it stops
+   a card with a map being a letterbox. With the map off (the tournament details
+   page) nothing needs that height, and because .p-event__actions pushes itself
+   down with margin-block-start:auto the surplus lands as a band of nothing
+   between the date and the buttons rather than as breathing room. */
+.p-event--mapless {
+    min-height: 0;
+}
+
 .p-event__body {
     display: flex;
     flex-direction: column;

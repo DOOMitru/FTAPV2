@@ -1,12 +1,24 @@
-@props(['tournament', 'details' => true])
+@props(['tournament', 'details' => true, 'map' => true])
+
+@php
+    // Whether the map actually renders, which is not the same as the prop: a
+    // venue with no address has never drawn one. The card's min-height exists
+    // for the map, so the class that drops it keys on this, not on `map`.
+    $showMap = $map && $tournament->venue && $tournament->venue->address;
+@endphp
 
 {{-- One upcoming-event card, shared by the events page, the home page and the
      tournament details page. Extracted rather than copied: the three would
      drift, and this card already carries four conditional branches --
      registration open, already registered, awaiting approval, closed -- that
      must agree with the controller wherever it is drawn. --}}
-<article class="p-event p-raised">
-    @if ($tournament->venue && $tournament->venue->address)
+<article class="p-event p-raised{{ $showMap ? '' : ' p-event--mapless' }}">
+    {{-- The map is the public card's opening image. The details page turns it
+         off: that page is reached from inside the dashboard by people who
+         already know where the league plays, and a third of the card spent on
+         an embedded map pushes the panels that page exists for below the
+         fold. --}}
+    @if ($showMap)
         <div class="map">
             <iframe title="{{ __('Map of :venue', ['venue' => $tournament->venue->name]) }}"
                     loading="lazy" referrerpolicy="no-referrer-when-downgrade"

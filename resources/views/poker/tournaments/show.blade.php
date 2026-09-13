@@ -55,14 +55,17 @@
         @endif
 
         {{-- The same card the events and home pages draw, so the three cannot
-             drift. This was a bespoke <x-card flush> laid out with .l-sidebar,
-             which handed the map two thirds of the width and left the details
-             in the remaining third with no padding at all: the registration
-             time sat hard against the card's edge and, on a past event, the
-             podium was clipped off the bottom.
+             drift.
 
-             No Details button -- this IS the details page. --}}
-        <x-p-event :tournament="$tournament" :details="false">
+             No Details button -- this IS the details page. No map either: the
+             venue name is in the card and the address is one click away, and
+             this page is reached by people already inside the dashboard.
+
+             The podium used to sit at the top of the left column. Final
+             Standings, directly below, already names the same three players in
+             the same order and keeps going, so the podium restated its first
+             three rows at the cost of a card. --}}
+        <x-p-event :tournament="$tournament" :details="false" :map="false">
             @if ($tournament->description)
                 <p class="u-muted">{{ $tournament->description }}</p>
             @endif
@@ -90,37 +93,6 @@
              column they were written into. See 4-pages/_tournament-show.css. --}}
         <div class="l-sidebar tshow__panels">
             <div class="l-stack">
-                {{-- No $isPast here. The podium is empty until its places are
-                     settled, so it hides itself -- and "play has begun" was
-                     never the right question anyway: what decides a podium is
-                     how many players are left, not the clock. --}}
-                @if ($podium->isNotEmpty())
-                    <x-card :title="__('Podium')" class="tshow__podium">
-                        {{-- 1-2-3 in the DOM, 2-1-3 on screen. See .podium.
-
-                             Keyed on the result's own place, not on its
-                             position in the list: third can be settled while
-                             first and second are not, and by index that lone
-                             bronze finisher would be dressed in gold. --}}
-                        <ol class="podium">
-                            @foreach ($podium as $winner)
-                                <li class="podium__place podium__place--{{ $winner->place }}">
-                                    {{-- Keeps .podium__seat: on the podium that
-                                         class is the MEDAL, not just a circle.
-                                         A photo sits inside a medal-coloured
-                                         ring; with no photo the seat is the
-                                         gold/silver/bronze disc it has always
-                                         been. --}}
-                                    <x-monogram class="podium__seat" :user="$winner->user"
-                                              :name="$winner->player_name" decorative />
-                                    <span class="podium__name">{{ $winner->player_name }}</span>
-                                    <span class="podium__step">{{ $winner->place }}</span>
-                                </li>
-                            @endforeach
-                        </ol>
-                    </x-card>
-                @endif
-
                 @if ($isPast)
                     <x-card :title="__('Final Standings')" flush class="tshow__standings">
                         <x-table>
