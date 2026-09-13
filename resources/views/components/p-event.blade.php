@@ -83,6 +83,7 @@
                  positioned over them -- .p-event has overflow:hidden to clip
                  the map to the card's corners, and an absolutely placed panel
                  would be cut off by it. --}}
+            @auth
             <x-dropdown class="p-event__menu">
                 <x-slot name="trigger">
                     {{-- type="button": this sits inside the card and, on the
@@ -102,16 +103,12 @@
                 </x-slot>
 
                 <x-slot name="content">
-                    {{-- The details page draws this same card and IS the
-                         destination; an entry pointing at the page you are on
-                         is noise. --}}
-                    @if ($details)
-                        <x-dropdown-link :href="route('tournaments.show', $tournament)">
-                            {{ __('Details') }}
-                        </x-dropdown-link>
-                    @endif
+                    {{-- Details is not in here any more: it is a button in the
+                         action row, beside Register. It was the one entry most
+                         people opened this menu for, and it was two clicks
+                         behind a kebab.
 
-                    {{-- Signed in only, and not for tidiness: seasons.show is
+                         Signed in only, and not for tidiness: seasons.show is
                          behind the auth middleware, so a guest offered this
                          would be bounced to the login screen by the very next
                          request. --}}
@@ -130,6 +127,7 @@
                     @endauth
                 </x-slot>
             </x-dropdown>
+            @endauth
         </div>
 
         {{-- The date as a calendar leaf, beside the name it belongs to. It was
@@ -240,17 +238,38 @@
             // willing to let you undo it. The slot had no other caller, so it
             // is gone rather than left as an extension point nothing extends.
             $canUnregister = $isRegistered && ! $tournament->hasRecordedResults();
+
+            // Signed in only. tournaments.show is behind the auth middleware,
+            // so a guest offered this would be bounced to the login screen by
+            // the very next request -- the same rule the menu already applied
+            // to Season Standings and the venue report, and the same rule
+            // Details itself should have been under while it lived in there.
+            $showDetails = $details && auth()->check();
         @endphp
 
-        @if ($isRegistered || $canRegister || $canUnregister)
+        @if ($isRegistered || $canRegister || $canUnregister || $showDetails)
             <div class="p-event__actions">
                 {{-- At the start of the row; the buttons take the end. --}}
                 @if ($isRegistered)
                     <x-badge variant="open">{{ __('Registered') }}</x-badge>
                 @endif
 
-                @if ($canRegister || $canUnregister)
+                {{-- Only when it holds something. Unconditional it rendered an
+                     empty div on a settled tournament -- nothing to register
+                     for, nothing to withdraw from, and on the details page no
+                     Details either. --}}
+                @if ($showDetails || $canRegister || $canUnregister)
                 <div class="p-event__actions-end">
+                {{-- First, so it sits to the LEFT of Register -- and alone in
+                     the row when there is nothing to register for. Ghost,
+                     because reading about the night is not what the card is
+                     asking you to do; Register stays the one primary button. --}}
+                @if ($showDetails)
+                    <x-btn variant="ghost" :href="route('tournaments.show', $tournament)">
+                        {{ __('Details') }}
+                    </x-btn>
+                @endif
+
                 @if ($canRegister)
                     {{-- Primary: it is the thing the card wants you to do. --}}
                     <form action="{{ route('tournaments.register', $tournament) }}" method="POST">

@@ -77,14 +77,66 @@ class EventCardTest extends TestCase
             ->assertDontSee('>Details<', false);
     }
 
-    public function test_the_public_card_still_offers_details(): void
+    public function test_the_listing_cards_still_offer_details(): void
     {
         // The other side of the prop. If `details` ever defaults to false the
         // home and events pages lose their only route into a tournament, and
         // the test above would still pass.
+        //
+        // Signed in, which this did not used to be. tournaments.show is behind
+        // the auth middleware, so offering Details to a guest was offering a
+        // bounce to the login screen -- the menu already said as much about
+        // Season Standings and the venue report, and Details was the entry that
+        // had escaped the rule. Moving it into the action row is what showed
+        // that up.
         $this->tournament();
 
-        $this->get('/')->assertOk()->assertSee('Details');
+        $this->actingAs(User::factory()->create())->get('/')->assertOk()->assertSee('Details');
+    }
+
+    public function test_a_guest_is_offered_neither_details_nor_a_menu(): void
+    {
+        $this->tournament();
+
+        $this->get('/')->assertOk()
+            ->assertDontSee('Details')
+            // With nothing left in it for a guest the kebab goes too: a trigger
+            // that opens an empty panel is worse than no trigger.
+            ->assertDontSee('More actions');
+    }
+
+    public function test_details_sits_to_the_left_of_register(): void
+    {
+        // "To its left, or instead of it" -- and in a row laid out in document
+        // order, left is first.
+        $this->tournament();
+
+        $html = $this->actingAs(User::factory()->create())->get('/')->assertOk()->getContent();
+        $row = substr($html, (int) strpos($html, 'p-event__actions-end'));
+
+        $details = strpos($row, 'Details');
+        $register = strpos($row, '>Register<');
+
+        $this->assertNotFalse($details);
+        $this->assertNotFalse($register);
+        $this->assertLessThan($register, $details, 'Details must come before Register.');
+    }
+
+    public function test_details_stands_alone_when_there_is_nothing_to_register_for(): void
+    {
+        // The "instead of" half. A settled tournament offers no Register and no
+        // Unregister; the row is not therefore empty.
+        $tournament = $this->tournament();
+        $player = User::factory()->create();
+        $this->register($tournament, $player);
+        $this->recordAFinish($tournament, $player);
+
+        $html = $this->actingAs($player)->get('/')->assertOk()->getContent();
+        $row = substr($html, (int) strpos($html, 'p-event__actions-end'));
+
+        $this->assertStringContainsString('Details', $row);
+        $this->assertStringNotContainsString('>Register<', $row);
+        $this->assertStringNotContainsString('Unregister', $row);
     }
 
     public function test_a_registered_player_is_told_so_on_the_details_page(): void
@@ -258,7 +310,9 @@ class EventCardTest extends TestCase
         $this->actingAs($player)->get('/')->assertOk()
             ->assertSee('Registered')
             ->assertDontSee('Unregister')
-            ->assertDontSee('p-event__actions-end', false);
+            // The row is not empty any more -- Details lives in it -- so what
+            // this holds is that the badge has no BUTTON beside it.
+            ->assertDontSee('>Register<', false);
     }
 
     public function test_a_card_with_nothing_to_say_draws_no_row(): void
@@ -271,7 +325,7 @@ class EventCardTest extends TestCase
         $this->get('/')->assertOk()->assertDontSee('p-event__actions', false);
     }
 
-    public function test_the_action_row_holds_register_alone(): void
+    public function test_the_action_row_holds_details_and_register(): void
     {
         $this->tournament();
 
@@ -285,20 +339,26 @@ class EventCardTest extends TestCase
         $row = substr($html, strpos($html, 'p-event__actions'));
 
         $this->assertStringContainsString('Register', $row);
+
+        // Details joined it; Season Standings and the venue report did not.
+        $this->assertStringContainsString('Details', $row);
         $this->assertStringNotContainsString('Season Standings', $row);
-        $this->assertStringNotContainsString('Details', $row);
     }
 
     public function test_the_other_actions_moved_into_the_card_menu(): void
     {
-        // Details and Season Standings are menu entries now, not buttons.
+        // Season Standings and the venue report are menu entries; Details is
+        // a button in the action row.
         $tournament = $this->tournament();
 
         $html = $this->actingAs(User::factory()->create())->get('/')
             ->assertOk()->getContent();
 
         $this->assertStringContainsString('More actions', $html);
-        $this->assertStringContainsString(
+
+        // Details is NOT in here any more: it was the entry most people opened
+        // this menu for, and it was two clicks behind a kebab.
+        $this->assertStringNotContainsString(
             '<a class="dropdown__item" href="'.route('tournaments.show', $tournament).'">Details</a>',
             $html
         );
