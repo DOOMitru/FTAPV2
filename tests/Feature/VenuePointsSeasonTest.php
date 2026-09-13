@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\PokerSeason;
 use App\Models\PokerTournament;
+use App\Models\PokerTournamentRegistrant;
 use App\Models\PokerTournamentResult;
 use App\Models\User;
 use App\Models\Venue;
@@ -61,6 +62,15 @@ class VenuePointsSeasonTest extends TestCase
             'start_time' => now()->subDays(3),
             'venue_id' => Venue::create(['name' => 'Hall '.uniqid(), 'address' => 'x'])->id,
             'season_id' => $season->id,
+        ]);
+
+        // The standings only carry players who entered a tournament, so the
+        // entry comes first -- before any result exists for the hook to shift.
+        PokerTournamentRegistrant::create([
+            'tournament_id' => $tournament->id,
+            'user_id' => $player->id,
+            'player_name' => 'Ada Lovelace',
+            'registered_at' => now(),
         ]);
 
         PokerTournamentResult::create([

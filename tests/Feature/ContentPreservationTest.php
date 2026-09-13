@@ -63,6 +63,20 @@ class ContentPreservationTest extends TestCase
         $playerOne = User::factory()->create(['first_name' => 'Odalys', 'last_name' => 'Ferrante']);
         $playerTwo = User::factory()->create(['first_name' => 'Baltazar', 'last_name' => 'Whitlock']);
 
+        // Both entered before any result exists, so the hook that shifts
+        // places on a late entry has nothing to shift. The standings only
+        // carry players who entered a tournament during the season.
+        foreach ([[$tournamentOne, $playerOne, 'Odalys Ferrante'],
+            [$tournamentTwo, $playerOne, 'Odalys Ferrante'],
+            [$tournamentOne, $playerTwo, 'Baltazar Whitlock']] as [$tournament, $player, $name]) {
+            PokerTournamentRegistrant::create([
+                'tournament_id' => $tournament->id,
+                'user_id' => $player->id,
+                'player_name' => $name,
+                'registered_at' => now(),
+            ]);
+        }
+
         // Odalys Ferrante: two results (500 + 360 = 860 points, played twice).
         PokerTournamentResult::create([
             'tournament_id' => $tournamentOne->id,

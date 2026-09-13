@@ -90,7 +90,6 @@ class PokerSeasonController extends Controller
 
         $totalTournaments = $season->tournaments->count();
         $totalPoints = $season->results->sum('points');
-        $uniquePlayersCount = $season->results->pluck('user_id')->unique()->count();
 
         // By the season stored on the row, not by whether its date happens to
         // fall between two others. It used to be the latter, which meant
@@ -106,9 +105,32 @@ class PokerSeasonController extends Controller
             ->selectRaw('user_id, SUM(amount) as total')
             ->pluck('total', 'user_id');
 
+        // Who actually entered a tournament this season.
+        //
+        // The standings are built from RESULTS, and a result can exist without
+        // a registration behind it -- the results screen creates one without
+        // requiring an entry, where Eliminate refuses. Such a row is a finish
+        // in a field nobody joined, and it has no business in a table of how
+        // the season is going.
+        //
+        // whereIn over the season's tournaments, which are already loaded for
+        // the count above, rather than a whereHas subquery.
+        //
+        // flip(), so the filter below is a hash lookup rather than a scan of
+        // eighty ids per player.
+        $entered = \App\Models\PokerTournamentRegistrant::query()
+            ->whereIn('tournament_id', $season->tournaments->pluck('id'))
+            ->whereNotNull('user_id')
+            ->pluck('user_id')
+            ->unique()
+            ->flip();
+
         // Calculate Leaderboard
         $leaderboard = $season->results
             ->groupBy('user_id')
+            // A result with no user_id at all groups under '' and is caught by
+            // the same rule: nothing that never entered appears here.
+            ->filter(fn ($results, $userId) => $entered->has($userId))
             ->map(function ($results) use ($venuePoints, $season) {
                 $points = $results->sum('points');
                 $wins = $results->where('place', 1)->count();
@@ -140,6 +162,12 @@ class PokerSeasonController extends Controller
             })
             ->sortByDesc('points')
             ->values();
+
+        // Counted from the standings rather than from the results, so the tile
+        // and the table cannot disagree about who played: both are now "people
+        // who entered a tournament and have a finish". Read the leaderboard,
+        // and there is one definition of that instead of two.
+        $uniquePlayersCount = $leaderboard->count();
 
         // Venue stats
         $venueStats = $season->tournaments

@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\PokerSeason;
 use App\Models\PokerTournament;
+use App\Models\PokerTournamentRegistrant;
 use App\Models\PokerTournamentResult;
 use App\Models\User;
 use App\Models\Venue;
@@ -255,6 +256,16 @@ class FinaleQualificationTest extends TestCase
             'start_time' => now()->subDays(5),
             'venue_id' => Venue::create(['name' => 'Room '.uniqid(), 'address' => 'x'])->id,
             'season_id' => $season->id,
+        ]);
+
+        // Registered first, so the hook that shifts places on a late entry
+        // finds no results to shift. The standings only carry players who
+        // entered a tournament, so a result without one is invisible.
+        PokerTournamentRegistrant::create([
+            'tournament_id' => $tournament->id,
+            'user_id' => $user->id,
+            'player_name' => $user->first_name.' '.$user->last_name,
+            'registered_at' => now(),
         ]);
 
         PokerTournamentResult::create([
