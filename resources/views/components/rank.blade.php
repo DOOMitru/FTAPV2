@@ -1,4 +1,7 @@
-@props(['place'])
+{{-- label: what the badge READS as, when that is not the bare place. The
+     season standings in rank order show "#2" here, because in that order the
+     position is the figure rather than a row number beside one. --}}
+@props(['place', 'label' => null])
 
 @php
     // Places 1-3 carry a medal; everything below is the quiet default. The
@@ -7,4 +10,4 @@
     $medal = $place >= 1 && $place <= 3 ? ' rank--'.$place : '';
 @endphp
 
-<span {{ $attributes->merge(['class' => 'rank'.$medal]) }}>{{ $place }}</span>
+<span {{ $attributes->merge(['class' => 'rank'.$medal]) }}>{{ $label ?? $place }}</span>

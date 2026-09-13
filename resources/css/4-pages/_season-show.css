@@ -42,6 +42,71 @@
 }
 
 
+/* Ordering the standings: season total, or points per event.
+   =================================================================
+   A segmented pair rather than two separate buttons, because the two are one
+   choice and a gap between them reads as two unrelated actions. One border
+   round the pair, a hairline between, and the chosen option filled.
+
+   Not promoted to a component: it is used here and nowhere else. The day a
+   second table needs one, it moves to 3-components and both read the same
+   rules -- which is cheaper then than guessing at the shape now. */
+.season-show__order {
+    display: flex;
+    /* The pair is one object, so it never breaks across two lines -- an
+       orphaned "Rank" under a "Points" reads as a list, not a switch. */
+    flex: 0 0 auto;
+    border: var(--border-width) solid var(--c-border);
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+}
+
+.season-show__order-option {
+    padding: var(--space-1) var(--space-3);
+    /* The same 2rem box as .btn--sm and .action, which is what this sits
+       beside everywhere else in the app. */
+    min-height: 2rem;
+    display: inline-flex;
+    align-items: center;
+    font-family: var(--font-body);
+    font-size: var(--step--2);
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    text-decoration: none;
+    white-space: nowrap;
+    color: var(--c-text-muted);
+    transition: background-color var(--transition-fast), color var(--transition-fast);
+}
+
+.season-show__order-option + .season-show__order-option {
+    border-inline-start: var(--border-width) solid var(--c-border);
+}
+
+.season-show__order-option:hover {
+    background-color: var(--c-surface-raised);
+    color: var(--c-text);
+}
+
+.season-show__order-option:focus-visible {
+    outline: 2px solid var(--c-primary);
+    outline-offset: -2px;
+}
+
+/* The current option. --c-primary-fill rather than --c-primary: this carries a
+   small uppercase label, and the fill token exists because the brand red is
+   not deep enough behind one in the dark theme. */
+.season-show__order-option--current {
+    background-color: var(--c-primary-fill);
+    color: var(--c-primary-ink);
+}
+
+.season-show__order-option--current:hover {
+    background-color: var(--c-primary-fill-hover);
+    color: var(--c-primary-ink);
+}
+
+
 /* The viewer's own row.
    =================================================================
    Specificity, deliberately: `.table tbody tr:hover` in _table.css is (0,2,2),

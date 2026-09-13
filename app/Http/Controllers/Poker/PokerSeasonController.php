@@ -83,8 +83,24 @@ class PokerSeasonController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(PokerSeason $season): View
+    /**
+     * The standings, ordered one of two ways.
+     *
+     * 'points' is the season total. 'rank' is points per tournament entered --
+     * the figure the player's dashboard calls Season Rank -- which does not
+     * punish a player who missed half the nights for missing them.
+     */
+    public const ORDERS = ['points', 'rank'];
+
+    public function show(PokerSeason $season, Request $request): View
     {
+        // Anything unrecognised falls back to the season total rather than
+        // erroring: this arrives from a query string, where a stale link or a
+        // typo is ordinary and a 500 is not.
+        $order = in_array($request->query('order'), self::ORDERS, true)
+            ? $request->query('order')
+            : 'points';
+
         $season->load([
             'tournaments.venue',
             'results.user',
@@ -176,8 +192,39 @@ class PokerSeasonController extends Controller
                     'qualified' => $unmet === [],
                 ];
             })
-            ->sortByDesc('points')
             ->values();
+
+        // Points per entry, taken from PokerSeason::rankings() rather than
+        // divided here. The dashboard, the landing page's rank card and this
+        // table must agree to the decimal about what a player's rank is, and
+        // they agree by reading one method instead of three divisions.
+        //
+        // Loaded only for the order that needs it: it costs three queries, and
+        // the season total is the view most people open.
+        $rankings = $order === 'rank'
+            ? $season->rankings()->keyBy('user_id')
+            : collect();
+
+        $leaderboard = $leaderboard
+            ->map(fn (array $row) => [
+                ...$row,
+                'ratio' => $rankings[$row['user']?->id ?? '']['ratio'] ?? null,
+                'events' => $rankings[$row['user']?->id ?? '']['events'] ?? null,
+            ])
+            ->sortByDesc(fn (array $row) => $order === 'rank'
+                // The same tie-break rankings() uses, so two players on one
+                // average are ordered by who scored more rather than by
+                // whatever the database returned first.
+                ? [$row['ratio'] ?? -1, $row['points']]
+                : $row['points'])
+            ->values();
+
+        // The meter measures each row against the leader in whichever figure
+        // is on show. Measuring a ratio against a points total would draw
+        // every bar at nothing.
+        $leaderValue = $order === 'rank'
+            ? (float) ($leaderboard->first()['ratio'] ?? 0)
+            : (int) ($leaderboard->first()['points'] ?? 0);
 
         // Counted from the standings rather than from the results, so the tile
         // and the table cannot disagree about who played: both are now "people
@@ -203,6 +250,8 @@ class PokerSeasonController extends Controller
             'totalPoints', 
             'uniquePlayersCount', 
             'leaderboard',
+            'leaderValue',
+            'order',
             'venueStats'
         ));
     }

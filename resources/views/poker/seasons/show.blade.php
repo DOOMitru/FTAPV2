@@ -62,7 +62,22 @@
         </x-card>
 
         <div class="l-sidebar">
-            <x-card :title="__('Standings')" :flush="true">
+            <x-card :title="__('Standings')" :flush="true" class="season-show__standings-card">
+                {{-- Links, not a control that needs scripting: the order is
+                     part of the address, so it survives a reload and can be
+                     sent to somebody. role="group" rather than radios because
+                     each option navigates on activation -- there is nothing to
+                     submit and no pending state to hold. --}}
+                <x-slot name="actions">
+                    <div class="season-show__order" role="group" aria-label="{{ __('Order the standings by') }}">
+                        @foreach (['points' => __('Points'), 'rank' => __('Rank')] as $value => $label)
+                            <a href="{{ route('seasons.show', ['season' => $season, 'order' => $value]) }}"
+                               class="season-show__order-option{{ $order === $value ? ' season-show__order-option--current' : '' }}"
+                               @if ($order === $value) aria-current="true" @endif>{{ $label }}</a>
+                        @endforeach
+                    </div>
+                </x-slot>
+
                 @if ($leaderboard->isEmpty())
                     <x-empty-state :title="__('No results yet')">
                         {{ __('Standings appear once the first tournament result is recorded.') }}
@@ -74,8 +89,6 @@
                     </x-empty-state>
                 @else
                     @php
-                        $leaderPoints = $leaderboard->first()['points'];
-
                         // Venue points are a back-office tally: they are
                         // awarded by hand at the bar, corrected by hand, and a
                         // player's own figure is already on their dashboard.
@@ -96,7 +109,7 @@
                         <x-slot name="head">
                             <th scope="col">{{ __('Rank') }}</th>
                             <th scope="col">{{ __('Player') }}</th>
-                            <th scope="col">{{ __('Pts') }}</th>
+                            <th scope="col">{{ $order === 'rank' ? __('Per event') : __('Pts') }}</th>
                             <th scope="col" class="table__num">{{ __('Played') }}</th>
                             <th scope="col" class="table__num">{{ __('Won') }}</th>
                             @if ($showsVenuePoints)
@@ -121,9 +134,26 @@
                                 // accountless result would be marked "you",
                                 // silently and for everyone.
                                 $isSelf = $row['user'] !== null && $row['user']->id === auth()->id();
+
+                                $rank = $index + 1;
+                                $ratio = number_format($row['ratio'] ?? 0, 1);
                             @endphp
                             <tr class="{{ $isSelf ? 'season-show__self-row' : '' }}">
-                                <td class="season-show__rank"><x-rank :place="$index + 1" /></td>
+                                <td class="season-show__rank">
+                                    @if ($order === 'rank')
+                                        {{-- In this order the position IS the
+                                             figure, so the badge says so and
+                                             carries the average behind it. The
+                                             meter beside it keeps the bar and
+                                             drops its number: printing "#2"
+                                             twice on one row says nothing
+                                             twice. --}}
+                                        <x-rank :place="$rank" :label="'#'.$rank"
+                                                :title="__(':points points per event', ['points' => $ratio])" />
+                                    @else
+                                        <x-rank :place="$rank" />
+                                    @endif
+                                </td>
                                 @php
                                     // Standings name a player by nickname when they have one,
                                     // otherwise by their full name — deliberately NOT the
@@ -157,9 +187,36 @@
                                          is the meter's accessible name, read
                                          aloud rather than seen, and "PTS for
                                          Wanda Reeve" is worse to hear than
-                                         "Points for Wanda Reeve". --}}
-                                    <x-meter :value="$row['points']" :max="$leaderPoints"
-                                             :label="__('Points for :name', ['name' => $shownName])" />
+                                         "Points for Wanda Reeve".
+
+                                         One decimal in rank mode, matching the
+                                         dashboard: these averages run to
+                                         hundreds, and a whole number hides the
+                                         difference between two players a
+                                         tenth apart -- which is exactly the
+                                         difference the order is drawn on. --}}
+                                    @if ($order === 'rank')
+                                        {{-- Bar only: the badge to its left
+                                             already gives the position, and
+                                             the bar is what shows how far
+                                             apart two of them are.
+
+                                             A title attribute is not reachable
+                                             by keyboard and is announced
+                                             inconsistently, so the average is
+                                             in this meter's accessible name as
+                                             well. The tooltip is the
+                                             sighted-pointer copy of it, not
+                                             the only one. --}}
+                                        <x-meter :value="$row['ratio'] ?? 0" :max="$leaderValue" :decimals="1"
+                                                 :show-value="false"
+                                                 :label="__('Rank #:rank, :points points per event, for :name', [
+                                                     'rank' => $rank, 'points' => $ratio, 'name' => $shownName,
+                                                 ])" />
+                                    @else
+                                        <x-meter :value="$row['points']" :max="$leaderValue"
+                                                 :label="__('Points for :name', ['name' => $shownName])" />
+                                    @endif
                                 </td>
                                 {{-- data-label feeds the mobile stat run through
                                      ::after -- "12 played", not "played 12",
