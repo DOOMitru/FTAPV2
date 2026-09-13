@@ -67,10 +67,11 @@
        without overriding the inline size the padding would hold the box open
        wider than the square. */
     .tshow__register-btn {
+        /* Height comes from .btn--sm, which is 2rem to match .action. Only the
+           inline size is set here: with the label clipped, the padding was
+           holding the box open wider than the square. */
         width: 2rem;
         min-width: 2rem;
-        height: 2rem;
-        min-height: 2rem;
         padding: 0;
     }
 

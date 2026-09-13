@@ -119,6 +119,18 @@
 
 .btn--sm {
     padding: var(--space-1) var(--space-3);
+    /* The same 2rem box as .action.
+     *
+     * These two sit side by side all over the app -- Eliminate next to the
+     * delete beside every player, View next to a row's own controls -- and the
+     * small button measured 21px against the icon button's 32. Eleven pixels
+     * apart on one row reads as a mistake, and the shorter of the two is also
+     * the one below the size a thumb expects.
+     *
+     * min-height, not height: a button whose label wraps should still grow.
+     * .btn is already inline-flex with align-items: center, so the label
+     * centres in the taller box without any further help. */
+    min-height: 2rem;
     font-size: var(--step--2);
 }
 
