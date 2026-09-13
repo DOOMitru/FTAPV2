@@ -196,20 +196,28 @@
                                          tenth apart -- which is exactly the
                                          difference the order is drawn on. --}}
                                     @if ($order === 'rank')
-                                        {{-- Bar only: the badge to its left
-                                             already gives the position, and
-                                             the bar is what shows how far
-                                             apart two of them are.
+                                        {{-- The badge to its left gives the
+                                             position, so this bar carries the
+                                             average instead: how far apart two
+                                             positions actually are.
 
-                                             A title attribute is not reachable
+                                             The figure is rendered and then
+                                             HIDDEN where a pointer can hover
+                                             the badge for it -- see
+                                             .season-show__ratio. Where nothing
+                                             can hover, a tooltip is not a way
+                                             of showing anything, and a phone
+                                             is most of this league.
+
+                                             It is in the accessible name
+                                             either way: title is not reachable
                                              by keyboard and is announced
-                                             inconsistently, so the average is
-                                             in this meter's accessible name as
-                                             well. The tooltip is the
-                                             sighted-pointer copy of it, not
-                                             the only one. --}}
+                                             inconsistently, so the tooltip is
+                                             the sighted-pointer copy of the
+                                             figure, never the only one. --}}
                                         <x-meter :value="$row['ratio'] ?? 0" :max="$leaderValue" :decimals="1"
-                                                 :show-value="false"
+                                                 :value-text="$ratio"
+                                                 class="season-show__ratio"
                                                  :label="__('Rank #:rank, :points points per event, for :name', [
                                                      'rank' => $rank, 'points' => $ratio, 'name' => $shownName,
                                                  ])" />

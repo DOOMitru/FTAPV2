@@ -320,20 +320,66 @@ class SeasonStandingsOrderTest extends TestCase
         $this->assertSame('406.7 points per event', $badges[1][1]);
     }
 
+    /** The standings table alone: the Venues panel draws meters of its own. */
+    private function table(string $html): string
+    {
+        $start = strpos($html, 'season-show__standings');
+
+        return substr($html, $start, strpos($html, '</table>', $start) - $start);
+    }
+
     public function test_the_position_is_not_printed_twice_on_a_row(): void
     {
-        // The badge carries it; the meter beside it keeps the bar and drops
-        // its number. Printing "#2" in both says nothing twice and costs the
-        // bar the width to say it in.
-        // Scoped to the standings. The Venues panel further down the page
-        // draws meters of its own, so a count over the whole document reports
-        // five bars for a four-row table.
-        $html = $this->standings('rank')->getContent();
-        $start = strpos($html, 'season-show__standings');
-        $table = substr($html, $start, strpos($html, '</table>', $start) - $start);
+        // The badge carries the position. The meter beside it carries the
+        // average -- never the position again, which would say nothing twice
+        // and cost the bar the width to say it in.
+        $table = $this->table($this->standings('rank')->getContent());
 
-        $this->assertSame([], $this->meterValues($table), 'The meter should show no value.');
+        $this->assertSame(
+            ['500.0', '406.7', '400.0', '193.3'],
+            array_column($this->meterValues($table), 0)
+        );
+
         $this->assertSame(4, substr_count($table, 'meter__track'), 'The bars are still drawn.');
+    }
+
+    public function test_the_average_is_readable_without_hovering(): void
+    {
+        // A touch device fires no hover, so the badge's tooltip is unreachable
+        // there -- and a phone is most of this league. The figure is therefore
+        // rendered beside the bar and hidden only where the tooltip works.
+        $table = $this->table($this->standings('rank')->getContent());
+
+        $this->assertStringContainsString('season-show__ratio', $table);
+        $this->assertSame('406.7', $this->meterValues($table)[1][0]);
+
+        $css = file_get_contents(resource_path('css/4-pages/_season-show.css'));
+
+        $this->assertStringContainsString(
+            '.season-show__ratio .meter__value {'."\n".'    display: none;',
+            $css,
+            'The figure is hidden where the badge can be hovered for it.'
+        );
+
+        $this->assertStringContainsString(
+            '@media (hover: none), (max-width: 48rem) {',
+            $css,
+            'Either condition brings it back: no pointer at any width, or the phone layout.'
+        );
+    }
+
+    public function test_the_stat_run_is_sized_to_its_content(): void
+    {
+        // As equal thirds, "137 VENUE PTS" was given less width than it needed
+        // while "1 WON" held slack it could not lend, so the longest stat
+        // wrapped and made that row taller than its neighbours.
+        $css = file_get_contents(resource_path('css/4-pages/_season-show.css'));
+
+        $this->assertStringContainsString(
+            'grid-template-columns: auto auto auto minmax(0, 1fr) auto;',
+            $css,
+            'The two short stat columns size to content; the venue column keeps the rest.'
+        );
     }
 
     public function test_the_average_is_reachable_without_a_pointer(): void
