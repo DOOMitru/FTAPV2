@@ -50,3 +50,60 @@
         font-size: var(--step-2);
     }
 }
+
+/* Stats as lines rather than tiles, on a narrow screen.
+ *
+ * Three thirds of a 375px screen leave each figure about 100px, which is why
+ * the trio above already has to drop its type two steps to fit. A row does not:
+ * the label takes the start, the figure takes the end, and both have the whole
+ * width. It is also how the dashboard's season panel lists the same kind of
+ * thing, so the two pages read alike.
+ *
+ * LAST in this file on purpose. `.stat-rows .stat` and `.l-grid--trio .stat`
+ * have the same specificity, so the one declared second wins -- and the trio
+ * rules above set padding and font-size that this has to undo.
+ */
+@media (max-width: 48rem) {
+    .stat-rows {
+        /* Cancels the grid: these are a list now, not a row of three. */
+        display: block;
+    }
+
+    .stat-rows .stat {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: var(--space-4);
+        padding: var(--space-3) var(--space-4);
+        /* The group carries the edge, not each line in it. */
+        border: 0;
+        border-radius: 0;
+        background-color: transparent;
+    }
+
+    .stat-rows .stat + .stat {
+        border-block-start: var(--border-width) solid var(--c-border);
+    }
+
+    .stat-rows .stat__value {
+        /* The label is beside it now, not above it. */
+        margin-block-start: 0;
+        /* step-1: a line has room the third of a screen did not, and this is
+           the size the dashboard's own totals use. */
+        font-size: var(--step-1);
+    }
+
+    /* Inside a card, the card already supplies the gutter: the row's own
+       inline padding put these lines further in than the card's other text,
+       which reads as an indent nobody chose. */
+    .stat-rows:not(.stat-rows--boxed) .stat {
+        padding-inline: 0;
+    }
+
+    /* For a group standing on the page rather than inside a card. */
+    .stat-rows--boxed {
+        border: var(--border-width) solid var(--c-border);
+        border-radius: var(--radius);
+        background-color: var(--c-surface);
+    }
+}

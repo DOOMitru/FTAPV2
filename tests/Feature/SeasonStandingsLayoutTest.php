@@ -27,7 +27,7 @@ class SeasonStandingsLayoutTest extends TestCase
 {
     use BuildsTournaments, RefreshDatabase;
 
-    private function standings(): string
+    private function standings(bool $withThresholds = false): string
     {
         PointsStructure::create(['place' => 1, 'points' => 100]);
 
@@ -39,8 +39,18 @@ class SeasonStandingsLayoutTest extends TestCase
         $this->enter($tournament, $player);
         $this->score($tournament, $player, 1, 100);
 
+        $season = PokerSeason::first();
+
+        if ($withThresholds) {
+            $season->forceFill([
+                'finale_points_required' => 500,
+                'finale_wins_required' => 1,
+                'finale_venue_points_required' => 50,
+            ])->save();
+        }
+
         return $this->actingAs($this->admin())
-            ->get(route('seasons.show', PokerSeason::first()))
+            ->get(route('seasons.show', $season))
             ->assertOk()->getContent();
     }
 
@@ -87,5 +97,75 @@ class SeasonStandingsLayoutTest extends TestCase
         foreach (['Rank', 'Player', 'Pts', 'Played', 'Won', 'Venue pts', 'Finale'] as $header) {
             $this->assertStringContainsString('>'.$header.'</th>', $html);
         }
+    }
+
+    public function test_the_season_figures_are_marked_to_become_rows_on_a_phone(): void
+    {
+        // Three thirds of a 375px screen leave each figure about 100px, which
+        // is why the trio already had to drop its type two steps to fit. As
+        // rows the label takes the start and the figure the end, both with the
+        // whole width -- the way the dashboard's season panel lists the same
+        // kind of thing.
+        //
+        // Which shape is drawn is CSS and was measured instead: at 1440 the
+        // group is a grid with the figure stacked under its label at 56px; at
+        // 375 and 320 it is a block with the two inline at 18px and a 42px row,
+        // with no horizontal overflow.
+        // Thresholds set, so BOTH groups render: without them the finale panel
+        // shows an empty state instead, and a count over one group would pass
+        // whatever the other one did.
+        $html = $this->standings(withThresholds: true);
+
+        // Counted as class attributes, not as substrings. "stat-rows" also
+        // occurs inside "stat-rows--boxed", so substr_count reported two for a
+        // single group and this test passed while measuring nothing.
+        $this->assertSame(2, preg_match_all('/class="[^"]*\bstat-rows\b/', $html));
+    }
+
+    public function test_only_the_group_outside_a_card_draws_its_own_edge(): void
+    {
+        // --boxed is the difference. The finale thresholds sit inside a card
+        // that already has a border; a second one around them would be a box
+        // in a box, and the rows would be indented past the card's own text.
+        $html = $this->standings(withThresholds: true);
+
+        $this->assertSame(1, preg_match_all('/\bstat-rows--boxed\b/', $html));
+
+        // And it is the standalone group that has it -- the one drawn before
+        // the Finale Qualification card.
+        $this->assertLessThan(
+            strpos($html, 'Finale Qualification'),
+            strpos($html, 'stat-rows--boxed')
+        );
+    }
+
+    public function test_the_finale_thresholds_read_wins_then_season_then_venue(): void
+    {
+        // Order is a decision, so it is pinned. The helper sets three DIFFERENT
+        // figures on purpose -- 1, 500, 50 -- because the way a reorder goes
+        // wrong is a label moving without its value, and three identical
+        // numbers would hide exactly that.
+        $html = $this->standings(withThresholds: true);
+
+        $this->assertStringContainsString(
+            '<span class="stat__label">Tournament Wins</span><span class="stat__value">1</span>',
+            preg_replace('/>\s+</', '><', $html)
+        );
+
+        $this->assertStringContainsString(
+            '<span class="stat__label">Season points</span><span class="stat__value">500</span>',
+            preg_replace('/>\s+</', '><', $html)
+        );
+
+        $this->assertStringContainsString(
+            '<span class="stat__label">Venue points</span><span class="stat__value">50</span>',
+            preg_replace('/>\s+</', '><', $html)
+        );
+
+        // And in that order down the panel.
+        $panel = substr($html, (int) strpos($html, 'Finale Qualification'));
+
+        $this->assertLessThan(strpos($panel, 'Season points'), strpos($panel, 'Tournament Wins'));
+        $this->assertLessThan(strpos($panel, 'Venue points'), strpos($panel, 'Season points'));
     }
 }

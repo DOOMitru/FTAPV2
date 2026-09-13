@@ -10,9 +10,19 @@
     </x-slot>
 
     <div class="l-container l-stack">
-        <div class="l-grid l-grid--trio">
+        {{-- stat-rows: on a phone these stop being three tiles side by side
+             and become three labelled lines, the way the dashboard's season
+             panel lists its own figures. Three thirds of a 375px screen leave
+             each number about 100px, which is why the trio already had to shrink
+             its type to fit -- a row gives the label and the figure the whole
+             width and needs no shrinking at all.
+
+             --boxed because this group stands on the page rather than inside a
+             card, so it has to draw its own edge. The finale trio below is
+             already inside one. --}}
+        <div class="l-grid l-grid--trio stat-rows stat-rows--boxed">
             <x-stat :label="__('Tournaments')" :value="number_format($totalTournaments)" />
-            <x-stat :label="__('Pts awarded')" :value="number_format($totalPoints)" />
+            <x-stat :label="__('Points awarded')" :value="number_format($totalPoints)" />
             <x-stat :label="__('Players')" :value="number_format($uniquePlayersCount)" />
         </div>
 
@@ -23,23 +33,23 @@
             @if ($season->hasThresholds())
                 <p class="field__hint">{{ __('A player must meet all three to reach the finale.') }}</p>
 
-                <div class="l-grid l-grid--trio">
+                <div class="l-grid l-grid--trio stat-rows">
                     {{-- Each figure guarded on its own, not just the block.
                          hasThresholds() is true when ANY one is set, so a
                          partly decided season lands here -- and
                          number_format(null) renders 0, stating a target nobody
                          chose and everybody has already met. --}}
-                    <x-stat :label="__('Season pts')"
-                            :value="$season->finale_points_required !== null
-                                ? number_format($season->finale_points_required)
-                                : __('Not set')" />
-
-                    <x-stat :label="__('Wins')"
+                    <x-stat :label="__('Tournament Wins')"
                             :value="$season->finale_wins_required !== null
                                 ? (string) $season->finale_wins_required
                                 : __('Not set')" />
 
-                    <x-stat :label="__('Venue pts')"
+                    <x-stat :label="__('Season points')"
+                            :value="$season->finale_points_required !== null
+                                ? number_format($season->finale_points_required)
+                                : __('Not set')" />
+
+                    <x-stat :label="__('Venue points')"
                             :value="$season->finale_venue_points_required !== null
                                 ? number_format($season->finale_venue_points_required)
                                 : __('Not set')" />
