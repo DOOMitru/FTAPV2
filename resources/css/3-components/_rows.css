@@ -136,6 +136,32 @@
     color: var(--c-text-muted);
 }
 
+/* A note in two parts -- a sentence and a link -- sharing a line where there is
+ * room and taking one each where there is not.
+ *
+ * As plain inline content the link wrapped mid-phrase on a phone: "See the
+ * full" ended one line and "schedule" began the next, with the underline
+ * broken across the two. A link is one target and should look like one.
+ */
+.card__note--split {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: center;
+    gap: var(--space-1) var(--space-2);
+}
+
+@media (max-width: 48rem) {
+    /* Column, so the two never share a line at all rather than sharing one
+       until the link happens not to fit. align-items carries the centring here:
+       in a column it is the cross axis that runs across the card, and
+       justify-content has stopped being the one that does. */
+    .card__note--split {
+        flex-direction: column;
+        align-items: center;
+    }
+}
+
 /* A whole row that is a link.
  *
  * Nothing in this system strips the browser's default underline from an <a>,

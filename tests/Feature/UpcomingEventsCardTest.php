@@ -92,13 +92,16 @@ class UpcomingEventsCardTest extends TestCase
             ->assertSeeInOrder(['Night 01', 'Night 02', 'Night 03', 'Night 04', 'Night 05']);
     }
 
-    public function test_the_badge_counts_every_scheduled_event_not_the_five_shown(): void
+    public function test_the_header_carries_no_count_and_no_link(): void
     {
-        // Counting the rows made this read "5 Events" on a league with nine in
-        // the diary -- a fact about the card rather than about the league.
+        // Both were a second copy of what the note under the list already says,
+        // sitting in the corner furthest from the list they described.
         $this->schedule(9);
 
-        $this->assertStringContainsString('9 Events', $this->card($this->player()));
+        $card = $this->card($this->player());
+
+        $this->assertStringNotContainsString('9 Events', $card);
+        $this->assertStringNotContainsString('All events', $card);
     }
 
     public function test_the_card_says_how_many_are_hidden_and_where_to_find_them(): void
@@ -107,6 +110,9 @@ class UpcomingEventsCardTest extends TestCase
 
         $card = $this->card($this->player());
 
+        // "of 9", not "of 5": the figure is every event scheduled, not the
+        // rows drawn. This is what the header badge used to hold, and the only
+        // place that distinction is now visible.
         $this->assertStringContainsString('The next 5 of 9 scheduled.', $card);
         $this->assertStringContainsString('See the full schedule', $card);
         $this->assertStringContainsString(route('events'), $card);
@@ -120,7 +126,7 @@ class UpcomingEventsCardTest extends TestCase
 
         $card = $this->card($this->player());
 
-        $this->assertStringContainsString('3 Events', $card);
+        $this->assertStringContainsString('Night 03', $card);
         $this->assertStringNotContainsString('scheduled.', $card);
         $this->assertStringNotContainsString('See the full schedule', $card);
     }
@@ -133,17 +139,18 @@ class UpcomingEventsCardTest extends TestCase
         $this->assertStringNotContainsString('See the full schedule', $this->card($this->player()));
     }
 
-    public function test_the_full_schedule_is_always_one_click_away(): void
+    public function test_a_complete_list_offers_no_route_to_the_schedule(): void
     {
-        // The note comes and goes with the cap; the button does not. Somebody
-        // wanting the whole diary should not have to have nine events booked
-        // before the link appears.
+        // The consequence of dropping the header button, recorded rather than
+        // discovered later: with five or fewer events booked, this card no
+        // longer links to the public schedule at all. Nothing is hidden, so
+        // there is nothing the note needs to say -- but somebody wanting the
+        // whole diary has to reach it from the public site.
         $this->schedule(2);
 
         $card = $this->card($this->player());
 
-        $this->assertStringContainsString('All events', $card);
-        $this->assertStringContainsString(route('events'), $card);
+        $this->assertStringNotContainsString(route('events'), $card);
     }
 
     public function test_an_empty_diary_says_so(): void
@@ -151,7 +158,6 @@ class UpcomingEventsCardTest extends TestCase
         $card = $this->card($this->player());
 
         $this->assertStringContainsString('No upcoming tournaments scheduled.', $card);
-        $this->assertStringContainsString('0 Events', $card);
         $this->assertStringNotContainsString('See the full schedule', $card);
     }
 
@@ -171,6 +177,34 @@ class UpcomingEventsCardTest extends TestCase
         $card = $this->card($this->player());
 
         $this->assertStringNotContainsString('Already Started', $card);
-        $this->assertStringContainsString('2 Events', $card);
+        $this->assertStringContainsString('Night 01', $card);
+        $this->assertStringContainsString('Night 02', $card);
+    }
+
+    public function test_the_note_is_two_elements_so_it_can_stack(): void
+    {
+        // Whether they share a line is CSS and cannot be asserted here; it was
+        // measured in the browser instead -- one row at 1440 and 800, two rows
+        // at 500, with the link on a single unbroken line at all three.
+        //
+        // What IS assertable is the markup that makes it possible. As plain
+        // inline content the link wrapped mid-phrase on a phone, "See the full"
+        // ending one line and "schedule" starting the next with the underline
+        // broken across both, and no stylesheet can fix that from the outside.
+        $this->schedule(9);
+
+        $card = $this->card($this->player());
+
+        $this->assertStringContainsString('card__note--split', $card);
+
+        $this->assertMatchesRegularExpression(
+            '/<span>The next 5 of 9 scheduled\.<\/span>/',
+            $card,
+            'The sentence must be its own element.'
+        );
+
+        // And no stray space left inside the translatable string now that the
+        // gap between them is the flex gap.
+        $this->assertStringNotContainsString('scheduled. </span>', $card);
     }
 }

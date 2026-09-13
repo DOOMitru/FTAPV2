@@ -17,6 +17,14 @@
             <span>{{ __('Be first to act.') }}</span>
         </span>
 
-        <span class="site-footer__sig">&copy; {{ date('Y') }} {{ config('app.name') }}</span>
+        {{-- Two spans, for the same reason the tagline has three: at 375 this
+             does not fit on one line and wrapped wherever it happened to run
+             out -- "© 2026 First to / Act Poker", splitting the league's name
+             across the break. Written as two parts it breaks between the year
+             and the name, which is where a person would put it. --}}
+        <span class="site-footer__sig">
+            <span>&copy; {{ date('Y') }}</span>
+            <span>{{ config('app.name') }}</span>
+        </span>
     </div>
 </footer>

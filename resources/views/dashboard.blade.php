@@ -132,17 +132,14 @@
              has been folded into the season panel above -- a sidebar grid
              with nothing in its sidebar leaves these two cards at two thirds
              width with a column of nothing beside them. --}}
-        <x-card :title="__('Upcoming Tournaments')" flush>
-            <x-slot name="actions">
-                {{-- The badge counts every event scheduled, not the five drawn
-                     below it. Counting the rows would have made it read "5
-                     Events" on a league with twenty in the diary -- a figure
-                     that is a fact about this card rather than about the
-                     league. --}}
-                <x-badge>{{ $upcomingCount }} {{ __('Events') }}</x-badge>
+        {{-- No actions. The header carried a count of every scheduled event and
+             a button to the public schedule; the note under the list already
+             says how many there are and links to the same page, so the header
+             was a second copy of both in the corner furthest from the list they
+             describe.
 
-                <x-btn variant="ghost" size="sm" :href="route('events')">{{ __('All events') }}</x-btn>
-            </x-slot>
+             $upcomingCount survives for that note. --}}
+        <x-card :title="__('Upcoming Tournaments')" flush>
 
             @forelse ($upcomingTournaments as $tournament)
                 @php
@@ -231,12 +228,16 @@
                  list that is complete is noise -- the same rule the Recent
                  Results note follows below. --}}
             @if ($upcomingCount > $upcomingTournaments->count())
-                <p class="card__note">
-                    {{ trans_choice(
-                        '{1}The next one of :count scheduled. |[2,*]The next :shown of :count scheduled. ',
+                {{-- Two parts in their own elements, so they can take a line
+                     each when there is not room for both. The spacing between
+                     them is the flex gap now rather than a trailing space
+                     inside a translatable string. --}}
+                <p class="card__note card__note--split">
+                    <span>{{ trans_choice(
+                        '{1}The next one of :count scheduled.|[2,*]The next :shown of :count scheduled.',
                         $upcomingTournaments->count(),
                         ['shown' => $upcomingTournaments->count(), 'count' => $upcomingCount]
-                    ) }}
+                    ) }}</span>
 
                     <a class="link" href="{{ route('events') }}">{{ __('See the full schedule') }}</a>
                 </p>
