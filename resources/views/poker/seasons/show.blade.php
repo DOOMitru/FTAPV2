@@ -73,7 +73,18 @@
                         @endif
                     </x-empty-state>
                 @else
-                    @php $leaderPoints = $leaderboard->first()['points']; @endphp
+                    @php
+                        $leaderPoints = $leaderboard->first()['points'];
+
+                        // Venue points are a back-office tally: they are
+                        // awarded by hand at the bar, corrected by hand, and a
+                        // player's own figure is already on their dashboard.
+                        // What the column adds is everyone ELSE's, which is
+                        // admin business. The finale mark stays for everyone,
+                        // because the thresholds it is measured against are
+                        // published in the panel above this table.
+                        $showsVenuePoints = auth()->user()->is_admin;
+                    @endphp
 
                     {{-- The mobile layout is CSS only: same markup, same
                          cells, reflowed by _season-show.css below 48rem. The
@@ -88,7 +99,9 @@
                             <th scope="col">{{ __('Pts') }}</th>
                             <th scope="col" class="table__num">{{ __('Played') }}</th>
                             <th scope="col" class="table__num">{{ __('Won') }}</th>
-                            <th scope="col" class="table__num">{{ __('Venue pts') }}</th>
+                            @if ($showsVenuePoints)
+                                <th scope="col" class="table__num">{{ __('Venue pts') }}</th>
+                            @endif
                             <th scope="col">{{ __('Finale') }}</th>
                         </x-slot>
 
@@ -154,7 +167,9 @@
                                 <td class="table__num season-show__stat season-show__stat--played" data-label="{{ __('played') }}">{{ $row['played'] }}</td>
                                 <td class="table__num season-show__stat season-show__stat--won" data-label="{{ __('won') }}">{{ $row['wins'] }}</td>
 
-                                <td class="table__num season-show__stat season-show__stat--venue" data-label="{{ __('venue pts') }}">{{ $row['venue_points'] }}</td>
+                                @if ($showsVenuePoints)
+                                    <td class="table__num season-show__stat season-show__stat--venue" data-label="{{ __('venue pts') }}">{{ $row['venue_points'] }}</td>
+                                @endif
 
                                 {{-- A mark when they are in, and nothing when they are
                                      not. This column used to name what a player was
