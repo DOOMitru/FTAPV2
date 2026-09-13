@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Poker;
 
 use App\Http\Controllers\Controller;
 use App\Models\PokerSeason;
+use App\Models\PokerTournamentResult;
+use App\Models\VenuePoints;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -125,13 +127,27 @@ class PokerSeasonController extends Controller
             ->unique()
             ->flip();
 
+        // A player's venue points belong to that player and to the admins who
+        // award them. Everyone else gets the VERDICT -- qualified or not --
+        // computed here from a figure that never leaves this closure, because
+        // the thresholds it is measured against are published on this page for
+        // everybody to read.
+        //
+        // Withheld from the DATA, not just from the template. The column was
+        // already gated in the view, which stopped it being rendered; this is
+        // what stops the next column, debug dump or partial from rendering it
+        // by accident. A figure that is not in the array cannot leak from it.
+        $readsVenuePoints = fn (?PokerTournamentResult $result) => VenuePoints::readableBy(
+            auth()->user(), $result?->user_id
+        );
+
         // Calculate Leaderboard
         $leaderboard = $season->results
             ->groupBy('user_id')
             // A result with no user_id at all groups under '' and is caught by
             // the same rule: nothing that never entered appears here.
             ->filter(fn ($results, $userId) => $entered->has($userId))
-            ->map(function ($results) use ($venuePoints, $season) {
+            ->map(function ($results) use ($venuePoints, $season, $readsVenuePoints) {
                 $points = $results->sum('points');
                 $wins = $results->where('place', 1)->count();
                 // Defensive, and deliberately untested: SQLite returns an int
@@ -155,7 +171,7 @@ class PokerSeasonController extends Controller
                     'wins' => $wins,
                     'top3' => $results->where('place', '<=', 3)->count(),
                     'played' => $results->count(),
-                    'venue_points' => $venue,
+                    'venue_points' => $readsVenuePoints($results->first()) ? $venue : null,
                     'unmet' => $unmet,
                     'qualified' => $unmet === [],
                 ];
