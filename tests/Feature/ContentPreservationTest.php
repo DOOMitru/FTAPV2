@@ -203,8 +203,13 @@ class ContentPreservationTest extends TestCase
             'is_current' => true,
         ]);
 
-        // Four career results: places 1, 1, 3, 4 -> two wins.
-        // Points: 200 + 200 + 150 + 95 = 645 total.
+        // Four results IN THE CURRENT SEASON: places 1, 1, 3, 4 -- two wins,
+        // no second, one third. Points 200 + 200 + 150 + 95 = 645.
+        //
+        // Registered for each as well, which this fixture did not used to need.
+        // Events Played counts REGISTRATIONS now, not results, and the rank is
+        // points per event entered -- so a player with results and no entries
+        // has no denominator and no rank at all.
         $places = [1, 1, 3, 4];
         $points = [200, 200, 150, 95];
 
@@ -214,6 +219,13 @@ class ContentPreservationTest extends TestCase
                 'start_time' => now()->subWeeks(4 - $index)->addMinutes(30),
                 'venue_id' => $venue->id,
                 'season_id' => $season->id,
+            ]);
+
+            \App\Models\PokerTournamentRegistrant::create([
+                'tournament_id' => $tournament->id,
+                'user_id' => $player->id,
+                'player_name' => $player->first_name.' '.$player->last_name,
+                'registered_at' => now(),
             ]);
 
             PokerTournamentResult::create([
@@ -228,42 +240,37 @@ class ContentPreservationTest extends TestCase
         $response = $this->actingAs($player)->get(route('dashboard'));
 
         $response->assertOk();
-        $response->assertSee('645'); // Career points total (Career Points stat tile).
 
         // `assertSee('4')` / `assertSee('2')` were dropped: on this dashboard,
         // "4" and "2" each occur 100+ times in unrelated markup (viewBox="0 0
-        // 24 24" on every icon, gap-4/w-4/h-4 utility classes, ULIDs in
-        // hrefs, date fragments, etc.), so both assertions passed even on a
-        // blank dashboard with no data at all — verified by rendering this
-        // exact fixture and counting occurrences. No small, realistic
-        // events-played/wins count can be pinned uniquely in the body text
-        // here (every value 0-19, and most values up to 99, collide with
-        // fixed icon path data or Tailwind spacing classes present on every
-        // authenticated page); driving the counts into triple digits to
-        // dodge the noise would make the fixture unrealistic, slow, and
-        // still non-deterministic (ULIDs embedded in the page are random
-        // per run and could coincidentally reintroduce a collision).
+        // 24 24" on every icon, ULIDs in hrefs, date fragments), so both
+        // assertions passed even on a blank dashboard with no data at all.
         //
-        // Real enforcement instead: assertViewHas() checks the actual
-        // scalar bound to the view (Illuminate\Testing\TestResponse::
-        // assertViewHas() routes a non-null scalar through assertEquals(),
-        // a genuine equality check, not a null-key-exists check), so this
-        // fails if the controller ever computes the wrong events-played or
-        // win count.
-        $response->assertViewHas('tournamentsPlayed', 4); // Events (tournaments) played.
-        $response->assertViewHas('wins', 2);               // Tournament wins.
+        // Real enforcement instead: the figures the controller computed,
+        // checked as values. This fails if the controller ever counts the wrong
+        // thing -- and counting the wrong thing is easy here, because events
+        // come from one table and points from another.
+        $figures = $response->viewData('season');
 
-        // assertViewHas above proves the CONTROLLER computes the right figures.
-        // It would still pass if a rewrite deleted the stat tiles entirely, so
-        // it does not, on its own, protect displayed content.
+        $this->assertSame(4, $figures['events']);
+        $this->assertSame(645, $figures['points']);
+        $this->assertSame(2, $figures['first']);
+        $this->assertSame(0, $figures['second']);
+        $this->assertSame(1, $figures['third']);
+        $this->assertSame(0, $figures['venuePoints']);
+
+        // Only ranked player in the season, so first by default -- but ranked
+        // at all is the point: a null here means the denominator was lost.
+        $this->assertSame(1, $figures['rank']);
+        $this->assertSame(161.25, $figures['perEvent']);
+
+        // viewData above proves the CONTROLLER computes the right figures. It
+        // would still pass if a rewrite deleted the panel entirely, so it does
+        // not, on its own, protect displayed content.
         //
-        // These assertions close that gap. Tag-stripping removes the noise that
-        // made a bare assertSee('4') useless (Tailwind spacing classes, SVG path
-        // data, ULIDs), and pairing each figure with its own label makes the
-        // match unique -- "Events Played" and "Tournament Wins" each occur
-        // exactly once in the visible text. Whitespace is collapsed first
-        // because strip_tags leaves the markup's original line breaks and
-        // indentation between the label and its value.
+        // These close that gap. Tag-stripping removes the noise that made a
+        // bare assertSee('4') useless, and pairing each figure with its own
+        // label makes the match unique.
         //
         // If a later phase renames one of these labels, this assertion fails.
         // That is intended: a label is user-facing copy, and changing it should
@@ -271,13 +278,15 @@ class ContentPreservationTest extends TestCase
         // restyling.
         $text = preg_replace('/\s+/', ' ', strip_tags($response->getContent()));
 
-        $this->assertStringContainsString('Career Points 645', $text);
+        $this->assertStringContainsString('Season Points 645', $text);
         $this->assertStringContainsString('Events Played 4', $text);
-        $this->assertStringContainsString('Tournament Wins 2', $text);
+        $this->assertStringContainsString('Venue Points 0', $text);
 
-        // The fourth tile, which was the only one of the row not asserted --
-        // places 1, 1, 3, 4 put three of the four inside the top three.
-        $this->assertStringContainsString('Podium Finishes 3', $text);
+        // The rank, and the division it is made of -- the reason the panel
+        // shows a ratio rather than a bare number.
+        $this->assertStringContainsString('#1', $text);
+        $this->assertStringContainsString('161.3 pts per event', $text);
+        $this->assertStringContainsString('645 pts over 4 events', $text);
     }
 
     // -----------------------------------------------------------------

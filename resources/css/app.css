@@ -50,6 +50,7 @@
 @import "./4-pages/_venue-show.css";
 @import "./4-pages/_venues.css";
 @import "./4-pages/_tournament-show.css";
+@import "./4-pages/_season-panel.css";
 
 /* The public register — gradients and elevation, allowed here and nowhere
    else. Guarded by PublicRegisterTest. */

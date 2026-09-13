@@ -53,13 +53,28 @@ class DashboardPanelsTest extends TestCase
             ->assertDontSee('Points Structure');
     }
 
-    public function test_the_side_column_still_carries_the_active_season(): void
+    public function test_the_season_panel_replaced_the_active_season_card(): void
     {
-        // The other card in that column. Removing one must not take the stack
-        // with it.
+        // The card held Season Rank and Season Points and a link to the full
+        // stats. All three live in the season panel now, so keeping it would
+        // print two of them twice -- and the link is the only part that was not
+        // a duplicate, so it moved rather than went.
+        \App\Models\PokerSeason::create([
+            'name' => 'Season 9',
+            'start_date' => now()->subMonth(),
+            'end_date' => now()->addMonth(),
+            'is_current' => true,
+        ]);
+
         $this->actingAs(User::factory()->create(['is_admin' => false, 'approval_status' => 'approved']))
             ->get(route('dashboard'))->assertOk()
-            ->assertSee('Active Season');
+            ->assertDontSee('Active Season')
+            // The season IS the heading. "Current Season" was true of every
+            // season and so told you nothing about this one, and the name it
+            // displaced sat in a badge in the far corner.
+            ->assertDontSee('Current Season')
+            ->assertSee('Season 9')
+            ->assertSee('Full Season Stats');
     }
 
     public function test_the_dashboard_renders_with_no_points_structure_at_all(): void
