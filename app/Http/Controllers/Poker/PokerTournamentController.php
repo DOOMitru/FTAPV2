@@ -114,6 +114,9 @@ class PokerTournamentController extends Controller
         // "Past" means play has begun.
         $isPast = \Illuminate\Support\Carbon::parse($tournament->start_time)->isPast();
 
+        // Read for $nextPlacePoints alone. The Points at Stake panel used to
+        // print the whole table beside the tournament; the points on offer now
+        // appear where they are acted on, in the Eliminate confirmation.
         $pointsStructure = PointsStructure::orderBy('place')->get();
 
         // Places are handed out from the bottom of the field: the first player
@@ -208,7 +211,6 @@ class PokerTournamentController extends Controller
             'totalPoints',
             'isUserRegistered',
             'isPast',
-            'pointsStructure',
             'availableUsers',
             'nextPlace',
             'nextPlacePoints',

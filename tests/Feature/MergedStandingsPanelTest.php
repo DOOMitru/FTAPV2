@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\PointsStructure;
 use App\Models\PokerTournamentResult;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -224,5 +225,32 @@ class MergedStandingsPanelTest extends TestCase
             ->assertSee('Wanda Reeve')
             ->assertDontSee('Eliminate')
             ->assertDontSee('Remove from tournament');
+    }
+
+    public function test_the_page_no_longer_prints_the_points_table(): void
+    {
+        // Points at Stake listed every paying place beside an upcoming
+        // tournament. The figure that matters is the one on offer for the next
+        // place, and the Eliminate confirmation quotes it at the moment it is
+        // awarded -- so the table was a standing reference next to a page about
+        // one night.
+        PointsStructure::create(['place' => 1, 'points' => 100]);
+        PointsStructure::create(['place' => 2, 'points' => 85]);
+
+        $tournament = $this->tournament();
+        $tournament->forceFill(['start_time' => now()->addWeek()])->save();
+        $this->enter($tournament, $this->player('Wanda', 'Reeve'));
+
+        $html = $this->actingAs($this->admin())
+            ->get(route('tournaments.show', $tournament->fresh()))->assertOk()->getContent();
+
+        $this->assertStringNotContainsString('Points at Stake', $html);
+        $this->assertStringNotContainsString('Points are based on league rules.', $html);
+        $this->assertStringNotContainsString('tshow__points', $html);
+
+        // The points on offer are still named where they are acted on: the
+        // confirmation on the Eliminate button. One player is registered -- the
+        // admin is not -- so the place on offer is 1st and it pays 100.
+        $this->assertStringContainsString('are awarded 100 points', $html);
     }
 }

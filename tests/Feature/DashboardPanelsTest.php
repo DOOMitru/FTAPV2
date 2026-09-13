@@ -12,10 +12,14 @@ use Tests\TestCase;
  *
  * It held Active Season and a Points Structure card: the top five places and
  * their points, with a link out to the full rules. The figures are fixed league
- * rules rather than anything about the player reading them, they do not change
- * from one visit to the next, and the tournament page already prints the whole
- * structure under Points at Stake -- where it is about the tournament in front
- * of you rather than a table on a page about you.
+ * rules rather than anything about the player reading them, and they do not
+ * change from one visit to the next.
+ *
+ * This first argued that the tournament page still printed the structure under
+ * Points at Stake. That panel has since gone the same way, so the argument is
+ * now the simpler one: the points that matter are the ones on offer for the
+ * next place, and those are quoted in the Eliminate confirmation at the moment
+ * they are awarded. The full table lives on the public rules page.
  */
 class DashboardPanelsTest extends TestCase
 {

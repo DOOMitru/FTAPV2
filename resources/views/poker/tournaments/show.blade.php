@@ -320,27 +320,6 @@
                         </div>
                     </x-card>
                 @endif
-
-                @if (! $isPast && $pointsStructure->isNotEmpty())
-                    <x-card :title="__('Points at Stake')" class="tshow__points">
-                        <dl class="rows">
-                            @foreach ($pointsStructure as $structure)
-                                <div class="row">
-                                    <dt class="row__label">
-                                        {{ $structure->place }}{{ match ($structure->place) { 1 => 'st', 2 => 'nd', 3 => 'rd', default => 'th' } }}
-                                        {{ __('Place') }}
-                                    </dt>
-                                    <dd class="row__value">
-                                        {{ number_format($structure->points) }}
-                                        <span class="row__unit">{{ __('Pts') }}</span>
-                                    </dd>
-                                </div>
-                            @endforeach
-                        </dl>
-
-                        <p class="field__hint">{{ __('Points are based on league rules.') }}</p>
-                    </x-card>
-                @endif
             </div>
         </div>
     </div>

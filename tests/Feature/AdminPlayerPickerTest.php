@@ -2,7 +2,6 @@
 
 namespace Tests\Feature;
 
-use App\Models\PointsStructure;
 use App\Models\PokerSeason;
 use App\Models\PokerTournament;
 use App\Models\PokerTournamentRegistrant;
@@ -151,18 +150,19 @@ class AdminPlayerPickerTest extends TestCase
         $tournament = $this->tournament();
         User::factory()->create();
 
-        // Points at Stake renders only for an upcoming tournament that has a
-        // points structure to show. Without this row the card is absent and its
-        // hook cannot be asserted -- which is how this test first failed.
-        PointsStructure::create(['place' => 1, 'points' => 100]);
-
         $response = $this->actingAs(User::factory()->create(['is_admin' => true]))
             ->get(route('tournaments.show', $tournament))->assertOk();
 
         $response->assertSee('tshow__panels', false);
 
-        foreach (['tshow__register', 'tshow__players', 'tshow__points'] as $hook) {
+        // Two hooks, not three. tshow__points went with the Points at Stake
+        // panel, and the fixture that existed only to make that card render
+        // went with it -- the card was absent without a points structure, which
+        // is how this test first failed.
+        foreach (['tshow__register', 'tshow__players'] as $hook) {
             $response->assertSee($hook, false);
         }
+
+        $response->assertDontSee('tshow__points', false);
     }
 }
