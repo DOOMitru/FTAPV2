@@ -367,4 +367,64 @@ class EventCardTest extends TestCase
             );
         }
     }
+
+    public function test_the_date_is_available_as_a_line_as_well_as_a_leaf(): void
+    {
+        // On a phone the calendar leaf becomes a line between the venue and the
+        // time. Which of the two is drawn is CSS and cannot be asserted here; it
+        // was measured -- leaf shown and line hidden at 1440 and 800, the
+        // reverse at 375 and 320, with no horizontal overflow at any of them.
+        //
+        // What IS assertable is that both exist and sit in the right order,
+        // because a stylesheet cannot move one between two others.
+        $tournament = $this->tournament();
+
+        $html = $this->actingAs(User::factory()->create())
+            ->get(route('tournaments.show', $tournament))->assertOk()->getContent();
+
+        $venue = strpos($html, 'p-event__venue');
+        $date = strpos($html, 'p-event__date');
+        $time = strpos($html, 'p-event__time');
+
+        $this->assertNotFalse($date, 'The card carries no date line.');
+        $this->assertLessThan($date, $venue, 'The date must come after the venue.');
+        $this->assertLessThan($time, $date, 'The date must come before the time.');
+    }
+
+    public function test_the_date_is_never_announced_twice(): void
+    {
+        // The leaf, the line and the time all carry the same date. Two of them
+        // are decoration; the time line's visually-hidden span is the one a
+        // screen reader reads, and it says the whole thing.
+        $tournament = $this->tournament();
+
+        $html = $this->actingAs(User::factory()->create())
+            ->get(route('tournaments.show', $tournament))->assertOk()->getContent();
+
+        $this->assertMatchesRegularExpression(
+            '/<p class="p-event__date" aria-hidden="true">/',
+            $html,
+            'The date line stands in for the leaf and must be hidden like it.'
+        );
+
+        // The line a screen reader actually reads, unchanged.
+        $this->assertStringContainsString(
+            $tournament->start_time->format('l j F Y, g:i A'),
+            $html
+        );
+    }
+
+    public function test_the_date_line_says_the_same_day_as_the_leaf(): void
+    {
+        // Two renderings of one moment. A format change to either that left the
+        // other behind would show a card disagreeing with itself across a
+        // breakpoint, which nobody would see on the width they work at.
+        $tournament = $this->tournament();
+
+        $html = $this->actingAs(User::factory()->create())
+            ->get(route('tournaments.show', $tournament))->assertOk()->getContent();
+
+        $this->assertStringContainsString($tournament->start_time->format('D, M j'), $html);
+        $this->assertStringContainsString('>'.$tournament->start_time->format('j').'<', $html);
+    }
 }

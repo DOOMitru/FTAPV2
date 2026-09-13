@@ -163,8 +163,24 @@
                     {{ $tournament->venue->name ?? __('Location TBD') }}
                 </p>
 
-                {{-- The calendar leaf is aria-hidden, so this line carries the
-                     whole date for a screen reader rather than the time alone. --}}
+                {{-- The date as a line, drawn only on a narrow card where the
+                     calendar leaf is not. aria-hidden like the leaf it stands
+                     in for: the time line below still carries the whole date
+                     for a screen reader, so neither of these is announced and
+                     the date is never said twice. --}}
+                <p class="p-event__date" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                         stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <rect x="3" y="5" width="18" height="16" rx="2"/>
+                        <path d="M16 3v4M8 3v4M3 11h18"/>
+                    </svg>
+
+                    {{ $tournament->start_time->format('D, M j') }}
+                </p>
+
+                {{-- The calendar leaf and the date line are both aria-hidden, so
+                     this line carries the whole date for a screen reader rather
+                     than the time alone. --}}
                 <p class="p-event__time">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                          stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
