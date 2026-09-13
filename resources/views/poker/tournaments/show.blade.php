@@ -93,66 +93,52 @@
              column they were written into. See 4-pages/_tournament-show.css. --}}
         <div class="l-sidebar tshow__panels">
             <div class="l-stack">
-                @if ($isPast)
-                    <x-card :title="__('Final Standings')" flush class="tshow__standings">
-                        <x-table>
-                            <x-slot name="head">
-                                <th scope="col">{{ __('Pos') }}</th>
-                                <th scope="col">{{ __('Player') }}</th>
-                                <th scope="col" class="table__num">{{ __('Points') }}</th>
-                            </x-slot>
+                {{-- One panel, not two. Final Standings and Registered Players
+                     listed the same people in the same order and differed only
+                     in what they put beside a name: a medal and a points total
+                     on one, a monogram and the controls on the other. A player
+                     appeared twice, and an administrator read down one list to
+                     find a name and across to the other to act on it.
 
-                            @forelse ($orderedResults as $result)
-                                <tr>
-                                    <td><x-rank :place="$result->place" /></td>
+                     The leading glyph carries the difference the two lists used
+                     to carry between them. A player still in is their initials;
+                     once they have a place, they are that place, medalled for
+                     the top three. One circle per row either way, and the row
+                     says at a glance whether this player is still playing.
 
-                                    <td>
-                                        <div class="entry__title">{{ $result->player_name }}</div>
-
-                                        @if (filled($result->player_nickname))
-                                            <div class="entry__meta"><span>{{ $result->player_nickname }}</span></div>
-                                        @endif
-                                    </td>
-
-                                    <td class="table__num">{{ number_format($result->points) }}</td>
-                                </tr>
-                            @empty
-                                <tr>
-                                    <td colspan="3">
-                                        <x-empty-state :title="__('No results recorded yet.')" />
-                                    </td>
-                                </tr>
-                            @endforelse
-                        </x-table>
-                    </x-card>
-                @endif
-
-                <x-card :title="__('Registered Players')" flush class="tshow__players">
+                     Rows with a result are ordered best first, and the players
+                     still in sit above them -- they are competing for the places
+                     above the ones already awarded. --}}
+                <x-card :title="$standingsTitle" flush class="tshow__players">
                     <x-slot name="actions">
                         <x-badge>{{ $registrantsCount }}</x-badge>
                     </x-slot>
 
-                    @forelse ($orderedRegistrants as $registrant)
-                        @php $result = $resultsByUser[$registrant->user_id] ?? null; @endphp
+                    @forelse ($standings as $row)
+                        @php $result = $row['result']; @endphp
 
                         <div class="entry">
-                            <x-monogram :user="$registrant->user" :name="$registrant->player_name" decorative />
+                            @if ($result)
+                                <x-rank :place="$result->place" />
+                            @else
+                                <x-monogram :user="$row['user']" :name="$row['name']" decorative />
+                            @endif
 
                             <div class="entry__body">
-                                <div class="entry__title">{{ $registrant->player_name }}</div>
+                                <div class="entry__title">{{ $row['name'] }}</div>
 
-                                @if (filled($registrant->player_nickname))
-                                    <div class="entry__meta"><span>{{ $registrant->player_nickname }}</span></div>
+                                @if (filled($row['nickname']))
+                                    <div class="entry__meta"><span>{{ $row['nickname'] }}</span></div>
                                 @endif
                             </div>
 
                             <div class="entry__actions">
                                 @if ($result)
-                                    {{-- Already out. Their finish replaces the
-                                         control, so the row says what happened
-                                         rather than offering to do it again. --}}
-                                    <x-badge>{{ \Illuminate\Support\Number::ordinal($result->place) }}
-                                        &middot; {{ number_format($result->points) }} {{ __('pts') }}</x-badge>
+                                    {{-- Points only. The place is the glyph at
+                                         the head of the row, and printing it
+                                         again here is the one duplication the
+                                         merge was supposed to remove. --}}
+                                    <x-badge>{{ number_format($result->points) }} {{ __('pts') }}</x-badge>
                                 @elseif (auth()->user()->is_admin)
                                     {{-- No timing gate. This once required
                                          registration closed, on the reasoning
@@ -171,12 +157,12 @@
                                     <form action="{{ route('poker.tournaments.eliminate', $tournament) }}"
                                           method="POST"
                                           data-confirm="{{ __('Eliminate :name? They finish in :place place and are awarded :points points. This records a tournament result.', [
-                                              'name' => $registrant->player_name,
+                                              'name' => $row['name'],
                                               'place' => \Illuminate\Support\Number::ordinal($nextPlace),
                                               'points' => number_format($nextPlacePoints),
                                           ]) }}">
                                         @csrf
-                                        <input type="hidden" name="user_id" value="{{ $registrant->user_id }}">
+                                        <input type="hidden" name="user_id" value="{{ $row['registrant']?->user_id }}">
 
                                         <x-btn variant="ghost" size="sm" type="submit">{{ __('Eliminate') }}</x-btn>
                                     </form>
@@ -190,21 +176,30 @@
 
                                      Tied to $resultsCount and nothing else,
                                      because a place is a position in a field
-                                     -- tenth of ten -- and
-                                     taking a player out afterwards makes every
-                                     recorded finish describe a tournament that
-                                     never happened. The controller refuses it
-                                     for the same reason.
+                                     -- tenth of ten -- and taking a player out
+                                     afterwards makes every recorded finish
+                                     describe a tournament that never happened.
+                                     The controller refuses it for the same
+                                     reason.
 
                                      Once ANY result exists the control is gone
                                      from every row, not just from the players
                                      who have finished. That is the rule: the
-                                     field is settled as a whole. --}}
-                                @if (auth()->user()->is_admin && $resultsCount === 0)
-                                    <form action="{{ route('poker.registrants.destroy', $registrant) }}"
+                                     field is settled as a whole.
+
+                                     The registrant check is belt and braces:
+                                     the route needs a registrant, and a row
+                                     built from a result alone has none. It
+                                     cannot fire today -- a registrant-less row
+                                     implies a result, and a result closes this
+                                     control for every row -- so nothing tests
+                                     it. It guards the row's shape rather than
+                                     the tournament's state. --}}
+                                @if (auth()->user()->is_admin && $resultsCount === 0 && $row['registrant'])
+                                    <form action="{{ route('poker.registrants.destroy', $row['registrant']) }}"
                                           method="POST"
                                           data-confirm="{{ __('Remove :name from :tournament? They will no longer be entered, and can register again any time before results are recorded.', [
-                                              'name' => $registrant->player_name,
+                                              'name' => $row['name'],
                                               'tournament' => $tournament->name,
                                           ]) }}">
                                         @csrf

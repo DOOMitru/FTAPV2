@@ -66,27 +66,30 @@ class PokerTournamentController extends Controller
     }
 
     /**
-     * Display the specified resource.
-     */
-    /**
-     * The name a registrant sorts under.
+     * The name a row sorts under.
      *
      * The account's surname when there is one. user_id is nullable with
-     * nullOnDelete on registrants, so a deleted player leaves only the
-     * player_name snapshotted at registration -- and the last word of that is
-     * the best surname available. A single-word name sorts under itself.
+     * nullOnDelete on both registrants and results, so a deleted player leaves
+     * only the player_name snapshotted at the time -- and the last word of that
+     * is the best surname available. A single-word name sorts under itself.
+     *
+     * Takes the user and the name rather than a registrant, because the list it
+     * sorts now also holds finishes with no registration behind them.
      */
-    private function surnameOf(\App\Models\PokerTournamentRegistrant $registrant): string
+    private function surnameOf(?\App\Models\User $user, ?string $name): string
     {
-        if (filled($registrant->user?->last_name)) {
-            return $registrant->user->last_name;
+        if (filled($user?->last_name)) {
+            return $user->last_name;
         }
 
-        $words = preg_split('/\s+/u', trim((string) $registrant->player_name), -1, PREG_SPLIT_NO_EMPTY) ?: [];
+        $words = preg_split('/\s+/u', trim((string) $name), -1, PREG_SPLIT_NO_EMPTY) ?: [];
 
         return $words === [] ? '' : end($words);
     }
 
+    /**
+     * Display the specified resource.
+     */
     public function show(PokerTournament $tournament): View
     {
         $tournament->load([
@@ -121,9 +124,42 @@ class PokerTournamentController extends Controller
         $nextPlace = $registrantsCount - $resultsCount;
         $nextPlacePoints = $pointsStructure->firstWhere('place', $nextPlace)?->points ?? 0;
 
-        // Keyed so a registrant row can find its own result without a query
-        // each. user_id, because that is what a registrant carries.
-        $resultsByUser = $tournament->results->keyBy('user_id');
+        // One row per player, whether they are still in, already out, or hold a
+        // result with no registration behind them at all.
+        //
+        // Matched on user_id, and only where BOTH sides have one: results and
+        // registrants are both nullable there (nullOnDelete), and keying a
+        // collection by null collapses every such row onto one key, so a
+        // deleted player's registration would otherwise adopt a stranger's
+        // finish.
+        $resultsByUser = $tournament->results->whereNotNull('user_id')->keyBy('user_id');
+
+        $rows = $tournament->registrants->map(fn ($registrant) => [
+            'registrant' => $registrant,
+            'result' => $resultsByUser[$registrant->user_id] ?? null,
+            'user' => $registrant->user,
+            'name' => $registrant->player_name,
+            'nickname' => $registrant->player_nickname,
+        ]);
+
+        // A finish with nobody registered behind it. The results screen creates
+        // results without requiring a registration, so these exist and used to
+        // appear in Final Standings -- which the registrants list never showed.
+        // Merging the two on registrants alone would have deleted them from the
+        // page.
+        $matched = $rows->pluck('result')->filter()->pluck('id')->all();
+
+        $rows = $rows->concat(
+            $tournament->results
+                ->reject(fn ($result) => in_array($result->id, $matched, true))
+                ->map(fn ($result) => [
+                    'registrant' => null,
+                    'result' => $result,
+                    'user' => $result->user,
+                    'name' => $result->player_name,
+                    'nickname' => $result->player_nickname,
+                ])
+        );
 
         // The panel reads as live standings rather than as an address book.
         //
@@ -136,11 +172,21 @@ class PokerTournamentController extends Controller
         // Places count DOWN as players go out, so the first player eliminated
         // holds the highest number and appears last. That is a standings order,
         // not an elimination log.
-        $orderedRegistrants = $tournament->registrants->sortBy(fn ($registrant) => [
-            isset($resultsByUser[$registrant->user_id]) ? 1 : 0,
-            $resultsByUser[$registrant->user_id]->place ?? 0,
-            Str::lower($this->surnameOf($registrant)),
-        ]);
+        // What the one panel is called depends on what is in it. "Final" is a
+        // claim -- it is only true once every entered player has a finish, so
+        // it waits for isComplete() rather than for the clock. Before any
+        // result at all the list is not standings of anything.
+        $standingsTitle = match (true) {
+            $tournament->isComplete() => __('Final Standings'),
+            $resultsCount > 0 => __('Standings'),
+            default => __('Registered Players'),
+        };
+
+        $standings = $rows->sortBy(fn ($row) => [
+            $row['result'] ? 1 : 0,
+            $row['result']->place ?? 0,
+            Str::lower($this->surnameOf($row['user'], $row['name'])),
+        ])->values();
 
         $availableUsers = collect();
         if (auth()->user()->is_admin) {
@@ -160,15 +206,14 @@ class PokerTournamentController extends Controller
             'registrantsCount',
             'resultsCount',
             'totalPoints',
-            'orderedResults',
             'isUserRegistered',
             'isPast',
             'pointsStructure',
             'availableUsers',
             'nextPlace',
             'nextPlacePoints',
-            'resultsByUser',
-            'orderedRegistrants'
+            'standings',
+            'standingsTitle'
         ));
     }
 

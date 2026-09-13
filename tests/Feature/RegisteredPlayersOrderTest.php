@@ -8,17 +8,22 @@ use Tests\Concerns\BuildsTournaments;
 use Tests\TestCase;
 
 /**
- * The order of the Registered Players panel.
+ * The order of the standings panel.
  *
  * It read alphabetically by full name, which says nothing about a tournament.
- * The panel is now a live standings list: players still in sit at the top,
- * because they are competing for the places above the ones already awarded, and
- * below them the finishers appear in the order they finished -- 1st, then 2nd,
- * then 3rd -- matching the Final Standings table on the same page.
+ * The panel is a live standings list: players still in sit at the top, because
+ * they are competing for the places above the ones already awarded, and below
+ * them the finishers appear in the order they finished -- 1st, then 2nd, then
+ * 3rd.
  *
  * Places count DOWN as players go out, so the first player eliminated from a
  * field of ten holds 10th and appears last. That is the point: this is a
  * standings order, not an elimination log.
+ *
+ * This panel was two -- Final Standings and Registered Players -- so the order
+ * had to agree across both. They are one card now and the order is the card's
+ * own, which is why the rows are found by .tshow__players rather than by a
+ * heading: the heading changes with what is in the list.
  */
 class RegisteredPlayersOrderTest extends TestCase
 {
@@ -27,8 +32,16 @@ class RegisteredPlayersOrderTest extends TestCase
     /** The panel's rows, in the order they are rendered. */
     private function rowsFor(string $html): array
     {
-        $panel = substr($html, (int) strpos($html, 'Registered Players'));
-        $panel = substr($panel, 0, (int) strpos($panel, 'Admin: Register') ?: null);
+        // Anchored on the card's own class. The heading is "Registered
+        // Players", "Standings" or "Final Standings" depending on how much of
+        // the tournament has been played, and strpos() returns false for a
+        // heading that is not there -- which (int) turns into 0, quietly
+        // handing back the whole document instead of failing.
+        $at = strpos($html, 'tshow__players');
+        $this->assertNotFalse($at, 'The standings card is not on the page.');
+
+        $panel = substr($html, $at);
+        $panel = substr($panel, 0, strpos($panel, 'Admin: Register') ?: null);
 
         preg_match_all('/<div class="entry__title">([^<]+)<\/div>/', $panel, $matches);
 
