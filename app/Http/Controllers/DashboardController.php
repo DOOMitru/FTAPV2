@@ -110,63 +110,18 @@ class DashboardController extends Controller
     }
 
     /**
-     * Where this player sits, by points per event entered.
+     * Where this player sits on the season's board.
      *
-     * Two grouped queries rather than one join: results and registrations
-     * answer different questions -- what you scored, and how often you turned
-     * up -- and a player can have either without the other.
-     *
-     * Queried from the results table rather than through $season->results(),
-     * which is a HasManyThrough. That relation silently adds
-     * `tournaments`.`season_id` as `laravel_through_key` to the SELECT so it can
-     * match rows back to their parent. Harmless normally; fatal beside a GROUP
-     * BY, because MySQL's ONLY_FULL_GROUP_BY -- on by default since 8.0 --
-     * rejects a selected column that is neither grouped nor aggregated. SQLite
-     * does not enforce that rule, so this ran locally for months and failed on
-     * the first query against production's driver.
+     * The board itself is PokerSeason::rankings(), not a second copy of the
+     * arithmetic here: the landing page shows its top three, and a rank that
+     * meant one thing there and something else here would be worse than no rank
+     * at all.
      *
      * @return array{rank: int|null, ranked: int}
      */
     private function rank(PokerSeason $currentSeason, string $userId): array
     {
-        $inSeason = fn ($query) => $query->where('season_id', $currentSeason->id);
-
-        $points = PokerTournamentResult::query()
-            ->whereHas('tournament', $inSeason)
-            ->whereNotNull('user_id')
-            ->selectRaw('user_id, SUM(points) as total_points')
-            ->groupBy('user_id')
-            ->pluck('total_points', 'user_id');
-
-        $entries = PokerTournamentRegistrant::query()
-            ->whereHas('tournament', $inSeason)
-            ->whereNotNull('user_id')
-            ->selectRaw('user_id, COUNT(*) as entries')
-            ->groupBy('user_id')
-            ->pluck('entries', 'user_id');
-
-        // Entering is what puts you on the board. A player with a result but no
-        // registration -- which the results screen can create -- has no
-        // denominator, and dividing by nothing is not a rank. They are absent
-        // from $entries entirely, which is what leaves them unranked.
-        //
-        // The filter below therefore cannot fire: a GROUP BY ... COUNT(*) never
-        // returns a zero, so every row here is at least one. It is kept as the
-        // guard on the division rather than on the data -- removing it does not
-        // fail a test, and that is recorded here rather than left for somebody
-        // to rediscover by dividing by zero.
-        $board = $entries
-            ->filter(fn ($count) => (int) $count > 0)
-            ->map(fn ($count, $id) => [
-                'user_id' => $id,
-                'ratio' => (int) ($points[$id] ?? 0) / (int) $count,
-                // The tie-break, so two players on the same average are ordered
-                // by who scored more rather than by whatever the database
-                // happened to return first.
-                'points' => (int) ($points[$id] ?? 0),
-            ])
-            ->sortByDesc(fn (array $row) => [$row['ratio'], $row['points']])
-            ->values();
+        $board = $currentSeason->rankings();
 
         $index = $board->search(fn (array $row) => $row['user_id'] === $userId);
 
