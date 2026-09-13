@@ -63,7 +63,7 @@
                                     </form>
 
                                     <form action="{{ route('users.reject', $candidate) }}" method="POST"
-                                          data-confirm="{{ __('Reject :name? They keep their account but cannot enter tournaments.', ['name' => $candidate->first_name.' '.$candidate->last_name]) }}">
+                                          data-confirm="{{ __('Reject :name? They keep their account but cannot enter tournaments.', ['name' => emph($candidate->first_name.' '.$candidate->last_name)]) }}">
                                         @csrf
                                         @method('PATCH')
 
@@ -172,7 +172,7 @@
                                 <x-action icon="edit" :label="__('Edit')" :href="route('users.edit', $user)" />
 
                                 <form action="{{ route('users.destroy', $user) }}" method="POST"
-                                      data-confirm="{{ __('Delete :name? This cannot be undone.', ['name' => $user->first_name.' '.$user->last_name]) }}">
+                                      data-confirm="{{ __('Delete :name? This cannot be undone.', ['name' => emph($user->first_name.' '.$user->last_name)]) }}">
                                     @csrf
                                     @method('DELETE')
 

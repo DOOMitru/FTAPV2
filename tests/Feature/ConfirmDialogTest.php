@@ -97,10 +97,23 @@ class ConfirmDialogTest extends TestCase
             $messages[] = $form->getAttribute('data-confirm');
         }
 
+        // Marked, and marked around the WHOLE name: emph() wraps it, and a
+        // name full of quotes and slashes is exactly the input that would come
+        // back chopped if anything between here and the attribute were parsing
+        // rather than escaping.
+        $this->assertContains(
+            EMPH.$name.EMPH,
+            array_map(fn (string $m) => trim(str_replace(
+                ['Delete ', '? This cannot be undone.'], '', $m
+            )), $messages),
+            'The name did not survive the round trip through the attribute.'
+        );
+
+        // And the sentence around it reads as it should once the invisible
+        // markers are taken out.
         $this->assertContains(
             "Delete {$name}? This cannot be undone.",
-            $messages,
-            'The name did not survive the round trip through the attribute.'
+            array_map(fn (string $m) => $this->withoutEmphasis($m), $messages)
         );
 
         // And nowhere is it JS source. Not an inline handler, not a <script>.

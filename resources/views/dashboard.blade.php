@@ -73,7 +73,7 @@
                                     @if (! $tournament->hasRecordedResults())
                                         <form action="{{ route('tournaments.unregister', $tournament) }}" method="POST"
                                               data-confirm="{{ __('Unregister from :tournament? You can enter again any time before results are recorded.', [
-                                                  'tournament' => $tournament->name,
+                                                  'tournament' => emph($tournament->name),
                                               ]) }}">
                                             @csrf
                                             @method('DELETE')

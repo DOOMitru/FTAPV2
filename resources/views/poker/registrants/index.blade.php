@@ -61,8 +61,8 @@
                                 @unless ($registrant->hasFinished() || $registrant->tournament->isPublished())
                                     <form action="{{ route('poker.registrants.destroy', $registrant) }}" method="POST"
                                           data-confirm="{{ __('Remove :name from :tournament? This cannot be undone.', [
-                                              'name' => $registrant->player_name,
-                                              'tournament' => $registrant->tournament->name,
+                                              'name' => emph($registrant->player_name),
+                                              'tournament' => emph($registrant->tournament->name),
                                           ]) }}">
                                         @csrf
                                         @method('DELETE')

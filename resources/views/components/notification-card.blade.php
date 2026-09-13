@@ -54,7 +54,7 @@
         @if ($read)
             <form action="{{ route('notifications.destroy', $notification->id) }}" method="POST"
                   data-confirm="{{ __('Delete this notification about :tournament?', [
-                      'tournament' => $data['tournament_name'] ?? __('a tournament'),
+                      'tournament' => emph($data['tournament_name'] ?? __('a tournament')),
                   ]) }}">
                 @csrf
                 @method('DELETE')

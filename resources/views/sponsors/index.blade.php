@@ -74,7 +74,7 @@
                                 <x-action icon="edit" :label="__('Edit')" :href="route('sponsors.edit', $sponsor)" />
 
                                 <form action="{{ route('sponsors.destroy', $sponsor) }}" method="POST"
-                                      data-confirm="{{ __('Delete :name? Their uploaded logo is deleted too, and that cannot be undone.', ['name' => $sponsor->name]) }}">
+                                      data-confirm="{{ __('Delete :name? Their uploaded logo is deleted too, and that cannot be undone.', ['name' => emph($sponsor->name)]) }}">
                                     @csrf
                                     @method('DELETE')
 

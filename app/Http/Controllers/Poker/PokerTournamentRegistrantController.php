@@ -169,8 +169,8 @@ class PokerTournamentRegistrantController extends Controller
         // entry in the league after removing one is a page they did not ask
         // for. From the index, back() IS the index.
         return back()->with('status', __(':name has been removed from :tournament.', [
-            'name' => $name,
-            'tournament' => $tournament,
+            'name' => emph($name),
+            'tournament' => emph($tournament),
         ]));
     }
 }

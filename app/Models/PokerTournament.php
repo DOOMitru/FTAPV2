@@ -108,7 +108,7 @@ class PokerTournament extends Model
         }
 
         return __('Results for :tournament have been published. Unpublish them first to make changes.', [
-            'tournament' => $this->name,
+            'tournament' => emph($this->name),
         ]);
     }
 

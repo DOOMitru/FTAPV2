@@ -13,7 +13,7 @@
                         <form action="{{ route('poker.tournaments.publish', $tournament) }}" method="POST"
                               data-confirm-tone="primary"
                               data-confirm="{{ __('Publish results for :tournament? Every player who scored points will be notified, and the tournament will be locked.', [
-                                  'tournament' => $tournament->name,
+                                  'tournament' => emph($tournament->name),
                               ]) }}">
                             @csrf
                             <x-btn variant="primary" type="submit">{{ __('Publish results') }}</x-btn>
@@ -25,7 +25,7 @@
                     @if ($tournament->isPublished())
                         <form action="{{ route('poker.tournaments.unpublish', $tournament) }}" method="POST"
                               data-confirm="{{ __('Unpublish :tournament? The notifications sent to players will be withdrawn.', [
-                                  'tournament' => $tournament->name,
+                                  'tournament' => emph($tournament->name),
                               ]) }}">
                             @csrf
                             @method('DELETE')
@@ -216,7 +216,7 @@
                             <form action="{{ route('poker.tournaments.eliminate', $tournament) }}"
                                   method="POST"
                                   data-confirm="{{ __('Eliminate :name? They finish in :place place and are awarded :points points. This records a tournament result.', [
-                                      'name' => $row['name'],
+                                      'name' => emph($row['name']),
                                       'place' => \Illuminate\Support\Number::ordinal($nextPlace),
                                       'points' => number_format($nextPlacePoints),
                                   ]) }}">
@@ -256,8 +256,8 @@
                             <form action="{{ route('poker.registrants.destroy', $row['registrant']) }}"
                                   method="POST"
                                   data-confirm="{{ __('Remove :name from :tournament? Any finishes already recorded move up a place and are repriced. An administrator can enter them again until the results are published.', [
-                                      'name' => $row['name'],
-                                      'tournament' => $tournament->name,
+                                      'name' => emph($row['name']),
+                                      'tournament' => emph($tournament->name),
                                   ]) }}">
                                 @csrf
                                 @method('DELETE')
@@ -347,7 +347,10 @@
                 @endif
 
                 @if (session('error'))
-                    <p class="register__flash register__flash--error">{{ session('error') }}</p>
+                    {{-- emph_html, not {{ }}: this one is a raw session value
+                         rather than a slot, so it is escaped and split in one
+                         step. --}}
+                    <p class="register__flash register__flash--error">{{ emph_html(session('error')) }}</p>
                 @endif
 
                 <label class="u-visually-hidden" for="register-search">{{ __('Search players') }}</label>

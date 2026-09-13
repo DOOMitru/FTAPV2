@@ -280,7 +280,7 @@ class PokerTournamentController extends Controller
     {
         if ($tournament->isPublished()) {
             return back()->with('error', __('Results for :tournament have already been published.', [
-                'tournament' => $tournament->name,
+                'tournament' => emph($tournament->name),
             ]));
         }
 
@@ -329,7 +329,7 @@ class PokerTournamentController extends Controller
     {
         if (! $tournament->isPublished()) {
             return back()->with('error', __('Results for :tournament have not been published.', [
-                'tournament' => $tournament->name,
+                'tournament' => emph($tournament->name),
             ]));
         }
 
@@ -344,7 +344,7 @@ class PokerTournamentController extends Controller
         });
 
         return back()->with('status', __('Results for :tournament are open again, and the notifications have been withdrawn.', [
-            'tournament' => $tournament->name,
+            'tournament' => emph($tournament->name),
         ]));
     }
 
@@ -394,12 +394,12 @@ class PokerTournamentController extends Controller
             // rather than re-stated here as a check that could drift from it.
             // This is the double-click, and the two-administrators-at-once.
             return back()->with('error', __(':name already has a result for this tournament.', [
-                'name' => $registrant->player_name,
+                'name' => emph($registrant->player_name),
             ]));
         }
 
         return back()->with('status', __(':name is out in :place place and takes :points points.', [
-            'name' => $registrant->player_name,
+            'name' => emph($registrant->player_name),
             'place' => Number::ordinal($place),
             'points' => number_format($points),
         ]));
@@ -440,14 +440,14 @@ class PokerTournamentController extends Controller
             return back()->with('error', __(
                 ':tournament has already started, so you can no longer enter it. '
                 .'Ask an administrator if you are at the table.',
-                ['tournament' => $tournament->name]
+                ['tournament' => emph($tournament->name)]
             ));
         }
 
         // Check if the target user is already registered
         if ($tournament->registrants()->where('user_id', $targetUserId)->exists()) {
-            $errorMsg = ($targetUserId === auth()->id()) 
-                ? 'You are already registered for this tournament.' 
+            $errorMsg = ($targetUserId === auth()->id())
+                ? 'You are already registered for this tournament.'
                 : 'That user is already registered for this tournament.';
             return $reopen(back()->with('error', $errorMsg));
         }
@@ -476,8 +476,8 @@ class PokerTournamentController extends Controller
         ]);
 
         $statusMsg = ($targetUserId === auth()->id())
-            ? 'You have successfully registered for ' . $tournament->name . '!'
-            : 'Successfully registered ' . $user->first_name . ' ' . $user->last_name . ' for the tournament.';
+            ? 'You have successfully registered for '.emph($tournament->name).'!'
+            : 'Successfully registered '.emph($user->first_name.' '.$user->last_name).' for the tournament.';
 
         $back = back()->with('status', $statusMsg);
 
@@ -523,7 +523,7 @@ class PokerTournamentController extends Controller
 
         $registration->delete();
 
-        return back()->with('status', 'You have successfully unregistered from ' . $tournament->name . '.');
+        return back()->with('status', 'You have successfully unregistered from '.emph($tournament->name).'.');
     }
 
     /**

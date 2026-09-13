@@ -112,7 +112,7 @@ class NotificationCardTest extends TestCase
         // be whichever one you happened to click.
         $this->assertStringContainsString(
             'Delete this notification about Autumn Showdown?',
-            $this->card(1, 100, read: true)
+            $this->withoutEmphasis($this->card(1, 100, read: true))
         );
     }
 

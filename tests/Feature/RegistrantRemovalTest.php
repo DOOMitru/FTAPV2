@@ -69,9 +69,13 @@ class RegistrantRemovalTest extends TestCase
         $player = User::factory()->create(['first_name' => 'Wanda', 'last_name' => 'Reeve']);
         $this->register($tournament, $player);
 
-        $this->actingAs($this->admin())->get(route('tournaments.show', $tournament))->assertOk()
-            ->assertSee('title="Remove from tournament"', false)
-            ->assertSee('Remove Wanda Reeve from '.$tournament->name.'?', false);
+        $html = $this->withoutEmphasis(
+            $this->actingAs($this->admin())->get(route('tournaments.show', $tournament))
+                ->assertOk()->getContent()
+        );
+
+        $this->assertStringContainsString('title="Remove from tournament"', $html);
+        $this->assertStringContainsString('Remove Wanda Reeve from '.$tournament->name.'?', $html);
     }
 
     public function test_the_control_survives_play_starting(): void
@@ -293,7 +297,7 @@ class RegistrantRemovalTest extends TestCase
 
         $this->assertSame(
             'Wanda Reeve has been removed from '.$tournament->name.'.',
-            session('status')
+            $this->withoutEmphasis(session('status'))
         );
     }
 

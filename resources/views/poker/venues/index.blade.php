@@ -47,7 +47,7 @@
                                 <x-action icon="edit" :label="__('Edit')" :href="route('poker.venues.edit', $venue)" />
 
                                 <form action="{{ route('poker.venues.destroy', $venue) }}" method="POST"
-                                      data-confirm="{{ __('Delete :name? This cannot be undone.', ['name' => $venue->name]) }}">
+                                      data-confirm="{{ __('Delete :name? This cannot be undone.', ['name' => emph($venue->name)]) }}">
                                     @csrf
                                     @method('DELETE')
 

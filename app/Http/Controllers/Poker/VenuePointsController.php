@@ -128,7 +128,7 @@ class VenuePointsController extends Controller
             'event_date' => $validated['event_date'],
         ])->with('status', __(':amount venue points recorded for :name.', [
             'amount' => number_format($validated['amount']),
-            'name' => $validated['user_name'],
+            'name' => emph($validated['user_name']),
         ]));
     }
 

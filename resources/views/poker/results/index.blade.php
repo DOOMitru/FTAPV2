@@ -48,9 +48,9 @@
 
                                 <form action="{{ route('poker.results.destroy', $result) }}" method="POST"
                                       data-confirm="{{ __('Delete the :place place finish for :name in :tournament, worth :points points? This cannot be undone.', [
-                                          'name' => $result->player_name,
+                                          'name' => emph($result->player_name),
                                           'place' => \Illuminate\Support\Number::ordinal($result->place),
-                                          'tournament' => $result->tournament->name,
+                                          'tournament' => emph($result->tournament->name),
                                           'points' => number_format($result->points),
                                       ]) }}">
                                     @csrf
