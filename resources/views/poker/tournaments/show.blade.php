@@ -272,6 +272,47 @@
             @endif
         </x-card>
 
+        {{-- Asked the moment the field is settled.
+             
+             Rendered only when it could be answered yes, and opened only on the
+             request that flashed the offer -- so it appears once, right after
+             the last elimination, and never again on a reload.
+
+             A native <dialog> for the same reasons as the two beside it: focus
+             moves in and is trapped, Escape closes, the page behind goes inert.
+             No data-confirm on the form, because this dialog IS the
+             confirmation -- the header's Publish button keeps its own, since
+             nothing asked first when you press that one. --}}
+        @if (auth()->user()->is_admin && ! $tournament->isPublished() && $tournament->isComplete())
+            <dialog class="confirm publish-offer"
+                    @if (session('offer_publish')) x-init="$el.showModal()" @endif
+                    aria-labelledby="publish-offer-title">
+                <p class="confirm__message" id="publish-offer-title">
+                    {{ __('That is the whole field for :tournament. Publish the results now?', [
+                        'tournament' => $tournament->name,
+                    ]) }}
+                </p>
+
+                <p class="publish-offer__note">
+                    {{ __('Every player who scored points is notified, and the tournament is locked.') }}
+                </p>
+
+                <div class="confirm__actions">
+                    {{-- method="dialog": closes and posts nothing. The offer is
+                         flashed, so declining here does not have to record
+                         anything -- the next request simply will not ask. --}}
+                    <form method="dialog">
+                        <x-btn variant="ghost" type="submit">{{ __('Not yet') }}</x-btn>
+                    </form>
+
+                    <form action="{{ route('poker.tournaments.publish', $tournament) }}" method="POST">
+                        @csrf
+                        <x-btn variant="primary" type="submit">{{ __('Publish results') }}</x-btn>
+                    </form>
+                </div>
+            </dialog>
+        @endif
+
         @if (auth()->user()->is_admin && ! $tournament->isPublished())
             {{-- A native <dialog> opened with showModal(), for the reasons
                  spelled out on x-confirm-dialog: focus moves in and is trapped,

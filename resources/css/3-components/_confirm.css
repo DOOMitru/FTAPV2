@@ -41,3 +41,21 @@
     padding: var(--space-4) var(--space-5);
     border-block-start: var(--border-width) solid var(--c-border);
 }
+
+/* The offer to publish, made the moment the last player is out.
+ *
+ * Borrows .confirm's shell -- same surface, width and backdrop -- because it is
+ * the same kind of thing: a question with two answers. It adds a second line,
+ * which the generic dialog has no room for: publishing notifies every player
+ * who scored and locks the tournament, and that is worth saying before the
+ * button is pressed rather than after.
+ *
+ * No display of its own. A closed <dialog> is display:none from the UA
+ * stylesheet and any declaration here would beat it -- see
+ * DialogDisplayGuardTest, which exists because that already happened once. */
+.publish-offer__note {
+    margin: 0;
+    padding: 0 var(--space-5) var(--space-5);
+    font-size: var(--step--1);
+    color: var(--c-text-muted);
+}

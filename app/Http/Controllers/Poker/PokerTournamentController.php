@@ -395,11 +395,35 @@ class PokerTournamentController extends Controller
             ]));
         }
 
-        return back()->with('status', __(':name is out in :place place and takes :points points.', [
+        $back = back()->with('status', __(':name is out in :place place and takes :points points.', [
             'name' => emph($registrant->player_name),
             'place' => Number::ordinal($place),
             'points' => number_format($points),
         ]));
+
+        // That was the last one, so ask.
+        //
+        // Publishing is the end of a tournament and the moment the players are
+        // told where they came -- but the button for it lives in the page
+        // header, and an administrator who has just worked down a field of
+        // twenty is looking at the bottom of a list, not at the top of the
+        // page. It was possible to finish a night and simply not notice that
+        // anything remained to be done.
+        //
+        // Asked once, here, rather than nagged: the flag is flashed, so it is
+        // gone on the next request whichever way the question is answered.
+        //
+        // No fresh() needed, though it was written with one at first. Both
+        // halves of isComplete() go through the relation METHODS -- registrants()
+        // and results() -- so each call is its own query and already sees the
+        // result this request just wrote. fresh() bought nothing but a second
+        // SELECT of the tournament row; removing it failed no test, which is
+        // how it was found.
+        if ($tournament->isComplete() && ! $tournament->isPublished()) {
+            $back->with('offer_publish', true);
+        }
+
+        return $back;
     }
 
     public function register(PokerTournament $tournament, Request $request): RedirectResponse
