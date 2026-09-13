@@ -75,6 +75,54 @@
  * Each cell names itself from data-label, because once the header row is out
  * of sight a bare value has nothing left pointing at it.
  */
+/* A table row that is a link.
+ *
+ * .entry--link does this for div rows, and cannot be reused: a <tr> may not be
+ * wrapped in an <a>. So one anchor lives in the first cell and is stretched
+ * over the whole row by its ::after, which resolves against the row because the
+ * row is positioned.
+ *
+ * One anchor rather than one per cell. Nothing in this system underlines an <a>
+ * -- the reset makes that opt-in via .link -- but three anchors in a row would
+ * still be three tab stops and three targets for the same destination, and five
+ * rows would announce fifteen links to a screen reader.
+ *
+ * The visual language is deliberately .entry--link's: the row grounds on hover,
+ * the title takes the accent, and focus is drawn on the row rather than on the
+ * inline anchor, which is a few characters wide and sits in the corner of the
+ * area it actually activates. */
+.table__row--link {
+    position: relative;
+    transition: background-color var(--transition-fast);
+}
+
+.table__row--link:hover {
+    background-color: var(--c-surface-raised);
+}
+
+.table__link::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+}
+
+.table__row--link:hover .table__link {
+    color: var(--c-primary);
+}
+
+/* focus-within, because the thing focused is the anchor and the thing to
+   outline is the row. inset, so the outline is not clipped by the table. */
+.table__row--link:focus-within {
+    outline: 2px solid var(--c-primary);
+    outline-offset: -2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .table__row--link {
+        transition: none;
+    }
+}
+
 @media (max-width: 48rem) {
     /* Out of sight, still in the accessibility tree -- the cells are
        associated with these headers and removing them would break that. */

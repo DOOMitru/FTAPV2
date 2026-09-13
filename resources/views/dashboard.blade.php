@@ -116,9 +116,26 @@
                         </x-slot>
 
                         @forelse ($userResults->take(5) as $result)
-                            <tr>
+                            {{-- The whole row is the link, not the name in it.
+                                 One anchor stretched over the row by
+                                 .table__link, so the place and the points are
+                                 part of the target too -- a row of three short
+                                 cells offers a poor one otherwise, especially on
+                                 a phone.
+
+                                 One anchor also because three would be three:
+                                 the name, the date and the tournament are the
+                                 same destination, and a list of five rows would
+                                 read as fifteen links. The same reasoning as
+                                 .entry--link on the venue page, which cannot be
+                                 reused here because a <tr> may not be wrapped in
+                                 an <a>. --}}
+                            <tr class="table__row--link">
                                 <td>
-                                    <div class="entry__title">{{ $result->tournament->name }}</div>
+                                    <div class="entry__title">
+                                        <a class="table__link"
+                                           href="{{ route('tournaments.show', $result->tournament) }}">{{ $result->tournament->name }}</a>
+                                    </div>
                                     <div class="entry__meta">
                                         <span>{{ \Illuminate\Support\Carbon::parse($result->tournament->start_time)->format('M d, Y') }}</span>
                                     </div>
@@ -166,26 +183,6 @@
                             </x-btn>
                         </x-slot>
                     @endif
-                </x-card>
-
-                <x-card :title="__('Points Structure')">
-                    <x-slot name="actions">
-                        <a class="link" href="{{ route('rules.points-structure') }}">{{ __('Full Rules') }}</a>
-                    </x-slot>
-
-                    @php $pts = \App\Models\PointsStructure::orderBy('place')->take(5)->get(); @endphp
-
-                    <dl class="rows">
-                        @foreach ($pts as $p)
-                            <div class="row">
-                                <dt class="row__label">
-                                    {{ $p->place }}{{ match ($p->place) { 1 => 'st', 2 => 'nd', 3 => 'rd', default => 'th' } }}
-                                    {{ __('Place') }}
-                                </dt>
-                                <dd class="row__value">{{ number_format($p->points) }} {{ __('pts') }}</dd>
-                            </div>
-                        @endforeach
-                    </dl>
                 </x-card>
             </div>
         </div>
