@@ -42,6 +42,28 @@
 }
 
 
+/* The viewer's own row.
+   =================================================================
+   Specificity, deliberately: `.table tbody tr:hover` in _table.css is (0,2,2),
+   so a bare `.season-show__self-row` at (0,1,0) would lose the moment the
+   pointer crossed the row -- the one row the reader is most likely to point
+   at. Scoping it under the wrapper and the table makes it (0,3,1), which wins,
+   and the hover state below is restated in the same wash so the row still
+   answers the pointer rather than going inert.
+
+   .season-show__standings sits on the .table-scroll wrapper, not on the table:
+   x-table merges $attributes onto the wrapper and keeps the table's own
+   modifiers off it. Both layouts are covered by these two rules, because the
+   phone layout re-places the cells of this same <tr> and never replaces it. */
+.season-show__standings .table tbody .season-show__self-row {
+    background-color: var(--c-self);
+}
+
+.season-show__standings .table tbody .season-show__self-row:hover {
+    background-color: var(--c-self-hover);
+}
+
+
 /* The season standings on a phone.
    =================================================================
    Seven columns do not fit 375px, and the meter cell alone asks for 12rem.

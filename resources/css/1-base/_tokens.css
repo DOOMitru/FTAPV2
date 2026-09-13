@@ -44,6 +44,22 @@
        colour the domain hands us for free. */
     --c-open: #15803D;
 
+    /* "This row is you." A wash of the brand red rather than a colour of its
+       own: red is this system's identity, not its alarm -- there is no danger
+       token here, and the felt green already means "qualified" two cells to
+       the right in the standings, so green would have said the wrong thing.
+
+       15% of --c-primary over --c-surface, 24% for hover. The floor is the
+       house hover shade: --c-surface-raised measures 1.18:1 against the
+       surface, and a mark that PERSISTS cannot be fainter than one that
+       appears only under the pointer. The first draft here was 8% (1.13:1) --
+       the same optical absence the border token above was moved twice to
+       escape. These measure 1.26:1 and 1.46:1, and the text stays legible on
+       both: --c-text 14.2:1 and --c-text-muted 5.6:1 on the resting tint,
+       12.2:1 and 4.8:1 on the hover. */
+    --c-self: #F9DFDD;
+    --c-self-hover: #F5CCC8;
+
     /* Medals. These are DISCS WITH INK, never coloured text — no gold clears
        4.5:1 on white (#D4A017 manages 2.38:1), so the colour goes behind the
        numeral rather than into it. That is also what a medal actually is, and
@@ -150,6 +166,15 @@
 
     --dark-open: #2FBF6B;
 
+    /* The same wash, mixed the other way: 20% of --dark-primary over
+       --dark-surface, 28% for hover, and held to the same floor -- the dark
+       hover shade is 1.15:1, these are 1.25:1 and 1.41:1. Warmer than
+       --dark-surface-raised rather than merely lighter, so the two do not read
+       as the same state. --dark-text measures 11.8:1 and --dark-text-muted
+       5.3:1 on the resting tint, 10.5:1 and 4.8:1 on the hover. */
+    --dark-self: #452321;
+    --dark-self-hover: #562624;
+
     /* The clipped-title ramp runs bright-to-brand here rather than
        brand-to-deep: on a near-black page a deep stop disappears into the
        ground instead of reading as the far end of a gradient. 7.49:1 and
@@ -237,6 +262,8 @@
         --c-primary-fill-hover: var(--dark-primary-fill-hover);
         --c-primary-ink: var(--dark-primary-ink);
         --c-open: var(--dark-open);
+        --c-self: var(--dark-self);
+        --c-self-hover: var(--dark-self-hover);
         --gradient-primary: var(--dark-gradient-primary);
         --gradient-panel: var(--dark-gradient-panel);
         --shadow-raised: var(--dark-shadow-raised);
@@ -258,6 +285,8 @@
     --c-primary-fill-hover: var(--dark-primary-fill-hover);
     --c-primary-ink: var(--dark-primary-ink);
     --c-open: var(--dark-open);
+    --c-self: var(--dark-self);
+    --c-self-hover: var(--dark-self-hover);
     --gradient-primary: var(--dark-gradient-primary);
     --gradient-panel: var(--dark-gradient-panel);
     --shadow-raised: var(--dark-shadow-raised);

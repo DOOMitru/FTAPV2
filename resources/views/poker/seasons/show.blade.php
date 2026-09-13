@@ -93,7 +93,23 @@
                         </x-slot>
 
                         @foreach ($leaderboard as $index => $row)
-                            <tr>
+                            @php
+                                // The viewer's own row. A result can carry no
+                                // linked account at all, so both sides must
+                                // have one before the ids are compared.
+                                //
+                                // Defensive, and deliberately untested: this
+                                // route is inside the auth group, so
+                                // auth()->id() is never null and no assertion
+                                // here can fail without the guard. Move the
+                                // route out of that group -- the archive pages
+                                // are already public, so season standings
+                                // going public is not far-fetched -- and every
+                                // accountless result would be marked "you",
+                                // silently and for everyone.
+                                $isSelf = $row['user'] !== null && $row['user']->id === auth()->id();
+                            @endphp
+                            <tr class="{{ $isSelf ? 'season-show__self-row' : '' }}">
                                 <td class="season-show__rank"><x-rank :place="$index + 1" /></td>
                                 @php
                                     // Standings name a player by nickname when they have one,
@@ -112,6 +128,15 @@
                                         <span title="{{ $row['player_name'] }}">{{ $shownName }}</span>
                                     @else
                                         {{ $shownName }}
+                                    @endif
+
+                                    {{-- The tint says "this is you" to everyone
+                                         who can see it. This says it to everyone
+                                         else, and is the only reason the row is
+                                         not carrying the information in colour
+                                         alone. --}}
+                                    @if ($isSelf)
+                                        <span class="u-visually-hidden">{{ __('(you)') }}</span>
                                     @endif
                                 </td>
                                 <td class="season-show__meter-cell">
