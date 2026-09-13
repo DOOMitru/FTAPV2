@@ -85,7 +85,7 @@ class SeasonStandingsLayoutTest extends TestCase
 
         $this->assertStringContainsString('data-label="played"', $html);
         $this->assertStringContainsString('data-label="won"', $html);
-        $this->assertStringContainsString('data-label="venue pts"', $html);
+        $this->assertStringContainsString('data-label="venue points"', $html);
     }
 
     public function test_the_desktop_table_still_has_all_seven_headers(): void
@@ -94,7 +94,7 @@ class SeasonStandingsLayoutTest extends TestCase
         // desktop reads exactly as it did.
         $html = $this->standings();
 
-        foreach (['Rank', 'Player', 'Pts', 'Played', 'Won', 'Venue pts', 'Finale'] as $header) {
+        foreach (['Rank', 'Player', 'Points', 'Played', 'Wins', 'Venue points', 'Finale'] as $header) {
             $this->assertStringContainsString('>'.$header.'</th>', $html);
         }
     }

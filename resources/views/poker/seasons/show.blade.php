@@ -109,11 +109,11 @@
                         <x-slot name="head">
                             <th scope="col">{{ __('Rank') }}</th>
                             <th scope="col">{{ __('Player') }}</th>
-                            <th scope="col">{{ $order === 'rank' ? __('Per event') : __('Pts') }}</th>
+                            <th scope="col">{{ $order === 'rank' ? __('Per event') : __('Points') }}</th>
                             <th scope="col" class="table__num">{{ __('Played') }}</th>
-                            <th scope="col" class="table__num">{{ __('Won') }}</th>
+                            <th scope="col" class="table__num">{{ __('Wins') }}</th>
                             @if ($showsVenuePoints)
-                                <th scope="col" class="table__num">{{ __('Venue pts') }}</th>
+                                <th scope="col" class="table__num">{{ __('Venue points') }}</th>
                             @endif
                             <th scope="col">{{ __('Finale') }}</th>
                         </x-slot>
@@ -233,7 +233,7 @@
                                 <td class="table__num season-show__stat season-show__stat--won" data-label="{{ __('won') }}">{{ $row['wins'] }}</td>
 
                                 @if ($showsVenuePoints)
-                                    <td class="table__num season-show__stat season-show__stat--venue" data-label="{{ __('venue pts') }}">{{ $row['venue_points'] }}</td>
+                                    <td class="table__num season-show__stat season-show__stat--venue" data-label="{{ __('venue points') }}">{{ $row['venue_points'] }}</td>
                                 @endif
 
                                 {{-- A mark when they are in, and nothing when they are

@@ -36,9 +36,11 @@ class SponsorController extends Controller
         $validated['logo_path'] = $request->file('logo')->store('sponsor-logos', 'public');
         unset($validated['logo']);
 
-        Sponsor::create($validated);
+        $sponsor = Sponsor::create($validated);
 
-        return redirect()->route('sponsors.index')->with('status', 'Sponsor added successfully!');
+        return redirect()->route('sponsors.index')->with('status', __('Sponsor :name added.', [
+            'name' => emph($sponsor->name),
+        ]));
     }
 
     public function edit(Sponsor $sponsor): View
@@ -65,12 +67,18 @@ class SponsorController extends Controller
 
         $sponsor->update($validated);
 
-        return redirect()->route('sponsors.index')->with('status', 'Sponsor updated successfully!');
+        return redirect()->route('sponsors.index')->with('status', __('Sponsor :name updated.', [
+            'name' => emph($sponsor->name),
+        ]));
     }
 
     public function destroy(Sponsor $sponsor): RedirectResponse
     {
         $path = $sponsor->logo_path;
+        // Read before the row goes: after delete() the model still holds its
+        // attributes in memory, but relying on that makes the message depend
+        // on an implementation detail rather than on a value we took.
+        $name = $sponsor->name;
 
         $sponsor->delete();
 
@@ -79,7 +87,9 @@ class SponsorController extends Controller
         // can list.
         Storage::disk('public')->delete($path);
 
-        return redirect()->route('sponsors.index')->with('status', 'Sponsor deleted successfully!');
+        return redirect()->route('sponsors.index')->with('status', __('Sponsor :name deleted.', [
+            'name' => emph($name),
+        ]));
     }
 
     /**

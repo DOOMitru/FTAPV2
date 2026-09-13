@@ -115,7 +115,7 @@ class SeasonStandingsVenueColumnTest extends TestCase
 
         $table = $this->standingsFor($this->player('Boss', ['is_admin' => true]), $season);
 
-        $this->assertStringContainsString('>Venue pts</th>', $table);
+        $this->assertStringContainsString('>Venue points</th>', $table);
         $this->assertStringContainsString('season-show__stat--venue', $table);
         $this->assertStringContainsString((string) self::VENUE_TALLY, $table);
     }
@@ -125,7 +125,7 @@ class SeasonStandingsVenueColumnTest extends TestCase
         [$season, $finisher] = $this->seasonWithAFinisher();
 
         $this->assertStringNotContainsString(
-            '>Venue pts</th>', $this->standingsFor($finisher, $season)
+            '>Venue points</th>', $this->standingsFor($finisher, $season)
         );
     }
 
@@ -149,7 +149,7 @@ class SeasonStandingsVenueColumnTest extends TestCase
         [$season, $finisher] = $this->seasonWithAFinisher();
 
         $this->assertStringNotContainsString(
-            'data-label="venue pts"', $this->standingsFor($finisher, $season)
+            'data-label="venue points"', $this->standingsFor($finisher, $season)
         );
     }
 
@@ -172,7 +172,7 @@ class SeasonStandingsVenueColumnTest extends TestCase
             $this->assertStringContainsString($hook, $table, "A player lost {$hook}.");
         }
 
-        foreach (['Rank', 'Player', 'Pts', 'Played', 'Won', 'Finale'] as $header) {
+        foreach (['Rank', 'Player', 'Points', 'Played', 'Wins', 'Finale'] as $header) {
             $this->assertStringContainsString('>'.$header.'</th>', $table);
         }
     }

@@ -75,9 +75,11 @@ class PokerSeasonController extends Controller
         $validated = $this->validated($request);
 
         // If is_current is not provided, the model's booted method will handle it
-        PokerSeason::create($validated);
+        $season = PokerSeason::create($validated);
 
-        return redirect()->route('poker.seasons.index')->with('status', 'Season created successfully!');
+        return redirect()->route('poker.seasons.index')->with('status', __('Season :name created.', [
+            'name' => emph($season->name),
+        ]));
     }
 
     /**
@@ -277,7 +279,9 @@ class PokerSeasonController extends Controller
 
         $season->update($validated);
 
-        return redirect()->route('poker.seasons.index')->with('status', 'Season updated successfully!');
+        return redirect()->route('poker.seasons.index')->with('status', __('Season :name updated.', [
+            'name' => emph($season->name),
+        ]));
     }
 
     /**
@@ -285,8 +289,12 @@ class PokerSeasonController extends Controller
      */
     public function destroy(PokerSeason $season): RedirectResponse
     {
+        $name = $season->name;
+
         $season->delete();
 
-        return redirect()->route('poker.seasons.index')->with('status', 'Season deleted successfully!');
+        return redirect()->route('poker.seasons.index')->with('status', __('Season :name deleted.', [
+            'name' => emph($name),
+        ]));
     }
 }

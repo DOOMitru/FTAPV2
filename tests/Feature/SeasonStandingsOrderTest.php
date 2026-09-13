@@ -254,9 +254,9 @@ class SeasonStandingsOrderTest extends TestCase
 
     public function test_the_column_header_names_the_figure_on_show(): void
     {
-        $this->standings()->assertSee('>Pts</th>', false);
+        $this->standings()->assertSee('>Points</th>', false);
         $this->standings('rank')->assertSee('>Per event</th>', false);
-        $this->standings('rank')->assertDontSee('>Pts</th>', false);
+        $this->standings('rank')->assertDontSee('>Points</th>', false);
     }
 
     /**

@@ -83,7 +83,12 @@ class PokerTournamentRegistrantController extends Controller
 
         PokerTournamentRegistrant::create($validated);
 
-        return redirect()->route('poker.registrants.index')->with('status', 'Tournament registrant added successfully!');
+        return redirect()->route('poker.registrants.index')->with('status', __(
+            ':name registered for :tournament.', [
+                'name' => emph($validated['player_name']),
+                'tournament' => emph($tournament->name),
+            ]
+        ));
     }
 
     /**
@@ -122,7 +127,9 @@ class PokerTournamentRegistrantController extends Controller
 
         $registrant->update($validated);
 
-        return redirect()->route('poker.registrants.index')->with('status', 'Tournament registrant updated successfully!');
+        return redirect()->route('poker.registrants.index')->with('status', __(
+            'Entry updated for :name.', ['name' => emph($registrant->player_name)]
+        ));
     }
 
     /**
@@ -155,7 +162,10 @@ class PokerTournamentRegistrantController extends Controller
             return back()->with('error', __(
                 ':name has already been eliminated from :tournament and cannot be removed. '
                 .'Their finish is a position in the field; delete the result first if it is wrong.',
-                ['name' => $registrant->player_name, 'tournament' => $registrant->tournament->name]
+                [
+                    'name' => emph($registrant->player_name),
+                    'tournament' => emph($registrant->tournament->name),
+                ]
             ));
         }
 

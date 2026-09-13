@@ -274,7 +274,11 @@ class UserController extends Controller
 
         $user->update($validated);
 
-        return redirect()->route('users.index')->with('status', 'User updated successfully!');
+        // The name AFTER the update: an edit that renamed somebody should
+        // report the name they now have, not the one they arrived with.
+        return redirect()->route('users.index')->with('status', __(':name updated.', [
+            'name' => emph($user->first_name.' '.$user->last_name),
+        ]));
     }
 
     /**
@@ -286,8 +290,12 @@ class UserController extends Controller
             return back()->with('error', 'You cannot delete yourself.');
         }
 
+        $name = $user->first_name.' '.$user->last_name;
+
         $user->delete();
 
-        return redirect()->route('users.index')->with('status', 'User deleted successfully!');
+        return redirect()->route('users.index')->with('status', __(':name deleted.', [
+            'name' => emph($name),
+        ]));
     }
 }

@@ -162,7 +162,12 @@ class VenuePointsController extends Controller
 
         $venue_point->update($stamped);
 
-        return redirect()->route('poker.venue-points.index')->with('status', 'Venue points updated successfully!');
+        return redirect()->route('poker.venue-points.index')->with('status', __(
+            ':amount venue points updated for :name.', [
+                'amount' => $stamped['amount'],
+                'name' => emph($stamped['user_name']),
+            ]
+        ));
     }
 
     /**
@@ -170,8 +175,16 @@ class VenuePointsController extends Controller
      */
     public function destroy(VenuePoints $venue_point): RedirectResponse
     {
+        $amount = $venue_point->amount;
+        $name = $venue_point->user_name;
+
         $venue_point->delete();
 
-        return redirect()->route('poker.venue-points.index')->with('status', 'Venue points deleted successfully!');
+        return redirect()->route('poker.venue-points.index')->with('status', __(
+            ':amount venue points deleted for :name.', [
+                'amount' => $amount,
+                'name' => emph($name),
+            ]
+        ));
     }
 }

@@ -60,9 +60,11 @@ class PokerTournamentController extends Controller
 
         $validated['season_id'] = $currentSeason->id;
 
-        PokerTournament::create($validated);
+        $tournament = PokerTournament::create($validated);
 
-        return redirect()->route('poker.tournaments.index')->with('status', 'Tournament created successfully!');
+        return redirect()->route('poker.tournaments.index')->with('status', __(':tournament created.', [
+            'tournament' => emph($tournament->name),
+        ]));
     }
 
     /**
@@ -572,7 +574,9 @@ class PokerTournamentController extends Controller
 
         $tournament->update($validated);
 
-        return redirect()->route('poker.tournaments.index')->with('status', 'Tournament updated successfully!');
+        return redirect()->route('poker.tournaments.index')->with('status', __(':tournament updated.', [
+            'tournament' => emph($tournament->name),
+        ]));
     }
 
     /**
@@ -580,8 +584,12 @@ class PokerTournamentController extends Controller
      */
     public function destroy(PokerTournament $tournament): RedirectResponse
     {
+        $name = $tournament->name;
+
         $tournament->delete();
 
-        return redirect()->route('poker.tournaments.index')->with('status', 'Tournament deleted successfully!');
+        return redirect()->route('poker.tournaments.index')->with('status', __(':tournament deleted.', [
+            'tournament' => emph($name),
+        ]));
     }
 }
