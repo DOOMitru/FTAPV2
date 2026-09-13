@@ -85,8 +85,9 @@
     width: 2.25rem;
     height: 2.25rem;
     margin-inline-start: auto;
-    border: 0;
-    border-radius: var(--radius-sm);
+    /* Outlined, like the bell and the theme toggle it shares the bar with. */
+    border: var(--border-width) solid var(--c-border);
+    border-radius: var(--radius);
     background-color: transparent;
     color: var(--c-text);
     cursor: pointer;
@@ -164,14 +165,18 @@
     margin-inline-start: auto;
 }
 
+/* Outlined, like every other icon control in the app -- and specifically like
+   .topbar__bell, which is the same 2.25rem square and has always been a box.
+   The two sit in the same bar, and one of them being a bare glyph read as a
+   decoration rather than a control. */
 .theme-toggle {
     display: inline-flex;
     align-items: center;
     justify-content: center;
     width: 2.25rem;
     height: 2.25rem;
-    border: 0;
-    border-radius: var(--radius-sm);
+    border: var(--border-width) solid var(--c-border);
+    border-radius: var(--radius);
     background-color: transparent;
     color: var(--c-text);
     cursor: pointer;
