@@ -14,6 +14,14 @@
     the current page. $elements is still passed in by links() and deliberately
     unused.
 --}}
+@php
+    // Declared once rather than inlined four times: each of Previous and Next
+    // has an enabled and a disabled arm, and four copies of an svg is four
+    // places for one to drift.
+    $prevArrow = new \Illuminate\Support\HtmlString('<svg class="pager__arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 19l-7-7 7-7"/></svg>');
+    $nextArrow = new \Illuminate\Support\HtmlString('<svg class="pager__arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg>');
+@endphp
+
 @if ($paginator->hasPages())
     <nav class="pager" role="navigation" aria-label="{{ __('Pagination Navigation') }}">
         <span class="pager__status">
@@ -25,10 +33,20 @@
         </span>
 
         <ul class="pager__list">
+            {{-- Word and arrow both, always in the DOM. On a phone the words
+                 do not fit -- PREVIOUS, five page numbers and NEXT need about
+                 400px against 343 of usable width, so Next wrapped onto a line
+                 of its own and sat there orphaned, the two controls people
+                 actually use split across two rows.
+
+                 Below 48rem the label is clipped rather than removed, so the
+                 link is an arrow to look at and still reads as "Previous" to a
+                 screen reader. display:none would have taken the name with
+                 it. --}}
             @if ($paginator->onFirstPage())
-                <li><span class="pager__link pager__link--disabled" aria-disabled="true">{{ __('Previous') }}</span></li>
+                <li><span class="pager__link pager__link--edge pager__link--disabled" aria-disabled="true">{{ $prevArrow }}<span class="pager__label">{{ __('Previous') }}</span></span></li>
             @else
-                <li><a class="pager__link" href="{{ $paginator->previousPageUrl() }}" rel="prev">{{ __('Previous') }}</a></li>
+                <li><a class="pager__link pager__link--edge" href="{{ $paginator->previousPageUrl() }}" rel="prev">{{ $prevArrow }}<span class="pager__label">{{ __('Previous') }}</span></a></li>
             @endif
 
             @php
@@ -73,9 +91,9 @@
             @endforeach
 
             @if ($paginator->hasMorePages())
-                <li><a class="pager__link" href="{{ $paginator->nextPageUrl() }}" rel="next">{{ __('Next') }}</a></li>
+                <li><a class="pager__link pager__link--edge" href="{{ $paginator->nextPageUrl() }}" rel="next"><span class="pager__label">{{ __('Next') }}</span>{{ $nextArrow }}</a></li>
             @else
-                <li><span class="pager__link pager__link--disabled" aria-disabled="true">{{ __('Next') }}</span></li>
+                <li><span class="pager__link pager__link--edge pager__link--disabled" aria-disabled="true"><span class="pager__label">{{ __('Next') }}</span>{{ $nextArrow }}</span></li>
             @endif
         </ul>
     </nav>
