@@ -49,13 +49,15 @@
          dialog lives inside the standings card and the dialog itself does not.
          q and players are only read inside the dialog.
 
-         matches, with no search term, leaves out anybody already in this
-         tournament. The list is capped at ten, and a league's most frequent
-         entrants -- who sort to the top -- are exactly the people most likely
-         to be entered already, so the default view was spending its ten slots
-         on rows that could not be clicked. With a term it returns everyone
-         matching, registered or not: that is when an administrator is hunting
-         one named person, and being told they are already in is the answer.
+         matches, with no search term, leaves out anybody who cannot be picked
+         -- already in this tournament, or still waiting for approval. The list
+         is capped at ten, and a league's most frequent entrants, who sort to
+         the top, are exactly the people most likely to be entered already, so
+         the default view was spending its ten slots on rows that did nothing.
+
+         With a term it returns everyone matching, pickable or not: that is when
+         an administrator is hunting one named person, and "they are already in"
+         or "they are waiting for approval" is the answer they came for.
 
          The reasoning lives out here rather than in the expression. A comment
          inside the attribute has to avoid the double quote that delimits it,
@@ -69,18 +71,22 @@
              get matches() {
                  const t = this.q.trim().toLowerCase();
                  return t === ''
-                     ? this.players.filter(p => ! p.registered)
+                     ? this.players.filter(p => ! p.registered && p.approved)
                      : this.players.filter(p => p.search.includes(t));
              },
              get shown() { return this.matches.slice(0, 10); },
          }"
          @endif
     >
-        @if (session('status'))
+        {{-- Suppressed while the register dialog is reopening: it sits in the
+             top layer with a backdrop over the page, so these would be
+             announcing the same thing to an admin who cannot see them. The
+             dialog carries its own copy. --}}
+        @if (session('status') && ! session('register_open'))
             <x-alert variant="success">{{ session('status') }}</x-alert>
         @endif
 
-        @if (session('error'))
+        @if (session('error') && ! session('register_open'))
             <x-alert variant="danger">{{ session('error') }}</x-alert>
         @endif
 
@@ -323,6 +329,27 @@
                     </form>
                 </div>
 
+                {{-- What just happened, said where the administrator is
+                     looking. The page-level alert is behind the backdrop while
+                     the dialog is open, so on its own it announced each
+                     registration to nobody -- and registering a dozen players
+                     in a row is exactly when you want to see that the last one
+                     landed.
+
+                     The name is set apart rather than left inside the sentence:
+                     after eight of these the sentence is wallpaper and the name
+                     is the only part being read. --}}
+                @if (session('registered_name'))
+                    <p class="register__flash register__flash--done">
+                        <span class="register__flash-name">{{ session('registered_name') }}</span>
+                        {{ __('has been registered.') }}
+                    </p>
+                @endif
+
+                @if (session('error'))
+                    <p class="register__flash register__flash--error">{{ session('error') }}</p>
+                @endif
+
                 <label class="u-visually-hidden" for="register-search">{{ __('Search players') }}</label>
 
                 <input id="register-search" type="search" class="field__control register__search"
@@ -346,7 +373,20 @@
                                 </div>
                             </template>
 
-                            <template x-if="! p.registered">
+                            {{-- Approved, but not yet in this tournament. The
+                                 refusal reads differently from the one above
+                                 and so does the remedy: this administrator can
+                                 approve the account, and telling them which
+                                 gate is shut is the whole point of listing a
+                                 player they cannot pick. --}}
+                            <template x-if="! p.registered && ! p.approved">
+                                <div class="picker__btn picker__btn--inert" aria-disabled="true">
+                                    <span class="picker__name" x-text="p.label"></span>
+                                    <span class="picker__meta">{{ __('Waiting for approval — approve the account first') }}</span>
+                                </div>
+                            </template>
+
+                            <template x-if="! p.registered && p.approved">
                                 <form action="{{ route('tournaments.register', $tournament) }}" method="POST">
                                     @csrf
                                     <input type="hidden" name="user_id" :value="p.id">

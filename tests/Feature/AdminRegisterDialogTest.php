@@ -230,18 +230,50 @@ class AdminRegisterDialogTest extends TestCase
         $this->assertStringContainsString('picker__btn--inert', $html);
     }
 
-    public function test_an_unapproved_player_is_not_a_candidate_at_all(): void
+    public function test_an_unapproved_player_is_listed_and_flagged(): void
     {
-        // Unchanged by the move: register() refuses an unapproved target, and
-        // unlike "already entered" there is nothing useful to show.
+        // This asserted the opposite, on the reasoning that register() refuses
+        // an unapproved target and there is nothing useful to show. There is:
+        // an administrator hunting somebody who signed up last week and finding
+        // nothing learns that the player is missing, not that the account is
+        // waiting -- and waiting for THEM, since they are who approves it.
         $tournament = $this->tournament();
         User::factory()->create([
             'first_name' => 'Pending', 'last_name' => 'Person', 'approval_status' => 'pending',
         ]);
 
-        $names = array_column($this->candidates($this->show($tournament)), 'name');
+        $rows = collect($this->candidates($this->show($tournament)))->keyBy('name');
 
-        $this->assertNotContains('Pending Person', $names);
+        $this->assertTrue($rows->has('Pending Person'));
+        $this->assertFalse($rows['Pending Person']['approved']);
+        $this->assertTrue($rows['Zed Admin']['approved']);
+    }
+
+    public function test_the_dialog_says_why_an_unapproved_player_cannot_be_picked(): void
+    {
+        $tournament = $this->tournament();
+        User::factory()->create([
+            'first_name' => 'Pending', 'last_name' => 'Person', 'approval_status' => 'pending',
+        ]);
+
+        $html = $this->show($tournament)->getContent();
+
+        $this->assertStringContainsString('Waiting for approval', $html);
+        $this->assertStringContainsString('approve the account first', $html);
+    }
+
+    public function test_the_server_still_refuses_an_unapproved_player(): void
+    {
+        // The flagged row is a courtesy, not the rule.
+        $tournament = $this->tournament();
+        $pending = User::factory()->create(['approval_status' => 'pending']);
+
+        $this->actingAs($this->admin())
+            ->from(route('tournaments.show', $tournament))
+            ->post(route('tournaments.register', $tournament), ['user_id' => $pending->id])
+            ->assertSessionHas('error');
+
+        $this->assertSame(0, $tournament->registrants()->count());
     }
 
     public function test_a_candidate_carries_a_haystack_covering_name_nickname_and_email(): void
@@ -418,7 +450,7 @@ class AdminRegisterDialogTest extends TestCase
         $this->assertSame(1, $tournament->registrants()->count());
     }
 
-    public function test_the_default_list_leaves_out_players_already_registered(): void
+    public function test_the_default_list_leaves_out_anybody_who_cannot_be_picked(): void
     {
         // The filtering is Alpine and cannot be asserted from here, so this
         // pins the expression that does it. Behaviour was verified in a browser
@@ -437,7 +469,7 @@ class AdminRegisterDialogTest extends TestCase
 
         $html = $this->show($tournament)->getContent();
 
-        $this->assertStringContainsString('filter(p => ! p.registered)', $html);
+        $this->assertStringContainsString('filter(p => ! p.registered && p.approved)', $html);
     }
 
     public function test_a_search_still_reaches_players_already_registered(): void
@@ -454,5 +486,99 @@ class AdminRegisterDialogTest extends TestCase
 
         $this->assertTrue($rows->has('Already In'), 'A registered player must stay searchable.');
         $this->assertTrue($rows['Already In']['registered']);
+    }
+
+    public function test_the_dialog_says_who_it_just_registered(): void
+    {
+        // The page's own alert is behind the backdrop while the dialog is open,
+        // so without this each registration was announced to nobody -- and
+        // entering a dozen players in a row is exactly when you want to see
+        // that the last one landed.
+        $tournament = $this->tournament();
+        $player = User::factory()->create([
+            'first_name' => 'Wanda', 'last_name' => 'Reeve', 'approval_status' => 'approved',
+        ]);
+
+        $response = $this->actingAs($this->admin())
+            ->from(route('tournaments.show', $tournament))
+            ->post(route('tournaments.register', $tournament), ['user_id' => $player->id]);
+
+        $response->assertSessionHas('registered_name', 'Wanda Reeve');
+
+        $html = $this->followRedirects($response)->getContent();
+
+        $this->assertStringContainsString('register__flash--done', $html);
+        $this->assertStringContainsString('has been registered.', $html);
+    }
+
+    public function test_the_name_is_set_apart_from_the_sentence(): void
+    {
+        // "Highlight the name" is the requirement, and it is the requirement
+        // because after eight of these the sentence is wallpaper and the name
+        // is the only part still being read.
+        $tournament = $this->tournament();
+        $player = User::factory()->create([
+            'first_name' => 'Wanda', 'last_name' => 'Reeve', 'approval_status' => 'approved',
+        ]);
+
+        $html = $this->followRedirects(
+            $this->actingAs($this->admin())
+                ->from(route('tournaments.show', $tournament))
+                ->post(route('tournaments.register', $tournament), ['user_id' => $player->id])
+        )->getContent();
+
+        $this->assertMatchesRegularExpression(
+            '/<span class="register__flash-name">\s*Wanda Reeve\s*<\/span>/',
+            $html,
+            'The name must be marked up separately so it can be highlighted.'
+        );
+    }
+
+    public function test_a_refusal_is_shown_inside_the_dialog_too(): void
+    {
+        $tournament = $this->tournament();
+        $player = User::factory()->create(['approval_status' => 'approved']);
+        $this->enter($tournament, $player);
+
+        $html = $this->followRedirects(
+            $this->actingAs($this->admin())
+                ->from(route('tournaments.show', $tournament))
+                ->post(route('tournaments.register', $tournament), ['user_id' => $player->id])
+        )->getContent();
+
+        $this->assertStringContainsString('register__flash--error', $html);
+    }
+
+    public function test_the_page_alert_is_not_also_drawn_behind_the_backdrop(): void
+    {
+        // Two copies of the same sentence, one of them unreachable under a
+        // scrim. The dialog's copy is the one that can be read.
+        $tournament = $this->tournament();
+        $player = User::factory()->create(['approval_status' => 'approved']);
+
+        $html = $this->followRedirects(
+            $this->actingAs($this->admin())
+                ->from(route('tournaments.show', $tournament))
+                ->post(route('tournaments.register', $tournament), ['user_id' => $player->id])
+        )->getContent();
+
+        $this->assertStringNotContainsString('alert--success', $html);
+    }
+
+    public function test_a_player_registering_themselves_still_gets_the_page_alert(): void
+    {
+        // The suppression keys off the dialog reopening, not off success. A
+        // player has no dialog and must still be told what happened.
+        $tournament = $this->tournament();
+        $player = User::factory()->create(['is_admin' => false, 'approval_status' => 'approved']);
+
+        $html = $this->followRedirects(
+            $this->actingAs($player)
+                ->from(route('tournaments.show', $tournament))
+                ->post(route('tournaments.register', $tournament))
+        )->getContent();
+
+        $this->assertStringContainsString('alert--success', $html);
+        $this->assertStringNotContainsString('register__flash--done', $html);
     }
 }

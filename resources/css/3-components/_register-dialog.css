@@ -144,3 +144,37 @@
     grid-column: 1;
     grid-row: 2;
 }
+
+/* What just happened, inside the dialog.
+ *
+ * The page's own alerts are behind the backdrop while this is open, so these
+ * are not a second copy of them -- they are the only copy the administrator can
+ * see while working through a league night's entries. */
+.register__flash {
+    margin: 0;
+    padding: var(--space-3) var(--space-4);
+    border-inline-start: 3px solid transparent;
+    border-radius: var(--radius-sm);
+    font-size: var(--step--1);
+}
+
+.register__flash--done {
+    border-inline-start-color: var(--c-open);
+    background-color: var(--c-surface-raised);
+}
+
+/* --c-primary, matching .alert--danger. There is no separate danger token in
+   this system: the brand red IS the alarm colour, and inventing a second one
+   here would put two reds on the page that disagree by a few points. */
+.register__flash--error {
+    border-inline-start-color: var(--c-primary);
+    background-color: var(--c-surface-raised);
+}
+
+/* The name, not the sentence. After eight registrations the sentence is
+   wallpaper and this is the only part still being read, so it carries the
+   weight and the colour. */
+.register__flash-name {
+    font-weight: 700;
+    color: var(--c-primary);
+}

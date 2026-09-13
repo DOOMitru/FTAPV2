@@ -215,21 +215,40 @@ class PlayerApprovalTest extends TestCase
             ->assertSee(route('tournaments.register', $tournament));
     }
 
-    public function test_the_admin_override_picker_on_a_tournament_offers_only_approved_players(): void
+    public function test_the_admin_register_dialog_lists_an_unapproved_player_but_will_not_offer_them(): void
     {
-        // A third picker, on the tournament page rather than the registrant
-        // form. It feeds the same register() override that refuses unapproved
-        // targets, so offering one here would let an administrator choose a
-        // player the very next request rejects.
+        // This asserted that the tournament page never named an unapproved
+        // player, on the reasoning that register() refuses them and offering
+        // one is offering a click that fails. The refusal is unchanged; what
+        // changed is that saying nothing was its own failure -- an
+        // administrator who cannot find somebody learns that they are missing,
+        // not that their account is waiting, and waiting on this administrator.
+        //
+        // So the name is listed with the reason, and the row is inert. The
+        // POST below is the part that actually matters and is unchanged.
         $admin = User::factory()->create(['is_admin' => true]);
-        User::factory()->create(['first_name' => 'Approvedy', 'is_admin' => false]);
-        User::factory()->pending()->create(['first_name' => 'Pendingly', 'is_admin' => false]);
+        $approved = User::factory()->create(['first_name' => 'Approvedy', 'is_admin' => false]);
+        $pending = User::factory()->pending()->create(['first_name' => 'Pendingly', 'is_admin' => false]);
 
         $tournament = $this->makeTournament();
 
-        $this->actingAs($admin)->get(route('tournaments.show', $tournament))
-            ->assertOk()
-            ->assertSee('Approvedy')
-            ->assertDontSee('Pendingly');
+        $response = $this->actingAs($admin)->get(route('tournaments.show', $tournament))->assertOk();
+
+        $rows = collect($response->viewData('registerCandidates'))->keyBy('id');
+
+        // Both listed, told apart by the flag rather than by absence.
+        $this->assertTrue($rows->has($pending->id), 'An unapproved player must still be listed.');
+        $this->assertFalse($rows[$pending->id]['approved']);
+        $this->assertTrue($rows[$approved->id]['approved']);
+
+        $response->assertSee('Waiting for approval');
+
+        // And the server still refuses them, which is the rule the flag mirrors.
+        $this->actingAs($admin)
+            ->from(route('tournaments.show', $tournament))
+            ->post(route('tournaments.register', $tournament), ['user_id' => $pending->id])
+            ->assertSessionHas('error');
+
+        $this->assertSame(0, $tournament->registrants()->count());
     }
 }

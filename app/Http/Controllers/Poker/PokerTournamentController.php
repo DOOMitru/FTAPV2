@@ -191,7 +191,7 @@ class PokerTournamentController extends Controller
             Str::lower($this->surnameOf($row['user'], $row['name'])),
         ])->values();
 
-        // Everyone approved, not everyone available.
+        // Everyone, not everyone available.
         //
         // This used to exclude anybody already in this tournament, on the
         // reasoning that register() refuses them and offering a button that
@@ -202,6 +202,13 @@ class PokerTournamentController extends Controller
         // first is the common case. The server rule is unchanged -- register()
         // still refuses -- so this only makes the refusal visible in advance.
         //
+        // Players awaiting approval are in the list for the same reason and
+        // were left out for the same wrong one. An administrator hunting
+        // somebody who joined last week and cannot find them learns nothing
+        // from an empty list; "waiting for approval" tells them the next thing
+        // to do, and it is a thing they can do -- they are the one who approves
+        // accounts.
+        //
         // Ordered by how many tournaments a player has entered, most first: a
         // league's regulars are who an administrator is nearly always looking
         // for, and the list is capped at ten. Name breaks the ties.
@@ -210,7 +217,7 @@ class PokerTournamentController extends Controller
         if (auth()->user()->is_admin) {
             $entered = $tournament->registrants->pluck('user_id')->filter()->all();
 
-            $registerCandidates = \App\Models\User::approved()
+            $registerCandidates = \App\Models\User::query()
                 ->withCount('tournamentRegistrations')
                 ->orderByDesc('tournament_registrations_count')
                 ->orderBy('first_name')
@@ -225,6 +232,7 @@ class PokerTournamentController extends Controller
                     'email' => $user->email,
                     'played' => $user->tournament_registrations_count,
                     'registered' => in_array($user->id, $entered, true),
+                    'approved' => $user->isApproved(),
                     // One lowercase haystack per row, built here rather than in
                     // the filter: the search covers name, nickname and email,
                     // and doing that in the expression would repeat four fields.
@@ -471,7 +479,16 @@ class PokerTournamentController extends Controller
             ? 'You have successfully registered for ' . $tournament->name . '!'
             : 'Successfully registered ' . $user->first_name . ' ' . $user->last_name . ' for the tournament.';
 
-        return $reopen(back()->with('status', $statusMsg));
+        $back = back()->with('status', $statusMsg);
+
+        // The name on its own, not parsed back out of the sentence: the dialog
+        // sets it apart from the rest of the message, and a message is a
+        // translatable string whose shape must stay free to change.
+        if ($isAdmin && $request->has('user_id')) {
+            $back->with('registered_name', trim($user->first_name.' '.$user->last_name));
+        }
+
+        return $reopen($back);
     }
 
     /**
