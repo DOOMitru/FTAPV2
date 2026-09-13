@@ -134,7 +134,14 @@
              width with a column of nothing beside them. --}}
         <x-card :title="__('Upcoming Tournaments')" flush>
             <x-slot name="actions">
-                <x-badge>{{ $upcomingTournaments->count() }} {{ __('Events') }}</x-badge>
+                {{-- The badge counts every event scheduled, not the five drawn
+                     below it. Counting the rows would have made it read "5
+                     Events" on a league with twenty in the diary -- a figure
+                     that is a fact about this card rather than about the
+                     league. --}}
+                <x-badge>{{ $upcomingCount }} {{ __('Events') }}</x-badge>
+
+                <x-btn variant="ghost" size="sm" :href="route('events')">{{ __('All events') }}</x-btn>
             </x-slot>
 
             @forelse ($upcomingTournaments as $tournament)
@@ -218,6 +225,22 @@
             @empty
                 <x-empty-state :title="__('No upcoming tournaments scheduled.')" />
             @endforelse
+
+            {{-- Only when the cap actually hides something. "Showing the next 5
+                 of 3" is worse than saying nothing, and a standing note on a
+                 list that is complete is noise -- the same rule the Recent
+                 Results note follows below. --}}
+            @if ($upcomingCount > $upcomingTournaments->count())
+                <p class="card__note">
+                    {{ trans_choice(
+                        '{1}The next one of :count scheduled. |[2,*]The next :shown of :count scheduled. ',
+                        $upcomingTournaments->count(),
+                        ['shown' => $upcomingTournaments->count(), 'count' => $upcomingCount]
+                    ) }}
+
+                    <a class="link" href="{{ route('events') }}">{{ __('See the full schedule') }}</a>
+                </p>
+            @endif
         </x-card>
 
         <x-card :title="__('Recent Results')" flush>
