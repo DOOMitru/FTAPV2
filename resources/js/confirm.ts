@@ -34,6 +34,55 @@
  */
 const approved = new WeakSet<HTMLFormElement>();
 
+/**
+ * The marker an entity's name is wrapped in. Must match EMPH in
+ * app/Support/helpers.php -- U+2063 INVISIBLE SEPARATOR.
+ */
+const EMPH = '\u2063';
+
+/**
+ * Write the message, bolding the runs marked as entity names.
+ *
+ * Built out of text nodes and elements rather than assigned to innerHTML. That
+ * is the same rule the rest of this file follows and for the same reason: a
+ * venue name is user input, and the moment it is parsed as markup instead of
+ * carried as a value, the escaping argument at the top of this file stops being
+ * true. Nothing here parses anything.
+ *
+ * Odd-numbered segments are the marked ones, so balanced markers always split
+ * into an odd number of parts. An even count means a marker lost its partner,
+ * and bolding everything from there to the end of the sentence is a louder way
+ * to be wrong than bolding nothing -- so an unbalanced message gets none.
+ */
+function writeMessage(target: HTMLElement, message: string): void {
+    target.textContent = '';
+
+    const parts = message.split(EMPH);
+
+    if (parts.length % 2 === 0) {
+        target.textContent = parts.join('');
+
+        return;
+    }
+
+    parts.forEach((part, index) => {
+        if (part === '') {
+            return;
+        }
+
+        if (index % 2 === 1) {
+            const strong = document.createElement('strong');
+            strong.className = 'emph';
+            strong.textContent = part;
+            target.appendChild(strong);
+
+            return;
+        }
+
+        target.appendChild(document.createTextNode(part));
+    });
+}
+
 /** Bound once, on whichever dialog the page turns out to have. */
 let backdropBound = false;
 
@@ -93,7 +142,9 @@ export function initConfirm(): void {
         // used to. Silently letting a delete through is not an acceptable way
         // to degrade.
         if (! dialog || typeof dialog.showModal !== 'function') {
-            if (window.confirm(message)) {
+            // A native confirm cannot bold anything, so the markers come out
+            // rather than riding along as invisible characters.
+            if (window.confirm(message.split(EMPH).join(''))) {
                 send();
             }
 
@@ -104,7 +155,7 @@ export function initConfirm(): void {
         const accept = dialog.querySelector<HTMLElement>('[data-confirm-accept]');
 
         if (text) {
-            text.textContent = message;
+            writeMessage(text, message);
         }
 
         if (accept) {

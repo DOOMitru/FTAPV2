@@ -66,27 +66,30 @@ class PokerTournamentController extends Controller
     }
 
     /**
-     * Display the specified resource.
-     */
-    /**
-     * The name a registrant sorts under.
+     * The name a row sorts under.
      *
      * The account's surname when there is one. user_id is nullable with
-     * nullOnDelete on registrants, so a deleted player leaves only the
-     * player_name snapshotted at registration -- and the last word of that is
-     * the best surname available. A single-word name sorts under itself.
+     * nullOnDelete on both registrants and results, so a deleted player leaves
+     * only the player_name snapshotted at the time -- and the last word of that
+     * is the best surname available. A single-word name sorts under itself.
+     *
+     * Takes the user and the name rather than a registrant, because the list it
+     * sorts now also holds finishes with no registration behind them.
      */
-    private function surnameOf(\App\Models\PokerTournamentRegistrant $registrant): string
+    private function surnameOf(?\App\Models\User $user, ?string $name): string
     {
-        if (filled($registrant->user?->last_name)) {
-            return $registrant->user->last_name;
+        if (filled($user?->last_name)) {
+            return $user->last_name;
         }
 
-        $words = preg_split('/\s+/u', trim((string) $registrant->player_name), -1, PREG_SPLIT_NO_EMPTY) ?: [];
+        $words = preg_split('/\s+/u', trim((string) $name), -1, PREG_SPLIT_NO_EMPTY) ?: [];
 
         return $words === [] ? '' : end($words);
     }
 
+    /**
+     * Display the specified resource.
+     */
     public function show(PokerTournament $tournament): View
     {
         $tournament->load([
@@ -98,15 +101,8 @@ class PokerTournamentController extends Controller
 
         $registrantsCount = $tournament->registrants->count();
         $resultsCount = $tournament->results->count();
-        $totalPoints = $tournament->results->sum('points');
         
         $orderedResults = $tournament->results->sortBy('place')->values();
-        // The settled places only -- see PokerTournament::podium(). take(3) on
-        // the sorted results was the current best three, which mid-tournament
-        // are not the podium at all: places count down from the bottom, so the
-        // lowest numbers on record are simply the last few knocked out.
-        $podium = $tournament->podium();
-
         $isUserRegistered = $tournament->registrants()->where('user_id', auth()->id())->exists();
 
         // The shared event card reads viewer_registered -- the attribute the
@@ -117,6 +113,9 @@ class PokerTournamentController extends Controller
         // "Past" means play has begun.
         $isPast = \Illuminate\Support\Carbon::parse($tournament->start_time)->isPast();
 
+        // Read for $nextPlacePoints alone. The Points at Stake panel used to
+        // print the whole table beside the tournament; the points on offer now
+        // appear where they are acted on, in the Eliminate confirmation.
         $pointsStructure = PointsStructure::orderBy('place')->get();
 
         // Places are handed out from the bottom of the field: the first player
@@ -127,9 +126,42 @@ class PokerTournamentController extends Controller
         $nextPlace = $registrantsCount - $resultsCount;
         $nextPlacePoints = $pointsStructure->firstWhere('place', $nextPlace)?->points ?? 0;
 
-        // Keyed so a registrant row can find its own result without a query
-        // each. user_id, because that is what a registrant carries.
-        $resultsByUser = $tournament->results->keyBy('user_id');
+        // One row per player, whether they are still in, already out, or hold a
+        // result with no registration behind them at all.
+        //
+        // Matched on user_id, and only where BOTH sides have one: results and
+        // registrants are both nullable there (nullOnDelete), and keying a
+        // collection by null collapses every such row onto one key, so a
+        // deleted player's registration would otherwise adopt a stranger's
+        // finish.
+        $resultsByUser = $tournament->results->whereNotNull('user_id')->keyBy('user_id');
+
+        $rows = $tournament->registrants->map(fn ($registrant) => [
+            'registrant' => $registrant,
+            'result' => $resultsByUser[$registrant->user_id] ?? null,
+            'user' => $registrant->user,
+            'name' => $registrant->player_name,
+            'nickname' => $registrant->player_nickname,
+        ]);
+
+        // A finish with nobody registered behind it. The results screen creates
+        // results without requiring a registration, so these exist and used to
+        // appear in Final Standings -- which the registrants list never showed.
+        // Merging the two on registrants alone would have deleted them from the
+        // page.
+        $matched = $rows->pluck('result')->filter()->pluck('id')->all();
+
+        $rows = $rows->concat(
+            $tournament->results
+                ->reject(fn ($result) => in_array($result->id, $matched, true))
+                ->map(fn ($result) => [
+                    'registrant' => null,
+                    'result' => $result,
+                    'user' => $result->user,
+                    'name' => $result->player_name,
+                    'nickname' => $result->player_nickname,
+                ])
+        );
 
         // The panel reads as live standings rather than as an address book.
         //
@@ -142,40 +174,84 @@ class PokerTournamentController extends Controller
         // Places count DOWN as players go out, so the first player eliminated
         // holds the highest number and appears last. That is a standings order,
         // not an elimination log.
-        $orderedRegistrants = $tournament->registrants->sortBy(fn ($registrant) => [
-            isset($resultsByUser[$registrant->user_id]) ? 1 : 0,
-            $resultsByUser[$registrant->user_id]->place ?? 0,
-            Str::lower($this->surnameOf($registrant)),
-        ]);
+        // What the one panel is called depends on what is in it. "Final" is a
+        // claim -- it is only true once every entered player has a finish, so
+        // it waits for isComplete() rather than for the clock. Before any
+        // result at all the list is not standings of anything.
+        $standingsTitle = match (true) {
+            $tournament->isComplete() => __('Final Standings'),
+            $resultsCount > 0 => __('Standings'),
+            default => __('Registered Players'),
+        };
 
-        $availableUsers = collect();
+        $standings = $rows->sortBy(fn ($row) => [
+            $row['result'] ? 1 : 0,
+            $row['result']->place ?? 0,
+            Str::lower($this->surnameOf($row['user'], $row['name'])),
+        ])->values();
+
+        // Everyone, not everyone available.
+        //
+        // This used to exclude anybody already in this tournament, on the
+        // reasoning that register() refuses them and offering a button that
+        // fails is worse than offering nothing. The dialog shows them instead,
+        // named and unselectable, because absence is ambiguous: an
+        // administrator looking for a player who is not in the list cannot tell
+        // whether they are already entered or simply not approved, and the
+        // first is the common case. The server rule is unchanged -- register()
+        // still refuses -- so this only makes the refusal visible in advance.
+        //
+        // Players awaiting approval are in the list for the same reason and
+        // were left out for the same wrong one. An administrator hunting
+        // somebody who joined last week and cannot find them learns nothing
+        // from an empty list; "waiting for approval" tells them the next thing
+        // to do, and it is a thing they can do -- they are the one who approves
+        // accounts.
+        //
+        // Ordered by how many tournaments a player has entered, most first: a
+        // league's regulars are who an administrator is nearly always looking
+        // for, and the list is capped at ten. Name breaks the ties.
+        $registerCandidates = collect();
+
         if (auth()->user()->is_admin) {
-            $registeredUserIds = $tournament->registrants()->pluck('user_id')->toArray();
-            // approved(), for the same reason the registrant pickers filter:
-            // register() refuses an unapproved target, so offering one here
-            // would let an administrator pick a player the very next request
-            // rejects.
-            $availableUsers = \App\Models\User::approved()
-                ->whereNotIn('id', $registeredUserIds)
+            $entered = $tournament->registrants->pluck('user_id')->filter()->all();
+
+            $registerCandidates = \App\Models\User::query()
+                ->withCount('tournamentRegistrations')
+                ->orderByDesc('tournament_registrations_count')
                 ->orderBy('first_name')
-                ->get();
+                ->orderBy('last_name')
+                ->get()
+                ->map(fn ($user) => [
+                    'id' => $user->id,
+                    'name' => trim($user->first_name.' '.$user->last_name),
+                    'label' => trim($user->first_name.' '.$user->last_name)
+                        .(filled($user->nickname) ? ' ('.$user->nickname.')' : ''),
+                    'nickname' => $user->nickname,
+                    'email' => $user->email,
+                    'played' => $user->tournament_registrations_count,
+                    'registered' => in_array($user->id, $entered, true),
+                    'approved' => $user->isApproved(),
+                    // One lowercase haystack per row, built here rather than in
+                    // the filter: the search covers name, nickname and email,
+                    // and doing that in the expression would repeat four fields.
+                    'search' => mb_strtolower(trim(
+                        $user->first_name.' '.$user->last_name.' '.$user->nickname.' '.$user->email
+                    )),
+                ])
+                ->values();
         }
 
         return view('poker.tournaments.show', compact(
             'tournament',
             'registrantsCount',
-            'resultsCount',
-            'totalPoints',
-            'orderedResults',
-            'podium',
             'isUserRegistered',
             'isPast',
-            'pointsStructure',
-            'availableUsers',
+            'registerCandidates',
             'nextPlace',
             'nextPlacePoints',
-            'resultsByUser',
-            'orderedRegistrants'
+            'standings',
+            'standingsTitle'
         ));
     }
 
@@ -201,7 +277,7 @@ class PokerTournamentController extends Controller
     {
         if ($tournament->isPublished()) {
             return back()->with('error', __('Results for :tournament have already been published.', [
-                'tournament' => $tournament->name,
+                'tournament' => emph($tournament->name),
             ]));
         }
 
@@ -250,7 +326,7 @@ class PokerTournamentController extends Controller
     {
         if (! $tournament->isPublished()) {
             return back()->with('error', __('Results for :tournament have not been published.', [
-                'tournament' => $tournament->name,
+                'tournament' => emph($tournament->name),
             ]));
         }
 
@@ -265,7 +341,7 @@ class PokerTournamentController extends Controller
         });
 
         return back()->with('status', __('Results for :tournament are open again, and the notifications have been withdrawn.', [
-            'tournament' => $tournament->name,
+            'tournament' => emph($tournament->name),
         ]));
     }
 
@@ -315,43 +391,86 @@ class PokerTournamentController extends Controller
             // rather than re-stated here as a check that could drift from it.
             // This is the double-click, and the two-administrators-at-once.
             return back()->with('error', __(':name already has a result for this tournament.', [
-                'name' => $registrant->player_name,
+                'name' => emph($registrant->player_name),
             ]));
         }
 
-        return back()->with('status', __(':name is out in :place place and takes :points points.', [
-            'name' => $registrant->player_name,
+        $back = back()->with('status', __(':name is out in :place place and takes :points points.', [
+            'name' => emph($registrant->player_name),
             'place' => Number::ordinal($place),
             'points' => number_format($points),
         ]));
+
+        // That was the last one, so ask.
+        //
+        // Publishing is the end of a tournament and the moment the players are
+        // told where they came -- but the button for it lives in the page
+        // header, and an administrator who has just worked down a field of
+        // twenty is looking at the bottom of a list, not at the top of the
+        // page. It was possible to finish a night and simply not notice that
+        // anything remained to be done.
+        //
+        // Asked once, here, rather than nagged: the flag is flashed, so it is
+        // gone on the next request whichever way the question is answered.
+        //
+        // No fresh() needed, though it was written with one at first. Both
+        // halves of isComplete() go through the relation METHODS -- registrants()
+        // and results() -- so each call is its own query and already sees the
+        // result this request just wrote. fresh() bought nothing but a second
+        // SELECT of the tournament row; removing it failed no test, which is
+        // how it was found.
+        if ($tournament->isComplete() && ! $tournament->isPublished()) {
+            $back->with('offer_publish', true);
+        }
+
+        return $back;
     }
 
     public function register(PokerTournament $tournament, Request $request): RedirectResponse
     {
+        $isAdmin = auth()->user()->is_admin;
+
+        // Registering somebody else means this came from the admin dialog, which
+        // is built to add several players in a row. Every exit below carries the
+        // flag so the dialog reopens on the way back -- including the refusals,
+        // where closing it would hide the list the administrator was working
+        // through behind the message explaining what went wrong.
+        $reopen = fn (RedirectResponse $back) => $isAdmin && $request->has('user_id')
+            ? $back->with('register_open', true)
+            : $back;
+
         // A published tournament is finished. Its players have been told where
         // they came, and a place is a position in a field -- so nothing may
         // change the field's size or any finish in it.
         if ($refusal = $tournament->publishedRefusal()) {
             return back()->with('error', $refusal);
         }
-
-        $isAdmin = auth()->user()->is_admin;
         $targetUserId = ($isAdmin && $request->has('user_id')) ? $request->user_id : auth()->id();
 
-        // No deadline check any more, for anyone. Entering a tournament that
-        // already has results is deliberately still allowed: a late entry
-        // changes the size of the field, and PokerTournamentRegistrant's shift
-        // hook moves every recorded finish down to match. That is why joining
-        // late is safe where leaving late is not -- adding a player to a field
-        // of ten makes it a field of eleven, unambiguously, while removing one
-        // leaves the question of whether they played at all.
+        // A player's window closes when play begins. Once the cards are in the
+        // air the field is whatever is sitting at the tables, and somebody
+        // adding themselves from a phone changes how many places there are to
+        // hand out for a game already under way.
+        //
+        // An administrator is not bound by it, and registers right up until the
+        // results are published: they are in the room, a late arrival at the
+        // table is a real thing, and the shift hook makes it arithmetically
+        // safe -- a field of ten becomes a field of eleven and every recorded
+        // finish moves down with its points.
+        if (! $isAdmin && $tournament->hasStarted()) {
+            return back()->with('error', __(
+                ':tournament has already started, so you can no longer enter it. '
+                .'Ask an administrator if you are at the table.',
+                ['tournament' => emph($tournament->name)]
+            ));
+        }
 
         // Check if the target user is already registered
         if ($tournament->registrants()->where('user_id', $targetUserId)->exists()) {
-            $errorMsg = ($targetUserId === auth()->id()) 
-                ? 'You are already registered for this tournament.' 
+            $errorMsg = ($targetUserId === auth()->id())
+                ? 'You are already registered for this tournament.'
                 : 'That user is already registered for this tournament.';
-            return back()->with('error', $errorMsg);
+            return $reopen(back()->with('error', $errorMsg));
         }
 
         $user = \App\Models\User::findOrFail($targetUserId);
@@ -365,9 +484,9 @@ class PokerTournamentController extends Controller
         // approval or by email verification, and an unexplained refusal turns
         // support into guesswork.
         if (! $user->isApproved()) {
-            return back()->with('error', $targetUserId === auth()->id()
+            return $reopen(back()->with('error', $targetUserId === auth()->id()
                 ? 'Your account is waiting for approval by a league administrator, so you cannot enter tournaments yet.'
-                : 'That account has not been approved by a league administrator yet.');
+                : 'That account has not been approved by a league administrator yet.'));
         }
 
         $tournament->registrants()->create([
@@ -378,10 +497,19 @@ class PokerTournamentController extends Controller
         ]);
 
         $statusMsg = ($targetUserId === auth()->id())
-            ? 'You have successfully registered for ' . $tournament->name . '!'
-            : 'Successfully registered ' . $user->first_name . ' ' . $user->last_name . ' for the tournament.';
+            ? 'You have successfully registered for '.emph($tournament->name).'!'
+            : 'Successfully registered '.emph($user->first_name.' '.$user->last_name).' for the tournament.';
 
-        return back()->with('status', $statusMsg);
+        $back = back()->with('status', $statusMsg);
+
+        // The name on its own, not parsed back out of the sentence: the dialog
+        // sets it apart from the rest of the message, and a message is a
+        // translatable string whose shape must stay free to change.
+        if ($isAdmin && $request->has('user_id')) {
+            $back->with('registered_name', trim($user->first_name.' '.$user->last_name));
+        }
+
+        return $reopen($back);
     }
 
     /**
@@ -416,7 +544,7 @@ class PokerTournamentController extends Controller
 
         $registration->delete();
 
-        return back()->with('status', 'You have successfully unregistered from ' . $tournament->name . '.');
+        return back()->with('status', 'You have successfully unregistered from '.emph($tournament->name).'.');
     }
 
     /**

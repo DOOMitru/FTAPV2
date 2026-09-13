@@ -10,9 +10,19 @@
     </x-slot>
 
     <div class="l-container l-stack">
-        <div class="l-grid l-grid--trio">
+        {{-- stat-rows: on a phone these stop being three tiles side by side
+             and become three labelled lines, the way the dashboard's season
+             panel lists its own figures. Three thirds of a 375px screen leave
+             each number about 100px, which is why the trio already had to shrink
+             its type to fit -- a row gives the label and the figure the whole
+             width and needs no shrinking at all.
+
+             --boxed because this group stands on the page rather than inside a
+             card, so it has to draw its own edge. The finale trio below is
+             already inside one. --}}
+        <div class="l-grid l-grid--trio stat-rows stat-rows--boxed">
             <x-stat :label="__('Tournaments')" :value="number_format($totalTournaments)" />
-            <x-stat :label="__('Pts awarded')" :value="number_format($totalPoints)" />
+            <x-stat :label="__('Points awarded')" :value="number_format($totalPoints)" />
             <x-stat :label="__('Players')" :value="number_format($uniquePlayersCount)" />
         </div>
 
@@ -23,23 +33,23 @@
             @if ($season->hasThresholds())
                 <p class="field__hint">{{ __('A player must meet all three to reach the finale.') }}</p>
 
-                <div class="l-grid l-grid--trio">
+                <div class="l-grid l-grid--trio stat-rows">
                     {{-- Each figure guarded on its own, not just the block.
                          hasThresholds() is true when ANY one is set, so a
                          partly decided season lands here -- and
                          number_format(null) renders 0, stating a target nobody
                          chose and everybody has already met. --}}
-                    <x-stat :label="__('Season pts')"
-                            :value="$season->finale_points_required !== null
-                                ? number_format($season->finale_points_required)
-                                : __('Not set')" />
-
-                    <x-stat :label="__('Wins')"
+                    <x-stat :label="__('Tournament Wins')"
                             :value="$season->finale_wins_required !== null
                                 ? (string) $season->finale_wins_required
                                 : __('Not set')" />
 
-                    <x-stat :label="__('Venue pts')"
+                    <x-stat :label="__('Season points')"
+                            :value="$season->finale_points_required !== null
+                                ? number_format($season->finale_points_required)
+                                : __('Not set')" />
+
+                    <x-stat :label="__('Venue points')"
                             :value="$season->finale_venue_points_required !== null
                                 ? number_format($season->finale_venue_points_required)
                                 : __('Not set')" />
@@ -52,7 +62,22 @@
         </x-card>
 
         <div class="l-sidebar">
-            <x-card :title="__('Standings')" :flush="true">
+            <x-card :title="__('Standings')" :flush="true" class="season-show__standings-card">
+                {{-- Links, not a control that needs scripting: the order is
+                     part of the address, so it survives a reload and can be
+                     sent to somebody. role="group" rather than radios because
+                     each option navigates on activation -- there is nothing to
+                     submit and no pending state to hold. --}}
+                <x-slot name="actions">
+                    <div class="season-show__order" role="group" aria-label="{{ __('Order the standings by') }}">
+                        @foreach (['points' => __('Points'), 'rank' => __('Rank')] as $value => $label)
+                            <a href="{{ route('seasons.show', ['season' => $season, 'order' => $value]) }}"
+                               class="season-show__order-option{{ $order === $value ? ' season-show__order-option--current' : '' }}"
+                               @if ($order === $value) aria-current="true" @endif>{{ $label }}</a>
+                        @endforeach
+                    </div>
+                </x-slot>
+
                 @if ($leaderboard->isEmpty())
                     <x-empty-state :title="__('No results yet')">
                         {{ __('Standings appear once the first tournament result is recorded.') }}
@@ -63,7 +88,16 @@
                         @endif
                     </x-empty-state>
                 @else
-                    @php $leaderPoints = $leaderboard->first()['points']; @endphp
+                    @php
+                        // Venue points are a back-office tally: they are
+                        // awarded by hand at the bar, corrected by hand, and a
+                        // player's own figure is already on their dashboard.
+                        // What the column adds is everyone ELSE's, which is
+                        // admin business. The finale mark stays for everyone,
+                        // because the thresholds it is measured against are
+                        // published in the panel above this table.
+                        $showsVenuePoints = auth()->user()->is_admin;
+                    @endphp
 
                     {{-- The mobile layout is CSS only: same markup, same
                          cells, reflowed by _season-show.css below 48rem. The
@@ -75,16 +109,51 @@
                         <x-slot name="head">
                             <th scope="col">{{ __('Rank') }}</th>
                             <th scope="col">{{ __('Player') }}</th>
-                            <th scope="col">{{ __('Pts') }}</th>
+                            <th scope="col">{{ $order === 'rank' ? __('Per event') : __('Pts') }}</th>
                             <th scope="col" class="table__num">{{ __('Played') }}</th>
                             <th scope="col" class="table__num">{{ __('Won') }}</th>
-                            <th scope="col" class="table__num">{{ __('Venue pts') }}</th>
+                            @if ($showsVenuePoints)
+                                <th scope="col" class="table__num">{{ __('Venue pts') }}</th>
+                            @endif
                             <th scope="col">{{ __('Finale') }}</th>
                         </x-slot>
 
                         @foreach ($leaderboard as $index => $row)
-                            <tr>
-                                <td class="season-show__rank"><x-rank :place="$index + 1" /></td>
+                            @php
+                                // The viewer's own row. A result can carry no
+                                // linked account at all, so both sides must
+                                // have one before the ids are compared.
+                                //
+                                // Defensive, and deliberately untested: this
+                                // route is inside the auth group, so
+                                // auth()->id() is never null and no assertion
+                                // here can fail without the guard. Move the
+                                // route out of that group -- the archive pages
+                                // are already public, so season standings
+                                // going public is not far-fetched -- and every
+                                // accountless result would be marked "you",
+                                // silently and for everyone.
+                                $isSelf = $row['user'] !== null && $row['user']->id === auth()->id();
+
+                                $rank = $index + 1;
+                                $ratio = number_format($row['ratio'] ?? 0, 1);
+                            @endphp
+                            <tr class="{{ $isSelf ? 'season-show__self-row' : '' }}">
+                                <td class="season-show__rank">
+                                    @if ($order === 'rank')
+                                        {{-- In this order the position IS the
+                                             figure, so the badge says so and
+                                             carries the average behind it. The
+                                             meter beside it keeps the bar and
+                                             drops its number: printing "#2"
+                                             twice on one row says nothing
+                                             twice. --}}
+                                        <x-rank :place="$rank" :label="'#'.$rank"
+                                                :title="__(':points points per event', ['points' => $ratio])" />
+                                    @else
+                                        <x-rank :place="$rank" />
+                                    @endif
+                                </td>
                                 @php
                                     // Standings name a player by nickname when they have one,
                                     // otherwise by their full name — deliberately NOT the
@@ -103,15 +172,51 @@
                                     @else
                                         {{ $shownName }}
                                     @endif
+
+                                    {{-- The tint says "this is you" to everyone
+                                         who can see it. This says it to everyone
+                                         else, and is the only reason the row is
+                                         not carrying the information in colour
+                                         alone. --}}
+                                    @if ($isSelf)
+                                        <span class="u-visually-hidden">{{ __('(you)') }}</span>
+                                    @endif
                                 </td>
                                 <td class="season-show__meter-cell">
                                     {{-- Deliberately still the whole word. This
                                          is the meter's accessible name, read
                                          aloud rather than seen, and "PTS for
                                          Wanda Reeve" is worse to hear than
-                                         "Points for Wanda Reeve". --}}
-                                    <x-meter :value="$row['points']" :max="$leaderPoints"
-                                             :label="__('Points for :name', ['name' => $shownName])" />
+                                         "Points for Wanda Reeve".
+
+                                         One decimal in rank mode, matching the
+                                         dashboard: these averages run to
+                                         hundreds, and a whole number hides the
+                                         difference between two players a
+                                         tenth apart -- which is exactly the
+                                         difference the order is drawn on. --}}
+                                    @if ($order === 'rank')
+                                        {{-- Bar only: the badge to its left
+                                             already gives the position, and
+                                             the bar is what shows how far
+                                             apart two of them are.
+
+                                             A title attribute is not reachable
+                                             by keyboard and is announced
+                                             inconsistently, so the average is
+                                             in this meter's accessible name as
+                                             well. The tooltip is the
+                                             sighted-pointer copy of it, not
+                                             the only one. --}}
+                                        <x-meter :value="$row['ratio'] ?? 0" :max="$leaderValue" :decimals="1"
+                                                 :show-value="false"
+                                                 :label="__('Rank #:rank, :points points per event, for :name', [
+                                                     'rank' => $rank, 'points' => $ratio, 'name' => $shownName,
+                                                 ])" />
+                                    @else
+                                        <x-meter :value="$row['points']" :max="$leaderValue"
+                                                 :label="__('Points for :name', ['name' => $shownName])" />
+                                    @endif
                                 </td>
                                 {{-- data-label feeds the mobile stat run through
                                      ::after -- "12 played", not "played 12",
@@ -119,7 +224,9 @@
                                 <td class="table__num season-show__stat season-show__stat--played" data-label="{{ __('played') }}">{{ $row['played'] }}</td>
                                 <td class="table__num season-show__stat season-show__stat--won" data-label="{{ __('won') }}">{{ $row['wins'] }}</td>
 
-                                <td class="table__num season-show__stat season-show__stat--venue" data-label="{{ __('venue pts') }}">{{ $row['venue_points'] }}</td>
+                                @if ($showsVenuePoints)
+                                    <td class="table__num season-show__stat season-show__stat--venue" data-label="{{ __('venue pts') }}">{{ $row['venue_points'] }}</td>
+                                @endif
 
                                 {{-- A mark when they are in, and nothing when they are
                                      not. This column used to name what a player was

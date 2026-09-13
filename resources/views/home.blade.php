@@ -37,8 +37,17 @@
                 {{-- A signed-in player has already joined; offering them "Join Now" is
                      asking for something they have done. --}}
                 <div class="p-lead__welcome p-lead__actions">
+                    {{-- Two parts, so the line breaks between the greeting and
+                         the name rather than wherever "Welcome back, Anastacio."
+                         happens to run out of room on a phone.
+
+                         The name is wrapped twice on purpose: the outer span is
+                         the flex item, the inner one carries the gradient. As a
+                         bare text node the full stop would become an anonymous
+                         flex item of its own and drop onto a third line. --}}
                     <p class="p-lead__welcome-line">
-                        {{ __('Welcome back,') }} <span class="p-hero__highlight">{{ auth()->user()->first_name }}</span>.
+                        <span>{{ __('Welcome back,') }}</span>
+                        <span><span class="p-hero__highlight">{{ auth()->user()->first_name }}</span>.</span>
                     </p>
 
                     <p class="p-lead__welcome-note">
@@ -208,13 +217,23 @@
                 {{-- Signed-in players only. A leaderboard is for people playing
                      in it; to a stranger it is a list of names. --}}
                 <div class="l-grid p-season-standings">
-                    <x-card :title="__('Most Points')" class="p-raised">
+                    {{-- First, because it is the standing that decides the
+                         season. Points and wins are both inputs to it, and both
+                         reward turning up more often; this one does not. --}}
+                    <x-card :title="__('Season Rank')" class="p-raised">
                         <ol class="p-standing">
-                            @foreach ($topByPoints as $i => $row)
+                            @foreach ($topByRank as $i => $row)
                                 <li class="p-standing__row">
                                     <x-rank :place="$i + 1" />
                                     <span class="p-standing__name">{{ $row['name'] }}</span>
-                                    <span class="p-standing__value">{{ number_format($row['points']) }} {{ __('pts') }}</span>
+                                    {{-- The rank itself, not the points-per-event
+                                         it is computed from. The ratio is the
+                                         rule rather than the reading: what a
+                                         player wants off this card is where they
+                                         stand, and "75.0 pts/event" only answers
+                                         that once you have compared it to two
+                                         other numbers. --}}
+                                    <span class="p-standing__value">#{{ $i + 1 }}</span>
                                 </li>
                             @endforeach
                         </ol>
@@ -234,6 +253,18 @@
                         @else
                             <x-empty-state :title="__('No wins yet this season.')" />
                         @endif
+                    </x-card>
+
+                    <x-card :title="__('Most Points')" class="p-raised">
+                        <ol class="p-standing">
+                            @foreach ($topByPoints as $i => $row)
+                                <li class="p-standing__row">
+                                    <x-rank :place="$i + 1" />
+                                    <span class="p-standing__name">{{ $row['name'] }}</span>
+                                    <span class="p-standing__value">{{ number_format($row['points']) }} {{ __('pts') }}</span>
+                                </li>
+                            @endforeach
+                        </ol>
                     </x-card>
                 </div>
             @endif

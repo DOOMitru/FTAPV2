@@ -60,8 +60,8 @@
                         // key, and read as a sentence because this is one.
                         $confirm = __('Delete :amount venue points for :name at :venue on :date? This cannot be undone.', [
                             'amount' => number_format($point->amount),
-                            'name' => $point->user_name,
-                            'venue' => $venueName ?? __('an unknown venue'),
+                            'name' => emph($point->user_name),
+                            'venue' => emph($venueName ?? __('an unknown venue')),
                             'date' => $date ?? __('an unknown date'),
                         ]);
                     @endphp

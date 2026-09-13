@@ -12,17 +12,27 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 /**
- * A settled field cannot change size.
+ * Who may be taken out of a field, and when.
  *
- * A place is a position in a field, not a label on a player: tenth of ten. Take
- * a player out of the field after finishes are recorded and every one of those
- * finishes describes a tournament that never happened -- tenth of ten, in a
- * field of nine.
+ * A place is a position in a field, not a label on a player: tenth of ten. That
+ * is still the whole rule, but it was being applied to the wrong thing. Any
+ * finish anywhere in a tournament used to lock EVERY entry in it, so the first
+ * elimination froze the nine people still playing -- one of whom might have
+ * been entered by mistake, and now could not be taken out.
  *
- * Registering someone late is the opposite case and IS handled: the shift hook
- * moves recorded places down to match. There is no way back, because removing a
- * player is ambiguous where adding one is not -- did they never play, or did
- * they play and their result should go too? So the answer is that they stay.
+ * What actually cannot be removed is somebody with a finish of their own.
+ * Delete their position and every other place describes a tournament that never
+ * happened. A player still in has no position yet, so they can go, and the
+ * field shrinks cleanly: the shrink hook moves the recorded finishes UP a place
+ * and reprices them, the mirror of what a late entry does.
+ *
+ * Publishing closes it for good, for everyone: at that point the players have
+ * been told where they came.
+ *
+ * A player withdrawing THEMSELVES is unchanged and stricter -- any finish in
+ * the tournament stops it. That is deliberate: an administrator taking somebody
+ * out is looking at the room, and a player tapping a button on the way home is
+ * not.
  */
 class RegistrantRemovalTest extends TestCase
 {
@@ -59,9 +69,13 @@ class RegistrantRemovalTest extends TestCase
         $player = User::factory()->create(['first_name' => 'Wanda', 'last_name' => 'Reeve']);
         $this->register($tournament, $player);
 
-        $this->actingAs($this->admin())->get(route('tournaments.show', $tournament))->assertOk()
-            ->assertSee('title="Remove from tournament"', false)
-            ->assertSee('Remove Wanda Reeve from '.$tournament->name.'?', false);
+        $html = $this->withoutEmphasis(
+            $this->actingAs($this->admin())->get(route('tournaments.show', $tournament))
+                ->assertOk()->getContent()
+        );
+
+        $this->assertStringContainsString('title="Remove from tournament"', $html);
+        $this->assertStringContainsString('Remove Wanda Reeve from '.$tournament->name.'?', $html);
     }
 
     public function test_the_control_survives_play_starting(): void
@@ -76,47 +90,64 @@ class RegistrantRemovalTest extends TestCase
             ->assertSee('title="Remove from tournament"', false);
     }
 
-    public function test_the_control_leaves_every_row_once_one_player_finishes(): void
+    public function test_the_control_leaves_only_the_row_of_the_player_who_finished(): void
     {
-        // Not just the row of the player who finished. A place is a position in
-        // a field, so the field is settled as a whole -- removing ANY of the
-        // three now makes that recorded finish describe a field of two.
+        // The inversion. One elimination used to take the control off every
+        // row; it now takes it off exactly one.
         $tournament = $this->tournament(startsIn: '-1 hour');
-        $players = User::factory()->count(3)->create();
 
-        foreach ($players as $player) {
+        $out = User::factory()->create(['first_name' => 'Ousted', 'last_name' => 'Player']);
+        $in = User::factory()->create(['first_name' => 'Still', 'last_name' => 'Playing']);
+
+        foreach ([$out, $in] as $player) {
             $this->register($tournament, $player);
         }
 
-        $admin = $this->admin();
+        $this->recordAFinish($tournament, $out, 2);
 
-        $this->actingAs($admin)->get(route('tournaments.show', $tournament))->assertOk()
-            ->assertSeeInOrder(
-                ['title="Remove from tournament"', 'title="Remove from tournament"', 'title="Remove from tournament"'],
-                false
-            );
+        $html = $this->actingAs($this->admin())
+            ->get(route('tournaments.show', $tournament))->assertOk()->getContent();
 
-        $this->recordAFinish($tournament, $players[0], 3);
+        // Asserted on the destroy URLs, which name a registrant each, rather
+        // than on the label -- x-action renders it more than once per control,
+        // so counting the words counts the wrong thing.
+        $outRow = $tournament->registrants()->where('user_id', $out->id)->firstOrFail();
+        $inRow = $tournament->registrants()->where('user_id', $in->id)->firstOrFail();
 
-        $this->actingAs($admin)->get(route('tournaments.show', $tournament))->assertOk()
-            ->assertDontSee('title="Remove from tournament"', false);
+        $this->assertStringContainsString(route('poker.registrants.destroy', $inRow), $html);
+        $this->assertStringNotContainsString(route('poker.registrants.destroy', $outRow), $html);
     }
 
-    public function test_the_page_says_why_the_control_is_gone(): void
+    public function test_publishing_takes_the_control_off_every_row(): void
     {
+        $tournament = $this->tournament(startsIn: '-1 hour');
+        $this->register($tournament, User::factory()->create());
+        $tournament->forceFill(['published_at' => now()])->save();
+
+        $this->actingAs($this->admin())
+            ->get(route('tournaments.show', $tournament->fresh()))->assertOk()
+            ->assertDontSee('Remove from tournament');
+    }
+
+    public function test_the_page_says_the_field_is_locked_once_published(): void
+    {
+        // A missing control reads as a bug rather than as a state, which is why
+        // the note exists at all. It used to fire on the first result; the
+        // field is not locked then any more, so it fires on publishing.
         $tournament = $this->tournament(startsIn: '-1 hour');
         $player = User::factory()->create();
         $this->register($tournament, $player);
-        $admin = $this->admin();
-
-        // Nothing to explain while the control is there.
-        $this->actingAs($admin)->get(route('tournaments.show', $tournament))->assertOk()
-            ->assertDontSee('entries locked');
-
         $this->recordAFinish($tournament, $player, 1);
 
+        $admin = $this->admin();
+
         $this->actingAs($admin)->get(route('tournaments.show', $tournament))->assertOk()
-            ->assertSee('entries locked');
+            ->assertDontSee('field locked');
+
+        $tournament->forceFill(['published_at' => now()])->save();
+
+        $this->actingAs($admin)->get(route('tournaments.show', $tournament->fresh()))->assertOk()
+            ->assertSee('Results published · field locked', false);
     }
 
     public function test_the_explanation_is_not_shown_to_a_player(): void
@@ -128,8 +159,10 @@ class RegistrantRemovalTest extends TestCase
         $this->register($tournament, $player);
         $this->recordAFinish($tournament, $player, 1);
 
-        $this->actingAs($player)->get(route('tournaments.show', $tournament))->assertOk()
-            ->assertDontSee('entries locked');
+        $tournament->forceFill(['published_at' => now()])->save();
+
+        $this->actingAs($player)->get(route('tournaments.show', $tournament->fresh()))->assertOk()
+            ->assertDontSee('field locked');
     }
 
     public function test_a_player_is_not_offered_the_control(): void
@@ -264,42 +297,73 @@ class RegistrantRemovalTest extends TestCase
 
         $this->assertSame(
             'Wanda Reeve has been removed from '.$tournament->name.'.',
-            session('status')
+            $this->withoutEmphasis(session('status'))
         );
     }
 
-    public function test_an_admin_cannot_remove_a_registrant_once_a_finish_is_recorded(): void
+    public function test_an_admin_cannot_remove_a_player_who_has_finished(): void
     {
         $tournament = $this->tournament(startsIn: '-1 hour');
-        $players = User::factory()->count(3)->create();
+        $player = User::factory()->create();
+        $registrant = $this->register($tournament, $player);
+        $this->recordAFinish($tournament, $player, 1);
 
-        foreach ($players as $player) {
+        $this->actingAs($this->admin())
+            ->delete(route('poker.registrants.destroy', $registrant))
+            ->assertSessionHas('error');
+
+        $this->assertSame(1, $tournament->registrants()->count());
+    }
+
+    public function test_an_admin_can_remove_a_player_still_in_a_scored_tournament(): void
+    {
+        // The change. One elimination used to lock everybody; it now locks the
+        // player it belongs to and nobody else.
+        $tournament = $this->tournament(startsIn: '-1 hour');
+
+        $out = User::factory()->create();
+        $in = User::factory()->create();
+
+        foreach ([$out, $in] as $player) {
             $this->register($tournament, $player);
         }
 
-        $this->recordAFinish($tournament, $players[0], 3);
+        $this->recordAFinish($tournament, $out, 2);
 
-        $victim = $tournament->registrants()->where('user_id', $players[1]->id)->firstOrFail();
+        $stillIn = $tournament->registrants()->where('user_id', $in->id)->firstOrFail();
 
         $this->actingAs($this->admin())
-            ->delete(route('poker.registrants.destroy', $victim))
+            ->delete(route('poker.registrants.destroy', $stillIn))
+            ->assertSessionHas('status');
+
+        $this->assertSame(1, $tournament->registrants()->count());
+    }
+
+    public function test_nobody_can_be_removed_once_results_are_published(): void
+    {
+        $tournament = $this->tournament(startsIn: '-1 hour');
+        $registrant = $this->register($tournament, User::factory()->create());
+        $tournament->forceFill(['published_at' => now()])->save();
+
+        $this->actingAs($this->admin())
+            ->delete(route('poker.registrants.destroy', $registrant))
             ->assertSessionHas('error');
 
-        $this->assertSame(3, $tournament->registrants()->count(), 'The field changed size.');
+        $this->assertSame(1, $tournament->registrants()->count());
     }
 
     public function test_the_refusal_names_the_player_and_says_what_to_do(): void
     {
         $tournament = $this->tournament(startsIn: '-1 hour');
-        $player = User::factory()->create(['first_name' => 'Ada', 'last_name' => 'Lovelace']);
+        $player = User::factory()->create(['first_name' => 'Nadia', 'last_name' => 'Okonkwo']);
         $registrant = $this->register($tournament, $player);
         $this->recordAFinish($tournament, $player, 1);
 
         $this->actingAs($this->admin())
-            ->delete(route('poker.registrants.destroy', $registrant));
-
-        $this->assertStringContainsString('Ada Lovelace', session('error'));
-        $this->assertStringContainsString('Delete the results first', session('error'));
+            ->delete(route('poker.registrants.destroy', $registrant))
+            ->assertSessionHas('error', fn (string $error) => str_contains($error, 'Nadia Okonkwo')
+                && str_contains($error, 'eliminated')
+                && str_contains($error, 'delete the result first'));
     }
 
     public function test_the_control_is_not_drawn_once_it_cannot_act(): void

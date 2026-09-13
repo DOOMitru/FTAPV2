@@ -128,7 +128,7 @@ class UserController extends Controller
         $user->sendPasswordResetNotification($token);
 
         return redirect()->route('users.index')
-            ->with('status', $user->first_name.' '.$user->last_name.' was registered and approved.')
+            ->with('status', emph($user->first_name.' '.$user->last_name).' was registered and approved.')
             // Surfaced as well as sent: MAIL_MAILER is log, so a link that is
             // only emailed reaches nobody. It stays useful once a mailer exists,
             // for when a player says the mail never arrived.
@@ -153,7 +153,7 @@ class UserController extends Controller
         $user->sendPasswordResetNotification($token);
 
         return back()
-            ->with('status', 'A password link was sent to '.$user->email.'.')
+            ->with('status', 'A password link was sent to '.emph($user->email).'.')
             ->with('invite_url', route('password.reset', [
                 'token' => $token,
                 'email' => $user->email,
@@ -175,13 +175,13 @@ class UserController extends Controller
     public function sendVerification(User $user): RedirectResponse
     {
         if ($user->hasVerifiedEmail()) {
-            return back()->with('error', $user->email.' is already verified.');
+            return back()->with('error', emph($user->email).' is already verified.');
         }
 
         $user->sendEmailVerificationNotification();
 
         return back()
-            ->with('status', 'A verification link was sent to '.$user->email.'.')
+            ->with('status', 'A verification link was sent to '.emph($user->email).'.')
             ->with('verification_url', URL::temporarySignedRoute(
                 'verification.verify',
                 now()->addMinutes(config('auth.verification.expire', 60)),
@@ -214,7 +214,7 @@ class UserController extends Controller
             $user->notify(new PlayerApproved());
         }
 
-        return back()->with('status', $user->first_name.' '.$user->last_name.' can now enter tournaments.');
+        return back()->with('status', emph($user->first_name.' '.$user->last_name).' can now enter tournaments.');
     }
 
     /**
@@ -232,7 +232,7 @@ class UserController extends Controller
             'approval_decided_by' => auth()->id(),
         ])->save();
 
-        return back()->with('status', $user->first_name.' '.$user->last_name.' was not approved.');
+        return back()->with('status', emph($user->first_name.' '.$user->last_name).' was not approved.');
     }
 
     /**

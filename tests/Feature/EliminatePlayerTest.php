@@ -235,6 +235,123 @@ class EliminatePlayerTest extends TestCase
             ->assertSee('75 pts');
     }
 
+    /** A structure paying 10 places, steeper at the top. */
+    private function payTen(): void
+    {
+        foreach ([1 => 100, 2 => 85, 3 => 75, 4 => 65, 5 => 55,
+                  6 => 47, 7 => 40, 8 => 34, 9 => 29, 10 => 24] as $place => $points) {
+            PointsStructure::create(['place' => $place, 'points' => $points]);
+        }
+    }
+
+    /** @return array<int, array{0: int, 1: int}> place and points, in elimination order. */
+    private function scoresInEliminationOrder(PokerTournament $tournament): array
+    {
+        return PokerTournamentResult::where('tournament_id', $tournament->id)
+            ->orderBy('created_at')->orderBy('id')
+            ->get(['place', 'points'])
+            ->map(fn ($r) => [$r->place, $r->points])
+            ->all();
+    }
+
+    public function test_a_late_registration_repays_every_finish_at_its_new_place(): void
+    {
+        // The bug this covers: the shift moved `place` and left `points` where
+        // they were, so a player kept 10th-place money while holding 11th
+        // place. Nothing downstream recomputes it -- publish() reads the stored
+        // points and the placement notification quotes them -- so the wrong
+        // number reached the player and the season standings.
+        $this->payTen();
+        $tournament = $this->tournament();
+        $players = $this->field($tournament, 10);
+
+        $this->eliminate($tournament, $players[0]);
+
+        $result = PokerTournamentResult::where('user_id', $players[0]->id)->firstOrFail();
+        $this->assertSame(10, $result->place);
+        $this->assertSame(24, $result->points, '10th of 10 pays 24.');
+
+        $this->field($tournament, 1);
+
+        $result = $result->fresh();
+        $this->assertSame(11, $result->place, 'The field grew, so the finish moved down.');
+        $this->assertSame(0, $result->points, '11th is outside a structure paying ten, so it pays nothing.');
+    }
+
+    public function test_every_finish_is_repriced_together(): void
+    {
+        // Three out of ten -- 10th, 9th, 8th, paying 24, 29 and 34. One more
+        // joins and each takes the money for the place it now holds.
+        $this->payTen();
+        $tournament = $this->tournament();
+        $players = $this->field($tournament, 10);
+
+        foreach (array_slice($players, 0, 3) as $player) {
+            $this->eliminate($tournament, $player);
+        }
+
+        $this->assertSame([[10, 24], [9, 29], [8, 34]], $this->scoresInEliminationOrder($tournament));
+
+        $this->field($tournament, 1);
+
+        // Every one moves down a place and takes that place's points. The
+        // 11th-place finish falls off the structure entirely.
+        $this->assertSame([[11, 0], [10, 24], [9, 29]], $this->scoresInEliminationOrder($tournament));
+    }
+
+    public function test_points_a_structure_does_not_pay_become_zero_rather_than_stale(): void
+    {
+        // The direction that a naive "look up the new place" gets wrong by
+        // leaving the old value in place when the lookup misses. A finish
+        // pushed past the end of the structure must lose its points, not keep
+        // the ones it had.
+        PointsStructure::create(['place' => 1, 'points' => 100]);
+        PointsStructure::create(['place' => 2, 'points' => 50]);
+
+        $tournament = $this->tournament();
+        $players = $this->field($tournament, 2);
+
+        $this->eliminate($tournament, $players[0]);
+        $this->assertSame(50, PokerTournamentResult::where('user_id', $players[0]->id)->value('points'));
+
+        $this->field($tournament, 1);
+
+        $this->assertSame(3, PokerTournamentResult::where('user_id', $players[0]->id)->value('place'));
+        $this->assertSame(0, PokerTournamentResult::where('user_id', $players[0]->id)->value('points'));
+    }
+
+    public function test_a_late_entry_leaves_another_tournament_alone(): void
+    {
+        // Both statements are scoped by tournament_id, and an unscoped one
+        // rewrites the whole table. The other tournament's finish is given
+        // points its own place would NOT pay -- deliberately impossible through
+        // the app, where every result takes its points from a structure row --
+        // because a row already holding the right figure cannot show whether it
+        // was rewritten. Written as 999 for 10th, it can.
+        $this->payTen();
+        $tournament = $this->tournament();
+        $other = PokerTournament::create([
+            'name' => 'Other Cup', 'start_time' => now()->subHour(),
+            'venue_id' => $tournament->venue_id, 'season_id' => $tournament->season_id,
+        ]);
+
+        $players = $this->field($tournament, 10);
+        [$outsider] = $this->field($other, 10);
+
+        $this->eliminate($tournament, $players[0]);
+
+        PokerTournamentResult::create([
+            'tournament_id' => $other->id, 'user_id' => $outsider->id,
+            'player_name' => 'Outsider', 'place' => 10, 'points' => 999,
+        ]);
+
+        $this->field($tournament, 1);
+
+        $untouched = PokerTournamentResult::where('user_id', $outsider->id)->firstOrFail();
+        $this->assertSame(10, $untouched->place, 'An unscoped shift moved another tournament.');
+        $this->assertSame(999, $untouched->points, 'An unscoped repricing rewrote another tournament.');
+    }
+
     public function test_a_late_registration_pushes_every_recorded_finish_down(): void
     {
         // The case exactly as described: ten registered, one out in tenth, an

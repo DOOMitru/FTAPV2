@@ -43,6 +43,11 @@
    those two belong together. */
 .site-footer__sig {
     margin-inline-start: auto;
+    /* Flex for the same reason .site-footer__tag is: so the same markup can
+       become a column below without a second copy of it. */
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4em;
     font-family: var(--font-display);
     font-size: var(--step--1);
     letter-spacing: 0.04em;
@@ -63,6 +68,19 @@
 @media (max-width: 48rem) {
     .site-footer__tag {
         flex-direction: column;
+        gap: 0;
+        line-height: 1.45;
+    }
+
+    /* The signature stacks too, and for the same reason: at 375 it does not fit
+       on one line and broke the league's name across the wrap. The year goes
+       above the name, which is where a person would put the break.
+     *
+     * flex-end, not the default stretch: this sits at the right-hand end of the
+       row on every width, and stacking it should not move it to the left. */
+    .site-footer__sig {
+        flex-direction: column;
+        align-items: flex-end;
         gap: 0;
         line-height: 1.45;
     }

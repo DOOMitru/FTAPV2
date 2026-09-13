@@ -1,8 +1,7 @@
 /* The tournament detail page's panel order on a narrow screen.
  *
- * The page is written as .l-sidebar: a main column holding the podium, the
- * final standings and the registered players, and a side column holding the
- * admin register panel and the points table. That is the right reading order
+ * The page is written as .l-sidebar: a main column holding the standings, and
+ * a side column holding the admin register panel. That is the right reading order
  * side by side, and the wrong one stacked -- collapsed, the whole main column
  * comes first, so an administrator scrolls past every registered player to
  * reach the control that adds one.
@@ -27,11 +26,87 @@
         margin-block-start: 0;
     }
 
-    /* A past tournament leads with its result; every tournament puts the
-       control that adds a player above the list of players it adds them to. */
-    .tshow__podium { order: 1; }
-    .tshow__standings { order: 2; }
-    .tshow__register { order: 3; }
-    .tshow__players { order: 4; }
-    .tshow__points { order: 5; }
+    /* Every tournament puts the control that adds a player above the list of
+       players it adds them to. The standings and the registered players used to
+       be two cards, ordered 1 and 3 with the register panel between them; they
+       are one card now, so the pair collapses to a single slot. */
+    .tshow__register { order: 1; }
+    .tshow__players { order: 2; }
+}
+
+/* The narrow layout for the standings panel.
+ *
+ * 48rem, this project's usual phone breakpoint -- not the 60rem above, which is
+ * about the page's columns rather than about what fits inside a card.
+ */
+@media (max-width: 48rem) {
+    /* The trigger becomes its plus sign.
+     *
+     * "+ Register players" is most of the card's header width beside a title
+     * and a count, and on a phone it pushed the title onto a second line. The
+     * label is CLIPPED rather than removed, so the button keeps its accessible
+     * name -- display:none would leave a control announced as nothing at all.
+     */
+    .tshow__register-label {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        margin: -1px;
+        padding: 0;
+        overflow: hidden;
+        clip-path: inset(50%);
+        white-space: nowrap;
+        border: 0;
+    }
+
+    /* The same 2rem box as .action, which is what the delete control beside
+       every player row is. Two icon buttons on one card at two different sizes
+       reads as two different kinds of thing; they are the same kind.
+     *
+     * min-width as well as width: .btn sets a min-height of its own, and
+       without overriding the inline size the padding would hold the box open
+       wider than the square. */
+    .tshow__register-btn {
+        /* Height comes from .btn--sm, which is 2rem to match .action. Only the
+           inline size is set here: with the label clipped, the padding was
+           holding the box open wider than the square. */
+        width: 2rem;
+        min-width: 2rem;
+        padding: 0;
+    }
+
+    .tshow__register-btn svg {
+        width: 1.125rem;
+        height: 1.125rem;
+    }
+
+    /* The name shares its line with whatever acts on it.
+     *
+     * .entry__body carries flex: 1 1 12rem, and 12rem of basis is more than a
+     * phone can give it beside a button -- so the row wrapped and every player
+     * took two lines, name above, controls below, right-aligned under nothing.
+     *
+     * A smaller basis lets the two sit together and lets a long name wrap
+     * inside its own column instead of pushing the buttons off the row. Scoped
+     * to this panel: the dashboard's entry rows are a different shape and were
+     * never the complaint. */
+    .tshow__players .entry__body {
+        /* 4rem, and the number is the wrap threshold rather than a width.
+         *
+         * Flex decides whether to wrap from the BASES, before any shrinking:
+         * at 320 the row offers 262px of content and monogram + body + actions
+         * + gaps came to 290 at a 6rem basis, so the actions dropped to a line
+         * of their own. At 4rem they fit, and flex-grow still fills the name
+         * column out to whatever is left -- so 375 is unchanged and the name
+         * wraps inside its own column rather than pushing the buttons off the
+         * row. */
+        flex: 1 1 4rem;
+    }
+
+    /* Tighter than the row's default 1rem, which at this width is most of what
+       the name has to give up. */
+    .tshow__players .entry {
+        gap: var(--space-2);
+        padding-inline: var(--space-4);
+    }
 }

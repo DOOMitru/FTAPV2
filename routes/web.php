@@ -40,6 +40,7 @@ Route::get('/', function () {
     // what either word means.
     $topByPoints = collect();
     $topByWins = collect();
+    $topByRank = collect();
 
     if (auth()->check() && $currentSeason) {
         $standings = $currentSeason->results()->get()
@@ -56,13 +57,18 @@ Route::get('/', function () {
         // Anyone on nil wins is not "leading on wins"; an empty list says that
         // honestly, where three names on zero would not.
         $topByWins = $standings->where('wins', '>', 0)->sortByDesc('wins')->take(3)->values();
+
+        // The same board the dashboard puts a player's own rank against, so the
+        // two cannot disagree about what a rank is: points per tournament
+        // ENTERED, not points.
+        $topByRank = $currentSeason->rankings()->take(3);
     }
 
     // ordered() -- the same scope the admin list uses, so what an
     // administrator arranges is what this page renders.
     $sponsors = \App\Models\Sponsor::ordered()->get();
 
-    return view('home', compact('currentSeason', 'nextTournament', 'sponsors', 'topByPoints', 'topByWins'));
+    return view('home', compact('currentSeason', 'nextTournament', 'sponsors', 'topByRank', 'topByWins', 'topByPoints'));
 })->name('home');
 
 Route::prefix('about')->name('about.')->group(function () {

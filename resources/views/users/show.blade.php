@@ -164,7 +164,7 @@
 
                 @if ($user->isApproved())
                     <form action="{{ route('users.reject', $user) }}" method="POST"
-                          data-confirm="{{ __('Reject :name? They keep their account but cannot enter tournaments.', ['name' => $user->first_name.' '.$user->last_name]) }}">
+                          data-confirm="{{ __('Reject :name? They keep their account but cannot enter tournaments.', ['name' => emph($user->first_name.' '.$user->last_name)]) }}">
                         @csrf
                         @method('PATCH')
 

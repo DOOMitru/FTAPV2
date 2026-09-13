@@ -34,3 +34,11 @@
 .alert--danger {
     border-inline-start-color: var(--c-primary);
 }
+
+/* An entity's name inside a message: which venue, which player, which season.
+   The sentence around it is the same every time, so the name is the only part
+   being read. Weight alone, no colour -- these sit inside alerts that already
+   carry a colour of their own, and a second one would fight it. */
+.emph {
+    font-weight: 700;
+}

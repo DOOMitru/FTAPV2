@@ -34,9 +34,28 @@
 
             <div class="p-archive">
                 @foreach ($pastTournaments as $tournament)
-                    <a class="p-archive__card p-raised p-lift" href="{{ route('tournaments.show', $tournament) }}">
+                    {{-- A link only for somebody who can follow it.
+                         tournaments.show is behind the auth middleware, so for a
+                         guest the whole card was a bounce to the login screen --
+                         not just the "Full results" line at the foot of it, the
+                         entire card, which is one big <a>. Hiding the line alone
+                         would take away the signpost and leave the trap.
+
+                         So the tag itself changes: an <a> when it can go
+                         somewhere, a <div> when it cannot. p-lift goes with it,
+                         because a card that rises to meet the pointer is
+                         promising something to click. --}}
+                    @php $linked = auth()->check(); @endphp
+
+                    <{{ $linked ? 'a' : 'div' }} class="p-archive__card p-raised{{ $linked ? ' p-lift' : '' }}"
+                        @if ($linked) href="{{ route('tournaments.show', $tournament) }}" @endif>
                         <div class="l-cluster l-cluster--between">
-                            <span class="u-eyebrow">{{ $tournament->start_time->format('M Y') }}</span>
+                            {{-- The day as well as the month. A league plays
+                                 several nights a month, so "Sep 2026" named a
+                                 handful of these cards at once and told you
+                                 which one you were looking at only by its
+                                 title. --}}
+                            <span class="u-eyebrow">{{ $tournament->start_time->format('M d, Y') }}</span>
                             <x-badge>{{ __('Completed') }}</x-badge>
                         </div>
 
@@ -62,15 +81,17 @@
                             </ol>
                         @endif
 
-                        <div class="p-archive__foot">
-                            <span class="p-archive__more">{{ __('Full results') }}</span>
+                        @if ($linked)
+                            <div class="p-archive__foot">
+                                <span class="p-archive__more">{{ __('Full results') }}</span>
 
-                            <svg class="p-archive__arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                 stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                                <path d="M17 8l4 4m0 0l-4 4m4-4H3"/>
-                            </svg>
-                        </div>
-                    </a>
+                                <svg class="p-archive__arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                     stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                    <path d="M17 8l4 4m0 0l-4 4m4-4H3"/>
+                                </svg>
+                            </div>
+                        @endif
+                    </{{ $linked ? 'a' : 'div' }}>
                 @endforeach
             </div>
         </section>

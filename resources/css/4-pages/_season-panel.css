@@ -1,0 +1,190 @@
+/* The player's standing in the season now being played.
+ *
+ * Replaces a row of KPI tiles. Seven figures about one season, three of which
+ * -- firsts, seconds, thirds -- are one idea: as tiles they were three cards
+ * each holding a small integer, usually 0, in a four-wide grid that left an
+ * orphan row underneath.
+ *
+ * Three blocks, in the order they are read: where you stand and why, what you
+ * won, and the totals behind it. Side by side when the card is wide enough and
+ * stacked when it is not -- in one column down the left of a full-width card
+ * they crowded each other inside about 400px while two thirds of the card sat
+ * empty.
+ */
+.season__grid {
+    display: grid;
+    gap: var(--space-5);
+}
+
+/* Stacked: a rule above each block after the first, the way a card separates
+   its own sections.
+ *
+ * Keyed on .season__block rather than on `> * + *`, and that is load-bearing.
+ * The reset in 1-base matches `ul[class]` -- specificity (0,1,1) -- which
+ * OUTRANKS a child-and-sibling rule built from one class and two universals
+ * (0,1,0). The medals are a <ul class> and the totals are a <dl>, so the
+ * padding landed on one and not the other while the border, which the reset
+ * says nothing about, landed on both. Measured, after two wrong guesses at it:
+ * the middle column computed padding-left 0px beside a 1px border from the very
+ * same declaration block. */
+.season__block + .season__block {
+    padding-block-start: var(--space-5);
+    border-block-start: var(--border-width) solid var(--c-border);
+}
+
+
+/* The label sits above its figure, where every other label in this panel sits
+   beside one. It is the only figure here big enough that a label alongside it
+   has nowhere to sit without either crowding it or floating oddly off its
+   baseline. */
+.season__rank-label {
+    display: block;
+    margin: 0 0 var(--space-2);
+}
+
+/* Rank on the left, the reasoning for it on the right -- the same shape as
+   every row beside it, where the words are on the left and the number is
+   pushed to the far side. Here the big figure is the subject and the words
+   are the gloss, so the two swap ends.
+
+   Tops aligned, not baselines. On a baseline the reasoning's first line sat on
+   the numeral's foot, which put its top most of the numeral's height below the
+   top of the figure it explains -- they read as two things at different
+   heights rather than one figure and its gloss. */
+.season__standing-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--space-2) var(--space-4);
+}
+
+.season__ratio {
+    text-align: end;
+    /* An optical nudge, and a measured one.
+     *
+     * flex-start aligns the two BOXES, which is not the same as aligning the
+     * two texts: the numeral is 56px at line-height 1, so its glyphs overflow
+     * the top of their own box by 3.2px, while this text is 15px at 1.55 and
+     * sits 2.8px INSIDE the top of its box on half-leading. Boxes flush, inks
+     * 6px apart -- plainly so at the sizes involved, which is why it was worth
+     * fixing rather than living with.
+     *
+     * There is no aligning by cap height in CSS I can rely on here
+     * (text-box-trim is too new to ship against), so the leading is taken back
+     * by hand. 0.375rem is that 6px, measured in the browser rather than
+     * guessed: glyph tops now sit 0px apart at 1440 and 1px apart at 500, where
+     * the rank's fluid size has dropped to 40px and overflows its box by a
+     * little less. One pixel is under the threshold of noticing; six was not.
+     *
+     * It is a function of THESE two type steps. Change either and measure it
+     * again. */
+    margin-block-start: -0.375rem;
+}
+
+/* The headline figure on the page, so it is sized like one. */
+.season__rank-value {
+    font-family: var(--font-display);
+    font-size: var(--step-4);
+    font-weight: 800;
+    line-height: 1;
+    letter-spacing: -0.02em;
+    font-variant-numeric: tabular-nums;
+}
+
+.season__rank-label,
+.season__total-label {
+    font-size: var(--step--2);
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--c-text-muted);
+}
+
+.season__ratio-main {
+    margin: 0;
+    font-size: var(--step-0);
+    font-weight: 600;
+}
+
+.season__ratio-sub {
+    margin: var(--space-2) 0 0;
+    font-size: var(--step--2);
+    line-height: 1.5;
+    color: var(--c-text-muted);
+}
+
+/* Both figure columns: the podium and the totals. Label and figure on one line
+   with the figure pushed to the end, so a column of them lines up on the right
+   and can be read down rather than hunted for.
+
+   One rule for both, because they are the same thing -- a labelled count. The
+   podium's labels happen to carry a medal. */
+.season__podium,
+.season__totals {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    margin: 0;
+}
+
+.season__total {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-4);
+}
+
+/* The label is a badge and some words, so it is a row rather than a string.
+   align-items centre, not baseline: a disc has no baseline to sit on and
+   aligning it to one drops it below the text. */
+.season__total-label {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+/* An empty .rank is a medal and nothing else. Without content its width comes
+   from min-width alone, which is what makes it a disc rather than a pill. */
+.season__total-label .rank {
+    flex: 0 0 auto;
+}
+
+.season__total-value {
+    margin: 0;
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    font-size: var(--step-1);
+    font-weight: 700;
+}
+
+/* LAST in the file, and that is load-bearing.
+ *
+ * `.season__grid > * + *` and `.season__podium` have the same specificity, so
+ * whichever comes second wins -- and .season__podium resets a list with the
+ * `padding` SHORTHAND, which takes padding-inline-start with it. Declared
+ * above, the side-by-side padding was silently dropped from the middle column
+ * and its divider sat flush against the medals while the other one kept its
+ * gap. Same trap as every other single-class collision in this project.
+ *
+ * 60rem is this page's own breakpoint for going side by side -- the width
+ * .l-sidebar collapses at -- so the dashboard changes shape once, not twice.
+ *
+ * The standing column is widest because it carries a sentence; the other two
+ * carry figures.
+ */
+@media (min-width: 60rem) {
+    .season__grid {
+        grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr) minmax(0, 1fr);
+        gap: var(--space-6);
+        align-items: start;
+    }
+
+    /* The rule turns with the layout: it separates columns now, not rows. */
+    .season__block + .season__block {
+        padding-block-start: 0;
+        padding-inline-start: var(--space-6);
+        border-block-start: 0;
+        border-inline-start: var(--border-width) solid var(--c-border);
+    }
+}

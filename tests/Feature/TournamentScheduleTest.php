@@ -41,16 +41,35 @@ class TournamentScheduleTest extends TestCase
         $this->assertFalse(Schema::hasColumn('tournaments', 'scheduled_at'));
     }
 
-    public function test_a_player_can_enter_after_play_has_begun(): void
+    public function test_a_player_cannot_enter_once_play_has_begun(): void
     {
-        // The case the deadline existed to refuse, and the one this league
-        // actually has: somebody arrives at half past seven. It is safe because
-        // the shift hook moves any recorded finish down to match the bigger
-        // field -- joining a field of ten makes it a field of eleven.
+        // This test used to assert the opposite, and the reasoning it carried
+        // was about SAFETY: a late entry is arithmetically fine, because the
+        // shift hook moves every recorded finish down to match the bigger
+        // field. That is still true, and it is why an administrator may do it.
+        //
+        // It is a different question from whether a PLAYER should. Once the
+        // cards are in the air the field is whatever is sitting at the tables,
+        // and somebody adding themselves from a phone changes how many places
+        // there are to hand out for a game already under way. So the answer is
+        // now: not on their own, but an administrator can enter them.
         $player = User::factory()->create(['is_admin' => false, 'approval_status' => 'approved']);
         $tournament = $this->makeTournament(startTime: now()->subHour());
 
         $this->actingAs($player)->post(route('tournaments.register', $tournament))
+            ->assertSessionHas('error');
+
+        $this->assertDatabaseMissing('tournament_registrants', [
+            'tournament_id' => $tournament->id,
+            'user_id' => $player->id,
+        ]);
+
+        // The half that keeps the league working: somebody arrives at half past
+        // seven and the administrator enters them.
+        $admin = User::factory()->create(['is_admin' => true, 'approval_status' => 'approved']);
+
+        $this->actingAs($admin)
+            ->post(route('tournaments.register', $tournament), ['user_id' => $player->id])
             ->assertSessionHas('status');
 
         $this->assertDatabaseHas('tournament_registrants', [

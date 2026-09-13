@@ -1,0 +1,180 @@
+/* The admin's register-players dialog.
+ *
+ * Named for entering a tournament, which is what "register" means everywhere
+ * else in this app -- the route is tournaments.register. NOT the public sign-up
+ * page: that is 5-public/_register.css, whose every class is p-prefixed, which
+ * is why .register is free here.
+ *
+ * A native <dialog>, shaped like .confirm beside it -- same surface, border,
+ * radius, overlay shadow and backdrop value -- because the two are the same
+ * component family even though one asks a question and this one is a workspace.
+ *
+ * Wider than .confirm and taller, because it is not a sentence: it holds a
+ * search box, ten rows and a note, and it stays open while an administrator
+ * works through a league night's entries.
+ */
+.register {
+    margin: auto;
+    width: min(34rem, calc(100vw - 2 * var(--space-4)));
+    /* The list inside scrolls, not the dialog: the search box and the Done
+       button must stay reachable however many rows match. */
+    max-height: min(42rem, calc(100vh - 2 * var(--space-6)));
+    padding: var(--space-5);
+    border: var(--border-width) solid var(--c-border);
+    border-radius: var(--radius);
+    background-color: var(--c-surface);
+    color: var(--c-text);
+    box-shadow: var(--shadow-overlay);
+}
+
+/* display belongs on [open] and NOWHERE else.
+ *
+ * A closed <dialog> is display: none by the UA stylesheet, and any display
+ * declaration on the element itself beats it -- the dialog then renders in the
+ * page flow, permanently visible, at the bottom of the document. Which is
+ * exactly what this did: the layout went on .register, every screenshot was
+ * taken after showModal(), and the closed state was never looked at.
+ *
+ * .confirm beside it never hit this because it needs no inner layout and so
+ * never set display at all. DialogDisplayGuardTest now holds the rule for both. */
+.register[open] {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+}
+
+/* The same scrim .confirm and .modal__backdrop use. Literal in all three: they
+   must agree, and one of them being a token while the others are not is how
+   they would stop agreeing. */
+.register::backdrop {
+    background-color: rgb(11 15 25 / 0.7);
+}
+
+.register__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-4);
+}
+
+.register__title {
+    margin: 0;
+    font-family: var(--font-display);
+    font-size: var(--step-0);
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+}
+
+.register__search {
+    flex: 0 0 auto;
+}
+
+/* Overrides .picker's own 20rem cap. The dialog already bounds its own height,
+   so the list should take whatever is left rather than stopping short of it and
+   leaving a band of empty dialog under ten rows. */
+.register__list {
+    flex: 1 1 auto;
+    max-height: none;
+}
+
+/* A row for somebody already in this tournament. Not a <button>, so there is
+   nothing to click and nothing to focus -- the markup says inert rather than
+   the styling implying it. Kept legible rather than greyed to the edge of
+   readable: the name is the reason the row is here. */
+.picker__btn--inert {
+    cursor: default;
+    background-color: var(--c-surface-raised);
+    color: var(--c-text-muted);
+}
+
+.picker__btn--inert:hover {
+    border-inline-start-color: transparent;
+}
+
+/* How many tournaments this player has entered, which is what the list is
+   ordered by. Muted and monospaced: it is a figure to compare down a column,
+   not a thing to read. */
+.picker__count {
+    /* The name wraps before this does. On a phone "16 tournaments" broke after
+       the number, which reads as two figures for a moment; a long name folding
+       onto a second line does not. */
+    white-space: nowrap;
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    font-size: var(--step--2);
+    color: var(--c-text-muted);
+}
+
+.register__note {
+    margin: 0;
+    font-size: var(--step--2);
+    color: var(--c-text-muted);
+}
+
+/* Two lines per row, not three.
+ *
+ * .picker__btn stacks its children in a column, which put the name, the email
+ * and the count on three lines each -- ten rows then ran to about 870px and
+ * only five of the ten fitted the dialog. The count moves up beside the name,
+ * where it is also easier to compare down the column, and the row loses a
+ * third of its height.
+ *
+ * Explicit placement rather than grid-template-areas: an area map has to keep
+ * its row cell-counts matching the column count or the whole declaration is
+ * dropped silently, and there is nothing here that needs one. */
+.register .picker__btn {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    column-gap: var(--space-4);
+    align-items: center;
+}
+
+.register .picker__name {
+    grid-column: 1;
+    grid-row: 1;
+}
+
+.register .picker__count {
+    grid-column: 2;
+    grid-row: 1;
+}
+
+.register .picker__meta {
+    grid-column: 1;
+    grid-row: 2;
+}
+
+/* What just happened, inside the dialog.
+ *
+ * The page's own alerts are behind the backdrop while this is open, so these
+ * are not a second copy of them -- they are the only copy the administrator can
+ * see while working through a league night's entries. */
+.register__flash {
+    margin: 0;
+    padding: var(--space-3) var(--space-4);
+    border-inline-start: 3px solid transparent;
+    border-radius: var(--radius-sm);
+    font-size: var(--step--1);
+}
+
+.register__flash--done {
+    border-inline-start-color: var(--c-open);
+    background-color: var(--c-surface-raised);
+}
+
+/* --c-primary, matching .alert--danger. There is no separate danger token in
+   this system: the brand red IS the alarm colour, and inventing a second one
+   here would put two reds on the page that disagree by a few points. */
+.register__flash--error {
+    border-inline-start-color: var(--c-primary);
+    background-color: var(--c-surface-raised);
+}
+
+/* The name, not the sentence. After eight registrations the sentence is
+   wallpaper and this is the only part still being read, so it carries the
+   weight and the colour. */
+.register__flash-name {
+    font-weight: 700;
+    color: var(--c-primary);
+}

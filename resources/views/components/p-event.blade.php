@@ -1,12 +1,24 @@
-@props(['tournament', 'details' => true])
+@props(['tournament', 'details' => true, 'map' => true])
+
+@php
+    // Whether the map actually renders, which is not the same as the prop: a
+    // venue with no address has never drawn one. The card's min-height exists
+    // for the map, so the class that drops it keys on this, not on `map`.
+    $showMap = $map && $tournament->venue && $tournament->venue->address;
+@endphp
 
 {{-- One upcoming-event card, shared by the events page, the home page and the
      tournament details page. Extracted rather than copied: the three would
      drift, and this card already carries four conditional branches --
      registration open, already registered, awaiting approval, closed -- that
      must agree with the controller wherever it is drawn. --}}
-<article class="p-event p-raised">
-    @if ($tournament->venue && $tournament->venue->address)
+<article class="p-event p-raised{{ $showMap ? '' : ' p-event--mapless' }}">
+    {{-- The map is the public card's opening image. The details page turns it
+         off: that page is reached from inside the dashboard by people who
+         already know where the league plays, and a third of the card spent on
+         an embedded map pushes the panels that page exists for below the
+         fold. --}}
+    @if ($showMap)
         <div class="map">
             <iframe title="{{ __('Map of :venue', ['venue' => $tournament->venue->name]) }}"
                     loading="lazy" referrerpolicy="no-referrer-when-downgrade"
@@ -71,6 +83,7 @@
                  positioned over them -- .p-event has overflow:hidden to clip
                  the map to the card's corners, and an absolutely placed panel
                  would be cut off by it. --}}
+            @auth
             <x-dropdown class="p-event__menu">
                 <x-slot name="trigger">
                     {{-- type="button": this sits inside the card and, on the
@@ -90,16 +103,12 @@
                 </x-slot>
 
                 <x-slot name="content">
-                    {{-- The details page draws this same card and IS the
-                         destination; an entry pointing at the page you are on
-                         is noise. --}}
-                    @if ($details)
-                        <x-dropdown-link :href="route('tournaments.show', $tournament)">
-                            {{ __('Details') }}
-                        </x-dropdown-link>
-                    @endif
+                    {{-- Details is not in here any more: it is a button in the
+                         action row, beside Register. It was the one entry most
+                         people opened this menu for, and it was two clicks
+                         behind a kebab.
 
-                    {{-- Signed in only, and not for tidiness: seasons.show is
+                         Signed in only, and not for tidiness: seasons.show is
                          behind the auth middleware, so a guest offered this
                          would be bounced to the login screen by the very next
                          request. --}}
@@ -118,6 +127,7 @@
                     @endauth
                 </x-slot>
             </x-dropdown>
+            @endauth
         </div>
 
         {{-- The date as a calendar leaf, beside the name it belongs to. It was
@@ -151,8 +161,24 @@
                     {{ $tournament->venue->name ?? __('Location TBD') }}
                 </p>
 
-                {{-- The calendar leaf is aria-hidden, so this line carries the
-                     whole date for a screen reader rather than the time alone. --}}
+                {{-- The date as a line, drawn only on a narrow card where the
+                     calendar leaf is not. aria-hidden like the leaf it stands
+                     in for: the time line below still carries the whole date
+                     for a screen reader, so neither of these is announced and
+                     the date is never said twice. --}}
+                <p class="p-event__date" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                         stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <rect x="3" y="5" width="18" height="16" rx="2"/>
+                        <path d="M16 3v4M8 3v4M3 11h18"/>
+                    </svg>
+
+                    {{ $tournament->start_time->format('D, M j') }}
+                </p>
+
+                {{-- The calendar leaf and the date line are both aria-hidden, so
+                     this line carries the whole date for a screen reader rather
+                     than the time alone. --}}
                 <p class="p-event__time">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                          stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -186,9 +212,15 @@
             // moves recorded finishes down to match the bigger field -- so the
             // only things stopping a player entering are being in already and
             // not being approved yet.
+            // ! hasStarted() for a player, and not for an administrator: the
+            // controller's rule exactly. A player's window closes when the
+            // cards go in the air; an administrator registers from the room
+            // until the results are published, which is why this card still
+            // offers them the button on a game already under way.
             $canRegister = auth()->check()
                 && ! $isRegistered
-                && auth()->user()->isApproved();
+                && auth()->user()->isApproved()
+                && (auth()->user()->is_admin || ! $tournament->hasStarted());
 
             // The controller's one rule, restated. Withdrawing is refused only
             // once a finish is on record, because a place is a position in a
@@ -206,17 +238,38 @@
             // willing to let you undo it. The slot had no other caller, so it
             // is gone rather than left as an extension point nothing extends.
             $canUnregister = $isRegistered && ! $tournament->hasRecordedResults();
+
+            // Signed in only. tournaments.show is behind the auth middleware,
+            // so a guest offered this would be bounced to the login screen by
+            // the very next request -- the same rule the menu already applied
+            // to Season Standings and the venue report, and the same rule
+            // Details itself should have been under while it lived in there.
+            $showDetails = $details && auth()->check();
         @endphp
 
-        @if ($isRegistered || $canRegister || $canUnregister)
+        @if ($isRegistered || $canRegister || $canUnregister || $showDetails)
             <div class="p-event__actions">
                 {{-- At the start of the row; the buttons take the end. --}}
                 @if ($isRegistered)
                     <x-badge variant="open">{{ __('Registered') }}</x-badge>
                 @endif
 
-                @if ($canRegister || $canUnregister)
+                {{-- Only when it holds something. Unconditional it rendered an
+                     empty div on a settled tournament -- nothing to register
+                     for, nothing to withdraw from, and on the details page no
+                     Details either. --}}
+                @if ($showDetails || $canRegister || $canUnregister)
                 <div class="p-event__actions-end">
+                {{-- First, so it sits to the LEFT of Register -- and alone in
+                     the row when there is nothing to register for. Ghost,
+                     because reading about the night is not what the card is
+                     asking you to do; Register stays the one primary button. --}}
+                @if ($showDetails)
+                    <x-btn variant="ghost" :href="route('tournaments.show', $tournament)">
+                        {{ __('Details') }}
+                    </x-btn>
+                @endif
+
                 @if ($canRegister)
                     {{-- Primary: it is the thing the card wants you to do. --}}
                     <form action="{{ route('tournaments.register', $tournament) }}" method="POST">
@@ -239,7 +292,7 @@
                 @if ($canUnregister)
                     <form action="{{ route('tournaments.unregister', $tournament) }}" method="POST"
                           data-confirm="{{ __('Unregister from :tournament? You can enter again any time before results are recorded.', [
-                              'tournament' => $tournament->name,
+                              'tournament' => emph($tournament->name),
                           ]) }}">
                         @csrf
                         @method('DELETE')

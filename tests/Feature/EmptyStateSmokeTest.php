@@ -153,19 +153,17 @@ class EmptyStateSmokeTest extends TestCase
     /**
      * A PokerTournament with no registrants and no results.
      *
-     * poker/tournaments/show.blade.php's Final Standings @forelse/@empty
-     * block only renders at all when $isPast is true, and $isPast is
-     * derived from start_time. A single future-dated fixture therefore
-     * only ever exercises the
-     * Registered Players @empty branch: $isPast is false, so the Final
-     * Standings section (and its "No results recorded yet." empty arm)
-     * is skipped by the @if($isPast) wrapper and never rendered at all —
-     * "no results" coverage was incidental, not real. This covers both:
-     * a future-dated tournament (registrants-empty path, registration
-     * still open) and a past-dated one (registrants-empty *and*
-     * standings-empty paths, since $isPast is now true). Both empty-state
-     * strings are asserted directly so the coverage is enforced, not just
-     * "didn't 500 or leak Blade syntax".
+     * This used to cover two @forelse/@empty blocks -- Final Standings and
+     * Registered Players -- and turned on the difference between them: the
+     * standings block only rendered when $isPast was true, so a future-dated
+     * fixture alone never reached its empty arm and the "no results" coverage
+     * was incidental rather than real.
+     *
+     * The two panels are one panel now, so there is one empty state rather than
+     * two, and it does not depend on $isPast. Both fixtures are kept even so:
+     * the merged card renders different controls either side of the start time,
+     * and an empty list is where an @empty arm and a missing $standings would
+     * both surface.
      */
     public function test_tournament_show_renders_with_no_registrants_and_no_results(): void
     {
@@ -192,8 +190,6 @@ class EmptyStateSmokeTest extends TestCase
             'season_id' => $season->id,
         ]);
 
-        // start_time is in the past, so $isPast is true and the Final
-        // Standings section (and its @empty arm) actually renders.
         $pastTournament = PokerTournament::create([
             'name' => 'Concluded Untouched Tournament',
             'start_time' => now()->subWeeks(2)->addMinutes(30),
@@ -206,15 +202,16 @@ class EmptyStateSmokeTest extends TestCase
             fn (string $uri) => $this->actingAs($admin)->get($uri)
         );
 
-        // Registrants-empty path (both future and past tournaments have no
-        // registrants).
-        $this->actingAs($admin)->get('tournaments/'.$futureTournament->id)
-            ->assertSee('No players registered yet.');
-
-        // Standings-empty path only exists once $isPast is true.
-        $pastResponse = $this->actingAs($admin)->get('tournaments/'.$pastTournament->id);
-        $pastResponse->assertSee('No players registered yet.');
-        $pastResponse->assertSee('No results recorded yet.');
+        foreach ([$futureTournament, $pastTournament] as $tournament) {
+            $this->actingAs($admin)->get('tournaments/'.$tournament->id)
+                ->assertSee('No players registered yet.')
+                // Nothing has been played, so the panel does not claim to be
+                // standings of anything. isComplete() is false on an empty
+                // field, which is what keeps "Final" off an untouched past
+                // tournament.
+                ->assertSee('Registered Players')
+                ->assertDontSee('Final Standings');
+        }
     }
 
     /**

@@ -136,97 +136,30 @@
     color: var(--c-text-muted);
 }
 
-/* A finishing podium. DOM order is 1-2-3 -- the winner is announced first --
-   while `order` puts 2-1-3 on screen. CSS reordering does not touch the
-   accessibility tree, which is exactly why `order` exists. The original markup
-   was sequenced 2nd, 1st, 3rd, so a screen reader met the runner-up first. */
-.podium {
+/* A note in two parts -- a sentence and a link -- sharing a line where there is
+ * room and taking one each where there is not.
+ *
+ * As plain inline content the link wrapped mid-phrase on a phone: "See the
+ * full" ended one line and "schedule" began the next, with the underline
+ * broken across the two. A link is one target and should look like one.
+ */
+.card__note--split {
     display: flex;
-    align-items: flex-end;
+    flex-wrap: wrap;
+    align-items: baseline;
     justify-content: center;
-    gap: var(--space-4);
+    gap: var(--space-1) var(--space-2);
 }
 
-.podium__place {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: var(--space-2);
-}
-
-.podium__place--1 { order: 2; }
-.podium__place--2 { order: 1; }
-.podium__place--3 { order: 3; }
-
-.podium__seat {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 2.5rem;
-    height: 2.5rem;
-    border: var(--border-width) solid var(--c-border);
-    border-radius: var(--radius-pill);
-    background-color: var(--c-surface-raised);
-    font-family: var(--font-mono);
-    font-size: var(--step--1);
-    font-weight: 600;
-}
-
-/* The seats carry the medals. Previously only 1st was distinguished and it
-   used --c-primary, so the podium said "first" but never "second" or "third".
-   Ink is fixed rather than themed because the medal grounds are: #16171B on
-   gold is 7.54:1, on silver 7.71:1, on bronze 4.72:1, in both themes. */
-.podium__place--1 .podium__seat,
-.podium__place--2 .podium__seat,
-.podium__place--3 .podium__seat {
-    border-color: transparent;
-    color: var(--c-medal-ink);
-    font-weight: 700;
-}
-
-.podium__place--1 .podium__seat {
-    width: 3.25rem;
-    height: 3.25rem;
-    background-color: var(--c-gold);
-    font-size: var(--step-1);
-}
-
-.podium__place--2 .podium__seat { background-color: var(--c-silver); }
-.podium__place--3 .podium__seat { background-color: var(--c-bronze); }
-
-
-/* The riser. Height carries the ranking; the numeral repeats it for anyone who
-   cannot see the heights. */
-.podium__step {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 2.5rem;
-    border-start-start-radius: var(--radius);
-    border-start-end-radius: var(--radius);
-    background-color: var(--c-surface-raised);
-    font-family: var(--font-mono);
-    font-size: var(--step--2);
-    font-weight: 600;
-    color: var(--c-text-muted);
-}
-
-/* The step below each seat echoes its medal, quietly -- the seat is the loud
-   element and spending the colour twice at full strength would flatten both. */
-.podium__place--1 .podium__step { height: 3rem; background-color: var(--c-gold); color: var(--c-medal-ink); }
-.podium__place--2 .podium__step { background-color: var(--c-silver); color: var(--c-medal-ink); }
-.podium__place--3 .podium__step { background-color: var(--c-bronze); color: var(--c-medal-ink); }
-.podium__place--2 .podium__step { height: 2rem; }
-.podium__place--3 .podium__step { height: 1.25rem; }
-
-.podium__name {
-    max-width: 7rem;
-    overflow: hidden;
-    font-size: var(--step--2);
-    text-align: center;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    color: var(--c-text-muted);
+@media (max-width: 48rem) {
+    /* Column, so the two never share a line at all rather than sharing one
+       until the link happens not to fit. align-items carries the centring here:
+       in a column it is the cross axis that runs across the card, and
+       justify-content has stopped being the one that does. */
+    .card__note--split {
+        flex-direction: column;
+        align-items: center;
+    }
 }
 
 /* A whole row that is a link.

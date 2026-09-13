@@ -57,7 +57,7 @@
                                      containing an apostrophe would break out of the string
                                      literal. See resources/js/confirm.ts. --}}
                                 <form action="{{ route('poker.seasons.destroy', $season) }}" method="POST"
-                                      data-confirm="{{ __('Delete :name? This cannot be undone.', ['name' => $season->name]) }}">
+                                      data-confirm="{{ __('Delete :name? This cannot be undone.', ['name' => emph($season->name)]) }}">
                                     @csrf
                                     @method('DELETE')
 

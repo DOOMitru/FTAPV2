@@ -71,7 +71,12 @@ class DeleteConfirmationTest extends TestCase
      */
     private function confirmationsOn(string $url): array
     {
-        $html = $this->actingAs($this->admin())->get($url)->assertOk()->getContent();
+        // Emphasis markers stripped: this file is about what the sentences
+        // SAY, and the markers are invisible, so a mismatch would print two
+        // identical-looking strings.
+        $html = $this->withoutEmphasis(
+            $this->actingAs($this->admin())->get($url)->assertOk()->getContent()
+        );
 
         $dom = new \DOMDocument();
         @$dom->loadHTML('<?xml encoding="UTF-8">'.$html);

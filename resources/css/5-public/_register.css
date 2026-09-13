@@ -1046,6 +1046,15 @@
     overflow: hidden;
 }
 
+/* No map, no floor. The 20rem above is the map's 18rem plus padding -- it stops
+   a card with a map being a letterbox. With the map off (the tournament details
+   page) nothing needs that height, and because .p-event__actions pushes itself
+   down with margin-block-start:auto the surplus lands as a band of nothing
+   between the date and the buttons rather than as breathing room. */
+.p-event--mapless {
+    min-height: 0;
+}
+
 .p-event__body {
     display: flex;
     flex-direction: column;
@@ -1226,6 +1235,21 @@
     letter-spacing: 0.03em;
 }
 
+/* The date as a line, for the narrow card. Hidden by default, because on a wide
+   one the calendar leaf beside these lines already says it -- and two of them
+   would say it twice. */
+.p-event__date {
+    display: none;
+    align-items: start;
+    gap: var(--space-3);
+    margin-block-start: var(--space-2);
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    font-size: var(--step-0);
+    font-weight: 600;
+    line-height: var(--leading-tight);
+}
+
 .p-event__time {
     display: flex;
     align-items: start;
@@ -1249,6 +1273,7 @@
  * the element's own line height, so one expression is correct for the venue at
  * --step-1 and the time at --step-0 without either being measured by hand. */
 .p-event__venue svg,
+.p-event__date svg,
 .p-event__time svg {
     flex: 0 0 auto;
     /* Box as wide as the shared column, drawn at its own size. An svg with no
@@ -1277,6 +1302,25 @@
 
 .p-event__menu {
     flex: 0 0 auto;
+}
+
+/* On a phone the calendar leaf becomes a line.
+ *
+ * The leaf is a bordered block 4.5rem wide standing beside two lines of text.
+ * On a wide card that is a nice piece of furniture; on a phone it is a sixth of
+ * the card's width spent on three words, and it pushes the venue -- the thing
+ * you actually read first -- into a narrow column beside it.
+ *
+ * The same date reads as a line between the venue and the time, which is where
+ * the eye is already travelling: where, when, what time. */
+@media (max-width: 48rem) {
+    .p-event__when {
+        display: none;
+    }
+
+    .p-event__date {
+        display: flex;
+    }
 }
 
 /* Where you stand about entering, and the control that changes it, on one
@@ -1652,7 +1696,13 @@
 /* Shown to a signed-in player in place of the Join / Learn more buttons: they
    have already joined, and offering to sign them up again is asking for
    something they have done. */
+/* Flex rather than plain inline text, so the greeting and the name can take a
+   line each below without a second copy of the markup -- the same arrangement
+   .site-footer__sig and .p-lead__tagline use, and for the same reason. */
 .p-lead__welcome-line {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0 0.3em;
     font-family: var(--font-display);
     font-size: var(--step-3);
     line-height: var(--leading-tight);
@@ -1703,6 +1753,21 @@
     .p-lead__lede {
         margin-block-start: var(--space-3);
         font-size: var(--step-0);
+    }
+
+    /* The greeting on one line, the player's name on the next.
+     *
+     * "Welcome back, Anastacio." does not fit across a phone at this weight and
+     * wrapped wherever it ran out -- three lines at 320, two at 375, and the
+     * break landing inside the greeting rather than after it.
+     *
+     * step-2 as well, matching .p-lead__title above: at step-3 this line was
+     * set LARGER than the page's own heading on the one screen where space is
+     * scarcest. */
+    .p-lead__welcome-line {
+        flex-direction: column;
+        gap: 0;
+        font-size: var(--step-2);
     }
 }
 

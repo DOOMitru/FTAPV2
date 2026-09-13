@@ -64,4 +64,37 @@ class VenuePoints extends Model
     {
         return $this->belongsTo(PokerSeason::class, 'season_id');
     }
+
+    /**
+     * Who may read one player's venue tally.
+     *
+     * The league's rule, in one place: the player it belongs to, and the
+     * admins who award it. Nobody else, on any page, signed in or not.
+     *
+     * It lives on the model rather than in each controller because the rule is
+     * the league's, not any one screen's -- a second copy of it somewhere else
+     * is a copy that can drift. Every surface that puts a tally in front of
+     * somebody asks this, or sits behind the admin middleware.
+     *
+     * The finale THRESHOLD is deliberately NOT covered. It is a published
+     * target rather than anybody's tally, and it is printed on the landing
+     * page for people who have not signed in at all.
+     *
+     * @param  ?User  $viewer  the signed-in user, or null for a guest
+     * @param  ?string  $ownerId  the id of the player the tally belongs to
+     */
+    public static function readableBy(?User $viewer, ?string $ownerId): bool
+    {
+        if ($viewer === null) {
+            return false;
+        }
+
+        if ($viewer->is_admin) {
+            return true;
+        }
+
+        // Both sides must have an account. A tally with no owner belongs to
+        // nobody, and null === null would otherwise hand it to everyone.
+        return $ownerId !== null && $ownerId === $viewer->id;
+    }
 }

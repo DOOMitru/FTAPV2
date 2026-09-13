@@ -111,9 +111,13 @@ class VenuePointsEntryTest extends TestCase
             'amount' => 5,
         ]);
 
-        $this->actingAs($admin)
-            ->get(route('poker.venue-points.create'))->assertOk()
-            ->assertSee('5 venue points recorded for Ada Lovelace.');
+        $response = $this->actingAs($admin)
+            ->get(route('poker.venue-points.create'))->assertOk();
+
+        $this->assertStringContainsString(
+            '5 venue points recorded for Ada Lovelace.',
+            $this->withoutEmphasis($response->getContent())
+        );
     }
 
     public function test_a_whole_night_can_be_entered_without_leaving_the_form(): void

@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasManyThrough;
+use Illuminate\Support\Collection;
 
 class PokerSeason extends Model
 {
@@ -167,6 +168,84 @@ class PokerSeason extends Model
     public function results(): HasManyThrough
     {
         return $this->hasManyThrough(PokerTournamentResult::class, PokerTournament::class, 'season_id', 'tournament_id');
+    }
+
+    /**
+     * Every ranked player in this season, best first.
+     *
+     * The one definition of what a season rank IS: points scored divided by
+     * tournaments ENTERED. A player who turns up to half the nights and scores
+     * what somebody scored across all of them is not behind them, which a
+     * straight points total says they are.
+     *
+     * Lives here rather than in a controller because two pages read it -- the
+     * dashboard, for the viewer's own position, and the landing page, for the
+     * top three -- and a rank that meant one thing on one and something else on
+     * the other would be worse than no rank at all. Same reasoning as the
+     * comment on the home route about points and wins.
+     *
+     * Two grouped queries rather than a join: results and registrations answer
+     * different questions -- what you scored, and how often you turned up --
+     * and a player can have either without the other.
+     *
+     * Queried from the tables rather than through $this->results(), which is a
+     * HasManyThrough. That relation silently adds `tournaments`.`season_id` as
+     * `laravel_through_key` to the SELECT so it can match rows back to their
+     * parent. Harmless normally; fatal beside a GROUP BY, because MySQL's
+     * ONLY_FULL_GROUP_BY -- on by default since 8.0 -- rejects a selected
+     * column that is neither grouped nor aggregated. SQLite does not enforce
+     * that rule, so such a query runs locally for months and fails on the first
+     * request against production's driver.
+     *
+     * @return Collection<int, array{user_id: string, name: string, ratio: float, points: int, events: int}>
+     */
+    public function rankings(): Collection
+    {
+        $inSeason = fn ($query) => $query->where('season_id', $this->id);
+
+        $points = PokerTournamentResult::query()
+            ->whereHas('tournament', $inSeason)
+            ->whereNotNull('user_id')
+            ->selectRaw('user_id, SUM(points) as total_points')
+            ->groupBy('user_id')
+            ->pluck('total_points', 'user_id');
+
+        $entries = PokerTournamentRegistrant::query()
+            ->whereHas('tournament', $inSeason)
+            ->whereNotNull('user_id')
+            ->selectRaw('user_id, COUNT(*) as entries')
+            ->groupBy('user_id')
+            ->pluck('entries', 'user_id');
+
+        // The name as it was recorded on the night, which is what every other
+        // standings list on the site shows -- a player who has since changed
+        // their account name still appears under the name they played as.
+        $names = PokerTournamentRegistrant::query()
+            ->whereHas('tournament', $inSeason)
+            ->whereNotNull('user_id')
+            ->pluck('player_name', 'user_id');
+
+        // Entering is what puts you on the board. A player with a result but no
+        // registration -- which the results screen can create -- has no
+        // denominator, and dividing by nothing is not a rank. They are absent
+        // from $entries entirely, which is what leaves them unranked.
+        //
+        // The filter cannot fire: a GROUP BY ... COUNT(*) never returns a zero.
+        // It is the guard on the division rather than on the data.
+        return $entries
+            ->filter(fn ($count) => (int) $count > 0)
+            ->map(fn ($count, $id) => [
+                'user_id' => $id,
+                'name' => $names[$id] ?? '',
+                'ratio' => (float) (int) ($points[$id] ?? 0) / (int) $count,
+                // The tie-break, so two players on the same average are ordered
+                // by who scored more rather than by whatever the database
+                // happened to return first.
+                'points' => (int) ($points[$id] ?? 0),
+                'events' => (int) $count,
+            ])
+            ->sortByDesc(fn (array $row) => [$row['ratio'], $row['points']])
+            ->values();
     }
 
     public function registrants(): HasManyThrough

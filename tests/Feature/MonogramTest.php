@@ -224,23 +224,24 @@ class MonogramTest extends TestCase
         $this->assertNotNull($player);
     }
 
-    public function test_the_podium_seat_keeps_its_medal_class(): void
+    public function test_a_passed_class_is_kept_alongside_the_base_class(): void
     {
-        // On the podium .podium__seat is not a circle, it is the medal -- gold,
-        // silver and bronze grounds with contrast ratios recorded in the
-        // stylesheet. The avatar has to carry that class, or the podium stops
-        // saying who came first.
-        [$tournament, $player] = $this->tournamentWithAPlayer();
+        // This used to be asserted through the podium, where .podium__seat was
+        // the MEDAL rather than a circle and losing it meant the podium stopped
+        // saying who came first. The podium is gone from the details page, and
+        // with it the only view that passed this component a class -- so the
+        // guarantee is asserted on the component itself instead of through a
+        // caller that no longer exists.
+        //
+        // $attributes->merge() is the whole mechanism: overwrite instead of
+        // merge and the base class disappears, which no call site would notice
+        // until its monogram rendered as unstyled text.
+        $user = User::factory()->create(['first_name' => 'Marcus', 'last_name' => 'Ilic']);
 
-        PokerTournamentResult::create([
-            'tournament_id' => $tournament->id, 'user_id' => $player->id,
-            'player_name' => 'Marcus Ilic', 'place' => 1, 'points' => 100,
-        ]);
+        $html = $this->render('<x-monogram :user="$user" class="seat" />', ['user' => $user]);
 
-        $html = $this->actingAs($player)->get(route('tournaments.show', $tournament))->assertOk()->getContent();
-
-        $this->assertStringContainsString('podium__seat', $html);
-        $this->assertStringContainsString('podium__place--1', $html);
+        $this->assertStringContainsString('seat', $html);
+        $this->assertStringContainsString('monogram', $html);
         $this->assertStringContainsString('>MI<', $html);
     }
 

@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Poker;
 
 use App\Http\Controllers\Controller;
 use App\Models\PokerSeason;
+use App\Models\PokerTournamentResult;
+use App\Models\VenuePoints;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -81,8 +83,24 @@ class PokerSeasonController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(PokerSeason $season): View
+    /**
+     * The standings, ordered one of two ways.
+     *
+     * 'points' is the season total. 'rank' is points per tournament entered --
+     * the figure the player's dashboard calls Season Rank -- which does not
+     * punish a player who missed half the nights for missing them.
+     */
+    public const ORDERS = ['points', 'rank'];
+
+    public function show(PokerSeason $season, Request $request): View
     {
+        // Anything unrecognised falls back to the season total rather than
+        // erroring: this arrives from a query string, where a stale link or a
+        // typo is ordinary and a 500 is not.
+        $order = in_array($request->query('order'), self::ORDERS, true)
+            ? $request->query('order')
+            : 'points';
+
         $season->load([
             'tournaments.venue',
             'results.user',
@@ -90,7 +108,6 @@ class PokerSeasonController extends Controller
 
         $totalTournaments = $season->tournaments->count();
         $totalPoints = $season->results->sum('points');
-        $uniquePlayersCount = $season->results->pluck('user_id')->unique()->count();
 
         // By the season stored on the row, not by whether its date happens to
         // fall between two others. It used to be the latter, which meant
@@ -106,10 +123,47 @@ class PokerSeasonController extends Controller
             ->selectRaw('user_id, SUM(amount) as total')
             ->pluck('total', 'user_id');
 
+        // Who actually entered a tournament this season.
+        //
+        // The standings are built from RESULTS, and a result can exist without
+        // a registration behind it -- the results screen creates one without
+        // requiring an entry, where Eliminate refuses. Such a row is a finish
+        // in a field nobody joined, and it has no business in a table of how
+        // the season is going.
+        //
+        // whereIn over the season's tournaments, which are already loaded for
+        // the count above, rather than a whereHas subquery.
+        //
+        // flip(), so the filter below is a hash lookup rather than a scan of
+        // eighty ids per player.
+        $entered = \App\Models\PokerTournamentRegistrant::query()
+            ->whereIn('tournament_id', $season->tournaments->pluck('id'))
+            ->whereNotNull('user_id')
+            ->pluck('user_id')
+            ->unique()
+            ->flip();
+
+        // A player's venue points belong to that player and to the admins who
+        // award them. Everyone else gets the VERDICT -- qualified or not --
+        // computed here from a figure that never leaves this closure, because
+        // the thresholds it is measured against are published on this page for
+        // everybody to read.
+        //
+        // Withheld from the DATA, not just from the template. The column was
+        // already gated in the view, which stopped it being rendered; this is
+        // what stops the next column, debug dump or partial from rendering it
+        // by accident. A figure that is not in the array cannot leak from it.
+        $readsVenuePoints = fn (?PokerTournamentResult $result) => VenuePoints::readableBy(
+            auth()->user(), $result?->user_id
+        );
+
         // Calculate Leaderboard
         $leaderboard = $season->results
             ->groupBy('user_id')
-            ->map(function ($results) use ($venuePoints, $season) {
+            // A result with no user_id at all groups under '' and is caught by
+            // the same rule: nothing that never entered appears here.
+            ->filter(fn ($results, $userId) => $entered->has($userId))
+            ->map(function ($results) use ($venuePoints, $season, $readsVenuePoints) {
                 $points = $results->sum('points');
                 $wins = $results->where('place', 1)->count();
                 // Defensive, and deliberately untested: SQLite returns an int
@@ -133,13 +187,50 @@ class PokerSeasonController extends Controller
                     'wins' => $wins,
                     'top3' => $results->where('place', '<=', 3)->count(),
                     'played' => $results->count(),
-                    'venue_points' => $venue,
+                    'venue_points' => $readsVenuePoints($results->first()) ? $venue : null,
                     'unmet' => $unmet,
                     'qualified' => $unmet === [],
                 ];
             })
-            ->sortByDesc('points')
             ->values();
+
+        // Points per entry, taken from PokerSeason::rankings() rather than
+        // divided here. The dashboard, the landing page's rank card and this
+        // table must agree to the decimal about what a player's rank is, and
+        // they agree by reading one method instead of three divisions.
+        //
+        // Loaded only for the order that needs it: it costs three queries, and
+        // the season total is the view most people open.
+        $rankings = $order === 'rank'
+            ? $season->rankings()->keyBy('user_id')
+            : collect();
+
+        $leaderboard = $leaderboard
+            ->map(fn (array $row) => [
+                ...$row,
+                'ratio' => $rankings[$row['user']?->id ?? '']['ratio'] ?? null,
+                'events' => $rankings[$row['user']?->id ?? '']['events'] ?? null,
+            ])
+            ->sortByDesc(fn (array $row) => $order === 'rank'
+                // The same tie-break rankings() uses, so two players on one
+                // average are ordered by who scored more rather than by
+                // whatever the database returned first.
+                ? [$row['ratio'] ?? -1, $row['points']]
+                : $row['points'])
+            ->values();
+
+        // The meter measures each row against the leader in whichever figure
+        // is on show. Measuring a ratio against a points total would draw
+        // every bar at nothing.
+        $leaderValue = $order === 'rank'
+            ? (float) ($leaderboard->first()['ratio'] ?? 0)
+            : (int) ($leaderboard->first()['points'] ?? 0);
+
+        // Counted from the standings rather than from the results, so the tile
+        // and the table cannot disagree about who played: both are now "people
+        // who entered a tournament and have a finish". Read the leaderboard,
+        // and there is one definition of that instead of two.
+        $uniquePlayersCount = $leaderboard->count();
 
         // Venue stats
         $venueStats = $season->tournaments
@@ -159,6 +250,8 @@ class PokerSeasonController extends Controller
             'totalPoints', 
             'uniquePlayersCount', 
             'leaderboard',
+            'leaderValue',
+            'order',
             'venueStats'
         ));
     }
