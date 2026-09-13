@@ -69,6 +69,66 @@ class PokerTournamentRegistrant extends Model
                 PokerTournamentResult::repriceForTournament($registrant->tournament_id);
             });
         });
+
+        static::deleted(fn (PokerTournamentRegistrant $registrant) => static::shrinkField($registrant));
+    }
+
+    /**
+     * Whether this registrant has a finish on record.
+     *
+     * The one thing that makes an entry unremovable. user_id is nullable on
+     * both tables (nullOnDelete), and a null on one side must not match a null
+     * on the other -- a deleted player's registration would otherwise adopt a
+     * stranger's result and become permanently stuck.
+     */
+    public function hasFinished(): bool
+    {
+        if ($this->user_id === null) {
+            return false;
+        }
+
+        return PokerTournamentResult::where('tournament_id', $this->tournament_id)
+            ->where('user_id', $this->user_id)
+            ->exists();
+    }
+
+    /**
+     * The field shrank, so every finish moves UP a place.
+     *
+     * The mirror of the created hook above, and it exists now because removing
+     * a player from a tournament that already has finishes is newly allowed:
+     * an administrator may take out anybody who has not been eliminated, right
+     * up until the results are published. Eleventh of eleven becomes tenth of
+     * ten, and the points follow the place.
+     *
+     * Guarded on the leaver having no result of their own. A registrant WITH a
+     * finish cannot be removed -- the controller refuses it, because a place is
+     * a position in a field and deleting one of the positions makes the rest
+     * describe a tournament that never happened -- but if it ever did happen,
+     * shifting would be one wrong thing among several, and a hook that is right
+     * only when its caller is right is a hook that hides the next bug.
+     *
+     * No floor check on place. Somebody without a finish is still playing, so
+     * at least one place is unawarded, so the lowest place on record is at
+     * least 2 and cannot be decremented to 0.
+     */
+    protected static function shrinkField(PokerTournamentRegistrant $registrant): void
+    {
+        $leaverScored = PokerTournamentResult::where('tournament_id', $registrant->tournament_id)
+            ->where('user_id', $registrant->user_id)
+            ->whereNotNull('user_id')
+            ->exists();
+
+        if ($leaverScored) {
+            return;
+        }
+
+        DB::transaction(function () use ($registrant) {
+            PokerTournamentResult::where('tournament_id', $registrant->tournament_id)
+                ->decrement('place');
+
+            PokerTournamentResult::repriceForTournament($registrant->tournament_id);
+        });
     }
 
     public function user(): BelongsTo

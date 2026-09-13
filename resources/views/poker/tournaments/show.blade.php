@@ -227,31 +227,29 @@
                              index, which is a list of every entry in
                              every tournament.
 
-                             Tied to $resultsCount and nothing else,
-                             because a place is a position in a field
-                             -- tenth of ten -- and taking a player out
-                             afterwards makes every recorded finish
-                             describe a tournament that never happened.
-                             The controller refuses it for the same
-                             reason.
+                             Per row, not per tournament. What cannot be
+                             removed is somebody who has a finish of their
+                             own: their place is a position in the field, and
+                             deleting the position makes every other place
+                             describe a tournament that never happened. A
+                             player still in has no such position, so they can
+                             go, and the shrink hook moves the recorded
+                             finishes up to match.
 
-                             Once ANY result exists the control is gone
-                             from every row, not just from the players
-                             who have finished. That is the rule: the
-                             field is settled as a whole.
+                             ! $result is load-bearing, not decoration. This
+                             is its own @if rather than a branch of the chain
+                             above, so without it an eliminated player gets
+                             their points badge AND a remove button that the
+                             controller then refuses.
 
-                             The registrant check is belt and braces:
-                             the route needs a registrant, and a row
-                             built from a result alone has none. It
-                             cannot fire today -- a registrant-less row
-                             implies a result, and a result closes this
-                             control for every row -- so nothing tests
-                             it. It guards the row's shape rather than
-                             the tournament's state. --}}
-                        @if (auth()->user()->is_admin && $resultsCount === 0 && $row['registrant'])
+                             Gone once published, which is the point at which
+                             the field is settled for good. The registrant
+                             check stays: the route needs a registrant, and a
+                             row built from a result alone has none. --}}
+                        @if (auth()->user()->is_admin && ! $result && ! $tournament->isPublished() && $row['registrant'])
                             <form action="{{ route('poker.registrants.destroy', $row['registrant']) }}"
                                   method="POST"
-                                  data-confirm="{{ __('Remove :name from :tournament? They will no longer be entered, and can register again any time before results are recorded.', [
+                                  data-confirm="{{ __('Remove :name from :tournament? Any finishes already recorded move up a place and are repriced. An administrator can enter them again until the results are published.', [
                                       'name' => $row['name'],
                                       'tournament' => $tournament->name,
                                   ]) }}">
@@ -267,14 +265,15 @@
                 <x-empty-state :title="__('No players registered yet.')" />
             @endforelse
 
-            {{-- Why the remove control is not there any more. An admin
-                 who used it last week and finds it gone this week reads
-                 a missing control as a bug, not as a state -- the same
-                 reasoning that keeps "Awaiting approval" on the event
-                 card rather than just hiding Register. Admins only: a
-                 player was never offered it and has nothing to explain. --}}
-            @if (auth()->user()->is_admin && $resultsCount > 0 && $registrantsCount > 0)
-                <p class="card__note">{{ __('Results recorded · entries locked') }}</p>
+            {{-- Publishing is now the only thing that locks the field, so
+                 that is what the note says. It read "Results recorded ·
+                 entries locked", which was true when the first elimination
+                 closed removal for the whole field and is false now:
+                 everyone still playing can be taken out, and an eliminated
+                 player shows their finish where the controls would be,
+                 which explains itself. --}}
+            @if (auth()->user()->is_admin && $tournament->isPublished() && $registrantsCount > 0)
+                <p class="card__note">{{ __('Results published · field locked') }}</p>
             @endif
         </x-card>
 

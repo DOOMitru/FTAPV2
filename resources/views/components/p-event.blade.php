@@ -198,9 +198,15 @@
             // moves recorded finishes down to match the bigger field -- so the
             // only things stopping a player entering are being in already and
             // not being approved yet.
+            // ! hasStarted() for a player, and not for an administrator: the
+            // controller's rule exactly. A player's window closes when the
+            // cards go in the air; an administrator registers from the room
+            // until the results are published, which is why this card still
+            // offers them the button on a game already under way.
             $canRegister = auth()->check()
                 && ! $isRegistered
-                && auth()->user()->isApproved();
+                && auth()->user()->isApproved()
+                && (auth()->user()->is_admin || ! $tournament->hasStarted());
 
             // The controller's one rule, restated. Withdrawing is refused only
             // once a finish is on record, because a place is a position in a

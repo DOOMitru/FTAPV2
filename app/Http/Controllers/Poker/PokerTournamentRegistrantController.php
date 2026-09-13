@@ -138,13 +138,23 @@ class PokerTournamentRegistrantController extends Controller
             return back()->with('error', $refusal);
         }
 
-        // Not even for an administrator. Once finishes are recorded, the field
-        // they describe is settled, and removing someone from it silently makes
-        // every one of those places wrong.
-        if ($registrant->tournament->hasRecordedResults()) {
+        // Per PLAYER, not per tournament.
+        //
+        // This used to refuse the moment any finish existed anywhere in the
+        // tournament, which locked the whole field on the first elimination --
+        // including the nine people still playing, one of whom might have been
+        // entered by mistake. What actually cannot be removed is somebody who
+        // has a finish of their own: their place is a position in a field, and
+        // deleting the position makes every other place describe a tournament
+        // that never happened.
+        //
+        // Everyone else can go, and the field shrinks cleanly: the shrink hook
+        // on this model moves every recorded finish up a place and reprices it,
+        // the mirror of what a late entry does.
+        if ($registrant->hasFinished()) {
             return back()->with('error', __(
-                ':name cannot be removed from :tournament: results have been recorded, and every '
-                .'finish describes the size of the field. Delete the results first if the entry is wrong.',
+                ':name has already been eliminated from :tournament and cannot be removed. '
+                .'Their finish is a position in the field; delete the result first if it is wrong.',
                 ['name' => $registrant->player_name, 'tournament' => $registrant->tournament->name]
             ));
         }

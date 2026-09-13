@@ -132,20 +132,54 @@ class MergedStandingsPanelTest extends TestCase
             ->assertOk()->assertDontSee('Eliminate');
     }
 
-    public function test_remove_survives_and_is_still_gated_on_results(): void
+    public function test_remove_survives_and_is_now_gated_per_player(): void
     {
+        // This asserted that ONE result took Remove off every row, which is
+        // what the rule used to be. It is per player now: somebody else's
+        // finish is none of this player's business, and only publishing closes
+        // the field for everyone.
         $tournament = $this->tournament();
-        $this->enter($tournament, $this->player('Wanda', 'Reeve'));
+        $stillIn = $this->player('Wanda', 'Reeve');
+        $this->enter($tournament, $stillIn);
 
-        $this->actingAs($this->admin())->get(route('tournaments.show', $tournament->fresh()))
+        $admin = $this->admin();
+
+        $this->actingAs($admin)->get(route('tournaments.show', $tournament->fresh()))
             ->assertOk()->assertSee('Remove from tournament');
 
-        $this->score($tournament, $this->player('Other', 'Player'), 2, 85);
+        // Another player finishes. Wanda is still in, so her row keeps it.
+        $other = $this->player('Other', 'Player');
+        $this->enter($tournament, $other);
+        $this->score($tournament, $other, 2, 85);
+
+        $this->actingAs($admin)->get(route('tournaments.show', $tournament->fresh()))
+            ->assertOk()
+            ->assertSee('Remove from tournament')
+            ->assertDontSee('entries locked');
+
+        $tournament->forceFill(['published_at' => now()])->save();
+
+        $this->actingAs($admin)->get(route('tournaments.show', $tournament->fresh()))
+            ->assertOk()
+            ->assertDontSee('Remove from tournament')
+            ->assertSee('Results published · field locked', false);
+    }
+
+    public function test_an_eliminated_row_is_offered_no_remove_control(): void
+    {
+        // The gate that the first version of this change left out: the remove
+        // block is its own @if rather than a branch of the chain that draws the
+        // points badge, so without ! $result an eliminated player got both.
+        $tournament = $this->tournament();
+        $out = $this->player('Ousted', 'Player');
+        $this->enter($tournament, $out);
+        $this->score($tournament, $out, 1, 100);
+
+        $registrant = $tournament->registrants()->where('user_id', $out->id)->firstOrFail();
 
         $this->actingAs($this->admin())->get(route('tournaments.show', $tournament->fresh()))
             ->assertOk()
-            ->assertDontSee('Remove from tournament')
-            ->assertSee('Results recorded · entries locked', false);
+            ->assertDontSee(route('poker.registrants.destroy', $registrant), false);
     }
 
     public function test_a_finish_with_no_registration_behind_it_is_still_shown(): void

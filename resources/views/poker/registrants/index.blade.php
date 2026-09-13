@@ -50,7 +50,15 @@
                                      so the controller refuses, and offering the
                                      button anyway is offering a click that cannot
                                      work. --}}
-                                @unless ($registrant->tournament->hasRecordedResults())
+                                {{-- Per registrant, and per tournament state.
+                                     What cannot be removed is a player with a
+                                     finish of their own -- their place is a
+                                     position in the field -- and a field that
+                                     has been published, which is settled for
+                                     good. One elimination used to close this
+                                     for everybody in that tournament, including
+                                     the people still playing. --}}
+                                @unless ($registrant->hasFinished() || $registrant->tournament->isPublished())
                                     <form action="{{ route('poker.registrants.destroy', $registrant) }}" method="POST"
                                           data-confirm="{{ __('Remove :name from :tournament? This cannot be undone.', [
                                               'name' => $registrant->player_name,

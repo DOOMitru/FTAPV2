@@ -172,6 +172,20 @@ class PokerTournament extends Model
      * So the answer is that they stay. This is asked in two places, and lives
      * here so the two cannot come to different conclusions.
      */
+    /**
+     * Whether play has begun.
+     *
+     * The line a PLAYER may not cross to enter: once the cards are in the air
+     * the field is what the room is playing, and somebody adding themselves
+     * from a phone changes how many places there are to hand out. An
+     * administrator is not bound by it -- they are in the room, and a late
+     * arrival at the table is a real thing that happens.
+     */
+    public function hasStarted(): bool
+    {
+        return $this->start_time !== null && $this->start_time->isPast();
+    }
+
     public function hasRecordedResults(): bool
     {
         return $this->countOf('results') > 0;

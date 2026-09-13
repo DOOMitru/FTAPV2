@@ -66,14 +66,21 @@ class PublishedTournamentLockTest extends TestCase
         [$open] = $this->finished('Open Night');
         $newcomer = User::factory()->create(['approval_status' => 'approved']);
 
-        // Allowed while open. Registering into a scored tournament is
+        // As an ADMINISTRATOR, and with a user_id. These tournaments have been
+        // played, so a player registering themselves is refused by the
+        // start-time rule before publishing is ever consulted -- and publishing
+        // is what this test is about. An administrator's window runs to
+        // publication, which is exactly the line being drawn here.
+        $admin = User::factory()->create(['is_admin' => true, 'approval_status' => 'approved']);
+
+        // Allowed while open. Entering somebody into a scored tournament is
         // deliberately still permitted -- the shift hook moves the finishes.
-        $this->actingAs($newcomer)->post(route('tournaments.register', $open))
+        $this->actingAs($admin)->post(route('tournaments.register', $open), ['user_id' => $newcomer->id])
             ->assertSessionHas('status');
 
         [$closed] = $this->published('Closed Night');
 
-        $this->actingAs($newcomer)->post(route('tournaments.register', $closed))
+        $this->actingAs($admin)->post(route('tournaments.register', $closed), ['user_id' => $newcomer->id])
             ->assertSessionHas('error');
 
         $this->assertStringContainsString('published', session('error'));
@@ -235,8 +242,12 @@ class PublishedTournamentLockTest extends TestCase
         [$open] = $this->finished('Open Night');
 
         $newcomer = User::factory()->create(['approval_status' => 'approved']);
+        $admin = User::factory()->create(['is_admin' => true, 'approval_status' => 'approved']);
 
-        $this->actingAs($newcomer)->post(route('tournaments.register', $open))
+        // An administrator, for the same reason as above: these tournaments
+        // have started, and this test is about publishing, not about the
+        // player's window.
+        $this->actingAs($admin)->post(route('tournaments.register', $open), ['user_id' => $newcomer->id])
             ->assertSessionHas('status');
 
         $this->assertSame(4, $open->registrants()->count());

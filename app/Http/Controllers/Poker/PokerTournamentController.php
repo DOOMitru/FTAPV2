@@ -418,13 +418,23 @@ class PokerTournamentController extends Controller
         }
         $targetUserId = ($isAdmin && $request->has('user_id')) ? $request->user_id : auth()->id();
 
-        // No deadline check any more, for anyone. Entering a tournament that
-        // already has results is deliberately still allowed: a late entry
-        // changes the size of the field, and PokerTournamentRegistrant's shift
-        // hook moves every recorded finish down to match. That is why joining
-        // late is safe where leaving late is not -- adding a player to a field
-        // of ten makes it a field of eleven, unambiguously, while removing one
-        // leaves the question of whether they played at all.
+        // A player's window closes when play begins. Once the cards are in the
+        // air the field is whatever is sitting at the tables, and somebody
+        // adding themselves from a phone changes how many places there are to
+        // hand out for a game already under way.
+        //
+        // An administrator is not bound by it, and registers right up until the
+        // results are published: they are in the room, a late arrival at the
+        // table is a real thing, and the shift hook makes it arithmetically
+        // safe -- a field of ten becomes a field of eleven and every recorded
+        // finish moves down with its points.
+        if (! $isAdmin && $tournament->hasStarted()) {
+            return back()->with('error', __(
+                ':tournament has already started, so you can no longer enter it. '
+                .'Ask an administrator if you are at the table.',
+                ['tournament' => $tournament->name]
+            ));
+        }
 
         // Check if the target user is already registered
         if ($tournament->registrants()->where('user_id', $targetUserId)->exists()) {
