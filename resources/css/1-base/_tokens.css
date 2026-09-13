@@ -47,7 +47,13 @@
     /* Medals. These are DISCS WITH INK, never coloured text — no gold clears
        4.5:1 on white (#D4A017 manages 2.38:1), so the colour goes behind the
        numeral rather than into it. That is also what a medal actually is, and
-       it means one set of values works unchanged in both themes. */
+       it means one set of values works unchanged in both themes.
+
+       Measured, in both themes: #16171B on gold is 7.54:1, on silver 7.71:1,
+       on bronze 4.72:1. That note used to sit on .podium, which owned the only
+       medals on the site; .rank and .notification now paint the same ink on the
+       same grounds, so it belongs here with the values rather than with any one
+       of them. */
     --c-gold: #D4A017;
     --c-silver: #A8AAB0;
     --c-bronze: #B87333;
