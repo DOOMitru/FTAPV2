@@ -120,11 +120,17 @@ person at a time, and there is no reason to run the mass send ever again.
    against SQLite/MySQL divergence can itself be driver-specific**, and asserting
    a type NAME is how that happens.
 
-5. **The monogram survey's Tier 2 and 3 — ten sites, never actioned.** The two
-   admin player pickers are the ones with real utility; the leaderboards are
-   decoration. Several need their controllers reshaped to carry a model rather
-   than a name string. The privacy objection to the public Current Season
-   Leaders page died with profile pictures: initials are not a face.
+5. ~~The monogram survey's Tier 2 and 3~~ **DONE, 2026-09-13.** Every list of
+   players now pictures them; `MonogramCoverageTest` names the ten and fails if
+   one loses its monogram. Two recorded beliefs turned out to be wrong. The
+   blocker -- "several need their controllers reshaped to carry a model rather
+   than a name string" -- was weaker than it read: `<x-monogram>` takes a name
+   STRING, and a decorative monogram needs no accessible label because the name
+   is beside it. And the privacy question was aimed at the wrong page: the
+   public Current Season Leaders panel had since been wrapped in `@auth`, so it
+   was never public. The four `<select>` forms are the only sites left, and an
+   `<option>` cannot hold markup, so they are not deferred -- they are out of
+   reach. Recorded in the test rather than here.
 6. `docs/` holds six audit documents from finished phases. Their open-items
    sections are largely resolved; treat this file as the index, not them.
 Nothing else is known-broken. There are no TODO, FIXME or HACK markers anywhere
@@ -568,9 +574,8 @@ Plan: `docs/superpowers/plans/2026-09-06-player-notifications.md`.
 - **Tier 1 only.** The Awaiting-approval table on `users/index` now has the photo
   column the approved-users table below it has always had. The remaining ten
   sites from the survey (leaderboards, pickers, public Current Season Leaders)
-  are deliberately not done -- see the notes on that survey: several need their
-  controllers reshaped to carry a model instead of a name string, and the public
-  points-structure page raises a privacy question the owner has not answered.
+  were finished on 2026-09-13 -- see item 5 at the top of this file. Both of the
+  reasons recorded here for deferring them turned out not to hold.
 - **The stock face is deleted**, not merely unreferenced -- 1.9MB that rsync
   shipped on every deploy for an image no page asked for. `profile_image_url`
   answers **null** when there is no photo, which is what makes it a question

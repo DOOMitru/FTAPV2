@@ -166,6 +166,12 @@
                                     $shownName = filled($nickname) ? $nickname : $row['player_name'];
                                 @endphp
                                 <td class="season-show__player">
+                                    {{-- decorative: the name it stands for is
+                                         right beside it, and announcing both
+                                         reads the row twice. --}}
+                                    <x-monogram :user="$row['user']" :name="$row['player_name']"
+                                                size="sm" decorative />
+
                                     @if (filled($nickname))
                                         {{-- Full name on hover, since the visible text is a nickname. --}}
                                         <span title="{{ $row['player_name'] }}">{{ $shownName }}</span>

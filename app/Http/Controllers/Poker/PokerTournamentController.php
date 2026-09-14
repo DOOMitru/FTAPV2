@@ -229,6 +229,9 @@ class PokerTournamentController extends Controller
                     'name' => trim($user->first_name.' '.$user->last_name),
                     'label' => trim($user->first_name.' '.$user->last_name)
                         .(filled($user->nickname) ? ' ('.$user->nickname.')' : ''),
+                    // From the full name, not the label: the label carries a
+                    // parenthesised nickname, and "W(" is not a monogram.
+                    'initials' => initials(trim($user->first_name.' '.$user->last_name)),
                     'nickname' => $user->nickname,
                     'email' => $user->email,
                     'played' => $user->tournament_registrations_count,

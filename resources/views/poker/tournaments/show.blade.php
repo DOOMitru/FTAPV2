@@ -401,6 +401,16 @@
                                  see the filter in x-data. --}}
                             <template x-if="p.registered">
                                 <div class="picker__btn picker__btn--inert" aria-disabled="true">
+                                    {{-- <x-monogram> renders server-side and
+                                         these rows do not exist until Alpine
+                                         builds them, so the row carries the
+                                         component's classes and its letters
+                                         come from the payload -- computed by
+                                         the same initials() the component
+                                         itself calls. --}}
+                                    <span class="monogram monogram--sm picker__face"
+                                          aria-hidden="true" x-text="p.initials"></span>
+
                                     <span class="picker__name" x-text="p.label"></span>
                                     <span class="picker__meta">{{ __('Already registered for this tournament') }}</span>
                                 </div>
@@ -414,6 +424,16 @@
                                  player they cannot pick. --}}
                             <template x-if="! p.registered && ! p.approved">
                                 <div class="picker__btn picker__btn--inert" aria-disabled="true">
+                                    {{-- <x-monogram> renders server-side and
+                                         these rows do not exist until Alpine
+                                         builds them, so the row carries the
+                                         component's classes and its letters
+                                         come from the payload -- computed by
+                                         the same initials() the component
+                                         itself calls. --}}
+                                    <span class="monogram monogram--sm picker__face"
+                                          aria-hidden="true" x-text="p.initials"></span>
+
                                     <span class="picker__name" x-text="p.label"></span>
                                     <span class="picker__meta">{{ __('Waiting for approval — approve the account first') }}</span>
                                 </div>
@@ -425,6 +445,9 @@
                                     <input type="hidden" name="user_id" :value="p.id">
 
                                     <button type="submit" class="picker__btn">
+                                        <span class="monogram monogram--sm picker__face"
+                                              aria-hidden="true" x-text="p.initials"></span>
+
                                         <span class="picker__name" x-text="p.label"></span>
                                         <span class="picker__meta" x-text="p.email"></span>
                                         <span class="picker__count"

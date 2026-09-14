@@ -30,11 +30,20 @@
                         <td class="registrants-index__tournament">{{ $registrant->tournament->name }}</td>
 
                         <td class="registrants-index__player">
-                            <div class="entry__title">{{ $registrant->player_name }}</div>
+                            {{-- An inner row, not display:flex on the <td>: a
+                                 flexed cell stops being a table-cell and drops
+                                 out of the column alignment on desktop. --}}
+                            <div class="admin-list__player">
+                                <x-monogram :user="$registrant->user" :name="$registrant->player_name" size="sm" decorative />
 
-                            @if ($registrant->player_nickname)
-                                <div class="entry__meta"><span>{{ $registrant->player_nickname }}</span></div>
-                            @endif
+                                <div>
+                                    <div class="entry__title">{{ $registrant->player_name }}</div>
+
+                                    @if ($registrant->player_nickname)
+                                        <div class="entry__meta"><span>{{ $registrant->player_nickname }}</span></div>
+                                    @endif
+                                </div>
+                            </div>
                         </td>
 
                         <td class="registrants-index__date">{{ $registrant->registered_at ? \Illuminate\Support\Carbon::parse($registrant->registered_at)->format('M d, Y') : '—' }}</td>

@@ -27,6 +27,28 @@
    the list is easier to hit than a name, especially on a phone. The accent
    edge and raised ground are .dropdown__item's, because this is the same
    gesture -- pick one of these. */
+/* The initials lead, and the name and its meta line stack beside them -- the
+   same shape the register dialog's rows use, and the same shape every other
+   list of players in the app has. Column 1 spans both rows so the disc is
+   centred against the pair rather than sitting on the name's line. */
+.picker__btn:has(.picker__face) {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    column-gap: var(--space-3);
+    row-gap: var(--space-1);
+    align-items: center;
+}
+
+.picker__face {
+    grid-column: 1;
+    grid-row: 1 / span 2;
+}
+
+.picker__btn:has(.picker__face) .picker__name,
+.picker__btn:has(.picker__face) .picker__meta {
+    grid-column: 2;
+}
+
 .picker__btn {
     display: flex;
     flex-direction: column;

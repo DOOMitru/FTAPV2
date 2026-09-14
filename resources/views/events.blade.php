@@ -70,15 +70,34 @@
                              are the last few knocked out, not the podium. --}}
                         @php $podium = $tournament->podium(); @endphp
 
+                        {{-- Who won is for the league, not for the internet.
+                             This was the one place in the app where a guest
+                             read a player's name, and a name on a public page
+                             is a name a search engine indexes -- which is not
+                             what somebody agreed to by turning up to a bar on a
+                             Wednesday.
+
+                             The EVENT stays public: the archive is there to
+                             show a visitor that the league runs, where it plays
+                             and how often. That argument never needed names to
+                             make it. --}}
                         @if ($podium->isNotEmpty())
-                            <ol class="p-podium">
-                                @foreach ($podium as $result)
-                                    <li class="p-podium__row">
-                                        <x-rank :place="$result->place" />
-                                        <span class="p-podium__name">{{ $result->player_name }}</span>
-                                    </li>
-                                @endforeach
-                            </ol>
+                            @auth
+                                <ol class="p-podium">
+                                    @foreach ($podium as $result)
+                                        <li class="p-podium__row">
+                                            <x-rank :place="$result->place" />
+                                            <x-monogram :name="$result->player_name" size="sm" decorative />
+                                            <span class="p-podium__name">{{ $result->player_name }}</span>
+                                        </li>
+                                    @endforeach
+                                </ol>
+                            @else
+                                {{-- Said, not silently omitted: a card that
+                                     simply stopped after the venue would read
+                                     as a tournament nobody finished. --}}
+                                <p class="p-archive__gated">{{ __('Sign in to see the results.') }}</p>
+                            @endauth
                         @endif
 
                         @if ($linked)

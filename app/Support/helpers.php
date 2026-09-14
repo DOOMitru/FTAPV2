@@ -87,3 +87,31 @@ if (! function_exists('emph_strip')) {
         return str_replace(EMPH, '', (string) $raw);
     }
 }
+
+if (! function_exists('initials')) {
+    /**
+     * A person's initials: the first letter of the first word and of the last.
+     *
+     * One definition, because there are two callers with no way to share code
+     * otherwise: <x-monogram>, which renders server-side, and the register
+     * dialog's player list, which Alpine renders in the browser from a payload
+     * PHP builds. A second derivation would be free to disagree -- and would,
+     * the first time somebody fixed one of them.
+     *
+     * Handles "Wanda Reeve" and "Jean-Luc Picard", and does not fall over on
+     * one word or none. mb_* throughout: a name is the last place to assume
+     * one byte per letter.
+     */
+    function initials(?string $name): string
+    {
+        $words = preg_split('/\s+/u', trim((string) $name), -1, PREG_SPLIT_NO_EMPTY) ?: [];
+
+        $letters = match (count($words)) {
+            0 => '?',
+            1 => mb_substr($words[0], 0, 1),
+            default => mb_substr($words[0], 0, 1).mb_substr(end($words), 0, 1),
+        };
+
+        return mb_strtoupper($letters);
+    }
+}
