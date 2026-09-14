@@ -166,18 +166,34 @@
                                     $shownName = filled($nickname) ? $nickname : $row['player_name'];
                                 @endphp
                                 <td class="season-show__player">
-                                    {{-- decorative: the name it stands for is
-                                         right beside it, and announcing both
-                                         reads the row twice. --}}
-                                    <x-monogram :user="$row['user']" :name="$row['player_name']"
-                                                size="sm" decorative />
+                                    {{-- An inner row, so the name is a block
+                                         BESIDE the initials rather than text
+                                         flowing around them. In the flow, a
+                                         squeezed column broke "Wanda Reeve"
+                                         after the first word and left "Reeve"
+                                         under the disc.
 
-                                    @if (filled($nickname))
-                                        {{-- Full name on hover, since the visible text is a nickname. --}}
-                                        <span title="{{ $row['player_name'] }}">{{ $shownName }}</span>
-                                    @else
-                                        {{ $shownName }}
-                                    @endif
+                                         Not display:flex on the <td> itself: a
+                                         flexed cell stops being a table-cell
+                                         and leaves the column it was aligned
+                                         in, on the desktop table this still
+                                         is. --}}
+                                    <span class="season-show__player-row">
+                                        {{-- decorative: the name it stands for
+                                             is right beside it, and announcing
+                                             both reads the row twice. --}}
+                                        <x-monogram :user="$row['user']" :name="$row['player_name']"
+                                                    size="sm" decorative />
+
+                                        <span class="season-show__player-name">
+                                            @if (filled($nickname))
+                                                {{-- Full name on hover, since the visible text is a nickname. --}}
+                                                <span title="{{ $row['player_name'] }}">{{ $shownName }}</span>
+                                            @else
+                                                {{ $shownName }}
+                                            @endif
+                                        </span>
+                                    </span>
 
                                     {{-- The tint says "this is you" to everyone
                                          who can see it. This says it to everyone
