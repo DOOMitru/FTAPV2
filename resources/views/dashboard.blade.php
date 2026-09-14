@@ -274,7 +274,7 @@
                                    href="{{ route('tournaments.show', $result->tournament) }}">{{ $result->tournament->name }}</a>
                             </div>
                             <div class="entry__meta">
-                                <span>{{ \Illuminate\Support\Carbon::parse($result->tournament->start_time)->format('M d, Y') }}</span>
+                                <span>{{ $result->tournament->start_time->format('M d, Y') }}</span>
                             </div>
                         </td>
 

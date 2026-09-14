@@ -9,6 +9,7 @@ use App\Models\Venue;
 use App\Models\VenuePoints;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\View\View;
 
 class VenuePointsController extends Controller
@@ -95,7 +96,7 @@ class VenuePointsController extends Controller
     {
         return back()->withInput()->withErrors([
             'event_date' => __('No season covers :date, so these points would count toward nothing. Check the date, or set the season\'s dates to include it.', [
-                'date' => \Illuminate\Support\Carbon::parse($date)->format('M d, Y'),
+                'date' => Carbon::parse($date)->format('M d, Y'),
             ]),
         ]);
     }

@@ -318,25 +318,61 @@ and confirming the sweeps failed. It is not an assumption.
 Five more guards were added as the conversion went on; all eight are listed in
 `docs/PHASE-5-EXIT-AUDIT.md`.
 
-## Deferred minor findings from Phase 0 — never actioned
+## Deferred minor findings from Phase 0 — CLEARED, 2026-09-13
 
-Triaged as LEAVE during Phase 0's final review and still open. None blocks anything; they
-are recorded so they are not rediscovered as if new:
+All fourteen are closed. Four needed no change, two had already been overtaken
+by later work, and eight were fixed. Recorded in full because "we looked and
+there was nothing to do" is a result, and the next person should not have to
+re-derive it.
 
-- Task 1: minor (deferred): both tests assert only HTTP 200; a regression that broke
-- Task 1: minor (deferred): inline \App\Models\... FQCNs in the route closure vs `use`
-- Task 2: minor (deferred): the implementer's read-only `git show` breach (already ruled).
-- Task 3: minor (deferred): guest-redirect test covers only the group-gated route, not the
-- Task 3: minor (deferred): provider covers index routes only; no non-admin write-route
-- Task 3: minor (deferred): EnsureUserIsAdmin lacks a docblock noting it depends on `auth`
-- Task 4: minor (deferred): test_dashboard_excludes_a_tournament_that_has_already_started
-- Task 5: minor (deferred): single-arg assertSessionHas('status') checks key presence only
-- Task 5: minor (deferred): success message + back()->with() duplicated across the honeypot
-- Tasks 6+7: minor (deferred): npm run build rewrote public/build/manifest.json and hashed
-- Tasks 6+7: minor (deferred): package-lock.json had unrelated uncommitted changes before
-- Task 8: minor (deferred): procedural — a consequential expansion landed before controller
-- Final fix wave: minor (deferred): Carbon::parse() in the accessor is redundant given the
-- Final fix wave: minor (deferred): FQCN \Illuminate\Support\Carbon instead of a use import.
+**Fixed (8):**
+
+- Task 1: the route file named eighteen classes by FQCN inline; all are `use`
+  imports now, models and controllers alike.
+- Task 3: `EnsureUserIsAdmin` says in a docblock that it depends on `auth`
+  running first -- on its own it refuses a guest with 403 where they should get
+  302 to the login screen -- and `AdminAccessTest` now proves the pairing
+  instead of only describing it.
+- Task 3: the guest-redirect test covered ONE route, and the route it named --
+  `poker.seasons.index` -- is no longer admin-gated: the three league indexes
+  moved out to the signed-in group. It proved that `auth` redirects, which was
+  never in question, and nothing about `admin`. It is now provider-driven over
+  every admin route.
+- Task 3: the provider reached GET routes only. A second provider covers seven
+  admin WRITE routes for both a player (403) and a guest (302) -- a gate that
+  holds at the form and not at the endpoint is exactly what this suite is for.
+- Task 5: the contact form's acknowledgement was written twice, once for a real
+  submission and once for the honeypot. The honeypot's whole trick is that the
+  two are indistinguishable, so they are one constant now.
+- Task 5: thirty-seven `assertSessionHas('status')` calls checked that the key
+  existed and nothing else. They now assert the message is not empty. Pinning
+  the exact copy in thirty-seven places was considered and rejected: it trades
+  a weak assertion for a brittle one, and every future wording change would
+  break a dozen tests. Verified by flashing an empty status, which now fails
+  four tests that used to pass.
+- Final fix wave: five redundant `Carbon::parse()` calls removed -- the
+  attributes were already cast to Carbon, so the parse was re-reading its own
+  output. The five that remain are on genuinely uncast values (`event_date` is
+  deliberately a plain string, `played_on` comes out of notification JSON).
+  One of the five was also a second definition of "has this tournament
+  started?", and now calls `PokerTournament::hasStarted()`.
+- Final fix wave: the one PHP file using `\Illuminate\Support\Carbon` inline
+  imports it. Blade files keep the FQCN, which is how a template names a class.
+
+**Already overtaken (2):**
+
+- Task 1: "both tests assert only HTTP 200" -- `PointsStructurePageTest` has
+  since gained view-data assertions and four more tests about who appears on
+  the leaders panel.
+- Task 4: `test_dashboard_excludes_a_tournament_that_has_already_started` was
+  renamed and rewritten as `UpcomingEventsCardTest`, which covers the same rule
+  and nine more.
+
+**Nothing to change (4):** the read-only `git show` breach in Task 2 (already
+ruled at the time), the two Tasks 6+7 notes about `npm run build` rewriting
+`manifest.json` and `package-lock.json` carrying unrelated changes, and the
+Task 8 note that a consequential expansion landed before controller review.
+These are records of what happened during Phase 0, not defects in the code.
 
 ## Decisions taken during Phase 0 that still bind
 

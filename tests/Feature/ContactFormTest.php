@@ -22,7 +22,7 @@ class ContactFormTest extends TestCase
             'message' => 'When does Season 6 start?',
         ]);
 
-        $response->assertSessionHas('status');
+        $response->assertSessionHas('status', fn ($message) => filled($message));
 
         Mail::assertSent(ContactSubmission::class, function (ContactSubmission $mail) {
             return $mail->senderEmail === 'mara@example.com'
@@ -85,7 +85,7 @@ class ContactFormTest extends TestCase
         ]);
 
         // The bot sees the same confirmation a person sees.
-        $response->assertSessionHas('status');
+        $response->assertSessionHas('status', fn ($message) => filled($message));
         Mail::assertNothingSent();
     }
 }

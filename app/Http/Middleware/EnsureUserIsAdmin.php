@@ -6,6 +6,15 @@ use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
+/**
+ * Admin-only access.
+ *
+ * Depends on `auth` running first, and must be listed after it. On its own it
+ * still refuses a guest -- $request->user() is null, so the null-safe read is
+ * null and abort_unless fires -- but it refuses with 403, where a guest should
+ * get 302 to the login screen. The difference is invisible in a passing test
+ * and obvious to somebody locked out of a page they could reach by signing in.
+ */
 class EnsureUserIsAdmin
 {
     /**

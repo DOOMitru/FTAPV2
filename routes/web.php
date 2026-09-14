@@ -1,6 +1,24 @@
 <?php
 
+use App\Http\Controllers\ContactController;
+use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\Poker\PointsStructureController;
+use App\Http\Controllers\Poker\PokerSeasonController;
+use App\Http\Controllers\Poker\PokerTournamentController;
+use App\Http\Controllers\Poker\PokerTournamentRegistrantController;
+use App\Http\Controllers\Poker\PokerTournamentResultController;
+use App\Http\Controllers\Poker\VenueController;
+use App\Http\Controllers\Poker\VenuePointsController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\SponsorController;
+use App\Http\Controllers\UserController;
+use App\Models\PointsStructure;
+use App\Models\PokerSeason;
+use App\Models\PokerTournament;
+use App\Models\Sponsor;
+use App\Models\User;
+use App\Support\PokerHandSampler;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -18,9 +36,9 @@ Route::get('/', function () {
     // The flag, like every other page. This asked which season's dates
     // contained today and fell back to the most recent, so the home page could
     // name a different season from the one the dashboard called current.
-    $currentSeason = \App\Models\PokerSeason::current();
+    $currentSeason = PokerSeason::current();
 
-    $nextTournament = \App\Models\PokerTournament::with(['venue', 'season'])
+    $nextTournament = PokerTournament::with(['venue', 'season'])
         // Same withExists the events page uses, so the shared card can say
         // "You're registered" instead of offering a button the controller
         // would refuse. One exists() rather than loading every registrant.
@@ -66,7 +84,7 @@ Route::get('/', function () {
 
     // ordered() -- the same scope the admin list uses, so what an
     // administrator arranges is what this page renders.
-    $sponsors = \App\Models\Sponsor::ordered()->get();
+    $sponsors = Sponsor::ordered()->get();
 
     return view('home', compact('currentSeason', 'nextTournament', 'sponsors', 'topByRank', 'topByWins', 'topByPoints'));
 })->name('home');
@@ -96,21 +114,21 @@ Route::prefix('rules')->name('rules.')->group(function () {
     Route::redirect('/betting', '/rules/conduct')->name('old-betting');
     Route::redirect('/behaviour', '/rules/conduct#conduct-rules')->name('behaviour');
 
-    Route::get('/texas-holdem', function (\App\Support\PokerHandSampler $sampler) {
+    Route::get('/texas-holdem', function (PokerHandSampler $sampler) {
         // Dealt per request. The hierarchy is about the SHAPE of a hand, and a
         // fixed picture teaches the suit along with it.
         return view('rules.texas-holdem', ['hands' => $sampler->hierarchy()]);
     })->name('texas-holdem');
 
     Route::get('/points-structure', function () {
-        $pointsStructure = \App\Models\PointsStructure::orderBy('place')->get();
+        $pointsStructure = PointsStructure::orderBy('place')->get();
 
         // Fetch top 3 performers of the current season for a live preview
-        $currentSeason = \App\Models\PokerSeason::current();
+        $currentSeason = PokerSeason::current();
         $topPerformers = collect();
         
         if ($currentSeason) {
-            $topPerformers = \App\Models\User::withSum(['tournamentResults' => function($query) use ($currentSeason) {
+            $topPerformers = User::withSum(['tournamentResults' => function($query) use ($currentSeason) {
                 $query->whereHas('tournament', function($q) use ($currentSeason) {
                     $q->where('season_id', $currentSeason->id);
                 });
@@ -141,7 +159,7 @@ Route::get('/events', function () {
     // Two at a time: an upcoming event card carries a map and is tall, so a
     // long season scrolls forever otherwise. withQueryString keeps any future
     // filters across page links.
-    $upcomingTournaments = \App\Models\PokerTournament::with(['venue', 'season'])
+    $upcomingTournaments = PokerTournament::with(['venue', 'season'])
         // Lets the card show "You are registered" instead of offering a button
         // the controller would reject. One exists() per row, not an N+1.
         ->when(auth()->check(), fn ($query) => $query->withExists([
@@ -157,7 +175,7 @@ Route::get('/events', function () {
 
     // withCount('registrants'): podium() needs the size of the field to know
     // which places are settled, and this page draws one podium per card.
-    $pastTournaments = \App\Models\PokerTournament::with(['venue', 'season', 'results'])
+    $pastTournaments = PokerTournament::with(['venue', 'season', 'results'])
         ->withCount('registrants')
         ->where('start_time', '<', now())
         ->orderBy('start_time', 'desc')
@@ -170,11 +188,11 @@ Route::get('/contact', function () {
     return view('contact');
 })->name('contact');
 
-Route::post('/contact', [\App\Http\Controllers\ContactController::class, 'store'])
+Route::post('/contact', [ContactController::class, 'store'])
     ->middleware('throttle:5,1')
     ->name('contact.store');
 
-Route::get('/dashboard', [\App\Http\Controllers\DashboardController::class, 'index'])
+Route::get('/dashboard', [DashboardController::class, 'index'])
     ->middleware(['auth', 'verified'])->name('dashboard');
 
 Route::middleware('auth')->group(function () {
@@ -185,22 +203,22 @@ Route::middleware('auth')->group(function () {
     // The literal path is declared FIRST. Behind /notifications/{notification}
     // it would be matched as an id and 404 -- and because ids are UUIDs, no
     // real notification could ever shadow it, so the bug would be invisible.
-    Route::delete('/notifications/read', [\App\Http\Controllers\NotificationController::class, 'clearRead'])
+    Route::delete('/notifications/read', [NotificationController::class, 'clearRead'])
         ->name('notifications.clear-read');
-    Route::patch('/notifications/{notification}', [\App\Http\Controllers\NotificationController::class, 'update'])
+    Route::patch('/notifications/{notification}', [NotificationController::class, 'update'])
         ->name('notifications.update');
-    Route::delete('/notifications/{notification}', [\App\Http\Controllers\NotificationController::class, 'destroy'])
+    Route::delete('/notifications/{notification}', [NotificationController::class, 'destroy'])
         ->name('notifications.destroy');
 
     // Player-facing tournament and season views. Deliberately outside the
     // /poker prefix, which is admin-only.
-    Route::get('/tournaments/{tournament}', [\App\Http\Controllers\Poker\PokerTournamentController::class, 'show'])
+    Route::get('/tournaments/{tournament}', [PokerTournamentController::class, 'show'])
         ->name('tournaments.show');
-    Route::post('/tournaments/{tournament}/register', [\App\Http\Controllers\Poker\PokerTournamentController::class, 'register'])
+    Route::post('/tournaments/{tournament}/register', [PokerTournamentController::class, 'register'])
         ->name('tournaments.register');
-    Route::delete('/tournaments/{tournament}/unregister', [\App\Http\Controllers\Poker\PokerTournamentController::class, 'unregister'])
+    Route::delete('/tournaments/{tournament}/unregister', [PokerTournamentController::class, 'unregister'])
         ->name('tournaments.unregister');
-    Route::get('/seasons/{season}', [\App\Http\Controllers\Poker\PokerSeasonController::class, 'show'])
+    Route::get('/seasons/{season}', [PokerSeasonController::class, 'show'])
         ->name('seasons.show');
 
     // The league's records, readable by anyone signed in. A player has a
@@ -213,58 +231,58 @@ Route::middleware('auth')->group(function () {
     // admin group below. The names keep their poker. prefix so every existing
     // link still resolves.
     Route::prefix('poker')->name('poker.')->group(function () {
-        Route::get('seasons', [\App\Http\Controllers\Poker\PokerSeasonController::class, 'index'])
+        Route::get('seasons', [PokerSeasonController::class, 'index'])
             ->name('seasons.index');
-        Route::get('venues', [\App\Http\Controllers\Poker\VenueController::class, 'index'])
+        Route::get('venues', [VenueController::class, 'index'])
             ->name('venues.index');
-        Route::get('tournaments', [\App\Http\Controllers\Poker\PokerTournamentController::class, 'index'])
+        Route::get('tournaments', [PokerTournamentController::class, 'index'])
             ->name('tournaments.index');
     });
 
     Route::middleware('admin')->prefix('poker')->name('poker.')->group(function () {
-        Route::resource('seasons', \App\Http\Controllers\Poker\PokerSeasonController::class)->except(['show', 'index']);
-        Route::resource('venues', \App\Http\Controllers\Poker\VenueController::class)->except(['index']);
-        Route::resource('tournaments', \App\Http\Controllers\Poker\PokerTournamentController::class)->except(['show', 'index']);
+        Route::resource('seasons', PokerSeasonController::class)->except(['show', 'index']);
+        Route::resource('venues', VenueController::class)->except(['index']);
+        Route::resource('tournaments', PokerTournamentController::class)->except(['show', 'index']);
 
         // Recording a knockout, not editing a tournament, so it sits beside the
         // resource rather than inside it. Admin-only by this group.
-        Route::post('tournaments/{tournament}/eliminate', [\App\Http\Controllers\Poker\PokerTournamentController::class, 'eliminate'])
+        Route::post('tournaments/{tournament}/eliminate', [PokerTournamentController::class, 'eliminate'])
             ->name('tournaments.eliminate');
 
         // Declaring results final. Not part of the tournaments resource: it
         // sends messages to players and closes the record, which is not what
         // "update a tournament" means.
-        Route::post('tournaments/{tournament}/publish', [\App\Http\Controllers\Poker\PokerTournamentController::class, 'publish'])
+        Route::post('tournaments/{tournament}/publish', [PokerTournamentController::class, 'publish'])
             ->name('tournaments.publish');
-        Route::delete('tournaments/{tournament}/publish', [\App\Http\Controllers\Poker\PokerTournamentController::class, 'unpublish'])
+        Route::delete('tournaments/{tournament}/publish', [PokerTournamentController::class, 'unpublish'])
             ->name('tournaments.unpublish');
-        Route::resource('results', \App\Http\Controllers\Poker\PokerTournamentResultController::class)->except(['show']);
-        Route::resource('registrants', \App\Http\Controllers\Poker\PokerTournamentRegistrantController::class)->except(['show']);
-        Route::resource('venue-points', \App\Http\Controllers\Poker\VenuePointsController::class)->except(['show']);
-        Route::resource('points-structure', \App\Http\Controllers\Poker\PointsStructureController::class)->except(['show']);
+        Route::resource('results', PokerTournamentResultController::class)->except(['show']);
+        Route::resource('registrants', PokerTournamentRegistrantController::class)->except(['show']);
+        Route::resource('venue-points', VenuePointsController::class)->except(['show']);
+        Route::resource('points-structure', PointsStructureController::class)->except(['show']);
     });
 
     Route::middleware('admin')->group(function () {
         // create and store were removed in Phase 0 as dead routes: the
         // controller had no matching methods and both returned HTTP 500. They
         // return here with real ones, for the Register Player flow.
-        Route::resource('users', \App\Http\Controllers\UserController::class);
+        Route::resource('users', UserController::class);
 
         // Admission to the league. Inside the admin group, which is what makes
         // a player's attempt a 403 without a separate check in the controller.
-        Route::patch('users/{user}/approve', [\App\Http\Controllers\UserController::class, 'approve'])->name('users.approve');
+        Route::patch('users/{user}/approve', [UserController::class, 'approve'])->name('users.approve');
         // Sponsors shown on the home page. Not under /poker: that prefix is
         // league operations, and this is site content.
-        Route::resource('sponsors', \App\Http\Controllers\SponsorController::class)->except(['show']);
+        Route::resource('sponsors', SponsorController::class)->except(['show']);
 
-        Route::patch('users/{user}/reject', [\App\Http\Controllers\UserController::class, 'reject'])->name('users.reject');
+        Route::patch('users/{user}/reject', [UserController::class, 'reject'])->name('users.reject');
 
         // Re-issuing the two links a player needs to get in. Separate from
         // verification.send, which acts on the authenticated user: an
         // administrator acting on someone else's account is a different
         // operation and cannot reuse it.
-        Route::post('users/{user}/invite', [\App\Http\Controllers\UserController::class, 'sendInvite'])->name('users.invite');
-        Route::post('users/{user}/verification', [\App\Http\Controllers\UserController::class, 'sendVerification'])->name('users.verification');
+        Route::post('users/{user}/invite', [UserController::class, 'sendInvite'])->name('users.invite');
+        Route::post('users/{user}/verification', [UserController::class, 'sendVerification'])->name('users.verification');
     });
 });
 

@@ -70,7 +70,7 @@ class TournamentScheduleTest extends TestCase
 
         $this->actingAs($admin)
             ->post(route('tournaments.register', $tournament), ['user_id' => $player->id])
-            ->assertSessionHas('status');
+            ->assertSessionHas('status', fn ($message) => filled($message));
 
         $this->assertDatabaseHas('tournament_registrants', [
             'tournament_id' => $tournament->id,
@@ -87,7 +87,7 @@ class TournamentScheduleTest extends TestCase
         $this->enter($tournament, $player);
 
         $this->actingAs($player)->delete(route('tournaments.unregister', $tournament))
-            ->assertSessionHas('status');
+            ->assertSessionHas('status', fn ($message) => filled($message));
 
         $this->assertSame(0, $tournament->registrants()->count());
     }

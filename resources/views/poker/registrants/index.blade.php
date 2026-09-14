@@ -46,7 +46,7 @@
                             </div>
                         </td>
 
-                        <td class="registrants-index__date">{{ $registrant->registered_at ? \Illuminate\Support\Carbon::parse($registrant->registered_at)->format('M d, Y') : '—' }}</td>
+                        <td class="registrants-index__date">{{ $registrant->registered_at ? $registrant->registered_at->format('M d, Y') : '—' }}</td>
 
                         <td class="table__actions">
                             <div class="l-cluster l-cluster--end">

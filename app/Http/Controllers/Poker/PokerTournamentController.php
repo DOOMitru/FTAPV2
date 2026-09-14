@@ -112,8 +112,11 @@ class PokerTournamentController extends Controller
         // already computed here so the card and the page around it cannot
         // disagree about whether you are in this tournament.
         $tournament->viewer_registered = $isUserRegistered;
-        // "Past" means play has begun.
-        $isPast = \Illuminate\Support\Carbon::parse($tournament->start_time)->isPast();
+        // "Past" means play has begun -- and the model already answers that.
+        // This used to parse start_time and compare it here: a second
+        // definition of the rule, over an attribute the model already casts to
+        // a Carbon instance, so the parse was re-reading its own output.
+        $isPast = $tournament->hasStarted();
 
         // Read for $nextPlacePoints alone. The Points at Stake panel used to
         // print the whole table beside the tournament; the points on offer now

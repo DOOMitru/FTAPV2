@@ -99,7 +99,7 @@ class DashboardTournamentActionsTest extends TestCase
             ->from(route('dashboard'))
             ->delete(route('tournaments.unregister', $tournament))
             ->assertRedirect(route('dashboard'))
-            ->assertSessionHas('status');
+            ->assertSessionHas('status', fn ($message) => filled($message));
 
         $this->assertSame(0, $tournament->registrants()->count());
     }

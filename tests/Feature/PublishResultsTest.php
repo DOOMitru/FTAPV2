@@ -50,7 +50,7 @@ class PublishResultsTest extends TestCase
 
         $this->actingAs($this->admin())
             ->post(route('poker.tournaments.publish', $tournament))
-            ->assertSessionHas('status');
+            ->assertSessionHas('status', fn ($message) => filled($message));
 
         $this->assertSame(1, $players[0]->notifications()->count());
         $this->assertSame(1, $players[1]->notifications()->count());
@@ -133,7 +133,7 @@ class PublishResultsTest extends TestCase
 
         $this->actingAs($this->admin())
             ->post(route('poker.tournaments.publish', $tournament->fresh()))
-            ->assertSessionHas('status');
+            ->assertSessionHas('status', fn ($message) => filled($message));
 
         $this->assertTrue($tournament->fresh()->isPublished());
         $this->assertSame(0, DatabaseNotification::count());
@@ -152,7 +152,7 @@ class PublishResultsTest extends TestCase
 
         $this->actingAs($admin)
             ->delete(route('poker.tournaments.unpublish', $tournament->fresh()))
-            ->assertSessionHas('status');
+            ->assertSessionHas('status', fn ($message) => filled($message));
 
         $this->assertFalse($tournament->fresh()->isPublished());
         $this->assertSame(0, $players[0]->fresh()->notifications()->count());

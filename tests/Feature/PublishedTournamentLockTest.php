@@ -76,7 +76,7 @@ class PublishedTournamentLockTest extends TestCase
         // Allowed while open. Entering somebody into a scored tournament is
         // deliberately still permitted -- the shift hook moves the finishes.
         $this->actingAs($admin)->post(route('tournaments.register', $open), ['user_id' => $newcomer->id])
-            ->assertSessionHas('status');
+            ->assertSessionHas('status', fn ($message) => filled($message));
 
         [$closed] = $this->published('Closed Night');
 
@@ -117,7 +117,7 @@ class PublishedTournamentLockTest extends TestCase
 
         $this->actingAs($admin)->post(route('poker.tournaments.eliminate', $open), [
             'user_id' => $players[0]->id,
-        ])->assertSessionHas('status');
+        ])->assertSessionHas('status', fn ($message) => filled($message));
 
         [$closed, $closedPlayers] = $this->published('Closed Night');
 
@@ -182,7 +182,7 @@ class PublishedTournamentLockTest extends TestCase
             'points_structure_id' => $structure->id,
             'user_id' => $openPlayers[0]->id,
             'player_name' => 'Renamed While Open',
-        ])->assertSessionHas('status');
+        ])->assertSessionHas('status', fn ($message) => filled($message));
 
         $this->assertSame('Renamed While Open', $openResult->fresh()->player_name);
 
@@ -208,7 +208,7 @@ class PublishedTournamentLockTest extends TestCase
         $openResult = $open->results()->where('user_id', $openPlayers[0]->id)->firstOrFail();
 
         $this->actingAs($admin)->delete(route('poker.results.destroy', $openResult))
-            ->assertSessionHas('status');
+            ->assertSessionHas('status', fn ($message) => filled($message));
         $this->assertSame(2, $open->results()->count());
 
         [$closed, $closedPlayers] = $this->published('Closed Night');
@@ -231,7 +231,7 @@ class PublishedTournamentLockTest extends TestCase
         $result = $tournament->results()->where('user_id', $players[0]->id)->firstOrFail();
 
         $this->actingAs($admin)->delete(route('poker.results.destroy', $result))
-            ->assertSessionHas('status');
+            ->assertSessionHas('status', fn ($message) => filled($message));
 
         $this->assertSame(2, $tournament->results()->count());
     }
@@ -248,7 +248,7 @@ class PublishedTournamentLockTest extends TestCase
         // have started, and this test is about publishing, not about the
         // player's window.
         $this->actingAs($admin)->post(route('tournaments.register', $open), ['user_id' => $newcomer->id])
-            ->assertSessionHas('status');
+            ->assertSessionHas('status', fn ($message) => filled($message));
 
         $this->assertSame(4, $open->registrants()->count());
         $this->assertTrue($published->fresh()->isPublished());
