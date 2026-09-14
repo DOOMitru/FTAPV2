@@ -127,9 +127,6 @@ person at a time, and there is no reason to run the mass send ever again.
    Leaders page died with profile pictures: initials are not a face.
 6. `docs/` holds six audit documents from finished phases. Their open-items
    sections are largely resolved; treat this file as the index, not them.
-7. `.superpowers/sdd/` can be deleted whenever convenient — see the end of this
-   file.
-
 Nothing else is known-broken. There are no TODO, FIXME or HACK markers anywhere
 in `app/`, `routes/` or `resources/`.
 
@@ -780,8 +777,8 @@ records why: the primary is the brand red, so there is no second brand hue for a
 accent to carry, and keeping one would mean two answers to one question. What the
 retired `--c-accent-strong` existed for is now solved once, for the primary.
 
-## Open question for the owner
+## Closed: the sdd ledger
 
-**`.superpowers/sdd/` may be deleted.** It holds the 539-line decision ledger and
-17 agent reports, all gitignored. Everything with forward value has been copied
-into this file. Delete it whenever convenient.
+**`.superpowers/` is gone, 2026-09-13.** It held a 539-line decision ledger and
+17 agent reports. Everything with forward value had already been copied into
+this file, which is why this file is long. Nothing references the directory.
