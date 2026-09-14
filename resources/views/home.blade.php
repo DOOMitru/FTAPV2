@@ -225,6 +225,7 @@
                             @foreach ($topByRank as $i => $row)
                                 <li class="p-standing__row">
                                     <x-rank :place="$i + 1" />
+                                    <x-monogram :name="$row['name']" size="sm" decorative />
                                     <span class="p-standing__name">{{ $row['name'] }}</span>
                                     {{-- The rank itself, not the points-per-event
                                          it is computed from. The ratio is the
@@ -245,6 +246,7 @@
                                 @foreach ($topByWins as $i => $row)
                                     <li class="p-standing__row">
                                         <x-rank :place="$i + 1" />
+                                        <x-monogram :name="$row['name']" size="sm" decorative />
                                         <span class="p-standing__name">{{ $row['name'] }}</span>
                                         <span class="p-standing__value">{{ $row['wins'] }} {{ trans_choice('win|wins', $row['wins']) }}</span>
                                     </li>
@@ -260,6 +262,7 @@
                             @foreach ($topByPoints as $i => $row)
                                 <li class="p-standing__row">
                                     <x-rank :place="$i + 1" />
+                                    <x-monogram :name="$row['name']" size="sm" decorative />
                                     <span class="p-standing__name">{{ $row['name'] }}</span>
                                     <span class="p-standing__value">{{ number_format($row['points']) }} {{ __('pts') }}</span>
                                 </li>

@@ -60,9 +60,11 @@ class PokerTournamentController extends Controller
 
         $validated['season_id'] = $currentSeason->id;
 
-        PokerTournament::create($validated);
+        $tournament = PokerTournament::create($validated);
 
-        return redirect()->route('poker.tournaments.index')->with('status', 'Tournament created successfully!');
+        return redirect()->route('poker.tournaments.index')->with('status', __(':tournament created.', [
+            'tournament' => emph($tournament->name),
+        ]));
     }
 
     /**
@@ -110,8 +112,11 @@ class PokerTournamentController extends Controller
         // already computed here so the card and the page around it cannot
         // disagree about whether you are in this tournament.
         $tournament->viewer_registered = $isUserRegistered;
-        // "Past" means play has begun.
-        $isPast = \Illuminate\Support\Carbon::parse($tournament->start_time)->isPast();
+        // "Past" means play has begun -- and the model already answers that.
+        // This used to parse start_time and compare it here: a second
+        // definition of the rule, over an attribute the model already casts to
+        // a Carbon instance, so the parse was re-reading its own output.
+        $isPast = $tournament->hasStarted();
 
         // Read for $nextPlacePoints alone. The Points at Stake panel used to
         // print the whole table beside the tournament; the points on offer now
@@ -227,6 +232,9 @@ class PokerTournamentController extends Controller
                     'name' => trim($user->first_name.' '.$user->last_name),
                     'label' => trim($user->first_name.' '.$user->last_name)
                         .(filled($user->nickname) ? ' ('.$user->nickname.')' : ''),
+                    // From the full name, not the label: the label carries a
+                    // parenthesised nickname, and "W(" is not a monogram.
+                    'initials' => initials(trim($user->first_name.' '.$user->last_name)),
                     'nickname' => $user->nickname,
                     'email' => $user->email,
                     'played' => $user->tournament_registrations_count,
@@ -572,7 +580,9 @@ class PokerTournamentController extends Controller
 
         $tournament->update($validated);
 
-        return redirect()->route('poker.tournaments.index')->with('status', 'Tournament updated successfully!');
+        return redirect()->route('poker.tournaments.index')->with('status', __(':tournament updated.', [
+            'tournament' => emph($tournament->name),
+        ]));
     }
 
     /**
@@ -580,8 +590,12 @@ class PokerTournamentController extends Controller
      */
     public function destroy(PokerTournament $tournament): RedirectResponse
     {
+        $name = $tournament->name;
+
         $tournament->delete();
 
-        return redirect()->route('poker.tournaments.index')->with('status', 'Tournament deleted successfully!');
+        return redirect()->route('poker.tournaments.index')->with('status', __(':tournament deleted.', [
+            'tournament' => emph($name),
+        ]));
     }
 }

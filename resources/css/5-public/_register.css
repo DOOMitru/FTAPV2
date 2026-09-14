@@ -693,6 +693,20 @@
 
 /* The body must grow and stay start-aligned; without flex:1 the seat, name and
    points distribute evenly and the name drifts to the middle of the row. */
+/* The monogram on a public panel.
+ *
+ * The component grounds itself in --c-surface-raised, which is an APP surface:
+ * on this red panel it landed as a pale disc, brighter than the name it stands
+ * beside and out of key with .p-leader__seat right next to it. The panel's own
+ * idiom is translucent white, so the disc borrows it -- and it then works in
+ * both themes for the same reason the seat does, because the panel's ground is
+ * the same red either way. */
+.p-leader .monogram {
+    border-color: rgb(255 255 255 / 0.28);
+    background-color: rgb(255 255 255 / 0.2);
+    color: #FFFFFF;
+}
+
 .p-leader__body {
     flex: 1 1 auto;
     min-width: 0;
@@ -1173,7 +1187,20 @@
     color: var(--c-text-muted);
 }
 
-/* The podium of a finished tournament, named rather than initialled. */
+/* Shown to a guest where the podium would be.
+ *
+ * Not an omission: a card that stopped after the venue would read as a
+ * tournament nobody finished. It says the results exist and are behind a door,
+ * which is true and is also the only invitation this page makes. */
+.p-archive__gated {
+    margin: 0;
+    font-size: var(--step--2);
+    font-style: italic;
+    color: var(--c-text-muted);
+}
+
+/* The podium of a finished tournament: initials beside the name, as everywhere
+   else a player is listed. Members only -- see events.blade.php. */
 .p-podium {
     display: flex;
     flex-direction: column;

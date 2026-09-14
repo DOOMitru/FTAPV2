@@ -118,6 +118,9 @@
                                              button would post it. --}}
                                         <button type="button" class="picker__btn"
                                                 x-on:click="chosen = { id: @js($user->id), name: @js(trim($user->first_name.' '.$user->last_name)) }; $nextTick(() => $refs.amount.focus())">
+                                            <x-monogram :user="$user" size="sm" decorative
+                                                        class="picker__face" />
+
                                             <span class="picker__name">
                                                 {{ $user->first_name }} {{ $user->last_name }}{{ filled($user->nickname) ? ' ('.$user->nickname.')' : '' }}
                                             </span>

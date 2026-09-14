@@ -38,9 +38,11 @@ class VenueController extends Controller
             'address' => 'nullable|string|max:255',
         ]);
 
-        Venue::create($validated);
+        $venue = Venue::create($validated);
 
-        return redirect()->route('poker.venues.index')->with('status', 'Venue created successfully!');
+        return redirect()->route('poker.venues.index')->with('status', __('Venue :name created.', [
+            'name' => emph($venue->name),
+        ]));
     }
 
     /**
@@ -105,7 +107,9 @@ class VenueController extends Controller
 
         $venue->update($validated);
 
-        return redirect()->route('poker.venues.index')->with('status', 'Venue updated successfully!');
+        return redirect()->route('poker.venues.index')->with('status', __('Venue :name updated.', [
+            'name' => emph($venue->name),
+        ]));
     }
 
     /**
@@ -113,8 +117,14 @@ class VenueController extends Controller
      */
     public function destroy(Venue $venue): RedirectResponse
     {
+        // Read before the row goes, so the message does not depend on what
+        // an already-deleted model still happens to hold in memory.
+        $name = $venue->name;
+
         $venue->delete();
 
-        return redirect()->route('poker.venues.index')->with('status', 'Venue deleted successfully!');
+        return redirect()->route('poker.venues.index')->with('status', __('Venue :name deleted.', [
+            'name' => emph($name),
+        ]));
     }
 }

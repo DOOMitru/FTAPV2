@@ -41,7 +41,7 @@ class NotificationManagementTest extends TestCase
         $notification = $this->notify($user);
 
         $this->actingAs($user)->patch(route('notifications.update', $notification))
-            ->assertSessionHas('status');
+            ->assertSessionHas('status', fn ($message) => filled($message));
 
         $this->assertNotNull($notification->fresh()->read_at);
     }
@@ -64,7 +64,7 @@ class NotificationManagementTest extends TestCase
         $notification = $this->notify($user, read: true);
 
         $this->actingAs($user)->delete(route('notifications.destroy', $notification))
-            ->assertSessionHas('status');
+            ->assertSessionHas('status', fn ($message) => filled($message));
 
         $this->assertSame(0, $user->notifications()->count());
     }
@@ -90,7 +90,7 @@ class NotificationManagementTest extends TestCase
         $this->notify($user);
 
         $this->actingAs($user)->delete(route('notifications.clear-read'))
-            ->assertSessionHas('status');
+            ->assertSessionHas('status', fn ($message) => filled($message));
 
         $this->assertSame(1, $user->fresh()->notifications()->count());
         $this->assertSame(1, $user->fresh()->unreadNotifications()->count());
@@ -137,7 +137,7 @@ class NotificationManagementTest extends TestCase
         $user = User::factory()->create();
         $this->notify($user, read: true);
 
-        $this->actingAs($user)->delete('/notifications/read')->assertSessionHas('status');
+        $this->actingAs($user)->delete('/notifications/read')->assertSessionHas('status', fn ($message) => filled($message));
 
         $this->assertSame(0, $user->fresh()->notifications()->count());
     }
@@ -148,7 +148,7 @@ class NotificationManagementTest extends TestCase
         $this->notify($user);
 
         $this->actingAs($user)->delete(route('notifications.clear-read'))
-            ->assertSessionHas('status');
+            ->assertSessionHas('status', fn ($message) => filled($message));
 
         $this->assertSame(1, $user->fresh()->notifications()->count());
     }

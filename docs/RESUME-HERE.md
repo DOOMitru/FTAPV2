@@ -120,16 +120,19 @@ person at a time, and there is no reason to run the mass send ever again.
    against SQLite/MySQL divergence can itself be driver-specific**, and asserting
    a type NAME is how that happens.
 
-5. **The monogram survey's Tier 2 and 3 — ten sites, never actioned.** The two
-   admin player pickers are the ones with real utility; the leaderboards are
-   decoration. Several need their controllers reshaped to carry a model rather
-   than a name string. The privacy objection to the public Current Season
-   Leaders page died with profile pictures: initials are not a face.
+5. ~~The monogram survey's Tier 2 and 3~~ **DONE, 2026-09-13.** Every list of
+   players now pictures them; `MonogramCoverageTest` names the ten and fails if
+   one loses its monogram. Two recorded beliefs turned out to be wrong. The
+   blocker -- "several need their controllers reshaped to carry a model rather
+   than a name string" -- was weaker than it read: `<x-monogram>` takes a name
+   STRING, and a decorative monogram needs no accessible label because the name
+   is beside it. And the privacy question was aimed at the wrong page: the
+   public Current Season Leaders panel had since been wrapped in `@auth`, so it
+   was never public. The four `<select>` forms are the only sites left, and an
+   `<option>` cannot hold markup, so they are not deferred -- they are out of
+   reach. Recorded in the test rather than here.
 6. `docs/` holds six audit documents from finished phases. Their open-items
    sections are largely resolved; treat this file as the index, not them.
-7. `.superpowers/sdd/` can be deleted whenever convenient — see the end of this
-   file.
-
 Nothing else is known-broken. There are no TODO, FIXME or HACK markers anywhere
 in `app/`, `routes/` or `resources/`.
 
@@ -315,25 +318,61 @@ and confirming the sweeps failed. It is not an assumption.
 Five more guards were added as the conversion went on; all eight are listed in
 `docs/PHASE-5-EXIT-AUDIT.md`.
 
-## Deferred minor findings from Phase 0 — never actioned
+## Deferred minor findings from Phase 0 — CLEARED, 2026-09-13
 
-Triaged as LEAVE during Phase 0's final review and still open. None blocks anything; they
-are recorded so they are not rediscovered as if new:
+All fourteen are closed. Four needed no change, two had already been overtaken
+by later work, and eight were fixed. Recorded in full because "we looked and
+there was nothing to do" is a result, and the next person should not have to
+re-derive it.
 
-- Task 1: minor (deferred): both tests assert only HTTP 200; a regression that broke
-- Task 1: minor (deferred): inline \App\Models\... FQCNs in the route closure vs `use`
-- Task 2: minor (deferred): the implementer's read-only `git show` breach (already ruled).
-- Task 3: minor (deferred): guest-redirect test covers only the group-gated route, not the
-- Task 3: minor (deferred): provider covers index routes only; no non-admin write-route
-- Task 3: minor (deferred): EnsureUserIsAdmin lacks a docblock noting it depends on `auth`
-- Task 4: minor (deferred): test_dashboard_excludes_a_tournament_that_has_already_started
-- Task 5: minor (deferred): single-arg assertSessionHas('status') checks key presence only
-- Task 5: minor (deferred): success message + back()->with() duplicated across the honeypot
-- Tasks 6+7: minor (deferred): npm run build rewrote public/build/manifest.json and hashed
-- Tasks 6+7: minor (deferred): package-lock.json had unrelated uncommitted changes before
-- Task 8: minor (deferred): procedural — a consequential expansion landed before controller
-- Final fix wave: minor (deferred): Carbon::parse() in the accessor is redundant given the
-- Final fix wave: minor (deferred): FQCN \Illuminate\Support\Carbon instead of a use import.
+**Fixed (8):**
+
+- Task 1: the route file named eighteen classes by FQCN inline; all are `use`
+  imports now, models and controllers alike.
+- Task 3: `EnsureUserIsAdmin` says in a docblock that it depends on `auth`
+  running first -- on its own it refuses a guest with 403 where they should get
+  302 to the login screen -- and `AdminAccessTest` now proves the pairing
+  instead of only describing it.
+- Task 3: the guest-redirect test covered ONE route, and the route it named --
+  `poker.seasons.index` -- is no longer admin-gated: the three league indexes
+  moved out to the signed-in group. It proved that `auth` redirects, which was
+  never in question, and nothing about `admin`. It is now provider-driven over
+  every admin route.
+- Task 3: the provider reached GET routes only. A second provider covers seven
+  admin WRITE routes for both a player (403) and a guest (302) -- a gate that
+  holds at the form and not at the endpoint is exactly what this suite is for.
+- Task 5: the contact form's acknowledgement was written twice, once for a real
+  submission and once for the honeypot. The honeypot's whole trick is that the
+  two are indistinguishable, so they are one constant now.
+- Task 5: thirty-seven `assertSessionHas('status')` calls checked that the key
+  existed and nothing else. They now assert the message is not empty. Pinning
+  the exact copy in thirty-seven places was considered and rejected: it trades
+  a weak assertion for a brittle one, and every future wording change would
+  break a dozen tests. Verified by flashing an empty status, which now fails
+  four tests that used to pass.
+- Final fix wave: five redundant `Carbon::parse()` calls removed -- the
+  attributes were already cast to Carbon, so the parse was re-reading its own
+  output. The five that remain are on genuinely uncast values (`event_date` is
+  deliberately a plain string, `played_on` comes out of notification JSON).
+  One of the five was also a second definition of "has this tournament
+  started?", and now calls `PokerTournament::hasStarted()`.
+- Final fix wave: the one PHP file using `\Illuminate\Support\Carbon` inline
+  imports it. Blade files keep the FQCN, which is how a template names a class.
+
+**Already overtaken (2):**
+
+- Task 1: "both tests assert only HTTP 200" -- `PointsStructurePageTest` has
+  since gained view-data assertions and four more tests about who appears on
+  the leaders panel.
+- Task 4: `test_dashboard_excludes_a_tournament_that_has_already_started` was
+  renamed and rewritten as `UpcomingEventsCardTest`, which covers the same rule
+  and nine more.
+
+**Nothing to change (4):** the read-only `git show` breach in Task 2 (already
+ruled at the time), the two Tasks 6+7 notes about `npm run build` rewriting
+`manifest.json` and `package-lock.json` carrying unrelated changes, and the
+Task 8 note that a consequential expansion landed before controller review.
+These are records of what happened during Phase 0, not defects in the code.
 
 ## Decisions taken during Phase 0 that still bind
 
@@ -571,9 +610,8 @@ Plan: `docs/superpowers/plans/2026-09-06-player-notifications.md`.
 - **Tier 1 only.** The Awaiting-approval table on `users/index` now has the photo
   column the approved-users table below it has always had. The remaining ten
   sites from the survey (leaderboards, pickers, public Current Season Leaders)
-  are deliberately not done -- see the notes on that survey: several need their
-  controllers reshaped to carry a model instead of a name string, and the public
-  points-structure page raises a privacy question the owner has not answered.
+  were finished on 2026-09-13 -- see item 5 at the top of this file. Both of the
+  reasons recorded here for deferring them turned out not to hold.
 - **The stock face is deleted**, not merely unreferenced -- 1.9MB that rsync
   shipped on every deploy for an image no page asked for. `profile_image_url`
   answers **null** when there is no photo, which is what makes it a question
@@ -780,8 +818,8 @@ records why: the primary is the brand red, so there is no second brand hue for a
 accent to carry, and keeping one would mean two answers to one question. What the
 retired `--c-accent-strong` existed for is now solved once, for the primary.
 
-## Open question for the owner
+## Closed: the sdd ledger
 
-**`.superpowers/sdd/` may be deleted.** It holds the 539-line decision ledger and
-17 agent reports, all gitignored. Everything with forward value has been copied
-into this file. Delete it whenever convenient.
+**`.superpowers/` is gone, 2026-09-13.** It held a 539-line decision ledger and
+17 agent reports. Everything with forward value had already been copied into
+this file, which is why this file is long. Nothing references the directory.

@@ -85,7 +85,7 @@ class SeasonStandingsLayoutTest extends TestCase
 
         $this->assertStringContainsString('data-label="played"', $html);
         $this->assertStringContainsString('data-label="won"', $html);
-        $this->assertStringContainsString('data-label="venue pts"', $html);
+        $this->assertStringContainsString('data-label="venue points"', $html);
     }
 
     public function test_the_desktop_table_still_has_all_seven_headers(): void
@@ -94,9 +94,70 @@ class SeasonStandingsLayoutTest extends TestCase
         // desktop reads exactly as it did.
         $html = $this->standings();
 
-        foreach (['Rank', 'Player', 'Pts', 'Played', 'Won', 'Venue pts', 'Finale'] as $header) {
+        foreach (['Rank', 'Player', 'Points', 'Played', 'Wins', 'Venue points', 'Finale'] as $header) {
             $this->assertStringContainsString('>'.$header.'</th>', $html);
         }
+    }
+
+    public function test_the_name_is_a_block_beside_the_initials(): void
+    {
+        // In the flow, a squeezed column broke "Wanda Reeve" after the first
+        // word and left "Reeve" sitting under the disc. As its own element the
+        // name wraps inside its own column instead, so a long name stacks
+        // beside the initials rather than around them.
+        $html = $this->standings();
+
+        $this->assertStringContainsString('season-show__player-row', $html);
+        $this->assertStringContainsString('season-show__player-name', $html);
+
+        // A <td> set to display:flex stops being a table-cell and leaves its
+        // column's alignment, so the row is an element INSIDE the cell.
+        $this->assertMatchesRegularExpression(
+            '/<td class="season-show__player">\s*(?:\{\{--.*?--\}\}\s*)?<span class="season-show__player-row">/s',
+            $html,
+            'The flex row belongs inside the cell, not on it.'
+        );
+
+        // And the cell itself is not flexed on the desktop table. Matched
+        // unindented, so it addresses the top-level rule only: inside the
+        // phone media query the same cell IS flexed, deliberately, because
+        // there the row is a grid and the cells are not table-cells any more.
+        $css = file_get_contents(resource_path('css/4-pages/_season-show.css'));
+
+        $this->assertSame(1, preg_match('/^\.season-show__player \{(?<body>[^}]*)\}/m', $css, $m));
+
+        $this->assertStringNotContainsString(
+            'display:', $m['body'],
+            'Flexing the cell drops it out of the table layout on desktop.'
+        );
+    }
+
+    public function test_the_meter_yields_width_to_the_name_on_a_narrow_card(): void
+    {
+        // The standings sit in a sidebar layout. Between roughly 48rem and
+        // 80rem the card is narrow while the table's fixed demands are not,
+        // and the player column -- the only one whose content can wrap -- got
+        // whatever was left: 100px at 1000px wide, which halves a two-word
+        // name. The meter gives up four of its twelve rem there, and the
+        // player column gets a floor for the case where the table scrolls
+        // anyway and would otherwise crush it to min-content.
+        //
+        // Nothing in a PHP suite can compute a column width; measured in a
+        // browser at 320, 375, 769, 820, 900, 1000, 1100, 1280 and 1440.
+        $css = file_get_contents(resource_path('css/4-pages/_season-show.css'));
+
+        $this->assertStringContainsString('@media (max-width: 80rem) {', $css);
+        $this->assertMatchesRegularExpression(
+            '/@media \(max-width: 80rem\) \{\s*\.season-show__meter-cell \{\s*min-width: 8rem;/',
+            $css,
+            'The meter should yield width where the card is narrow.'
+        );
+
+        $this->assertMatchesRegularExpression(
+            '/\.season-show__player \{\s*min-width: 11rem;/',
+            $css,
+            'The player column needs a floor, or it collapses to the longest single word.'
+        );
     }
 
     public function test_the_season_figures_are_marked_to_become_rows_on_a_phone(): void

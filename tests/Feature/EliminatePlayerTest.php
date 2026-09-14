@@ -143,7 +143,7 @@ class EliminatePlayerTest extends TestCase
         $tournament = $this->tournament(startsIn: '+2 days');
         $players = $this->field($tournament, 3);
 
-        $this->eliminate($tournament, $players[0])->assertSessionHas('status');
+        $this->eliminate($tournament, $players[0])->assertSessionHas('status', fn ($message) => filled($message));
 
         $this->assertSame(3, PokerTournamentResult::where('user_id', $players[0]->id)->value('place'));
     }
@@ -471,7 +471,7 @@ class EliminatePlayerTest extends TestCase
 
         $this->actingAs($admin)
             ->post(route('tournaments.register', $tournament), ['user_id' => $latecomer->id])
-            ->assertSessionHas('status');
+            ->assertSessionHas('status', fn ($message) => filled($message));
 
         $this->assertSame(
             4,

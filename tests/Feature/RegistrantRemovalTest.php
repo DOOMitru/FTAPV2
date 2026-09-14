@@ -265,7 +265,7 @@ class RegistrantRemovalTest extends TestCase
             // index was the only caller and became a page nobody asked for once
             // the tournament page grew the same control.
             ->assertRedirect(route('tournaments.show', $tournament))
-            ->assertSessionHas('status');
+            ->assertSessionHas('status', fn ($message) => filled($message));
 
         $this->assertSame(0, $tournament->registrants()->count());
     }
@@ -334,7 +334,7 @@ class RegistrantRemovalTest extends TestCase
 
         $this->actingAs($this->admin())
             ->delete(route('poker.registrants.destroy', $stillIn))
-            ->assertSessionHas('status');
+            ->assertSessionHas('status', fn ($message) => filled($message));
 
         $this->assertSame(1, $tournament->registrants()->count());
     }
@@ -430,7 +430,7 @@ class RegistrantRemovalTest extends TestCase
 
         $this->actingAs($this->admin())
             ->delete(route('poker.registrants.destroy', $registrant))
-            ->assertSessionHas('status');
+            ->assertSessionHas('status', fn ($message) => filled($message));
 
         $this->assertSame(0, $other->registrants()->count());
     }
@@ -453,7 +453,7 @@ class RegistrantRemovalTest extends TestCase
 
         $this->actingAs($this->admin())
             ->post(route('tournaments.register', $tournament), ['user_id' => $latecomer->id])
-            ->assertSessionHas('status');
+            ->assertSessionHas('status', fn ($message) => filled($message));
 
         $this->assertSame(3, $tournament->registrants()->count());
         $this->assertSame(3, PokerTournamentResult::where('user_id', $players[0]->id)->value('place'));

@@ -9,12 +9,22 @@ use Illuminate\Support\Facades\Mail;
 
 class ContactController extends Controller
 {
+    /**
+     * What a sender is told, whether or not anything was sent.
+     *
+     * One constant, because the honeypot's whole trick is that its answer is
+     * indistinguishable from a real one. Two copies of the sentence are two
+     * chances for them to drift apart, and the day they do is the day the
+     * honeypot starts announcing itself.
+     */
+    private const ACKNOWLEDGEMENT = 'Thanks — your message is on its way.';
+
     public function store(Request $request): RedirectResponse
     {
         // Honeypot: a field no person sees and no person fills in. Answer
         // exactly as we would a real submission so bots learn nothing.
         if ($request->filled('company')) {
-            return back()->with('status', 'Thanks — your message is on its way.');
+            return $this->acknowledge();
         }
 
         $validated = $request->validate([
@@ -31,6 +41,11 @@ class ContactController extends Controller
             body: $validated['message'],
         ));
 
-        return back()->with('status', 'Thanks — your message is on its way.');
+        return $this->acknowledge();
+    }
+
+    private function acknowledge(): RedirectResponse
+    {
+        return back()->with('status', __(self::ACKNOWLEDGEMENT));
     }
 }

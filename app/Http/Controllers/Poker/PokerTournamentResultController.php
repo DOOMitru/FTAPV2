@@ -10,6 +10,7 @@ use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
+use Illuminate\Support\Number;
 use Illuminate\Validation\Rule;
 
 class PokerTournamentResultController extends Controller
@@ -87,7 +88,13 @@ class PokerTournamentResultController extends Controller
             'player_nickname' => $validated['player_nickname'] ?? null,
         ]);
 
-        return redirect()->route('poker.results.index')->with('status', 'Tournament result added successfully!');
+        return redirect()->route('poker.results.index')->with('status', __(
+            ':name finished in :place place and takes :points points.', [
+                'name' => emph($validated['player_name']),
+                'place' => Number::ordinal($structure->place),
+                'points' => $structure->points,
+            ]
+        ));
     }
 
     /**
@@ -138,7 +145,13 @@ class PokerTournamentResultController extends Controller
             'player_nickname' => $validated['player_nickname'] ?? null,
         ]);
 
-        return redirect()->route('poker.results.index')->with('status', 'Tournament result updated successfully!');
+        return redirect()->route('poker.results.index')->with('status', __(
+            'Result updated: :name finished in :place place and takes :points points.', [
+                'name' => emph($validated['player_name']),
+                'place' => Number::ordinal($structure->place),
+                'points' => $structure->points,
+            ]
+        ));
     }
 
     /**
@@ -152,8 +165,12 @@ class PokerTournamentResultController extends Controller
             return back()->with('error', $refusal);
         }
 
+        $name = $result->player_name;
+
         $result->delete();
 
-        return redirect()->route('poker.results.index')->with('status', 'Tournament result deleted successfully!');
+        return redirect()->route('poker.results.index')->with('status', __(
+            'Result for :name deleted.', ['name' => emph($name)]
+        ));
     }
 }

@@ -125,23 +125,32 @@
  * dropped silently, and there is nothing here that needs one. */
 .register .picker__btn {
     display: grid;
-    grid-template-columns: 1fr auto;
+    /* Three columns now: the initials lead, as they do in every other list of
+       players in the app. */
+    grid-template-columns: auto 1fr auto;
     column-gap: var(--space-4);
     align-items: center;
 }
 
-.register .picker__name {
+/* Spanning both rows, so the disc is centred against the pair rather than
+   sitting on the name's line with the email hanging below it. */
+.register .picker__face {
     grid-column: 1;
-    grid-row: 1;
+    grid-row: 1 / span 2;
 }
 
-.register .picker__count {
+.register .picker__name {
     grid-column: 2;
     grid-row: 1;
 }
 
+.register .picker__count {
+    grid-column: 3;
+    grid-row: 1;
+}
+
 .register .picker__meta {
-    grid-column: 1;
+    grid-column: 2;
     grid-row: 2;
 }
 

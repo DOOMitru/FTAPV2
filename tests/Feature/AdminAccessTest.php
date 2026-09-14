@@ -51,9 +51,56 @@ class AdminAccessTest extends TestCase
         $this->actingAs($admin)->get(route($routeName))->assertStatus(200);
     }
 
-    public function test_guest_is_redirected_to_login_from_admin_routes()
+    /**
+     * Admin routes that CHANGE something.
+     *
+     * The GET provider above reaches create pages and indexes. A write route
+     * refused at the form but not at the endpoint is the shape of gate this
+     * suite exists to catch, and nothing was asking for one.
+     *
+     * @return array<string, array{0: string, 1: string}>
+     */
+    public static function adminWriteRouteProvider(): array
     {
-        $this->get(route('poker.seasons.index'))->assertRedirect(route('login'));
+        return [
+            'store a season' => ['POST', 'poker.seasons.store'],
+            'store a venue' => ['POST', 'poker.venues.store'],
+            'store a tournament' => ['POST', 'poker.tournaments.store'],
+            'store a result' => ['POST', 'poker.results.store'],
+            'store a registrant' => ['POST', 'poker.registrants.store'],
+            'store venue points' => ['POST', 'poker.venue-points.store'],
+            'store a points structure' => ['POST', 'poker.points-structure.store'],
+        ];
+    }
+
+    #[\PHPUnit\Framework\Attributes\DataProvider('adminWriteRouteProvider')]
+    public function test_a_player_cannot_reach_an_admin_write_route(string $verb, string $routeName)
+    {
+        // 403 and nothing else: not a validation error, which would mean the
+        // request got past the gate and was merely malformed.
+        $user = User::factory()->create(['is_admin' => false]);
+
+        $this->actingAs($user)->call($verb, route($routeName))->assertStatus(403);
+    }
+
+    #[\PHPUnit\Framework\Attributes\DataProvider('adminWriteRouteProvider')]
+    public function test_a_guest_is_redirected_from_an_admin_write_route(string $verb, string $routeName)
+    {
+        $this->call($verb, route($routeName))->assertRedirect(route('login'));
+    }
+
+    #[\PHPUnit\Framework\Attributes\DataProvider('adminRouteProvider')]
+    public function test_a_guest_is_redirected_from_every_admin_route(string $routeName)
+    {
+        // Was one route, and the route it named -- poker.seasons.index -- is no
+        // longer admin-gated: the three league indexes moved out to the
+        // signed-in group. So it proved that `auth` redirects, which was never
+        // in question, and proved nothing about `admin` at all.
+        //
+        // 302 rather than 403 is the point. EnsureUserIsAdmin refuses a guest
+        // on its own, but with a 403 -- somebody who could reach the page by
+        // signing in should be sent to sign in.
+        $this->get(route($routeName))->assertRedirect(route('login'));
     }
 
     public function test_non_admin_can_still_view_a_tournament()
@@ -84,7 +131,7 @@ class AdminAccessTest extends TestCase
 
         $this->actingAs($user)
             ->post(route('tournaments.register', $tournament))
-            ->assertSessionHas('status');
+            ->assertSessionHas('status', fn ($message) => filled($message));
 
         $this->assertDatabaseHas('tournament_registrants', [
             'tournament_id' => $tournament->id,
@@ -93,7 +140,7 @@ class AdminAccessTest extends TestCase
 
         $this->actingAs($user)
             ->delete(route('tournaments.unregister', $tournament))
-            ->assertSessionHas('status');
+            ->assertSessionHas('status', fn ($message) => filled($message));
 
         $this->assertDatabaseMissing('tournament_registrants', [
             'tournament_id' => $tournament->id,

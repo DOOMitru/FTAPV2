@@ -107,7 +107,7 @@
                             <div class="entry__title">{{ $tournament->name }}</div>
 
                             <div class="entry__meta">
-                                <span>{{ \Illuminate\Support\Carbon::parse($tournament->start_time)->format('M d, Y') }}</span>
+                                <span>{{ $tournament->start_time->format('M d, Y') }}</span>
                                 <span>{{ $tournament->season->name ?? '' }}</span>
                             </div>
                         </div>

@@ -1,6 +1,55 @@
+/* The player cell: initials, then the name beside them.
+ *
+ * A row inside the cell rather than the cell itself, because a <td> set to
+ * display:flex is no longer a table-cell and leaves its column's alignment --
+ * and below 48rem this same cell IS flexed, where the row is a grid and the
+ * cells are not table-cells any more.
+ *
+ * min-width: 0 on the name so it wraps INSIDE its own column when it must: a
+ * long name should stack beside the disc, not push it out of the row. */
+.season-show__player-row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+.season-show__player-name {
+    min-width: 0;
+}
+
+/* A floor for the column itself.
+ *
+ * Where the card is narrower than the table's minimum the table scrolls, and
+ * the player column -- the only one that can give -- collapsed to its
+ * min-content: the disc plus the longest single word, about 100px, which
+ * breaks every two-word name. If the table is going to scroll regardless, it
+ * should not also crush the one column a reader is actually scanning.
+ *
+ * 11rem holds "Baltazar Whitlock" beside its initials. Wider columns are
+ * unaffected: this is a floor, not a width. */
+.season-show__player {
+    min-width: 11rem;
+}
+
 /* The meter needs room to read as a chip run rather than a sliver. */
 .season-show__meter-cell {
     min-width: 12rem;
+}
+
+/* ...but not at the cost of the name.
+ *
+ * The standings sit in a sidebar layout, and between about 48rem and 80rem the
+ * card is narrow while the table's fixed demands are not: rank, played, wins,
+ * venue points and finale come to roughly 420px, the meter asks 192 more, and
+ * the player column -- the only one whose content can wrap -- gets whatever is
+ * left. At 1000px that was 100px, which breaks a two-word name in half.
+ *
+ * 8rem still reads as a run of chips; a wrapped name does not read as a name.
+ * Above 80rem there is room for both and the meter takes its full width. */
+@media (max-width: 80rem) {
+    .season-show__meter-cell {
+        min-width: 8rem;
+    }
 }
 
 .season-show__tournament {
@@ -107,6 +156,33 @@
 }
 
 
+/* The average, where hovering for it is not an option.
+   =================================================================
+   In rank order the badge reads "#2" and its title carries "406.7 points per
+   event". That is the whole figure on a device with a pointer, and nothing at
+   all on one without: a touch device fires no hover, so the tooltip is simply
+   unreachable, and most of this league reads the standings on a phone.
+
+   So the figure is always rendered beside the bar and hidden only where the
+   tooltip works. Two conditions, either of which brings it back: no hover
+   available at any width, and the phone layout at any input -- a narrow window
+   on a laptop gets it too, which costs nothing and is one rule instead of two.
+
+   display: none rather than a clip, deliberately: on a pointer device the
+   meter's aria-label already reads "Rank #2, 406.7 points per event, for
+   Grinder Reeve", so a clipped copy would say the number twice to a screen
+   reader and once to nobody else. */
+.season-show__ratio .meter__value {
+    display: none;
+}
+
+@media (hover: none), (max-width: 48rem) {
+    .season-show__ratio .meter__value {
+        display: inline;
+    }
+}
+
+
 /* The viewer's own row.
    =================================================================
    Specificity, deliberately: `.table tbody tr:hover` in _table.css is (0,2,2),
@@ -167,7 +243,20 @@
        stack on top of each other -- so each stat is placed in its own. */
     .season-show__standings .table tbody tr {
         display: grid;
-        grid-template-columns: auto minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr) auto;
+        /* The two stat columns are auto, not equal thirds.
+         *
+         * As thirds, "3 PLAYED" and "1 WON" sat in 75px each with room to
+         * spare while "137 VENUE PTS" was given 87px and needed about 100 --
+         * so the longest of the three wrapped onto a second line and made that
+         * row taller than its neighbours, while its two short neighbours held
+         * slack they could not lend. Sized to content, the short ones take
+         * what they need and the venue column keeps the remainder.
+         *
+         * Only columns 2 and 3 change. Column 4 stays flexible so the player
+         * name and the meter, which span across it, still get the whole width
+         * -- a spanning item's contribution is not distributed to inflexible
+         * tracks when it crosses a flexible one. */
+        grid-template-columns: auto auto auto minmax(0, 1fr) auto;
         grid-template-areas:
             "rank player player player finale"
             "rank meter  meter  meter  meter"
@@ -239,5 +328,32 @@
     .season-show__standings .season-show__finale {
         grid-area: finale;
         justify-self: end;
+    }
+}
+
+
+/* Below 360px the stat run does not fit on one line.
+   =================================================================
+   Content-sized columns get "137 VENUE PTS" onto one line at 375. At 320 the
+   row has 247px to spend and the three stats want about 260, so the longest
+   one wraps again -- and a label broken across two lines is the ugliest way to
+   spend the height it costs.
+
+   Given its own line it has the whole width and needs none of it. The row
+   grows by about six pixels over the wrapped version, which buys a stat that
+   reads straight across instead of folding mid-phrase.
+
+   Only the rows that HAVE a venue stat get the extra line. A player never sees
+   that column, and giving every player row a fourth track spent 4px of a
+   320px screen on an empty one. :has() carries the specificity of its
+   argument, so this is (0,3,2) against the (0,2,2) it overrides -- it wins on
+   weight rather than on being written afterwards. */
+@media (max-width: 22.5rem) {
+    .season-show__standings .table tbody tr:has(.season-show__stat--venue) {
+        grid-template-areas:
+            "rank player player player finale"
+            "rank meter  meter  meter  meter"
+            "rank played won    won    won"
+            "rank venue  venue  venue  venue";
     }
 }

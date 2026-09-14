@@ -109,11 +109,11 @@
                         <x-slot name="head">
                             <th scope="col">{{ __('Rank') }}</th>
                             <th scope="col">{{ __('Player') }}</th>
-                            <th scope="col">{{ $order === 'rank' ? __('Per event') : __('Pts') }}</th>
+                            <th scope="col">{{ $order === 'rank' ? __('Per event') : __('Points') }}</th>
                             <th scope="col" class="table__num">{{ __('Played') }}</th>
-                            <th scope="col" class="table__num">{{ __('Won') }}</th>
+                            <th scope="col" class="table__num">{{ __('Wins') }}</th>
                             @if ($showsVenuePoints)
-                                <th scope="col" class="table__num">{{ __('Venue pts') }}</th>
+                                <th scope="col" class="table__num">{{ __('Venue points') }}</th>
                             @endif
                             <th scope="col">{{ __('Finale') }}</th>
                         </x-slot>
@@ -166,12 +166,34 @@
                                     $shownName = filled($nickname) ? $nickname : $row['player_name'];
                                 @endphp
                                 <td class="season-show__player">
-                                    @if (filled($nickname))
-                                        {{-- Full name on hover, since the visible text is a nickname. --}}
-                                        <span title="{{ $row['player_name'] }}">{{ $shownName }}</span>
-                                    @else
-                                        {{ $shownName }}
-                                    @endif
+                                    {{-- An inner row, so the name is a block
+                                         BESIDE the initials rather than text
+                                         flowing around them. In the flow, a
+                                         squeezed column broke "Wanda Reeve"
+                                         after the first word and left "Reeve"
+                                         under the disc.
+
+                                         Not display:flex on the <td> itself: a
+                                         flexed cell stops being a table-cell
+                                         and leaves the column it was aligned
+                                         in, on the desktop table this still
+                                         is. --}}
+                                    <span class="season-show__player-row">
+                                        {{-- decorative: the name it stands for
+                                             is right beside it, and announcing
+                                             both reads the row twice. --}}
+                                        <x-monogram :user="$row['user']" :name="$row['player_name']"
+                                                    size="sm" decorative />
+
+                                        <span class="season-show__player-name">
+                                            @if (filled($nickname))
+                                                {{-- Full name on hover, since the visible text is a nickname. --}}
+                                                <span title="{{ $row['player_name'] }}">{{ $shownName }}</span>
+                                            @else
+                                                {{ $shownName }}
+                                            @endif
+                                        </span>
+                                    </span>
 
                                     {{-- The tint says "this is you" to everyone
                                          who can see it. This says it to everyone
@@ -196,20 +218,28 @@
                                          tenth apart -- which is exactly the
                                          difference the order is drawn on. --}}
                                     @if ($order === 'rank')
-                                        {{-- Bar only: the badge to its left
-                                             already gives the position, and
-                                             the bar is what shows how far
-                                             apart two of them are.
+                                        {{-- The badge to its left gives the
+                                             position, so this bar carries the
+                                             average instead: how far apart two
+                                             positions actually are.
 
-                                             A title attribute is not reachable
+                                             The figure is rendered and then
+                                             HIDDEN where a pointer can hover
+                                             the badge for it -- see
+                                             .season-show__ratio. Where nothing
+                                             can hover, a tooltip is not a way
+                                             of showing anything, and a phone
+                                             is most of this league.
+
+                                             It is in the accessible name
+                                             either way: title is not reachable
                                              by keyboard and is announced
-                                             inconsistently, so the average is
-                                             in this meter's accessible name as
-                                             well. The tooltip is the
-                                             sighted-pointer copy of it, not
-                                             the only one. --}}
+                                             inconsistently, so the tooltip is
+                                             the sighted-pointer copy of the
+                                             figure, never the only one. --}}
                                         <x-meter :value="$row['ratio'] ?? 0" :max="$leaderValue" :decimals="1"
-                                                 :show-value="false"
+                                                 :value-text="$ratio"
+                                                 class="season-show__ratio"
                                                  :label="__('Rank #:rank, :points points per event, for :name', [
                                                      'rank' => $rank, 'points' => $ratio, 'name' => $shownName,
                                                  ])" />
@@ -225,7 +255,7 @@
                                 <td class="table__num season-show__stat season-show__stat--won" data-label="{{ __('won') }}">{{ $row['wins'] }}</td>
 
                                 @if ($showsVenuePoints)
-                                    <td class="table__num season-show__stat season-show__stat--venue" data-label="{{ __('venue pts') }}">{{ $row['venue_points'] }}</td>
+                                    <td class="table__num season-show__stat season-show__stat--venue" data-label="{{ __('venue points') }}">{{ $row['venue_points'] }}</td>
                                 @endif
 
                                 {{-- A mark when they are in, and nothing when they are

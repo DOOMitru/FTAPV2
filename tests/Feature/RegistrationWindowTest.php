@@ -66,7 +66,7 @@ class RegistrationWindowTest extends TestCase
         $this->actingAs($this->player())
             ->from(route('tournaments.show', $tournament))
             ->post(route('tournaments.register', $tournament))
-            ->assertSessionHas('status');
+            ->assertSessionHas('status', fn ($message) => filled($message));
 
         $this->assertSame(1, $tournament->registrants()->count());
     }
@@ -126,7 +126,7 @@ class RegistrationWindowTest extends TestCase
         $this->actingAs($this->admin())
             ->from(route('tournaments.show', $tournament))
             ->post(route('tournaments.register', $tournament), ['user_id' => $player->id])
-            ->assertSessionHas('status');
+            ->assertSessionHas('status', fn ($message) => filled($message));
 
         $this->assertSame(1, $tournament->registrants()->count());
     }
@@ -156,7 +156,7 @@ class RegistrationWindowTest extends TestCase
         $this->actingAs($this->admin())
             ->from(route('tournaments.show', $tournament))
             ->post(route('tournaments.register', $tournament))
-            ->assertSessionHas('status');
+            ->assertSessionHas('status', fn ($message) => filled($message));
 
         $this->assertSame(1, $tournament->registrants()->count());
     }
@@ -188,7 +188,7 @@ class RegistrationWindowTest extends TestCase
 
         $this->actingAs($this->admin())
             ->delete(route('poker.registrants.destroy', $stillIn))
-            ->assertSessionHas('status');
+            ->assertSessionHas('status', fn ($message) => filled($message));
 
         $this->assertSame([[10, 24], [9, 29], [8, 34]], $this->scores($tournament));
     }
@@ -214,7 +214,7 @@ class RegistrationWindowTest extends TestCase
 
         $this->actingAs($this->admin())
             ->delete(route('poker.registrants.destroy', $stillIn))
-            ->assertSessionHas('status');
+            ->assertSessionHas('status', fn ($message) => filled($message));
 
         $result = PokerTournamentResult::where('user_id', $a->id)->firstOrFail();
 
@@ -242,12 +242,12 @@ class RegistrationWindowTest extends TestCase
         $admin = $this->admin();
 
         $this->actingAs($admin)->delete(route('poker.registrants.destroy', $stillIn))
-            ->assertSessionHas('status');
+            ->assertSessionHas('status', fn ($message) => filled($message));
 
         $this->actingAs($admin)
             ->from(route('tournaments.show', $tournament))
             ->post(route('tournaments.register', $tournament), ['user_id' => $players[5]->id])
-            ->assertSessionHas('status');
+            ->assertSessionHas('status', fn ($message) => filled($message));
 
         $this->assertSame($before, $this->scores($tournament));
     }
@@ -265,7 +265,7 @@ class RegistrationWindowTest extends TestCase
 
         $this->actingAs($this->admin())
             ->delete(route('poker.registrants.destroy', $registrant))
-            ->assertSessionHas('status');
+            ->assertSessionHas('status', fn ($message) => filled($message));
 
         $this->assertSame(0, $tournament->registrants()->count());
         $this->assertSame([], $this->scores($tournament));
@@ -295,7 +295,7 @@ class RegistrationWindowTest extends TestCase
 
         $this->actingAs($this->admin())
             ->delete(route('poker.registrants.destroy', $stillIn))
-            ->assertSessionHas('status');
+            ->assertSessionHas('status', fn ($message) => filled($message));
 
         $untouched = PokerTournamentResult::where('user_id', $outsider->id)->firstOrFail();
         $this->assertSame(1, $untouched->place);

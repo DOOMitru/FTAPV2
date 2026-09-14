@@ -19,6 +19,8 @@
                         <li class="p-leader p-leader--{{ min($loop->iteration, 3) }}">
                             <span class="p-leader__seat">{{ $loop->iteration }}</span>
 
+                            <x-monogram :user="$performer" size="sm" decorative />
+
                             <div class="p-leader__body">
                                 <span class="p-leader__name">{{ $performer->first_name }} {{ $performer->last_name }}</span>
 

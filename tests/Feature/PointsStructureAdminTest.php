@@ -226,7 +226,7 @@ class PointsStructureAdminTest extends TestCase
 
         $this->actingAs($admin)
             ->post(route('poker.points-structure.store'), ['points' => 100])
-            ->assertSessionHas('status');
+            ->assertSessionHas('status', fn ($message) => filled($message));
 
         $this->actingAs($admin)->get(route('poker.points-structure.create'))->assertOk()
             ->assertSee('1st place added, worth 100 points.');

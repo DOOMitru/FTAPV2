@@ -20,7 +20,7 @@
                     </select>
                 </x-field>
 
-                <x-field name="registered_at" :label="__('Registration Date & Time')" type="datetime-local" :value="old('registered_at', \Illuminate\Support\Carbon::parse($registrant->registered_at)->format('Y-m-d\TH:i'))" required />
+                <x-field name="registered_at" :label="__('Registration Date & Time')" type="datetime-local" :value="old('registered_at', $registrant->registered_at->format('Y-m-d\TH:i'))" required />
 
                 <x-field name="user_id" :label="__('Linked User')">
                     <select class="field__control" name="user_id" id="user_id" required data-autofill='{"first":"#player_name","nick":"#player_nickname"}'>

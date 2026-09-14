@@ -33,11 +33,20 @@
                         <td class="results-index__rank"><x-rank :place="$result->place" /></td>
 
                         <td class="results-index__player">
-                            <div class="entry__title">{{ $result->player_name }}</div>
+                            {{-- An inner row, not display:flex on the <td>: a
+                                 flexed cell stops being a table-cell and drops
+                                 out of the column alignment on desktop. --}}
+                            <div class="admin-list__player">
+                                <x-monogram :user="$result->user" :name="$result->player_name" size="sm" decorative />
 
-                            @if ($result->player_nickname)
-                                <div class="entry__meta"><span>{{ $result->player_nickname }}</span></div>
-                            @endif
+                                <div>
+                                    <div class="entry__title">{{ $result->player_name }}</div>
+
+                                    @if ($result->player_nickname)
+                                        <div class="entry__meta"><span>{{ $result->player_nickname }}</span></div>
+                                    @endif
+                                </div>
+                            </div>
                         </td>
 
                         <td class="table__num results-index__points">{{ number_format($result->points) }}</td>

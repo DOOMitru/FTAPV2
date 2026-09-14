@@ -34,18 +34,10 @@
     // and display_name drops it, so a player nicknamed "Ace" would be a lone A.
     $fullName = $user ? trim($user->first_name.' '.$user->last_name) : (string) $name;
 
-    // First letter of the first word and of the last, which handles "Wanda
-    // Reeve" and "Jean-Luc Picard" and does not fall over on one word or none.
-    // mb_* throughout: a name is the last place to assume one byte per letter.
-    $words = preg_split('/\s+/u', trim($fullName), -1, PREG_SPLIT_NO_EMPTY) ?: [];
-
-    $initials = match (count($words)) {
-        0 => '?',
-        1 => mb_substr($words[0], 0, 1),
-        default => mb_substr($words[0], 0, 1).mb_substr(end($words), 0, 1),
-    };
-
-    $initials = mb_strtoupper($initials);
+    // initials() rather than the derivation inline: the register dialog builds
+    // a player list in the browser and needs the same letters from PHP, and two
+    // copies of this would be free to disagree.
+    $initials = initials($fullName);
 @endphp
 
 {{-- A span, not an image: the initials are text, so they scale with the page,
