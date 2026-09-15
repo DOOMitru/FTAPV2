@@ -18,6 +18,19 @@ return [
         'key' => env('POSTMARK_API_KEY'),
     ],
 
+    /*
+     * Google reCAPTCHA v2 (the "I'm not a robot" checkbox) on the registration
+     * form. Both keys come from the same pair in Google's console: the site
+     * key is public and reaches the browser, the secret never leaves here.
+     *
+     * Absent, the form draws no widget and the rule is not applied -- see
+     * App\Rules\Recaptcha::configured().
+     */
+    'recaptcha' => [
+        'site_key' => env('RECAPTCHA_SITE_KEY'),
+        'secret' => env('RECAPTCHA_SECRET'),
+    ],
+
     'resend' => [
         'key' => env('RESEND_API_KEY'),
     ],

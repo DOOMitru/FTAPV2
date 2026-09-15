@@ -50,6 +50,30 @@
                 {{ __('You can sign up straight away. Entering tournaments needs an administrator to approve your account first, and you will need to confirm your email address.') }}
             </p>
 
+            @if (\App\Rules\Recaptcha::configured())
+                {{-- Above the button, where it is part of filling the form in
+                     rather than something discovered after pressing it.
+
+                     The error is rendered here by hand: <x-field> owns the
+                     error line for the controls it draws, and the widget is
+                     not one of them -- Google draws it. Without this, a failed
+                     check would reload the page with the form apparently
+                     intact and nothing said. --}}
+                <div class="l-stack l-stack--tight">
+                    {{-- The wrapper exists to scale what it holds: Google's
+                         widget is a fixed 304x78 and does not shrink, and the
+                         form it sits in is 223px wide at 320. --}}
+                    <div class="recaptcha">
+                        <div class="g-recaptcha"
+                             data-sitekey="{{ config('services.recaptcha.site_key') }}"></div>
+                    </div>
+
+                    @error('g-recaptcha-response')
+                        <p class="field__error">{{ $message }}</p>
+                    @enderror
+                </div>
+            @endif
+
             <div class="l-cluster l-cluster--between">
                 <a class="link" href="{{ route('login') }}">{{ __('Already registered?') }}</a>
 
@@ -57,4 +81,8 @@
             </div>
         </form>
     </x-card>
+
+    @if (\App\Rules\Recaptcha::configured())
+        <script src="https://www.google.com/recaptcha/api.js" async defer></script>
+    @endif
 </x-public-layout>

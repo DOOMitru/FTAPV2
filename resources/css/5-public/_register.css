@@ -1904,3 +1904,50 @@
         width: auto;
     }
 }
+
+/* Google's reCAPTCHA widget, made to fit.
+ * =================================================================
+ * It is a fixed 304x78 iframe and does not respond to anything: no max-width,
+ * no flex, no grid track shrinks it. The form it sits in measures 293px at
+ * 375 and 223px at 320, so at every phone width it is too wide -- overflowing
+ * the card at 375 and the whole page at 320.
+ *
+ * So it is scaled. transform, not zoom: zoom's layout behaviour still differs
+ * between engines, and this is a control a person has to hit accurately.
+ * transform leaves the layout box at full size, which would strand 78px of
+ * empty space under a shrunk widget, so the wrapper takes the scaled height --
+ * one custom property drives both, and they cannot disagree.
+ *
+ * The steps are measured rather than guessed. Scaled width against the form's
+ * width at the bottom of each range: 0.92 -> 280 against 293 at 384; 0.80 ->
+ * 243 against 263 at 345; 0.72 -> 219 against 223 at 320, which is this
+ * project's floor. */
+.recaptcha {
+    --recaptcha-scale: 1;
+    height: calc(78px * var(--recaptcha-scale));
+}
+
+.recaptcha .g-recaptcha {
+    transform: scale(var(--recaptcha-scale));
+    /* From the start edge, so the widget stays aligned with the fields above
+       it rather than drifting in from the centre as it shrinks. */
+    transform-origin: 0 0;
+}
+
+@media (max-width: 24rem) {
+    .recaptcha {
+        --recaptcha-scale: 0.92;
+    }
+}
+
+@media (max-width: 22.5rem) {
+    .recaptcha {
+        --recaptcha-scale: 0.8;
+    }
+}
+
+@media (max-width: 21rem) {
+    .recaptcha {
+        --recaptcha-scale: 0.72;
+    }
+}
