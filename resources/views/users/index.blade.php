@@ -65,7 +65,7 @@
                                     </form>
 
                                     <form action="{{ route('users.reject', $candidate) }}" method="POST"
-                                          data-confirm="{{ __('Reject :name? They keep their account but cannot enter tournaments.', ['name' => emph($candidate->first_name.' '.$candidate->last_name)]) }}">
+                                          data-confirm="{{ __('Reject :name? Their account will be deleted and cannot be recovered.', ['name' => emph($candidate->first_name.' '.$candidate->last_name)]) }}">
                                         @csrf
                                         @method('PATCH')
 

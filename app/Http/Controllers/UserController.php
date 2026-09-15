@@ -226,13 +226,32 @@ class UserController extends Controller
      */
     public function reject(User $user): RedirectResponse
     {
+        $name = $user->first_name.' '.$user->last_name;
+
+        // A pending account is a self-registration nobody has let in. Refusing
+        // it now removes it: there is nothing to keep, and an account the
+        // league never accepted should not sit in the table forever.
+        //
+        // Scoped to PENDING on purpose. The other reject control -- on a
+        // player's account page -- acts on somebody already approved, who has
+        // played and been scored, and deleting them would orphan every result
+        // they ever earned. That path still demotes rather than deletes, and
+        // its confirmation says so.
+        if ($user->isPendingApproval()) {
+            $user->delete();
+
+            return back()->with('status', __(':name was not approved, and their account has been deleted.', [
+                'name' => emph($name),
+            ]));
+        }
+
         $user->forceFill([
             'approval_status' => 'rejected',
             'approval_decided_at' => now(),
             'approval_decided_by' => auth()->id(),
         ])->save();
 
-        return back()->with('status', emph($user->first_name.' '.$user->last_name).' was not approved.');
+        return back()->with('status', __(':name was not approved.', ['name' => emph($name)]));
     }
 
     /**
