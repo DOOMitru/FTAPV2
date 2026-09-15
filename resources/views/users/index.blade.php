@@ -45,7 +45,9 @@
                                  you are admitting matters most. --}}
                             <td class="table__thumb"><x-monogram :user="$candidate" size="sm" decorative /></td>
 
-                            <td data-label="{{ __('Name') }}">{{ $candidate->first_name }} {{ $candidate->last_name }}</td>
+                            <td data-label="{{ __('Name') }}">
+                                <x-player-link :user="$candidate">{{ $candidate->first_name }} {{ $candidate->last_name }}</x-player-link>
+                            </td>
 
                             <td data-label="{{ __('Email') }}">{{ $candidate->email }}</td>
 
@@ -126,7 +128,6 @@
                     <th scope="col">{{ __('Nickname') }}</th>
                     <th scope="col">{{ __('Email') }}</th>
                     <th scope="col">{{ __('Role') }}</th>
-                    <th scope="col">{{ __('Approval') }}</th>
                     <th scope="col" class="table__actions">{{ __('Actions') }}</th>
                 </x-slot>
 
@@ -137,7 +138,14 @@
                     <tr>
                         <td class="table__thumb"><x-monogram :user="$user" size="sm" decorative /></td>
 
-                        <td data-label="{{ __('Name') }}">{{ $user->first_name }} {{ $user->last_name }}</td>
+                        <td data-label="{{ __('Name') }}">
+                            {{-- The name goes to the figures; the View action
+                                 beside it goes to the account. Two different
+                                 questions about the same person, and the
+                                 action column is busy enough without a fourth
+                                 icon for one of them. --}}
+                            <x-player-link :user="$user">{{ $user->first_name }} {{ $user->last_name }}</x-player-link>
+                        </td>
 
                         <td data-label="{{ __('Nickname') }}">{{ $user->nickname ?? '—' }}</td>
 
@@ -148,20 +156,6 @@
                                 <x-badge variant="primary">{{ __('Admin') }}</x-badge>
                             @else
                                 <x-badge>{{ __('Player') }}</x-badge>
-                            @endif
-                        </td>
-
-                        {{-- What makes rejection reversible in fact rather
-                             than in principle: a rejected account has left the
-                             queue above, so without a status here there is no
-                             route back to it. --}}
-                        <td data-label="{{ __('Approval') }}">
-                            @if ($user->isApproved())
-                                <x-badge variant="open">{{ __('Approved') }}</x-badge>
-                            @elseif ($user->isPendingApproval())
-                                <x-badge>{{ __('Pending') }}</x-badge>
-                            @else
-                                <x-badge variant="primary">{{ __('Rejected') }}</x-badge>
                             @endif
                         </td>
 
@@ -183,7 +177,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="7">
+                        <td colspan="6">
                             @if ($search !== '')
                                 <x-empty-state :title="__('No users match :term.', ['term' => '“'.$search.'”'])">
                                     {{ __('Searches look at first and last name, nickname and email.') }}

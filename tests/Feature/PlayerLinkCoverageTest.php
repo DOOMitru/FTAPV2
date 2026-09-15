@@ -30,6 +30,7 @@ class PlayerLinkCoverageTest extends TestCase
         'rules/points-structure.blade.php' => 'Current Season Leaders',
         'home.blade.php' => 'the landing page leader cards',
         'events.blade.php' => 'the archive podium',
+        'users/index.blade.php' => 'the admin players list, both tables',
     ];
 
     public function test_every_list_of_players_links_them(): void

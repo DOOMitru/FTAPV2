@@ -234,6 +234,45 @@ class PlayerProfileTest extends TestCase
         );
     }
 
+    public function test_the_admin_players_list_links_both_its_tables(): void
+    {
+        // Two tables on that page -- awaiting approval above, approved below --
+        // and the link belongs in both. A pending player has no figures yet,
+        // which is an honest empty page rather than a reason to withhold the
+        // way to it.
+        $pending = User::factory()->create([
+            'first_name' => 'Pending', 'last_name' => 'Person', 'approval_status' => 'pending',
+        ]);
+
+        $html = $this->actingAs($this->admin)->get(route('users.index'))->assertOk()->getContent();
+
+        // Sliced per table. The main table lists EVERYONE, pending accounts
+        // included, so a page-wide search for the pending player's link finds
+        // the one in the lower table and says nothing about the queue above --
+        // unlinking the queue left this green until it was scoped.
+        $queue = substr($html, 0, strpos($html, 'Clear search') ?: strpos($html, 'name="search"'));
+        $main = substr($html, strlen($queue));
+
+        $this->assertStringContainsString(
+            route('players.show', $pending), $queue,
+            'The awaiting-approval queue lists a player without a way to their figures.'
+        );
+
+        $this->assertStringContainsString(
+            route('players.show', $this->player), $main,
+            'The main table lists a player without a way to their figures.'
+        );
+
+        // And the account view is still reachable: the two answer different
+        // questions and neither replaces the other.
+        // The exact href, closing quote included: route('users.show', $u) is a
+        // prefix of route('users.edit', $u), so a bare substring search is
+        // satisfied by the Edit link and proves nothing about View.
+        $this->assertStringContainsString(
+            'href="'.route('users.show', $this->player).'"', $html
+        );
+    }
+
     public function test_an_unranked_player_is_told_so_in_the_third_person(): void
     {
         // The panel's copy addresses the viewer on the dashboard -- "Enter a

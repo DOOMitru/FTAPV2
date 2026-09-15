@@ -145,18 +145,29 @@ class UserManagementTest extends TestCase
         $this->assertFalse($other->fresh()->isApproved());
     }
 
-    public function test_the_main_table_shows_approval_state()
+    public function test_a_rejected_account_is_still_listed_and_still_reversible()
     {
-        // What makes rejection reversible in fact: a rejected account has left
-        // the queue, so without a status on the main list there is no route
-        // back to it.
+        // The main table no longer prints an approval state -- the column was
+        // removed by request -- so a rejected account reads there exactly like
+        // an approved one. What must survive is the route BACK: a rejection is
+        // reversible in fact and not only in principle.
+        //
+        // It survives because the row still links to the account page, and the
+        // approve control lives there. This is the assertion that would fail if
+        // that link went the way of the column.
         $admin = User::factory()->create(['is_admin' => true]);
-        User::factory()->rejected()->create(['first_name' => 'Refusedly']);
+        $rejected = User::factory()->rejected()->create(['first_name' => 'Refusedly']);
 
         $this->actingAs($admin)->get(route('users.index'))
             ->assertOk()
             ->assertSee('Refusedly')
-            ->assertSee('Rejected');
+            // The exact href: users.show is a prefix of users.edit, so a bare
+            // substring is satisfied by the Edit link beside it.
+            ->assertSee('href="'.route('users.show', $rejected).'"', false);
+
+        $this->actingAs($admin)->get(route('users.show', $rejected))
+            ->assertOk()
+            ->assertSee(route('users.approve', $rejected), false);
     }
 
     public function test_an_admin_can_register_a_player_who_is_approved_immediately()
