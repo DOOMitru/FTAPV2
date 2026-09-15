@@ -186,12 +186,13 @@
                                                     size="sm" decorative />
 
                                         <span class="season-show__player-name">
-                                            @if (filled($nickname))
-                                                {{-- Full name on hover, since the visible text is a nickname. --}}
-                                                <span title="{{ $row['player_name'] }}">{{ $shownName }}</span>
-                                            @else
+                                            <x-player-link :user="$row['user']"
+                                                           :title="filled($nickname) ? $row['player_name'] : null">
+                                                {{-- The title carries the full
+                                                     name when the visible text
+                                                     is a nickname. --}}
                                                 {{ $shownName }}
-                                            @endif
+                                            </x-player-link>
                                         </span>
                                     </span>
 

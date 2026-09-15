@@ -173,7 +173,9 @@
                     @endif
 
                     <div class="entry__body">
-                        <div class="entry__title">{{ $row['name'] }}</div>
+                        <div class="entry__title">
+                            <x-player-link :user="$row['user']">{{ $row['name'] }}</x-player-link>
+                        </div>
 
                         @if (filled($row['nickname']))
                             <div class="entry__meta"><span>{{ $row['nickname'] }}</span></div>

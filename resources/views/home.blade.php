@@ -226,7 +226,9 @@
                                 <li class="p-standing__row">
                                     <x-rank :place="$i + 1" />
                                     <x-monogram :name="$row['name']" size="sm" decorative />
-                                    <span class="p-standing__name">{{ $row['name'] }}</span>
+                                    <span class="p-standing__name">
+                                        <x-player-link :user="$row['user'] ?? null">{{ $row['name'] }}</x-player-link>
+                                    </span>
                                     {{-- The rank itself, not the points-per-event
                                          it is computed from. The ratio is the
                                          rule rather than the reading: what a
@@ -247,7 +249,9 @@
                                     <li class="p-standing__row">
                                         <x-rank :place="$i + 1" />
                                         <x-monogram :name="$row['name']" size="sm" decorative />
-                                        <span class="p-standing__name">{{ $row['name'] }}</span>
+                                        <span class="p-standing__name">
+                                        <x-player-link :user="$row['user'] ?? null">{{ $row['name'] }}</x-player-link>
+                                    </span>
                                         <span class="p-standing__value">{{ $row['wins'] }} {{ trans_choice('win|wins', $row['wins']) }}</span>
                                     </li>
                                 @endforeach
@@ -263,7 +267,9 @@
                                 <li class="p-standing__row">
                                     <x-rank :place="$i + 1" />
                                     <x-monogram :name="$row['name']" size="sm" decorative />
-                                    <span class="p-standing__name">{{ $row['name'] }}</span>
+                                    <span class="p-standing__name">
+                                        <x-player-link :user="$row['user'] ?? null">{{ $row['name'] }}</x-player-link>
+                                    </span>
                                     <span class="p-standing__value">{{ number_format($row['points']) }} {{ __('pts') }}</span>
                                 </li>
                             @endforeach

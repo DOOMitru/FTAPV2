@@ -43,9 +43,13 @@ class RegisteredPlayersOrderTest extends TestCase
         $panel = substr($html, $at);
         $panel = substr($panel, 0, strpos($panel, 'Admin: Register') ?: null);
 
-        preg_match_all('/<div class="entry__title">([^<]+)<\/div>/', $panel, $matches);
+        // The title holds a name that may be an <a> -- a player with an account
+        // links to their figures, one without stays plain text -- so the
+        // capture spans elements and the tags come off after. [^<]+ matched
+        // bare text only, and quietly returned an empty list for every row.
+        preg_match_all('/<div class="entry__title">(.*?)<\/div>/s', $panel, $matches);
 
-        return array_map('trim', $matches[1]);
+        return array_map(fn ($cell) => trim(strip_tags($cell)), $matches[1]);
     }
 
     private function player(string $first, string $last): User

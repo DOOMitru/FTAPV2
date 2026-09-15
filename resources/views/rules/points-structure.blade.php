@@ -22,7 +22,9 @@
                             <x-monogram :user="$performer" size="sm" decorative />
 
                             <div class="p-leader__body">
-                                <span class="p-leader__name">{{ $performer->first_name }} {{ $performer->last_name }}</span>
+                                <span class="p-leader__name">
+                                    <x-player-link :user="$performer">{{ $performer->first_name }} {{ $performer->last_name }}</x-player-link>
+                                </span>
 
                                 @if (filled($performer->nickname))
                                     <span class="p-leader__nickname">{{ $performer->nickname }}</span>

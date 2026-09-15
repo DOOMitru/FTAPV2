@@ -111,6 +111,9 @@ class VenuePointsPrivacyTest extends TestCase
 
         $this->bindings = [
             'user' => $this->owner->id,
+            // The OWNER, so the walk actually exercises the profile page's
+            // copy of the rule rather than a page with no tally on it.
+            'player' => $this->owner->id,
             'venue' => $venue->id,
             'season' => $this->season->id,
             'tournament' => $tournament->id,

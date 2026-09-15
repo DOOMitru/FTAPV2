@@ -3,6 +3,7 @@
 use App\Http\Controllers\ContactController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\PlayerController;
 use App\Http\Controllers\Poker\PointsStructureController;
 use App\Http\Controllers\Poker\PokerSeasonController;
 use App\Http\Controllers\Poker\PokerTournamentController;
@@ -61,9 +62,13 @@ Route::get('/', function () {
     $topByRank = collect();
 
     if (auth()->check() && $currentSeason) {
-        $standings = $currentSeason->results()->get()
+        $standings = $currentSeason->results()->with('user')->get()
             ->groupBy('user_id')
             ->map(fn ($rows) => [
+                // The account as well as the name: these cards link each
+                // player to their figures, and a result whose player has since
+                // been deleted has a name and no account to point at.
+                'user' => $rows->first()->user,
                 'name' => $rows->first()->player_name,
                 'points' => $rows->sum('points'),
                 'wins' => $rows->where('place', 1)->count(),
@@ -79,7 +84,15 @@ Route::get('/', function () {
         // The same board the dashboard puts a player's own rank against, so the
         // two cannot disagree about what a rank is: points per tournament
         // ENTERED, not points.
-        $topByRank = $currentSeason->rankings()->take(3);
+        // rankings() carries user_id rather than the model, so the three that
+        // are actually shown are resolved here -- three finds, not eighty.
+        $ranked = $currentSeason->rankings()->take(3)->values();
+        $rankedUsers = User::whereIn('id', $ranked->pluck('user_id'))->get()->keyBy('id');
+
+        $topByRank = $ranked->map(fn (array $row) => [
+            ...$row,
+            'user' => $rankedUsers[$row['user_id']] ?? null,
+        ]);
     }
 
     // ordered() -- the same scope the admin list uses, so what an
@@ -175,7 +188,9 @@ Route::get('/events', function () {
 
     // withCount('registrants'): podium() needs the size of the field to know
     // which places are settled, and this page draws one podium per card.
-    $pastTournaments = PokerTournament::with(['venue', 'season', 'results'])
+    // results.user, not just results: the podium links each name to that
+    // player's figures, and three names per card is a query per card without it.
+    $pastTournaments = PokerTournament::with(['venue', 'season', 'results.user'])
         ->withCount('registrants')
         ->where('start_time', '<', now())
         ->orderBy('start_time', 'desc')
@@ -220,6 +235,12 @@ Route::middleware('auth')->group(function () {
         ->name('tournaments.unregister');
     Route::get('/seasons/{season}', [PokerSeasonController::class, 'show'])
         ->name('seasons.show');
+
+    // One player's figures, readable by any signed-in player. Inside the auth
+    // group and nowhere near /poker: this is not administration, it is the
+    // league looking at itself.
+    Route::get('/players/{player}', [PlayerController::class, 'show'])
+        ->name('players.show');
 
     // The league's records, readable by anyone signed in. A player has a
     // reason to look these up -- where the league plays, what is scheduled,
