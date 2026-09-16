@@ -102,7 +102,10 @@ class TableActionTest extends TestCase
 
         $response->assertSee('table--stacked', false);
 
-        foreach (['Name', 'Nickname', 'Email', 'Role', 'Approval'] as $column) {
+        // Approval is gone from this table, by request. A rejected account now
+        // reads the same as an approved one here; the status, and the way back
+        // from a rejection, are on the account page the View action opens.
+        foreach (['Name', 'Nickname', 'Email', 'Role'] as $column) {
             $response->assertSee('data-label="'.$column.'"', false);
         }
 

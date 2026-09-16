@@ -125,6 +125,7 @@ class RouteSmokeTest extends TestCase
 
         $this->bindings = [
             'user' => $this->admin->id,
+            'player' => $this->admin->id,
             'venue' => $venue->id,
             'season' => $season->id,
             'tournament' => $tournament->id,

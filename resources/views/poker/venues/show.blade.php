@@ -63,7 +63,9 @@
                             <td><x-rank :place="$index + 1" /></td>
 
                             <td>
-                                <div class="entry__title">{{ $entry['user_name'] }}</div>
+                                <div class="entry__title">
+                                    <x-player-link :user="$entry['user']">{{ $entry['user_name'] }}</x-player-link>
+                                </div>
 
                                 @if ($entry['last_earned'])
                                     <div class="entry__meta">

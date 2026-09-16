@@ -88,7 +88,9 @@
                                         <li class="p-podium__row">
                                             <x-rank :place="$result->place" />
                                             <x-monogram :name="$result->player_name" size="sm" decorative />
-                                            <span class="p-podium__name">{{ $result->player_name }}</span>
+                                            <span class="p-podium__name">
+                                                <x-player-link :user="$result->user">{{ $result->player_name }}</x-player-link>
+                                            </span>
                                         </li>
                                     @endforeach
                                 </ol>

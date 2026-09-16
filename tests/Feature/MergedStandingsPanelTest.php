@@ -58,8 +58,14 @@ class MergedStandingsPanelTest extends TestCase
         // register dialog carries every approved player in its x-data payload,
         // so a page-wide substring count says two and means nothing -- one of
         // them is data in an attribute, not a list the reader sees.
-        preg_match_all('/<div class="entry__title">([^<]+)<\/div>/', $html, $matches);
-        $rows = array_filter(array_map('trim', $matches[1]), fn ($n) => $n === 'Wanda Reeve');
+        // The title holds an <a> now -- the name links to that player's figures
+        // -- so the capture spans elements and the tags come off afterwards.
+        // [^<]+ matched bare text and silently found none.
+        preg_match_all('/<div class="entry__title">(.*?)<\/div>/s', $html, $matches);
+        $rows = array_filter(
+            array_map(fn ($cell) => trim(strip_tags($cell)), $matches[1]),
+            fn ($n) => $n === 'Wanda Reeve'
+        );
 
         $this->assertCount(1, $rows, 'The player is listed twice.');
     }

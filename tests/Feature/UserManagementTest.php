@@ -107,10 +107,28 @@ class UserManagementTest extends TestCase
         $this->assertSame($admin->id, $player->approval_decided_by);
     }
 
-    public function test_rejecting_keeps_the_account_and_records_the_decision()
+    public function test_rejecting_a_pending_account_deletes_it()
     {
+        // Changed by request. It used to keep the row, for two reasons the
+        // deletion gives up: the decision was reversible, and the refused
+        // person could not sign up again into a clean slate because the email
+        // was still taken. Both are now gone -- see the note on
+        // UserController::reject().
         $admin = User::factory()->create(['is_admin' => true]);
         $player = User::factory()->pending()->create();
+
+        $this->actingAs($admin)->patch(route('users.reject', $player));
+
+        $this->assertDatabaseMissing('users', ['id' => $player->id]);
+    }
+
+    public function test_rejecting_an_approved_player_keeps_their_account()
+    {
+        // The other reject control, on a player's account page. This one acts
+        // on somebody who has played and been scored, and deleting them would
+        // orphan every result they earned -- so it still demotes.
+        $admin = User::factory()->create(['is_admin' => true]);
+        $player = User::factory()->create(['approval_status' => 'approved']);
 
         $this->actingAs($admin)->patch(route('users.reject', $player));
 
@@ -118,15 +136,37 @@ class UserManagementTest extends TestCase
 
         $this->assertSame('rejected', $player->approval_status);
         $this->assertSame($admin->id, $player->approval_decided_by);
-        // Kept, not deleted: the decision has to be reversible and a refused
-        // person must not be able to re-register into a clean slate.
         $this->assertDatabaseHas('users', ['id' => $player->id]);
+    }
+
+    public function test_the_rejection_dialog_says_the_account_will_go()
+    {
+        // The name set apart, and the consequence stated: this is the one
+        // confirmation in the app behind which an account disappears.
+        $admin = User::factory()->create(['is_admin' => true]);
+        User::factory()->pending()->create(['first_name' => 'Refusedly', 'last_name' => 'Turned']);
+
+        $html = $this->actingAs($admin)->get(route('users.index'))->assertOk()->getContent();
+
+        // The whole sentence, markers included, so the copy and the marking are
+        // pinned together in one assertion.
+        //
+        // Two earlier versions of this passed while proving nothing.
+        // emph_html('Refusedly Turned') hands back plain text for an unmarked
+        // string, so it matched either way; and the markers ALONE appear
+        // regardless, because a pending account is listed in the main table
+        // too, where the Delete dialog marks the very same name.
+        $this->assertStringContainsString(
+            'Reject '.EMPH.'Refusedly Turned'.EMPH.'? Their account will be deleted and cannot be recovered.',
+            $html
+        );
     }
 
     public function test_a_rejected_account_can_be_approved_again()
     {
-        // The only route back once it has left the pending queue. Without this,
-        // "reversible" is a claim the interface does not support.
+        // Still the route back for the account-page path, which demotes rather
+        // than deletes. A rejection from the pending queue has no way back --
+        // there is no row left to approve.
         $admin = User::factory()->create(['is_admin' => true]);
         $player = User::factory()->rejected()->create();
 
@@ -145,18 +185,29 @@ class UserManagementTest extends TestCase
         $this->assertFalse($other->fresh()->isApproved());
     }
 
-    public function test_the_main_table_shows_approval_state()
+    public function test_a_rejected_account_is_still_listed_and_still_reversible()
     {
-        // What makes rejection reversible in fact: a rejected account has left
-        // the queue, so without a status on the main list there is no route
-        // back to it.
+        // The main table no longer prints an approval state -- the column was
+        // removed by request -- so a rejected account reads there exactly like
+        // an approved one. What must survive is the route BACK: a rejection is
+        // reversible in fact and not only in principle.
+        //
+        // It survives because the row still links to the account page, and the
+        // approve control lives there. This is the assertion that would fail if
+        // that link went the way of the column.
         $admin = User::factory()->create(['is_admin' => true]);
-        User::factory()->rejected()->create(['first_name' => 'Refusedly']);
+        $rejected = User::factory()->rejected()->create(['first_name' => 'Refusedly']);
 
         $this->actingAs($admin)->get(route('users.index'))
             ->assertOk()
             ->assertSee('Refusedly')
-            ->assertSee('Rejected');
+            // The exact href: users.show is a prefix of users.edit, so a bare
+            // substring is satisfied by the Edit link beside it.
+            ->assertSee('href="'.route('users.show', $rejected).'"', false);
+
+        $this->actingAs($admin)->get(route('users.show', $rejected))
+            ->assertOk()
+            ->assertSee(route('users.approve', $rejected), false);
     }
 
     public function test_an_admin_can_register_a_player_who_is_approved_immediately()

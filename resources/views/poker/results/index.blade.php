@@ -40,7 +40,9 @@
                                 <x-monogram :user="$result->user" :name="$result->player_name" size="sm" decorative />
 
                                 <div>
-                                    <div class="entry__title">{{ $result->player_name }}</div>
+                                    <div class="entry__title">
+                                        <x-player-link :user="$result->user">{{ $result->player_name }}</x-player-link>
+                                    </div>
 
                                     @if ($result->player_nickname)
                                         <div class="entry__meta"><span>{{ $result->player_nickname }}</span></div>

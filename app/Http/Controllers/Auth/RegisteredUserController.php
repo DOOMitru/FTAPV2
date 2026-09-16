@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Rules\Recaptcha;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -34,6 +35,10 @@ class RegisteredUserController extends Controller
             'last_name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:'.User::class],
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
+            // Only when the league has keys. Without them the form draws no
+            // widget, and a rule demanding a token the page never asked for
+            // would be a registration form nobody could submit.
+            'g-recaptcha-response' => Recaptcha::configured() ? ['required', new Recaptcha] : [],
         ]);
 
         $user = User::create([
