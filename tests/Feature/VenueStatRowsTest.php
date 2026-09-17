@@ -78,6 +78,28 @@ class VenueStatRowsTest extends TestCase
         );
     }
 
+    public function test_the_leaderboard_has_three_columns(): void
+    {
+        // Earned Count was removed by request. The column count is worth
+        // pinning because the empty state's colspan has to match it, and a
+        // colspan that is one too wide does not fail -- it draws a cell that
+        // overhangs the table, which only shows up on a venue nobody has
+        // earned at.
+        $html = $this->venuePage();
+
+        $start = strpos($html, 'Venue points leaderboard');
+        $table = substr($html, $start, strpos($html, '</table>', $start) - $start);
+
+        $this->assertSame(3, preg_match_all('/<th\b/', $table));
+        $this->assertStringContainsString('colspan="3"', $table);
+
+        foreach (['Rank', 'Player', 'Total points'] as $header) {
+            $this->assertStringContainsString('>'.$header.'</th>', $table);
+        }
+
+        $this->assertStringNotContainsString('Earned Count', $table);
+    }
+
     public function test_the_two_pages_use_the_same_component(): void
     {
         // The point of the exercise: one treatment, not two that resemble each

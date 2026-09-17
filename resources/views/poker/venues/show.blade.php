@@ -63,7 +63,6 @@
                     <x-slot name="head">
                         <th scope="col">{{ __('Rank') }}</th>
                         <th scope="col">{{ __('Player') }}</th>
-                        <th scope="col" class="table__num">{{ __('Earned Count') }}</th>
                         <th scope="col" class="table__num">{{ __('Total points') }}</th>
                     </x-slot>
 
@@ -86,13 +85,11 @@
                                 @endif
                             </td>
 
-                            <td class="table__num">{{ $entry['count'] }}</td>
-
                             <td class="table__num">{{ number_format($entry['total_amount']) }}</td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="4">
+                            <td colspan="3">
                                 {{-- The whole word, as everywhere else on this
                                      page now: the tile above and the panel
                                      heading were abbreviated and are not. --}}

@@ -71,7 +71,6 @@ class VenueController extends Controller
                     'user_name' => $points->first()->user_name,
                     'total_amount' => $points->sum('amount'),
                     'last_earned' => $points->max('event_date'),
-                    'count' => $points->count(),
                 ];
             })
             ->sortByDesc('total_amount')
