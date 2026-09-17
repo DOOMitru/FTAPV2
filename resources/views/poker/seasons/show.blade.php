@@ -4,6 +4,24 @@
             @if (auth()->user()->is_admin)
                 <x-slot name="actions">
                     <x-btn variant="primary" :href="route('poker.seasons.edit', $season)">{{ __('Edit season') }}</x-btn>
+
+                    {{-- Deleting a season is offered where it is read, not from
+                         a list. An administrator removing one has the thing in
+                         front of them -- how many tournaments it holds, who is
+                         leading it -- which is exactly what a row in a listing
+                         cannot show.
+
+                         data-confirm, never an inline onsubmit: an attribute is
+                         HTML-decoded before its contents reach the JS parser, so
+                         a season named with an apostrophe would break out of a
+                         string literal built that way. See resources/js/confirm.ts. --}}
+                    <form action="{{ route('poker.seasons.destroy', $season) }}" method="POST"
+                          data-confirm="{{ __('Delete :name? This cannot be undone.', ['name' => emph($season->name)]) }}">
+                        @csrf
+                        @method('DELETE')
+
+                        <x-btn variant="danger" type="submit">{{ __('Delete season') }}</x-btn>
+                    </form>
                 </x-slot>
             @endif
         </x-page-header>
@@ -79,13 +97,13 @@
                 </x-slot>
 
                 @if ($leaderboard->isEmpty())
+                    {{-- No action any more. It offered "Record a result",
+                         which went to a form that no longer exists: a result
+                         is recorded by eliminating a player on the tournament
+                         being played, so there is no single page to send an
+                         administrator to. The sentence says where instead. --}}
                     <x-empty-state :title="__('No results yet')">
-                        {{ __('Standings appear once the first tournament result is recorded.') }}
-                        @if (auth()->user()->is_admin)
-                            <x-slot name="action">
-                                <x-btn variant="primary" size="sm" :href="route('poker.results.create')">{{ __('Record a result') }}</x-btn>
-                            </x-slot>
-                        @endif
+                        {{ __('Standings appear once players are eliminated from a tournament in this season.') }}
                     </x-empty-state>
                 @else
                     @php

@@ -31,7 +31,12 @@
                     {{ __('Once your account is deleted, all of its resources and data will be permanently deleted. Please enter your password to confirm you would like to permanently delete your account.') }}
                 </p>
 
-                <x-field name="password" type="password" bag="userDeletion"
+                {{-- id, because the Update Password form above this one also
+                     has a field named `password`. Two inputs with the same id
+                     make a label point at whichever comes first, so this one
+                     focused the New Password box in the other form. --}}
+                <x-field name="password" id="delete-account-password"
+                         type="password" bag="userDeletion"
                          :label="__('Password')" :placeholder="__('Password')" />
             </div>
 

@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Poker;
 
 use App\Http\Controllers\Controller;
-use App\Models\PokerTournament;
 use App\Models\User;
 use App\Models\Venue;
 use App\Models\VenuePoints;
@@ -14,38 +13,6 @@ use Illuminate\View\View;
 
 class VenuePointsController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
-    public function index(Request $request): View
-    {
-        // Venue points carry no tournament. The table records a player, a
-        // venue, a date and an amount -- so filtering by tournament INFERS the
-        // link: points earned at that tournament's venue, on its date.
-        //
-        // The inference can be wrong two ways, which is why the page states
-        // what it matched on rather than just showing a shorter list: points
-        // awarded on a night with no tournament appear under none of them, and
-        // a venue running two events in a day shows both under either.
-        $tournaments = PokerTournament::with('venue')->orderByDesc('start_time')->get();
-
-        $selected = $tournaments->firstWhere('id', $request->query('tournament'))
-            ?? PokerTournament::nearest();
-
-        $venue_points = VenuePoints::with(['user', 'venue'])
-            ->when($selected, fn ($query) => $query
-                ->where('venue_id', $selected->venue_id)
-                // event_date is a plain Y-m-d string, deliberately uncast, so
-                // the tournament has to come down to a date to meet it. Against
-                // the raw start_time this matches nothing at all.
-                ->where('event_date', $selected->start_time?->toDateString()))
-            ->latest()
-            ->paginate(10)
-            ->withQueryString();
-
-        return view('poker.venue-points.index', compact('venue_points', 'tournaments', 'selected'));
-    }
-
     /**
      * Show the form for creating a new resource.
      */
@@ -133,59 +100,4 @@ class VenuePointsController extends Controller
         ]));
     }
 
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(VenuePoints $venue_point): View
-    {
-        $users = User::all();
-        $venues = Venue::all();
-        return view('poker.venue-points.edit', compact('venue_point', 'users', 'venues'));
-    }
-
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, VenuePoints $venue_point): RedirectResponse
-    {
-        $validated = $request->validate([
-            'event_date' => 'required|date',
-            'amount' => 'required|integer',
-            'user_id' => 'required|exists:users,id',
-            'user_name' => 'required|string|max:255',
-            'venue_id' => 'required|exists:venues,id',
-        ]);
-
-        // Re-stamped, because the date may have been what changed.
-        if (! $stamped = $this->withSeason($validated)) {
-            return $this->noSeason($validated['event_date']);
-        }
-
-        $venue_point->update($stamped);
-
-        return redirect()->route('poker.venue-points.index')->with('status', __(
-            ':amount venue points updated for :name.', [
-                'amount' => $stamped['amount'],
-                'name' => emph($stamped['user_name']),
-            ]
-        ));
-    }
-
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(VenuePoints $venue_point): RedirectResponse
-    {
-        $amount = $venue_point->amount;
-        $name = $venue_point->user_name;
-
-        $venue_point->delete();
-
-        return redirect()->route('poker.venue-points.index')->with('status', __(
-            ':amount venue points deleted for :name.', [
-                'amount' => $amount,
-                'name' => emph($name),
-            ]
-        ));
-    }
 }

@@ -1,6 +1,10 @@
 <x-app-layout>
     <x-slot name="header">
-        <x-page-header :eyebrow="__('League')" :title="__('Poker Tournaments')">
+        {{-- The season is the eyebrow, because the list is now one season's
+             nights and a page headed "Poker Tournaments" over them would not
+             say which. --}}
+        <x-page-header :eyebrow="$currentSeason?->name ?? __('League')"
+                       :title="__('Poker Tournaments')">
             @if (auth()->user()->is_admin)
                 <x-slot name="actions">
                     <x-btn variant="primary" :href="route('poker.tournaments.create')">{{ __('Schedule Tournament') }}</x-btn>
@@ -19,46 +23,50 @@
                 <x-slot name="head">
                     <th scope="col">{{ __('Name') }}</th>
                     <th scope="col">{{ __('Venue') }}</th>
-                    <th scope="col">{{ __('Season') }}</th>
-                    <th scope="col">{{ __('Start Time') }}</th>
-                    <th scope="col" class="table__actions">{{ __('Actions') }}</th>
+                    <th scope="col" class="table__num">{{ __('Start Time') }}</th>
                 </x-slot>
 
                 @forelse ($tournaments as $tournament)
-                    <tr>
-                        <td class="tournaments-index__name">{{ $tournament->name }}</td>
+                    {{-- The whole row is the link, and the only control on it.
+                         tournaments.show is open to anyone signed in -- it is
+                         where a player registers -- and editing or deleting a
+                         tournament is offered there, behind the admin gate the
+                         page already applies.
+
+                         One anchor stretched over the row by .table__link, so
+                         the venue and the time are part of the target too. --}}
+                    <tr class="table__row--link">
+                        <td class="tournaments-index__name">
+                            <a class="table__link"
+                               href="{{ route('tournaments.show', $tournament) }}">{{ $tournament->name }}</a>
+                        </td>
 
                         <td class="tournaments-index__venue">{{ $tournament->venue->name ?? __('TBD') }}</td>
 
-                        <td class="tournaments-index__season">{{ $tournament->season->name }}</td>
-
-                        <td class="tournaments-index__start">{{ $tournament->start_time?->format('M d, Y · h:i A') ?? '—' }}</td>
-
-                        <td class="table__actions">
-                            <div class="l-cluster l-cluster--end">
-                            {{-- tournaments.show is open to anyone signed in --
-                                 it is where a player registers. Everything
-                                 below it changes a record. --}}
-                            <x-action icon="view" :label="__('View')" :href="route('tournaments.show', $tournament)" />
-
-                                @if (auth()->user()->is_admin)
-                                <x-action icon="edit" :label="__('Edit')" :href="route('poker.tournaments.edit', $tournament)" />
-
-                                <form action="{{ route('poker.tournaments.destroy', $tournament) }}" method="POST"
-                                      data-confirm="{{ __('Delete :name? This cannot be undone.', ['name' => emph($tournament->name)]) }}">
-                                    @csrf
-                                    @method('DELETE')
-
-                                    <x-action icon="delete" :label="__('Delete')" danger />
-                                </form>
-                                @endif
-                            </div>
-                        </td>
+                        {{-- table__num: right-aligned and tabular, so a
+                             column of dates lines up digit under digit. The
+                             phone layout puts it back to the start edge -- a
+                             card places its cells rather than columning
+                             them. --}}
+                        <td class="table__num tournaments-index__start">{{ $tournament->start_time?->format('M d, Y · h:i A') ?? '—' }}</td>
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="5">
-                            <x-empty-state :title="__('No tournaments found.')" />
+                        <td colspan="3">
+                            {{-- Two different nothings, and an administrator
+                                 can act on only one of them. "No tournaments"
+                                 on a league with years of history reads as a
+                                 fault; the season being unset is the actual
+                                 state and is fixable. --}}
+                            @if ($currentSeason)
+                                <x-empty-state :title="__('No tournaments in :season yet.', ['season' => $currentSeason->name])">
+                                    {{ __('Tournaments scheduled in this season appear here.') }}
+                                </x-empty-state>
+                            @else
+                                <x-empty-state :title="__('No season is running.')">
+                                    {{ __('This list shows the current season. Mark a season as current to see its tournaments here.') }}
+                                </x-empty-state>
+                            @endif
                         </td>
                     </tr>
                 @endforelse

@@ -33,38 +33,6 @@ class PokerTournament extends Model
     // messages to players and locks the record; it is not something the
     // tournament edit form should be able to do by posting a field.
 
-    /**
-     * The tournament nearest to now, behind or ahead.
-     *
-     * The default for the results and registrants lists, which are worked from
-     * opposite sides of a game -- registrants before it, results after -- so
-     * neither "the last one played" nor "the next one scheduled" serves both.
-     * Whichever is closer is the night an administrator has in front of them.
-     *
-     * Two indexed queries and a comparison in PHP, deliberately: ordering by
-     * the absolute difference needs date arithmetic that is spelled differently
-     * on SQLite and MySQL, and this project runs on both.
-     *
-     * A tie goes to the past, because a tournament starting this instant is one
-     * being played rather than one being awaited.
-     */
-    public static function nearest(): ?self
-    {
-        $now = now();
-
-        $behind = static::where('start_time', '<=', $now)->orderByDesc('start_time')->first();
-        $ahead = static::where('start_time', '>', $now)->orderBy('start_time')->first();
-
-        if (! $behind || ! $ahead) {
-            return $behind ?? $ahead;
-        }
-
-        return $now->diffInSeconds($behind->start_time, absolute: true)
-            <= $now->diffInSeconds($ahead->start_time, absolute: true)
-                ? $behind
-                : $ahead;
-    }
-
     /** Results have been declared final, and the tournament is locked. */
     public function isPublished(): bool
     {

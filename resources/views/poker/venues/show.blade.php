@@ -4,6 +4,24 @@
             <x-slot name="actions">
                 <x-btn variant="ghost" :href="route('poker.venues.index')">{{ __('Back') }}</x-btn>
                 <x-btn variant="primary" :href="route('poker.venues.edit', $venue)">{{ __('Edit') }}</x-btn>
+
+                {{-- Deleting a venue is offered where it is read. An
+                     administrator removing one has its takings and its
+                     leaderboard in front of them, which a row in a list cannot
+                     show -- and this page is admin-only already, so the
+                     control needs no gate of its own.
+
+                     data-confirm, never an inline onsubmit: an attribute is
+                     HTML-decoded before its contents reach the JS parser, so a
+                     venue named with an apostrophe would break out of a string
+                     literal built that way. See resources/js/confirm.ts. --}}
+                <form action="{{ route('poker.venues.destroy', $venue) }}" method="POST"
+                      data-confirm="{{ __('Delete :name? This cannot be undone.', ['name' => emph($venue->name)]) }}">
+                    @csrf
+                    @method('DELETE')
+
+                    <x-btn variant="danger" type="submit">{{ __('Delete') }}</x-btn>
+                </form>
             </x-slot>
         </x-page-header>
     </x-slot>
@@ -36,11 +54,20 @@
                         <p class="venue-show__lede">{{ $venue->description }}</p>
                     @endif
 
-                    <div class="venue-show__stats">
+                    {{-- Two figures, not four. Point Earners and Tournament
+                         pts both answered questions the panels below answer
+                         better: the venue leaderboard IS the point earners,
+                         named and counted, and tournament points are a league
+                         total that says nothing about this venue in
+                         particular. --}}
+                    {{-- stat-rows: below 48rem these stop being tiles and
+                         become labelled lines, the same treatment the season
+                         page gives its figures. Not --boxed: they sit inside a
+                         card, which already draws the edge, and the body
+                         around them supplies the gutter. --}}
+                    <div class="venue-show__stats stat-rows">
                         <x-stat :label="__('Tournaments')" :value="$totalTournaments" />
-                        <x-stat :label="__('Point Earners')" :value="$uniqueVenuePointPlayers" />
-                        <x-stat :label="__('Venue pts')" :value="number_format($totalVenuePoints)" />
-                        <x-stat :label="__('Tournament pts')" :value="number_format($totalTournamentPoints)" />
+                        <x-stat :label="__('Venue points')" :value="number_format($totalVenuePoints)" />
                     </div>
                 </div>
             </div>
@@ -49,13 +76,27 @@
         {{-- align-items: start, so an empty leaderboard does not stretch to
              match a list of nineteen tournaments beside it. --}}
         <div class="l-sidebar venue-show__panels">
-            <x-card :title="__('Venue pts leaderboard')" flush>
+            <x-card :title="__('Venue points leaderboard')" flush>
+                {{-- The form opens with this venue already chosen, which is
+                     the whole reason the action lives here rather than on a
+                     listing: an administrator entering a night's points is
+                     standing on the venue they were earned at.
+
+                     venue_id is the same query parameter store() hands back
+                     between entries, so arriving from here and arriving from
+                     the previous save are the same path. --}}
+                <x-slot name="actions">
+                    <x-btn variant="primary" size="sm"
+                           :href="route('poker.venue-points.create', ['venue_id' => $venue->id])">
+                        {{ __('Add points') }}
+                    </x-btn>
+                </x-slot>
+
                 <x-table>
                     <x-slot name="head">
                         <th scope="col">{{ __('Rank') }}</th>
                         <th scope="col">{{ __('Player') }}</th>
-                        <th scope="col" class="table__num">{{ __('Earned Count') }}</th>
-                        <th scope="col" class="table__num">{{ __('Total pts') }}</th>
+                        <th scope="col" class="table__num">{{ __('Total points') }}</th>
                     </x-slot>
 
                     @forelse ($venueLeaderboard as $index => $entry)
@@ -77,16 +118,14 @@
                                 @endif
                             </td>
 
-                            <td class="table__num">{{ $entry['count'] }}</td>
-
                             <td class="table__num">{{ number_format($entry['total_amount']) }}</td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="4">
-                                {{-- Still the whole word: this is a sentence, not a label. "No venue
-                                     pts awarded here yet" is an abbreviation
-                                     read as prose. --}}
+                            <td colspan="3">
+                                {{-- The whole word, as everywhere else on this
+                                     page now: the tile above and the panel
+                                     heading were abbreviated and are not. --}}
                                 <x-empty-state :title="__('No venue points awarded here yet.')" />
                             </td>
                         </tr>

@@ -80,14 +80,6 @@ if (! function_exists('emph_html')) {
     }
 }
 
-if (! function_exists('emph_strip')) {
-    /** The message with its markers removed, for anywhere that cannot bold. */
-    function emph_strip(?string $raw): string
-    {
-        return str_replace(EMPH, '', (string) $raw);
-    }
-}
-
 if (! function_exists('initials')) {
     /**
      * A person's initials: the first letter of the first word and of the last.

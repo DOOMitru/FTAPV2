@@ -23,14 +23,27 @@
                 <x-slot name="head">
                     <th scope="col">{{ __('Name') }}</th>
                     <th scope="col">{{ __('Current') }}</th>
-                    <th scope="col">{{ __('Start Date') }}</th>
-                    <th scope="col">{{ __('End Date') }}</th>
-                    <th scope="col" class="table__actions">{{ __('Actions') }}</th>
+                    <th scope="col" class="table__num">{{ __('Start Date') }}</th>
+                    <th scope="col" class="table__num">{{ __('End Date') }}</th>
                 </x-slot>
 
                 @forelse ($seasons as $season)
-                    <tr>
-                        <td class="seasons-index__name">{{ $season->name }}</td>
+                    {{-- The whole row is the link, and the only control on it.
+                         Editing and deleting a season are offered on the
+                         season's own page: an administrator changing one is
+                         reading it first, and a row of three icons beside
+                         every name is a column of decisions on a page whose
+                         job is to list.
+
+                         One anchor stretched over the row by .table__link, so
+                         the dates and the Current badge are part of the target
+                         too -- and so a list of twenty seasons reads as twenty
+                         links rather than eighty. --}}
+                    <tr class="table__row--link">
+                        <td class="seasons-index__name">
+                            <a class="table__link"
+                               href="{{ route('seasons.show', $season) }}">{{ $season->name }}</a>
+                        </td>
 
                         <td class="seasons-index__current">
                             @if ($season->is_current)
@@ -38,39 +51,16 @@
                             @endif
                         </td>
 
-                        <td class="seasons-index__start">{{ $season->start_date?->format('M d, Y') ?? '—' }}</td>
-                        <td class="seasons-index__end">{{ $season->end_date?->format('M d, Y') ?? '—' }}</td>
-
-                        <td class="table__actions">
-                            <div class="l-cluster l-cluster--end">
-                                {{-- Reading a season is why a player is on this
-                                     page; seasons.show is open to anyone signed
-                                     in. Everything below it changes a record. --}}
-                                <x-action icon="stats" :label="__('View Stats')" :href="route('seasons.show', $season)" />
-
-                                @if (auth()->user()->is_admin)
-                                <x-action icon="edit" :label="__('Edit')" :href="route('poker.seasons.edit', $season)" />
-
-                                {{-- data-confirm, never an inline onsubmit. Blade escapes
-                                     the name for HTML, but the browser HTML-decodes an
-                                     attribute before parsing its contents as JS, so a name
-                                     containing an apostrophe would break out of the string
-                                     literal. See resources/js/confirm.ts. --}}
-                                <form action="{{ route('poker.seasons.destroy', $season) }}" method="POST"
-                                      data-confirm="{{ __('Delete :name? This cannot be undone.', ['name' => emph($season->name)]) }}">
-                                    @csrf
-                                    @method('DELETE')
-
-                                    <x-action icon="delete" :label="__('Delete')" danger />
-                                </form>
-                                @endif
-                            </div>
-                        </td>
+                        {{-- table__num: right-aligned and tabular, so the two
+                             date columns line up digit under digit. The phone
+                             layout is unaffected -- its cells are inline, and
+                             text-align does not reach an inline box. --}}
+                        <td class="table__num seasons-index__start">{{ $season->start_date?->format('M d, Y') ?? '—' }}</td>
+                        <td class="table__num seasons-index__end">{{ $season->end_date?->format('M d, Y') ?? '—' }}</td>
                     </tr>
                 @empty
                     <tr>
-                        {{-- colspan was 4 on a five-column table. --}}
-                        <td colspan="5">
+                        <td colspan="4">
                             <x-empty-state :title="__('No seasons found.')" />
                         </td>
                     </tr>

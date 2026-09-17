@@ -94,26 +94,13 @@ class DeleteConfirmationTest extends TestCase
         return $confirmations;
     }
 
-    public function test_venue_points_say_they_are_points_and_not_a_player(): void
-    {
-        $venue = Venue::create(['name' => 'Diamond Club', 'address' => '1 Card Street']);
-
-        VenuePoints::create([
-            'venue_id' => $venue->id,
-            'user_id' => User::factory()->create()->id,
-            'user_name' => 'Ada Lovelace',
-            'event_date' => '2026-08-14',
-            'amount' => 5,
-        ]);
-
-        $this->assertSame(
-            'Delete 5 venue points for Ada Lovelace at Diamond Club on Aug 14, 2026? This cannot be undone.',
-            $this->confirmationOn(route('poker.venue-points.index'))
-        );
-    }
-
     public function test_a_registration_says_it_is_a_registration(): void
     {
+        // Read from the tournament page now. The confirmation used to be on
+        // the registrants listing, which is gone -- removing an entry is
+        // offered where an administrator notices it, and the wording there
+        // says what the removal does to the finishes below it rather than the
+        // generic "cannot be undone".
         $tournament = $this->tournament();
 
         PokerTournamentRegistrant::create([
@@ -123,27 +110,18 @@ class DeleteConfirmationTest extends TestCase
             'registered_at' => now(),
         ]);
 
-        $this->assertSame(
-            'Remove Ada Lovelace from Wednesday Night Poker? This cannot be undone.',
-            $this->confirmationOn(route('poker.registrants.index'))
-        );
-    }
-
-    public function test_a_result_says_it_is_a_finish(): void
-    {
-        $tournament = $this->tournament();
-
-        PokerTournamentResult::create([
-            'tournament_id' => $tournament->id,
-            'user_id' => User::factory()->create()->id,
-            'player_name' => 'Ada Lovelace',
-            'place' => 3,
-            'points' => 75,
-        ]);
+        // Picked by name, not by position: the row offers Eliminate first, and
+        // taking [0] reads that one instead.
+        $removals = array_values(array_filter(
+            $this->confirmationsOn(route('tournaments.show', $tournament)),
+            fn (string $message) => str_starts_with($message, 'Remove ')
+        ));
 
         $this->assertSame(
-            'Delete the 3rd place finish for Ada Lovelace in Wednesday Night Poker, worth 75 points? This cannot be undone.',
-            $this->confirmationOn(route('poker.results.index'))
+            'Remove Ada Lovelace from Wednesday Night Poker? Any finishes already recorded '
+            .'move up a place and are repriced. An administrator can enter them again until '
+            .'the results are published.',
+            $removals[0] ?? ''
         );
     }
 

@@ -1,11 +1,20 @@
 <x-app-layout>
     <x-slot name="header">
-        <x-page-header :eyebrow="__('Play')" :title="__('Add Venue Points')">
+        <x-page-header :eyebrow="__('League')" :title="__('Add Venue Points')">
             {{-- In the header, not beside Save. The form returns to itself
                  after every entry, so leaving it is a different kind of act
-                 from the entry being typed. --}}
+                 from the entry being typed.
+
+                 Back to the VENUE, which is where this form is reached from
+                 and where the points will be read. It used to return to the
+                 venue-points listing, which no longer exists; with no venue
+                 chosen yet -- a link followed without one -- the venues list
+                 is the honest fallback. --}}
             <x-slot name="actions">
-                <x-btn variant="ghost" :href="route('poker.venue-points.index')">{{ __('Back') }}</x-btn>
+                <x-btn variant="ghost"
+                       :href="$venueId
+                           ? route('poker.venues.show', $venueId)
+                           : route('poker.venues.index')">{{ __('Back') }}</x-btn>
             </x-slot>
         </x-page-header>
     </x-slot>

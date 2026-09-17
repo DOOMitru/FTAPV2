@@ -28,12 +28,6 @@
     color: var(--gradient-accent-ink);
 }
 
-/* A section-wide wash, for banding long pages without drawing a line. Subtle
-   by construction: it runs --c-surface to --c-bg, two colours already adjacent. */
-.p-wash {
-    background-image: var(--gradient-surface);
-}
-
 /* Elevation instead of a hairline. .p-raised is the resting state for a public
    card; .p-lift adds the hover response. Both stay off the dashboard. */
 .p-raised {
@@ -262,80 +256,6 @@
     text-transform: uppercase;
 }
 
-.p-item {
-    position: relative;
-    display: flex;
-    gap: var(--space-4);
-    padding: var(--space-5);
-    padding-inline-start: var(--space-6);
-    background-image: var(--gradient-raised);
-    /* Clips the rail below to the card's own corner radius. */
-    overflow: hidden;
-}
-
-/* The rail. A pseudo-element rather than a border, because border-image cannot
-   follow a border-radius and a gradient border would square off the corners. */
-.p-item::before {
-    content: "";
-    position: absolute;
-    inset-block: 0;
-    inset-inline-start: 0;
-    width: 3px;
-    background-image: var(--gradient-primary);
-}
-
-/* Mono and fixed-width so the titles line up down the column whatever the
-   number of digits. The citation key, not decoration. */
-.p-item__number {
-    flex: 0 0 auto;
-    min-width: 2ch;
-    font-family: var(--font-mono);
-    font-size: var(--step--1);
-    font-weight: 600;
-    line-height: var(--leading-tight);
-    color: var(--c-primary);
-}
-
-.p-item__body {
-    min-width: 0;
-}
-
-.p-item__title {
-    font-size: var(--step-0);
-    font-weight: 600;
-    line-height: var(--leading-tight);
-}
-
-.p-item__text {
-    margin-block-start: var(--space-2);
-    font-size: var(--step--1);
-    line-height: var(--leading-relaxed);
-    color: var(--c-text-muted);
-}
-
-.p-chip {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: var(--space-1);
-    padding: var(--space-4) var(--space-3);
-    border-radius: var(--radius);
-    background-color: rgb(255 255 255 / 0.10);
-    text-align: center;
-}
-
-.p-chip__index {
-    font-family: var(--font-mono);
-    font-size: var(--step--2);
-}
-
-.p-chip__label {
-    font-size: var(--step--1);
-    font-weight: 600;
-    line-height: var(--leading-tight);
-}
-
 /* The offset blurred disc inside a gradient panel. Five pages hand-build one
    today. Needs a positioned, clipped parent -- .p-panel provides both. */
 .p-panel {
@@ -376,24 +296,6 @@
    inside .l-container's 80rem measure fits twice and never three times. The
    original used md:grid-cols-2, which snapped at one breakpoint; auto-fit
    collapses to one column whenever the columns genuinely stop fitting. */
-/* Multi-column, not grid. A two-column grid makes every cell in a row as tall
-   as the tallest section in it, so a 2-rule section left a 300px hole beside a
-   5-rule one. Columns flow content continuously instead, and column-width
-   collapses to one column on its own when the space is not there. */
-.p-sections {
-    columns: 28rem 2;
-    column-gap: var(--space-8);
-}
-
-.p-sections__group {
-    break-inside: avoid-column;
-    margin-block-end: var(--space-8);
-}
-
-.p-sections__group > * + * {
-    margin-block-start: var(--space-4);
-}
-
 /* Inside a gradient panel: a translucent pill for a standing label. */
 .p-pill {
     display: inline-flex;
@@ -478,12 +380,6 @@
 .p-cardlink svg {
     width: 0.875rem;
     height: 0.875rem;
-}
-
-.p-chip-grid {
-    display: grid;
-    gap: var(--space-3);
-    grid-template-columns: repeat(auto-fit, minmax(min(7rem, 100%), 1fr));
 }
 
 /* Padding rather than a margin: this closes the page, and an outer margin on

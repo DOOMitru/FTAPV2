@@ -7,15 +7,25 @@
     'hint' => null,
     'hintInline' => false,
     'bag' => 'default',
+    'id' => null,
 ])
 
 @php
+    // The id follows the name unless a caller overrides it, and a caller has
+    // to when the same field name appears twice on one page. profile/edit
+    // renders three forms, two of which have a `password` -- both inputs took
+    // id="password", and a label points at the FIRST match in the document.
+    // The delete-account dialog's Password label therefore focused the New
+    // Password box in the form above it. The named error bags on that page
+    // exist for the same collision; the ids had not caught up.
+    $controlId = $id ?? $name;
+
     // A note beside the label is still the control's description, so it is
     // pointed at rather than merely placed next to it -- otherwise it is read
     // by eye only and a screen reader announces the field with no mention of
     // the constraint it is about to reject the entry for.
     $noted = $hint && $hintInline;
-    $noteId = $noted ? $name.'-note' : null;
+    $noteId = $noted ? $controlId.'-note' : null;
 @endphp
 
 <div>
@@ -24,12 +34,12 @@
              in passing belongs where the eye already is, above the control,
              rather than under one it is meant to be read before. --}}
         <div class="field__label-row">
-            <label class="field__label" for="{{ $name }}">{{ $label }}</label>
+            <label class="field__label" for="{{ $controlId }}">{{ $label }}</label>
 
             <span class="field__note" id="{{ $noteId }}">{{ $hint }}</span>
         </div>
     @else
-        <label class="field__label" for="{{ $name }}">{{ $label }}</label>
+        <label class="field__label" for="{{ $controlId }}">{{ $label }}</label>
     @endif
 
     {{-- Non-text controls (checkbox, radio, select, etc.) go through the
@@ -43,7 +53,7 @@
 
     @if (! isset($slot) || trim($slot) === '')
         <input
-            id="{{ $name }}"
+            id="{{ $controlId }}"
             name="{{ $name }}"
             type="{{ $type }}"
             value="{{ old($name, $value) }}"

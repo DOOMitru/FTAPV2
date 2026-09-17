@@ -1,13 +1,12 @@
 /* The venue list's narrow layout.
  *
  * Not the .table--stacked treatment: that prints every cell as a labelled
- * label/value line, and a venue has only three, two of which need no naming.
- * Here the row becomes the name on the start edge, its actions on the end
- * edge, and the description across both beneath them.
+ * label/value line, and a venue has two, neither of which needs naming. Here
+ * the row becomes the name, with the description beneath it.
  *
  * The header row is hidden with it. Once the cells are rearranged, a
- * "Name | Description | Actions" strip sits above columns that no longer
- * correspond to it and reads as a misalignment.
+ * "Name | Description" strip sits above columns that no longer correspond to
+ * it and reads as a misalignment.
  */
 @media (max-width: 48rem) {
     .venues-table thead {
@@ -23,8 +22,8 @@
 
     .venue-row {
         display: grid;
-        /* The name takes the room; the actions hug the end edge. */
-        grid-template-columns: 1fr auto;
+        /* One column since the actions moved to the venue's own page. */
+        grid-template-columns: 1fr;
         align-items: center;
         gap: var(--space-2) var(--space-4);
         padding: var(--space-3) var(--space-3);
@@ -44,12 +43,7 @@
         font-weight: 600;
     }
 
-    .venue-row__actions {
-        grid-column: 2;
-        grid-row: 1;
-    }
-
-    /* Under both, across the full width. */
+    /* Under the name, across the full width. */
     .venue-row__desc {
         grid-column: 1 / -1;
         grid-row: 2;

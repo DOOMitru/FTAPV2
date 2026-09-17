@@ -152,42 +152,6 @@ class PlayerApprovalTest extends TestCase
         ]);
     }
 
-    public function test_an_admin_cannot_register_a_pending_player_via_the_registrant_form(): void
-    {
-        $admin = User::factory()->create(['is_admin' => true]);
-        $player = User::factory()->pending()->create(['is_admin' => false]);
-        $tournament = $this->makeTournament();
-
-        $this->actingAs($admin)->post(route('poker.registrants.store'), [
-            'tournament_id' => $tournament->id,
-            'user_id' => $player->id,
-            'player_name' => 'Ada Lovelace',
-            'registered_at' => now()->format('Y-m-d H:i:s'),
-        ])->assertSessionHasErrors('user_id');
-
-        $this->assertDatabaseMissing('tournament_registrants', [
-            'tournament_id' => $tournament->id,
-            'user_id' => $player->id,
-        ]);
-    }
-
-    public function test_the_registrant_picker_offers_only_approved_players(): void
-    {
-        // A form that offers a choice its own store would refuse is a worse
-        // failure than one that never offers it: the administrator learns the
-        // rule by hitting it, one player at a time.
-        $admin = User::factory()->create(['is_admin' => true]);
-        User::factory()->create(['first_name' => 'Approvedy', 'is_admin' => false]);
-        User::factory()->pending()->create(['first_name' => 'Pendingly', 'is_admin' => false]);
-        User::factory()->rejected()->create(['first_name' => 'Refusedly', 'is_admin' => false]);
-
-        $this->actingAs($admin)->get(route('poker.registrants.create'))
-            ->assertOk()
-            ->assertSee('Approvedy')
-            ->assertDontSee('Pendingly')
-            ->assertDontSee('Refusedly');
-    }
-
     public function test_a_pending_player_is_told_why_rather_than_shown_a_register_button(): void
     {
         $player = User::factory()->pending()->create(['is_admin' => false]);

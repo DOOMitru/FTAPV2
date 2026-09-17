@@ -24,8 +24,34 @@ class PokerTournamentController extends Controller
      */
     public function index(): View
     {
-        $tournaments = PokerTournament::with(['venue', 'season'])->latest()->paginate(10);
-        return view('poker.tournaments.index', compact('tournaments'));
+        // By START TIME, not latest(). latest() orders by created_at -- the
+        // order the rows were typed in -- which for a league that schedules a
+        // season ahead in one sitting is close to arbitrary: a night added
+        // last week sat above the one being played tonight.
+        //
+        // Descending, so the nights nearest now lead and the archive falls
+        // away below. That is the same reading the list had before, now
+        // against the date that means something.
+        // The current season only. This list is worked, not browsed: it is
+        // where a night is scheduled and where an administrator goes to open
+        // the one being played. Seasons past are read from their own page,
+        // which lists the tournaments held in them.
+        //
+        // tournaments.season_id is NOT NULL, so there is no orphan row for this
+        // filter to miss. The case that does need care is the one below: no
+        // CURRENT season, where an unguarded filter becomes no filter at all.
+        $currentSeason = PokerSeason::current();
+
+        $tournaments = PokerTournament::with('venue')
+            ->when($currentSeason, fn ($query) => $query->whereBelongsTo($currentSeason, 'season'))
+            // No season at all is no list. Returning everything would be the
+            // opposite of what this page now claims to show, and the empty
+            // state below says which of the two nothings this is.
+            ->unless($currentSeason, fn ($query) => $query->whereRaw('1 = 0'))
+            ->orderByDesc('start_time')
+            ->paginate(100);
+
+        return view('poker.tournaments.index', compact('tournaments', 'currentSeason'));
     }
 
     /**
@@ -183,8 +209,18 @@ class PokerTournamentController extends Controller
         // claim -- it is only true once every entered player has a finish, so
         // it waits for isComplete() rather than for the clock. Before any
         // result at all the list is not standings of anything.
+        // Asked once and carried, because isComplete() is two queries and this
+        // page asked it four times -- here and three times in the view.
+        //
+        // Passed as a value rather than memoised on the model, deliberately.
+        // The method queries through the relation METHODS on purpose so that a
+        // caller in a WRITE request sees the result it just recorded (see the
+        // note in eliminate()); a cache on the model would take that away
+        // silently. A read request has nothing to go stale against.
+        $isComplete = $tournament->isComplete();
+
         $standingsTitle = match (true) {
-            $tournament->isComplete() => __('Final Standings'),
+            $isComplete => __('Final Standings'),
             $resultsCount > 0 => __('Standings'),
             default => __('Registered Players'),
         };
@@ -256,6 +292,7 @@ class PokerTournamentController extends Controller
             'isUserRegistered',
             'isPast',
             'registerCandidates',
+            'isComplete',
             'nextPlace',
             'nextPlacePoints',
             'standings',

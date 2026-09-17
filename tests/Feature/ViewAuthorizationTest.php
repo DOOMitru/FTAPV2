@@ -24,7 +24,7 @@ class ViewAuthorizationTest extends TestCase
 
         $response->assertOk();
         $response->assertSee(route('poker.seasons.index'), false);
-        $response->assertDontSee(route('poker.results.index'), false);
+        $response->assertDontSee(route('poker.seasons.create'), false);
         $response->assertDontSee(route('users.index'), false);
     }
 

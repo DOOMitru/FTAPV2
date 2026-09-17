@@ -134,48 +134,16 @@ class VenuePointsSeasonTest extends TestCase
         $this->assertSame($season->id, VenuePoints::firstOrFail()->season_id);
     }
 
-    public function test_editing_a_row_restamps_it_when_the_date_changes(): void
-    {
-        // The date is what decides the season, so changing the date has to
-        // reconsider it. Left alone, a row edited from August to next season
-        // would keep counting toward this one.
-        $first = $this->season('2026-01-01', '2026-06-30', 'Season 39');
-        $second = $this->season('2026-07-01', '2026-12-31', 'Season 40');
-
-        $this->record('2026-03-10');
-        $point = VenuePoints::firstOrFail();
-        $this->assertSame($first->id, $point->season_id);
-
-        $this->actingAs($this->admin())->put(route('poker.venue-points.update', $point), [
-            'venue_id' => $point->venue_id,
-            'event_date' => '2026-08-14',
-            'user_id' => $point->user_id,
-            'user_name' => $point->user_name,
-            'amount' => $point->amount,
-        ])->assertSessionHasNoErrors();
-
-        $this->assertSame($second->id, $point->fresh()->season_id);
-    }
-
-    public function test_an_edit_onto_a_date_no_season_covers_is_refused(): void
-    {
-        $this->season();
-        $this->record('2026-08-14');
-        $point = VenuePoints::firstOrFail();
-
-        $this->actingAs($this->admin())->put(route('poker.venue-points.update', $point), [
-            'venue_id' => $point->venue_id,
-            'event_date' => '2025-01-05',
-            'user_id' => $point->user_id,
-            'user_name' => $point->user_name,
-            'amount' => $point->amount,
-        ])->assertSessionHasErrors('event_date');
-
-        // event_date is not cast on the model, so it comes back as the string
-        // it was stored as. The index view parses it with Carbon for the same
-        // reason.
-        $this->assertSame('2026-08-14', $point->fresh()->event_date);
-    }
+    /*
+     * Two tests stood here: that editing a row onto a date in another season
+     * re-stamped season_id, and that an edit onto a date no season covers was
+     * refused. Both went with the edit form -- a venue points row cannot be
+     * changed now, only recorded.
+     *
+     * The rule each guarded survives on the path that remains:
+     * test_recording_points_stamps_the_season_the_date_falls_in and
+     * test_a_date_no_season_covers_is_refused, both above, prove it at entry.
+     */
 
     public function test_overlapping_seasons_resolve_to_the_earlier_one(): void
     {

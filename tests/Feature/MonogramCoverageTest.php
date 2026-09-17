@@ -30,27 +30,12 @@ class MonogramCoverageTest extends TestCase
     private const LISTS = [
         'poker/seasons/show.blade.php' => 'the season standings',
         'poker/tournaments/show.blade.php' => 'the registered players panel',
-        'poker/registrants/index.blade.php' => 'the admin registrants list',
-        'poker/results/index.blade.php' => 'the admin results list',
         'poker/venue-points/create.blade.php' => 'the venue points player picker',
         'rules/points-structure.blade.php' => 'Current Season Leaders',
         'home.blade.php' => 'the landing page leader cards',
         'events.blade.php' => 'the archive podium',
         'users/index.blade.php' => 'the players list',
         'users/show.blade.php' => 'a player profile',
-    ];
-
-    /**
-     * Native <select> forms. An <option> may contain text and nothing else, so
-     * a monogram is not merely unimplemented here -- it is not expressible.
-     *
-     * @var array<int, string>
-     */
-    private const OUT_OF_REACH = [
-        'poker/registrants/create.blade.php',
-        'poker/registrants/edit.blade.php',
-        'poker/results/create.blade.php',
-        'poker/results/edit.blade.php',
     ];
 
     public function test_every_list_of_players_pictures_them(): void
@@ -70,19 +55,6 @@ class MonogramCoverageTest extends TestCase
         $this->assertSame([], $missing, implode("\n  ", array_merge(
             ['A list names players without picturing them:'], $missing
         )));
-    }
-
-    public function test_the_select_forms_are_still_selects(): void
-    {
-        // If one of these ever becomes a picker, it joins the list above. This
-        // is what makes the exemption a recorded decision rather than an
-        // oversight nobody revisits.
-        foreach (self::OUT_OF_REACH as $view) {
-            $this->assertStringContainsString(
-                '<select', file_get_contents(resource_path('views/'.$view)),
-                $view.' is no longer a native select, so it can picture its players now.'
-            );
-        }
     }
 
     public function test_the_letters_have_one_definition(): void

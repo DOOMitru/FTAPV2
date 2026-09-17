@@ -142,84 +142,6 @@ class PublishedTournamentLockTest extends TestCase
         $this->assertSame(3, $tournament->registrants()->count());
     }
 
-    public function test_creating_a_result_is_refused_after_publishing(): void
-    {
-        $structure = PointsStructure::create(['place' => 9, 'points' => 5]);
-        $admin = $this->admin();
-
-        // Allowed while open.
-        [$open] = $this->finished('Open Night');
-        $this->actingAs($admin)->post(route('poker.results.store'), [
-            'tournament_id' => $open->id,
-            'points_structure_id' => $structure->id,
-            'user_id' => User::factory()->create()->id,
-            'player_name' => 'Late Addition',
-        ])->assertSessionHasNoErrors();
-        $this->assertSame(4, $open->results()->count());
-
-        [$closed] = $this->published('Closed Night');
-
-        $this->actingAs($admin)->post(route('poker.results.store'), [
-            'tournament_id' => $closed->id,
-            'points_structure_id' => $structure->id,
-            'user_id' => User::factory()->create()->id,
-            'player_name' => 'Later Still',
-        ])->assertSessionHas('error');
-
-        $this->assertSame(3, $closed->results()->count());
-    }
-
-    public function test_updating_a_result_is_refused_after_publishing(): void
-    {
-        $structure = PointsStructure::create(['place' => 1, 'points' => 100]);
-        $admin = $this->admin();
-
-        [$open, $openPlayers] = $this->finished('Open Night');
-        $openResult = $open->results()->where('user_id', $openPlayers[0]->id)->firstOrFail();
-
-        $this->actingAs($admin)->put(route('poker.results.update', $openResult), [
-            'tournament_id' => $open->id,
-            'points_structure_id' => $structure->id,
-            'user_id' => $openPlayers[0]->id,
-            'player_name' => 'Renamed While Open',
-        ])->assertSessionHas('status', fn ($message) => filled($message));
-
-        $this->assertSame('Renamed While Open', $openResult->fresh()->player_name);
-
-        [$closed, $closedPlayers] = $this->published('Closed Night');
-        $closedResult = $closed->results()->where('user_id', $closedPlayers[0]->id)->firstOrFail();
-
-        $this->actingAs($admin)->put(route('poker.results.update', $closedResult), [
-            'tournament_id' => $closed->id,
-            'points_structure_id' => $structure->id,
-            'user_id' => $closedPlayers[0]->id,
-            'player_name' => 'Renamed While Closed',
-        ])->assertSessionHas('error');
-
-        $this->assertSame($closedPlayers[0]->first_name.' '.$closedPlayers[0]->last_name,
-            $closedResult->fresh()->player_name);
-    }
-
-    public function test_deleting_a_result_is_refused_after_publishing(): void
-    {
-        $admin = $this->admin();
-
-        [$open, $openPlayers] = $this->finished('Open Night');
-        $openResult = $open->results()->where('user_id', $openPlayers[0]->id)->firstOrFail();
-
-        $this->actingAs($admin)->delete(route('poker.results.destroy', $openResult))
-            ->assertSessionHas('status', fn ($message) => filled($message));
-        $this->assertSame(2, $open->results()->count());
-
-        [$closed, $closedPlayers] = $this->published('Closed Night');
-        $closedResult = $closed->results()->where('user_id', $closedPlayers[0]->id)->firstOrFail();
-
-        $this->actingAs($admin)->delete(route('poker.results.destroy', $closedResult))
-            ->assertSessionHas('error');
-
-        $this->assertSame(3, $closed->results()->count());
-    }
-
     public function test_unpublishing_opens_every_path_again(): void
     {
         // The half that proves the lock is a gate rather than a wall.
@@ -228,12 +150,17 @@ class PublishedTournamentLockTest extends TestCase
 
         $this->actingAs($admin)->delete(route('poker.tournaments.unpublish', $tournament));
 
-        $result = $tournament->results()->where('user_id', $players[0]->id)->firstOrFail();
+        // Proved through removing a registrant, which the lock also refuses.
+        // It used to be proved by deleting a result; that route is gone with
+        // the results screens, and eliminating -- the path that now records a
+        // result -- cannot be replayed on a field where everyone has finished.
+        $registrant = $tournament->registrants()->where('user_id', $players[0]->id)->firstOrFail();
+        $tournament->results()->where('user_id', $players[0]->id)->delete();
 
-        $this->actingAs($admin)->delete(route('poker.results.destroy', $result))
+        $this->actingAs($admin)->delete(route('poker.registrants.destroy', $registrant))
             ->assertSessionHas('status', fn ($message) => filled($message));
 
-        $this->assertSame(2, $tournament->results()->count());
+        $this->assertSame(2, $tournament->registrants()->count());
     }
 
     public function test_publishing_one_tournament_does_not_lock_another(): void

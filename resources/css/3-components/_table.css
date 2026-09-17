@@ -236,6 +236,16 @@
         text-align: start;
     }
 
+    /* A card PLACES its cells; it does not column them. So a cell that is
+       right-aligned in the table has nothing to align against here, and a date
+       pushed to the end edge floats away from the name and venue above it.
+       The reset above cannot do this on its own: it is (0,1,1) against
+       .table .table__num's (0,2,0) and loses. Matched class for class, so the
+       two are even and this wins by being declared later. */
+    .table--cards .table__num {
+        text-align: start;
+    }
+
     /* The reason an admin index exists, held at the end of every card. nowrap
        because .l-cluster wraps by default, which is right for a row of badges
        and wrong for a fixed trio of icon buttons. */

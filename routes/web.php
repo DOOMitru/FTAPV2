@@ -8,7 +8,6 @@ use App\Http\Controllers\Poker\PointsStructureController;
 use App\Http\Controllers\Poker\PokerSeasonController;
 use App\Http\Controllers\Poker\PokerTournamentController;
 use App\Http\Controllers\Poker\PokerTournamentRegistrantController;
-use App\Http\Controllers\Poker\PokerTournamentResultController;
 use App\Http\Controllers\Poker\VenueController;
 use App\Http\Controllers\Poker\VenuePointsController;
 use App\Http\Controllers\ProfileController;
@@ -188,9 +187,11 @@ Route::get('/events', function () {
 
     // withCount('registrants'): podium() needs the size of the field to know
     // which places are settled, and this page draws one podium per card.
-    // results.user, not just results: the podium links each name to that
-    // player's figures, and three names per card is a query per card without it.
-    $pastTournaments = PokerTournament::with(['venue', 'season', 'results.user'])
+    //
+    // results, not results.user: the podium prints the snapshotted
+    // player_name and does not link it -- the card is already a link, and a
+    // link inside a link is taken apart by the browser.
+    $pastTournaments = PokerTournament::with(['venue', 'season', 'results'])
         ->withCount('registrants')
         ->where('start_time', '<', now())
         ->orderBy('start_time', 'desc')
@@ -277,9 +278,15 @@ Route::middleware('auth')->group(function () {
             ->name('tournaments.publish');
         Route::delete('tournaments/{tournament}/publish', [PokerTournamentController::class, 'unpublish'])
             ->name('tournaments.unpublish');
-        Route::resource('results', PokerTournamentResultController::class)->except(['show']);
-        Route::resource('registrants', PokerTournamentRegistrantController::class)->except(['show']);
-        Route::resource('venue-points', VenuePointsController::class)->except(['show']);
+        // destroy alone. The listing and its forms are gone -- entries are made
+        // from the tournament's own Register players dialog -- but removing a
+        // mistaken one is offered on that same page, which is where an
+        // administrator is standing when they notice it.
+        Route::resource('registrants', PokerTournamentRegistrantController::class)->only(['destroy']);
+        // create and store alone. The listing is gone -- venue points are read
+        // on the venue they were earned at -- and the form is reached from
+        // that page with the venue already chosen.
+        Route::resource('venue-points', VenuePointsController::class)->only(['create', 'store']);
         Route::resource('points-structure', PointsStructureController::class)->except(['show']);
     });
 
