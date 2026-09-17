@@ -558,6 +558,35 @@ deleting the mechanism must not delete the guarantee.
   filter at all, and the page says the season is unset rather than showing
   everything.
 
+### Three checks that walk the whole app (2026-09-17)
+
+Added after two defects that every existing test was blind to, both found by
+looking rather than by running the suite.
+
+- **`NestedAnchorTest`** — no page nests `<a>` inside `<a>`. The events archive
+  card is a whole-card link, and linking player names put a link inside it; the
+  browser closes the outer anchor at the nested start tag and spills the rest of
+  the card into the grid as siblings. 45 cards rendered as 135 grid items. The
+  server sent exactly what the template said, so nothing failed.
+- **`DuplicateElementIdTest`** — no page repeats an element id. `/profile`
+  renders three forms, two with a field named `password`, and `<x-field>` derived
+  the id from the name. `for` takes the first match, so the delete dialog's
+  Password label focused the New Password box in the form above it. That page's
+  named error bags exist for the same collision; the ids had not caught up.
+  `<x-field>` now takes an optional `id`.
+- **`UnusedCssClassTest`** — every declared class is used, or is in a short
+  `KEPT` list with the reason. Matching is TOKEN-EXACT: two hand audits nearly
+  went wrong the same way, because `p-item` reads as used inside
+  `p-item__title` and `tshow__register` inside `tshow__register-btn`. Classes
+  built at runtime are matched by prefix, but only where the prefix is
+  concatenated with a value -- the looser rule let `l-grid--trio`, written out
+  in full, vouch for every other `l-grid--` modifier. A second test fails when a
+  `KEPT` entry stops being needed, so the list cannot rot.
+
+The first two share `Tests\Concerns\RendersEveryPage`, which carries the
+requirement both depend on: the fixture's tournament must be PAST and scored, or
+the events page renders no archive and passes a check it never ran.
+
 ### Players can read the league's records (2026-09-08)
 
 - **The seasons, venues and tournaments INDEXES are open to anyone signed in.**
