@@ -97,30 +97,6 @@
         color: var(--c-text-muted);
     }
 
-    /* -------- Registrants: the player, and what they entered. -------- */
-    .registrants-index__table .table tbody tr {
-        grid-template-columns: auto minmax(0, 1fr) auto;
-        grid-template-areas:
-            "player     player actions"
-            "tournament date   actions";
-    }
-
-    .registrants-index__table .registrants-index__player { grid-area: player; }
-
-    .registrants-index__table .registrants-index__tournament { grid-area: tournament; }
-    .registrants-index__table .registrants-index__date { grid-area: date; }
-
-    .registrants-index__table .registrants-index__date::before {
-        content: "·";
-        margin-inline-end: 0.4em;
-    }
-
-    .registrants-index__table .registrants-index__tournament,
-    .registrants-index__table .registrants-index__date {
-        font-size: var(--step--2);
-        color: var(--c-text-muted);
-    }
-
     /* -------- Sponsors: the logo leads, because that is what a sponsor is. -------- */
     .sponsors-index__table .table tbody tr {
         grid-template-columns: auto minmax(0, 1fr) auto;

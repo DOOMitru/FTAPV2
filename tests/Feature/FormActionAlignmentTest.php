@@ -111,14 +111,15 @@ class FormActionAlignmentTest extends TestCase
         // been renamed out from under the patterns above, which is not the
         // same as passing.
         //
-        // 17, down from 19: the results create and edit forms went with the
-        // results screens. The floor is a tripwire for patterns that stop
-        // matching, so it tracks the real count rather than standing above it.
-        $this->assertGreaterThanOrEqual(17, $rows, 'Far fewer action rows found than expected.');
+        // 15, down from 19: the results and registrants create and edit forms
+        // went with their screens. The floor is a tripwire for patterns that
+        // stop matching, so it tracks the real count rather than standing
+        // above it.
+        $this->assertGreaterThanOrEqual(15, $rows, 'Far fewer action rows found than expected.');
         // Two forms below the count of action rows: points-structure create
         // and venue-points create both carry their Back in the page header
         // instead. Each returns to itself after every save, so leaving is not
         // one of the two choices its action row is offering.
-        $this->assertGreaterThanOrEqual(13, $withCancel, 'Far fewer secondary actions found than expected.');
+        $this->assertGreaterThanOrEqual(11, $withCancel, 'Far fewer secondary actions found than expected.');
     }
 }

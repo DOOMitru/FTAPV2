@@ -276,7 +276,11 @@ Route::middleware('auth')->group(function () {
             ->name('tournaments.publish');
         Route::delete('tournaments/{tournament}/publish', [PokerTournamentController::class, 'unpublish'])
             ->name('tournaments.unpublish');
-        Route::resource('registrants', PokerTournamentRegistrantController::class)->except(['show']);
+        // destroy alone. The listing and its forms are gone -- entries are made
+        // from the tournament's own Register players dialog -- but removing a
+        // mistaken one is offered on that same page, which is where an
+        // administrator is standing when they notice it.
+        Route::resource('registrants', PokerTournamentRegistrantController::class)->only(['destroy']);
         Route::resource('venue-points', VenuePointsController::class)->except(['show']);
         Route::resource('points-structure', PointsStructureController::class)->except(['show']);
     });

@@ -6,6 +6,7 @@ use App\Models\PokerSeason;
 use App\Models\PokerTournament;
 use App\Models\User;
 use App\Models\Venue;
+use App\Models\VenuePoints;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -13,16 +14,17 @@ use Tests\Concerns\BuildsTournaments;
 use Tests\TestCase;
 
 /**
- * Filtering the registrants list to one tournament.
+ * Filtering the venue points list to one tournament.
  *
  * The list is a league's whole history in one table, and an administrator
- * working on a league night wants the night in front of them. The default is
- * the tournament NEAREST in time -- past or future, whichever is closer.
+ * working a league night wants the night in front of them. The default is the
+ * tournament NEAREST in time -- past or future, whichever is closer.
  *
- * It covered the results list too, from the other side of a game: registrants
- * before it, results after. That list is gone -- results are read on the
- * tournament page now -- and PokerTournament::nearest(), which both shared,
- * is still exercised directly by the first four tests below.
+ * It covered the results and registrants lists too, from either side of a
+ * game. Both are gone -- results and entries are worked on the tournament page
+ * now -- and venue points is the one page left carrying <x-tournament-filter>,
+ * so the component's behaviour is tested there. PokerTournament::nearest(),
+ * which all three shared, is exercised directly by the first four tests below.
  */
 class TournamentFilterTest extends TestCase
 {
@@ -96,25 +98,39 @@ class TournamentFilterTest extends TestCase
         $this->assertNull(PokerTournament::nearest());
     }
 
-    public function test_registrants_default_to_the_nearest_tournament(): void
+    /** Venue points earned on the night of $tournament, by a player named $name. */
+    private function award(PokerTournament $tournament, string $name): void
+    {
+        $player = User::factory()->create([
+            'first_name' => $name, 'last_name' => 'Player', 'approval_status' => 'approved',
+        ]);
+
+        VenuePoints::create([
+            'user_id' => $player->id, 'user_name' => $name,
+            'venue_id' => $tournament->venue_id, 'amount' => 5,
+            'event_date' => $tournament->start_time->toDateString(),
+        ]);
+    }
+
+    public function test_venue_points_default_to_the_nearest_tournament(): void
     {
         $s = $this->schedule();
-        $this->enrol($s['recent'], 'Nearby');
-        $this->enrol($s['old'], 'Ancient');
+        $this->award($s['recent'], 'Nearby');
+        $this->award($s['old'], 'Ancient');
 
-        $this->actingAs($this->admin())->get(route('poker.registrants.index'))->assertOk()
+        $this->actingAs($this->admin())->get(route('poker.venue-points.index'))->assertOk()
             ->assertSee('Nearby')
             ->assertDontSee('Ancient');
     }
 
-    public function test_registrants_can_be_filtered_to_another_tournament(): void
+    public function test_venue_points_can_be_filtered_to_another_tournament(): void
     {
         $s = $this->schedule();
-        $this->enrol($s['recent'], 'Nearby');
-        $this->enrol($s['old'], 'Ancient');
+        $this->award($s['recent'], 'Nearby');
+        $this->award($s['old'], 'Ancient');
 
         $this->actingAs($this->admin())
-            ->get(route('poker.registrants.index', ['tournament' => $s['old']->id]))->assertOk()
+            ->get(route('poker.venue-points.index', ['tournament' => $s['old']->id]))->assertOk()
             ->assertSee('Ancient')
             ->assertDontSee('Nearby');
     }
@@ -123,7 +139,7 @@ class TournamentFilterTest extends TestCase
     public static function filteredPages(): array
     {
         return [
-            'registrants' => ['poker.registrants.index'],
+            'venue points' => ['poker.venue-points.index'],
         ];
     }
 

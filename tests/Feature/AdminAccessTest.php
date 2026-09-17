@@ -27,7 +27,6 @@ class AdminAccessTest extends TestCase
             'create a season' => ['poker.seasons.create'],
             'create a venue' => ['poker.venues.create'],
             'create a tournament' => ['poker.tournaments.create'],
-            'registrants' => ['poker.registrants.index'],
             'venue points' => ['poker.venue-points.index'],
             'points structure' => ['poker.points-structure.index'],
             'users' => ['users.index'],
@@ -65,7 +64,6 @@ class AdminAccessTest extends TestCase
             'store a season' => ['POST', 'poker.seasons.store'],
             'store a venue' => ['POST', 'poker.venues.store'],
             'store a tournament' => ['POST', 'poker.tournaments.store'],
-            'store a registrant' => ['POST', 'poker.registrants.store'],
             'store venue points' => ['POST', 'poker.venue-points.store'],
             'store a points structure' => ['POST', 'poker.points-structure.store'],
         ];

@@ -213,7 +213,7 @@ class PlayerLeagueAccessTest extends TestCase
             ->get(route('dashboard'))->assertOk()->getContent();
 
         $this->assertStringNotContainsString(route('poker.venue-points.index'), $html);
-        $this->assertStringNotContainsString(route('poker.registrants.index'), $html);
+        $this->assertStringNotContainsString(route('users.index'), $html);
         $this->assertStringNotContainsString(route('users.index'), $html);
         $this->assertStringNotContainsString(route('sponsors.index'), $html);
     }

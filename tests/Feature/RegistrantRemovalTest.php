@@ -62,9 +62,10 @@ class RegistrantRemovalTest extends TestCase
 
     public function test_an_admin_is_offered_the_control_on_the_tournament_page(): void
     {
-        // The page an administrator is on when they notice a wrong entry. Until
-        // now the only way to remove one was the registrants index, which lists
-        // every entry in every tournament in the league.
+        // The page an administrator is on when they notice a wrong entry, and
+        // the only place it is offered. It used to be the registrants index,
+        // which listed every entry in every tournament in the league; that
+        // screen is gone and this control is what replaced it.
         $tournament = $this->tournament();
         $player = User::factory()->create(['first_name' => 'Wanda', 'last_name' => 'Reeve']);
         $this->register($tournament, $player);
@@ -270,18 +271,6 @@ class RegistrantRemovalTest extends TestCase
         $this->assertSame(0, $tournament->registrants()->count());
     }
 
-    public function test_removing_from_the_registrants_index_still_returns_there(): void
-    {
-        // The other caller, unchanged: back() from the index IS the index.
-        $tournament = $this->tournament();
-        $registrant = $this->register($tournament, User::factory()->create());
-
-        $this->actingAs($this->admin())
-            ->from(route('poker.registrants.index'))
-            ->delete(route('poker.registrants.destroy', $registrant))
-            ->assertRedirect(route('poker.registrants.index'));
-    }
-
     public function test_the_confirmation_names_the_player_and_the_tournament(): void
     {
         // Named, because the tournament page draws a column of these and the
@@ -364,28 +353,6 @@ class RegistrantRemovalTest extends TestCase
             ->assertSessionHas('error', fn (string $error) => str_contains($error, 'Nadia Okonkwo')
                 && str_contains($error, 'eliminated')
                 && str_contains($error, 'position in the field'));
-    }
-
-    public function test_the_control_is_not_drawn_once_it_cannot_act(): void
-    {
-        // Offering a button the controller refuses is offering a click that
-        // cannot work.
-        $tournament = $this->tournament(startsIn: '-1 hour');
-        $player = User::factory()->create();
-        $registrant = $this->register($tournament, $player);
-
-        $admin = $this->admin();
-
-        // On the control, not on its URL: the edit link is that same URL with
-        // "/edit" on the end, so an absent delete form still "contains" it.
-        $this->actingAs($admin)->get(route('poker.registrants.index'))->assertOk()
-            ->assertSee('title="Delete"', false);
-
-        $this->recordAFinish($tournament, $player, 1);
-
-        $this->actingAs($admin)->get(route('poker.registrants.index'))->assertOk()
-            ->assertSee('title="Edit"', false)
-            ->assertDontSee('title="Delete"', false);
     }
 
     public function test_a_player_cannot_withdraw_once_results_exist_either(): void

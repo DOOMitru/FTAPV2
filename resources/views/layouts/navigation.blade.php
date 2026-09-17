@@ -59,9 +59,9 @@
            href="{{ route('dashboard') }}">{{ __('Dashboard') }}</a>
 
         {{-- League is open to everyone signed in: the three lists behind it are
-             records a player has a reason to read. Play and Setup below stay
-             behind the admin gate -- they are for running the league, not
-             following it. --}}
+             records a player has a reason to read. Venue points and Setup
+             below stay behind the admin gate -- they are for running the
+             league, not following it. --}}
         <x-dropdown align="left" :inline-mobile="true">
             <x-slot name="trigger">
                 <button type="button"
@@ -80,20 +80,14 @@
 
         @if (Auth::user()->is_admin)
 
-            <x-dropdown align="left" :inline-mobile="true">
-                <x-slot name="trigger">
-                    <button type="button"
-                            class="nav-link {{ request()->routeIs('poker.registrants.*', 'poker.venue-points.*') ? 'nav-link--current' : '' }}"
-                            @if (request()->routeIs('poker.registrants.*', 'poker.venue-points.*')) aria-current="page" @endif>
-                        {{ __('Play') }}
-                    </button>
-                </x-slot>
-
-                <x-slot name="content">
-                    <x-dropdown-link :href="route('poker.registrants.index')">{{ __('Registrants') }}</x-dropdown-link>
-                    <x-dropdown-link :href="route('poker.venue-points.index')">{{ __('Venue points') }}</x-dropdown-link>
-                </x-slot>
-            </x-dropdown>
+            {{-- A link, not a menu. Play held Results, Registrants and Venue
+                 points; the first two are gone with their screens, and a
+                 dropdown holding one item is a click that reveals a single
+                 link. The label is what it goes to now, rather than a
+                 category with one member. --}}
+            <a class="nav-link {{ request()->routeIs('poker.venue-points.*') ? 'nav-link--current' : '' }}"
+               @if (request()->routeIs('poker.venue-points.*')) aria-current="page" @endif
+               href="{{ route('poker.venue-points.index') }}">{{ __('Venue points') }}</a>
 
             <x-dropdown align="left" :inline-mobile="true">
                 <x-slot name="trigger">

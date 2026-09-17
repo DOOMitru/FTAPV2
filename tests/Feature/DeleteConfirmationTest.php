@@ -114,6 +114,11 @@ class DeleteConfirmationTest extends TestCase
 
     public function test_a_registration_says_it_is_a_registration(): void
     {
+        // Read from the tournament page now. The confirmation used to be on
+        // the registrants listing, which is gone -- removing an entry is
+        // offered where an administrator notices it, and the wording there
+        // says what the removal does to the finishes below it rather than the
+        // generic "cannot be undone".
         $tournament = $this->tournament();
 
         PokerTournamentRegistrant::create([
@@ -123,9 +128,18 @@ class DeleteConfirmationTest extends TestCase
             'registered_at' => now(),
         ]);
 
+        // Picked by name, not by position: the row offers Eliminate first, and
+        // taking [0] reads that one instead.
+        $removals = array_values(array_filter(
+            $this->confirmationsOn(route('tournaments.show', $tournament)),
+            fn (string $message) => str_starts_with($message, 'Remove ')
+        ));
+
         $this->assertSame(
-            'Remove Ada Lovelace from Wednesday Night Poker? This cannot be undone.',
-            $this->confirmationOn(route('poker.registrants.index'))
+            'Remove Ada Lovelace from Wednesday Night Poker? Any finishes already recorded '
+            .'move up a place and are repriced. An administrator can enter them again until '
+            .'the results are published.',
+            $removals[0] ?? ''
         );
     }
 
