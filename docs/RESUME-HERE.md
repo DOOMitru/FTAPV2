@@ -79,7 +79,7 @@ entries, empty states, error copy, dead JS modules, dead CSS blocks and nine to
 twelve test files apiece. The detail is under **Decisions taken since the
 conversion** below; what follows immediately is only what is still open.
 
-### Open, in rough priority
+### Open, in rough priority — ALL CLOSED as of 2026-09-17
 
 1. ~~Seed production through the dashboard~~ **DONE, 2026-09-08.** Venues,
    seasons, sponsors and the points structure were entered by hand by the owner.
@@ -103,16 +103,20 @@ conversion** below; what follows immediately is only what is still open.
    or paces. `AUTH_PASSWORD_RESET_EXPIRE=10080` on the server is what stopped
    that, and is why `users:invite` warns when the expiry is <= 60.
 
-   **Loose end: that seven-day window is still set, and is now DUE.** It was
-   widened for the invite period, not on the merits -- a week-long
+   ~~Loose end: that seven-day window is still set.~~ **CLOSED, 2026-09-17.**
+   It was widened for the invite period, not on the merits -- a week-long
    password-reset link is a weaker default than Laravel's hour. The last batch
-   went out 2026-09-09, so every invitation link expired on 2026-09-16 and the
-   reason for the widening is spent. Drop the variable from the server `.env`
-   and `php artisan config:clear`; anyone still locked out is a `--again` or a
-   normal reset, not a reason to keep it.
+   went out 2026-09-09, every invitation link expired on 2026-09-16, and the
+   variable was removed from the server `.env` with `php artisan config:clear`
+   the next day. The expiry is back to Laravel's 60 minutes; anyone still
+   locked out is a `--again` or a normal reset.
 
-   **This is the only item on this list that is not done.** Everything below is
-   history kept for the reasons it records.
+   **`users:invite` warns at an expiry of 60 minutes or less, so that warning
+   is live again -- by design.** It is gated on more than five recipients, so
+   the one-at-a-time `--again` path stays quiet and only a mass send trips it,
+   which is exactly when widening the window is the right advice. Do not
+   silence it by raising the default; raise the variable for the send and drop
+   it again after, which is the round trip this item records.
 3. ~~One unreproduced test failure~~ **FOUND AND FIXED, 2026-09-08.** It
    surfaced again during the tournament-filter work and this time the name was
    captured: `DeleteConfirmationTest::deleting an actual person still says so`.
@@ -148,6 +152,10 @@ conversion** below; what follows immediately is only what is still open.
    reach. Recorded in the test rather than here.
 6. `docs/` holds six audit documents from finished phases. Their open-items
    sections are largely resolved; treat this file as the index, not them.
+
+**Nothing on this list is open.** It is kept for the reasons it records, not as
+a queue. The next entry goes under a new heading rather than reopening one of
+these.
 Nothing else is known-broken. There are no TODO, FIXME or HACK markers anywhere
 in `app/`, `routes/` or `resources/` -- re-checked 2026-09-17. Both deploy gates
 are wired in CI: `mail:check` and `recaptcha:check` run before the release is
