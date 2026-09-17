@@ -1,13 +1,13 @@
 # Resume here
 
-**Last worked: 2026-09-05.** First to Act Poker — a league app for free-to-play
+**Last worked: 2026-09-17.** First to Act Poker — a league app for free-to-play
 poker nights in Regina.
 
 ## Where things stand
 
-Suite: **674 passed.** `php artisan test` is the command, but see the segfault
-note below -- a full-suite run dies on this machine and has to be taken in
-chunks, which is also how that 674 was counted.
+Suite: **918 passed across 101 files.** `php artisan test` is the command, but
+see the segfault note below -- a full-suite run dies on this machine and has to
+be taken file by file, which is also how that 918 was counted.
 
 **The design-system work is finished and is no longer what this project is
 about.** Phases 0-5 moved all 86 views off Tailwind onto hand-built CSS
@@ -68,6 +68,17 @@ live and players are setting their own passwords. `users:invite` now reports
 nobody to invite; `--again` re-sends to somebody who has lost their link, one
 person at a time, and there is no reason to run the mass send ever again.
 
+**The week since has been the app settling into use, and most of it was
+subtraction.** With 206 people actually in it the work stopped being "build the
+screen" and became "the league found this by using it": a privacy rule promoted
+to a project-wide invariant, a page for reading another player's figures, a bot
+gate on the one form the public can reach, an account actually deleted when it
+is rejected, and **four admin screens removed** because the record they showed
+reads better where it lives. Each removal cost far more than the screen -- nav
+entries, empty states, error copy, dead JS modules, dead CSS blocks and nine to
+twelve test files apiece. The detail is under **Decisions taken since the
+conversion** below; what follows immediately is only what is still open.
+
 ### Open, in rough priority
 
 1. ~~Seed production through the dashboard~~ **DONE, 2026-09-08.** Venues,
@@ -92,12 +103,16 @@ person at a time, and there is no reason to run the mass send ever again.
    or paces. `AUTH_PASSWORD_RESET_EXPIRE=10080` on the server is what stopped
    that, and is why `users:invite` warns when the expiry is <= 60.
 
-   **Loose end: that seven-day window is still set.** It was widened for the
-   invite period, not on the merits -- a week-long password-reset link is a
-   weaker default than Laravel's hour. The last batch went out 2026-09-09, so
-   every invitation link has expired by 2026-09-16. Drop the variable from the
-   server `.env` after that and `php artisan config:clear`; anyone still locked
-   out then is a `--again` or a normal reset, not a reason to keep it.
+   **Loose end: that seven-day window is still set, and is now DUE.** It was
+   widened for the invite period, not on the merits -- a week-long
+   password-reset link is a weaker default than Laravel's hour. The last batch
+   went out 2026-09-09, so every invitation link expired on 2026-09-16 and the
+   reason for the widening is spent. Drop the variable from the server `.env`
+   and `php artisan config:clear`; anyone still locked out is a `--again` or a
+   normal reset, not a reason to keep it.
+
+   **This is the only item on this list that is not done.** Everything below is
+   history kept for the reasons it records.
 3. ~~One unreproduced test failure~~ **FOUND AND FIXED, 2026-09-08.** It
    surfaced again during the tournament-filter work and this time the name was
    captured: `DeleteConfirmationTest::deleting an actual person still says so`.
@@ -134,7 +149,9 @@ person at a time, and there is no reason to run the mass send ever again.
 6. `docs/` holds six audit documents from finished phases. Their open-items
    sections are largely resolved; treat this file as the index, not them.
 Nothing else is known-broken. There are no TODO, FIXME or HACK markers anywhere
-in `app/`, `routes/` or `resources/`.
+in `app/`, `routes/` or `resources/` -- re-checked 2026-09-17. Both deploy gates
+are wired in CI: `mail:check` and `recaptcha:check` run before the release is
+switched in.
 
 ## The pipeline
 
@@ -419,6 +436,120 @@ These are records of what happened during Phase 0, not defects in the code.
   paginator does not have. Pointing it there made the first ever `simplePaginate()` call a
   fatal error. Simple pagination falls back to Laravel's stock view: unstyled, but working.
 
+### A player's venue points are private (2026-09-13)
+
+**Stated by the owner as a hard rule for the whole project:** a player's venue
+points may be seen only by that player and by admins. The one exception is the
+finale qualification THRESHOLD (`finale_venue_points_required`) -- a published
+target, not anybody's tally -- which is shown to everyone, guests included.
+
+- **One definition: `VenuePoints::readableBy(?User $viewer, ?string $ownerId)`.**
+  Call it rather than re-deriving the check. Every site that shows a figure
+  asks the same question, so the rule cannot drift apart across pages.
+- **Withhold the figure from the VIEW DATA, not just the template.** A gate in
+  Blade stops today's column and not tomorrow's partial, and the value is still
+  sitting in the payload for anyone who looks.
+- **`VenuePointsPrivacyTest` walks every registered GET route** as a third
+  party and as a guest, so a page added later is covered without being named.
+  It carries positive controls too: a bug that hides venue points from
+  *everybody*, owner included, cannot pass as compliance.
+
+### The season standings read two ways (2026-09-13)
+
+- **A Points/Rank toggle**, because the two answer different questions: who has
+  scored most this season, and who is playing best per night. Rank is the
+  dashboard's own calculation, so a player sees the same figure in both places
+  or the app is arguing with itself.
+- **The rank number is the medal badge** -- `#1` inside it -- and the
+  points-per-event figure it replaced is still reachable. It was hover-only
+  first, which on a phone is no affordance at all.
+- **The signed-in player's own row is washed.** The shade was set by
+  measurement, not by eye: the first attempt was 1.13:1 against the ground
+  where the house hover shade is 1.18:1, i.e. fainter than an accident. A test
+  computes the contrast from the real tokens and fails below the floor.
+- **The venue-points column is admin-only**, per the rule above.
+
+### One player can read another's figures (2026-09-15)
+
+- **`/players/{player}`, inside the auth group and nowhere near `/poker`.**
+  This is not administration, it is the league looking at itself, so it is open
+  to anyone signed in and to nobody else.
+- **It is the dashboard without the upcoming tournaments**, which are a
+  to-do list and belong to the person whose list it is.
+- **Venue points appear only under `readableBy`** -- the owner or an admin.
+- **Player names link to it throughout the app**, through `<x-player-link>`, so
+  the linking rule has one home. Two existing row-extractor regexes in tests
+  used `[^<]+` and silently returned empty lists the moment names were wrapped
+  in anchors: a test that finds nothing to check still passes.
+
+### Rejecting a pending account deletes it (2026-09-15)
+
+- **Scoped to PENDING, and only pending.** A self-registration nobody let in
+  has nothing worth keeping. The other reject control acts on somebody already
+  approved, who has played and been scored, and deleting them would orphan
+  every result they earned -- that path still demotes rather than deletes.
+- **The confirmation says the account will be deleted, and names the person**
+  through `emph()`. Note the trap this exposed: `emph_html()` on an unmarked
+  string returns plain text, so a test asserting the sentence passes whether or
+  not the name was marked. Assert the whole sentence WITH its markers.
+
+### Registration is gated by reCAPTCHA v3 (2026-09-16)
+
+- **v3, not v2**: no checkbox, a 0.0-1.0 score, and the site decides the line.
+  `RECAPTCHA_THRESHOLD` defaults to 0.5 and is configuration because it is a
+  judgement about this league's traffic, not a constant.
+- **The rule verifies `success`, the `action` and the score**, in that order.
+  Checking the action matters: without it a token minted on any other page of
+  the site passes here.
+- **`Recaptcha::configured()` is one definition asked by two places** -- the
+  controller, which only adds the rule when there is a secret, and the form,
+  which only fetches a token when there is a site key. Half-configured would be
+  a form nobody can submit, or a check nothing can fail.
+- **With no keys the form asks Google nothing and says nothing about it.** That
+  is deliberate, so local work and the suite do not depend on Google -- and it
+  means production is protected exactly as far as its env file says. Which is
+  the reason for the next point.
+- **`php artisan recaptcha:check` gates the deploy alongside `mail:check`.** It
+  fails on no keys, on half a configuration, on a threshold outside 0-1, and on
+  a STALE CONFIG CACHE -- keys in `.env` that the running app cannot see. It
+  reads `.env` from disk for that comparison, because a cached config means
+  Laravel never loads the file. `--probe` posts a deliberately invalid token to
+  tell `invalid-input-secret` (the secret is wrong) from
+  `invalid-input-response` (the secret is right, the token was junk), which is
+  the only way to confirm a secret without a real visitor.
+- **A connection failure to Google fails CLOSED.** An outage should not turn
+  the gate off.
+
+### Four admin screens removed, and the indexes became lists (2026-09-16/17)
+
+The pattern, learned four times: **removing a screen is never just the screen.**
+Each one cascaded into nav entries, empty states, error copy, dead JS modules,
+dead CSS blocks and nine to twelve test files. The rule each screen enforced had
+to be re-proved through whatever path survived -- the publish-lock through the
+remaining routes, the filter behaviour on the page that kept it -- because
+deleting the mechanism must not delete the guarantee.
+
+- **`poker/results` and its create page are gone.** A tournament's results are
+  read and entered on the tournament.
+- **`poker/registrants` and its create page are gone**, for the same reason.
+  `registrants.destroy` survives, because removing somebody is still an action
+  taken from the tournament page.
+- **`poker/venue-points` is gone, and so are its edit and delete.** Points are
+  read on the venue they were earned at. `create`/`store` survive and are
+  reached from the venue page with the venue already chosen.
+- **The seasons, venues and tournaments listings link the whole ROW**, drop the
+  view-details button, and moved edit and delete to the detail pages -- where
+  the takings, the leaderboard and the field are in front of whoever is about
+  to change something. A row of three icons beside every name is a column of
+  decisions on a page whose job is to list.
+- **`poker/tournaments` shows the current season only**, ordered by
+  `start_time` (not `latest()`, which is `created_at` -- the order the rows
+  were typed in), 100 to a page. The season is the heading's eyebrow, and the
+  Season column went with the scoping that made it constant. With no current
+  season the query is `whereRaw('1 = 0')`: an unguarded filter there becomes no
+  filter at all, and the page says the season is unset rather than showing
+  everything.
+
 ### Players can read the league's records (2026-09-08)
 
 - **The seasons, venues and tournaments INDEXES are open to anyone signed in.**
@@ -431,38 +562,38 @@ These are records of what happened during Phase 0, not defects in the code.
 - **The venue list therefore drops its whole Actions column for a player**, not
   just its contents. With View Stats gone (it would link to a 403) an empty
   column is a heading over nothing, so the `<th>`, the `<td>` and the empty
-  state's colspan are all conditional.
+  state's colspan were all made conditional. *Superseded 2026-09-17: the column
+  is gone for everyone and the row itself is the link -- but only for an admin,
+  for the same reason. A player's row is plain text, because a row a player can
+  follow is a row that leads to a 403.*
 - **The League menu opened with them.** Access nobody can navigate to is half a
   feature. Play and Setup stay admin-only.
 - `AdminAccessTest` swapped those three indexes for the three CREATE pages, so
   it still proves the `/poker` prefix refuses a player.
 
-### Filtering the admin lists by tournament (2026-09-08)
+### Filtering the admin lists by tournament (2026-09-08) — GONE, 2026-09-16/17
 
-- **Results, registrants and venue points open on one tournament**, chosen by
-  `PokerTournament::nearest()` -- the tournament closest to now in either
-  direction. Not "last played" or "next scheduled", because registrants are
-  entered before a game and results after, so neither serves both pages.
-- **`nearest()` runs two indexed queries and compares in PHP.** Ordering by an
-  absolute date difference needs arithmetic spelled differently on SQLite and
-  MySQL, and CI runs both. A tie goes to the past: a tournament starting this
-  instant is being played, not awaited.
+All three pages it was built for were removed (see **Four admin screens
+removed, and the indexes became lists** above), and `PokerTournament::nearest()`, `x-tournament-filter` and
+`dependent-select.ts` went with them. Three things it established outlived the
+mechanism and still bind:
+
 - **Venue points have no tournament.** The table records a player, a venue, a
-  date and an amount. Filtering them by tournament INFERS the link -- points at
-  that tournament's venue on its date -- which the owner chose knowing it can be
-  wrong two ways: points awarded on a night with no game appear under none of
-  them, and a venue running two events in a day shows both under either. **The
-  page states what it matched on**, because an inferred filter that looks like a
-  real one turns "nothing matched" into "nothing was awarded".
-- **`event_date` is a plain `Y-m-d` string, deliberately uncast.** The
-  tournament has to come down to a date to meet it; compared against the raw 7pm
-  `start_time` the filter matches nothing, for every tournament, silently.
-- Options are links carrying `?tournament=`, so the filter bookmarks and
-  survives the back button. An unknown id falls back rather than 404ing.
+  date and an amount, and there is no column linking one to a game. Any page
+  that wants to relate the two has to INFER it -- points at that tournament's
+  venue on its date -- which is wrong two ways: points awarded on a night with
+  no game appear under none of them, and a venue running two events in a day
+  shows both under either. Anything inferring it again must **state what it
+  matched on**, because an inferred filter that looks like a real one turns
+  "nothing matched" into "nothing was awarded".
+- **`event_date` is a plain `Y-m-d` string, deliberately uncast.** A tournament
+  has to come down to a date to meet it; compared against the raw 7pm
+  `start_time` it matches nothing, for every tournament, silently.
 - **`x-dropdown` closes its panel on any click inside it.** Right for a menu of
-  links, fatal for the filter's search box, which shut the moment you clicked
-  it. `x-on:click.stop` on that input contains the exception rather than
-  changing the shared component, which the nav and row-action menus rely on.
+  links, fatal for any input put inside one -- the filter's search box shut the
+  moment you clicked it. The fix was `x-on:click.stop` on the input, containing
+  the exception rather than changing the shared component the nav and row-action
+  menus rely on. Worth knowing before putting a field in a dropdown again.
 
 ### Admin lists become cards on a phone (2026-09-07/08)
 

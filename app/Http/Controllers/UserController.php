@@ -218,11 +218,12 @@ class UserController extends Controller
     }
 
     /**
-     * Refuse a player, keeping the account.
+     * Refuse a player.
      *
-     * Deleting would make the decision unrecoverable, lose any record that it
-     * was made, and let the same person re-register into a clean slate the next
-     * minute.
+     * Two outcomes, decided by what the account already is -- see the comment
+     * in the body. A pending self-registration is deleted; somebody already
+     * approved is demoted, because deleting them would orphan every result
+     * they have earned.
      */
     public function reject(User $user): RedirectResponse
     {
