@@ -35,10 +35,16 @@ class RegisteredUserController extends Controller
             'last_name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:'.User::class],
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
-            // Only when the league has keys. Without them the form draws no
-            // widget, and a rule demanding a token the page never asked for
-            // would be a registration form nobody could submit.
-            'g-recaptcha-response' => Recaptcha::configured() ? ['required', new Recaptcha] : [],
+            // Only when the league has keys. Without them the form fetches no
+            // token, and a rule demanding one the page never asked for would
+            // be a registration form nobody could submit.
+            //
+            // 'required' is deliberately absent: recaptcha.ts submits an empty
+            // token when Google is blocked or hangs, and the rule says
+            // something useful about that -- "we could not check just now" --
+            // where required would say "this field is required" about a field
+            // nobody can see.
+            'g-recaptcha-response' => Recaptcha::configured() ? [new Recaptcha('register')] : [],
         ]);
 
         $user = User::create([
