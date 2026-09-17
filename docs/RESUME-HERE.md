@@ -5,9 +5,11 @@ poker nights in Regina.
 
 ## Where things stand
 
-Suite: **918 passed across 101 files.** `php artisan test` is the command, but
+Suite: **962 passed across 112 files.** `php artisan test` is the command, but
 see the segfault note below -- a full-suite run dies on this machine and has to
-be taken file by file, which is also how that 918 was counted.
+be taken file by file, and the script there is how that 962 was counted. Do not
+count it by hand: the previous figure in this line went stale, and so did the
+loop that produced it.
 
 **The design-system work is finished and is no longer what this project is
 about.** Phases 0-5 moved all 86 views off Tailwind onto hand-built CSS
@@ -240,20 +242,49 @@ runs, at a different point each time -- sometimes 24 tests in, sometimes 567 of
 - Not memory (55GB free), not disk, not opcache (off for CLI), not JIT
   (disabled), and **not PCRE JIT** -- `-d pcre.jit=0` still segfaults.
 
-**Work around it by running in chunks**, which covers all 671:
+**Work around it by running one file at a time.** Save this as `suite.sh`:
 
 ```bash
-for c in 1 2 3 4 5 6 7; do
-  s=$(( (c-1)*10 + 1 ))
-  ./vendor/bin/phpunit $(ls tests/Feature/*.php | sed -n "$s,$((s+9))p")
+#!/usr/bin/env bash
+# Every test file, one at a time. The list is DERIVED, never a counted range.
+files=$(find tests -name '*Test.php' | sort)
+total=$(echo "$files" | wc -l); ran=0; fail=0
+for f in $files; do
+    line=$(php artisan test "$f" 2>&1 | grep -E '^  Tests:' | tail -1)
+    case "$line" in
+        ''|*failed*|*error*)
+            line=$(php artisan test "$f" 2>&1 | grep -E '^  Tests:' | tail -1)  # again: segfaults
+            case "$line" in
+                ''|*failed*|*error*) echo "FAIL  $f -> ${line:-no summary line (crash)}"; fail=$((fail+1)) ;;
+            esac ;;
+    esac
+    ran=$((ran+1))
 done
-./vendor/bin/phpunit $(find tests/Feature -mindepth 2 -name '*.php')
-./vendor/bin/phpunit tests/Unit
+echo "ran $ran of $total files, $fail failing"
+[ "$ran" = "$total" ] && [ "$fail" = 0 ]
 ```
 
-That last line matters: `ls tests/Feature/*.php` misses `tests/Feature/Auth/`,
-which is 21 tests. The three parts must add up to the whole suite -- if they do
-not, a directory is being skipped rather than passing.
+**Three things in there are the point, and each replaces a way this went wrong.**
+
+**The file list is derived, never a counted range.** What was here before ran
+`for c in 1 2 3 4 5 6 7` over chunks of ten, sized to the suite of the day. The
+suite is 112 files now, so that loop covered 70 of the 103 top-level feature
+files, skipped a third of them, and exited 0 the whole way. This document warned
+about exactly that -- "the parts must add up to the whole suite" -- and the loop
+under it had stopped adding up. Hence `ran N of N`, printed every time.
+
+**Grep the summary line for lowercase `failed`.** A wrapper that piped `tail -3`
+into `grep FAILED` was used for a whole session of "suite green" reports and
+could not match: the last lines say `Tests:    1 failed`, and the uppercase
+`FAILED` banner is further up the output. It hid a real failure that CI then
+caught.
+
+**Do not pipe it.** The script's exit status is the answer -- 1 when anything
+failed -- and `bash suite.sh | tail` reports `tail`'s status instead. Run it
+bare, or capture with `out=$(bash suite.sh); status=$?`.
+
+Verified both ways: 112 of 112 with exit 0, and a deliberately broken assertion
+reported by name with exit 1.
 
 CI runs on its own PHP build and has never shown this, so it is a local
 toolchain problem rather than something to fix in the app. Worth a look at the
