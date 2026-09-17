@@ -24,7 +24,7 @@
                     <th scope="col">{{ __('Name') }}</th>
                     <th scope="col">{{ __('Venue') }}</th>
                     <th scope="col">{{ __('Season') }}</th>
-                    <th scope="col">{{ __('Start Time') }}</th>
+                    <th scope="col" class="table__num">{{ __('Start Time') }}</th>
                 </x-slot>
 
                 @forelse ($tournaments as $tournament)
@@ -47,7 +47,12 @@
 
                         <td class="tournaments-index__season">{{ $tournament->season->name }}</td>
 
-                        <td class="tournaments-index__start">{{ $tournament->start_time?->format('M d, Y · h:i A') ?? '—' }}</td>
+                        {{-- table__num: right-aligned and tabular, so a
+                             column of dates lines up digit under digit. The
+                             phone layout puts it back to the start edge -- a
+                             card places its cells rather than columning
+                             them. --}}
+                        <td class="table__num tournaments-index__start">{{ $tournament->start_time?->format('M d, Y · h:i A') ?? '—' }}</td>
                     </tr>
                 @empty
                     <tr>

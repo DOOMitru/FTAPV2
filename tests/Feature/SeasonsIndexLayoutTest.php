@@ -67,6 +67,26 @@ class SeasonsIndexLayoutTest extends TestCase
         }
     }
 
+    public function test_both_date_columns_are_right_aligned(): void
+    {
+        // Headers included: .table__num on a bare th loses to .table th, so a
+        // header scoped anywhere else sits at the start edge above its own
+        // right-aligned figures.
+        //
+        // Measured in a browser at 1280: each header's right edge matches its
+        // column's cells, and the text inside them too. On a phone nothing
+        // moves -- the card's cells are display:inline there, and text-align
+        // does not reach an inline box -- but the dates do pick up the mono
+        // tabular face the class also carries, which is what the range line
+        // on the tournaments card already reads in.
+        $html = $this->index();
+
+        $this->assertStringContainsString('<th scope="col" class="table__num">Start Date</th>', $html);
+        $this->assertStringContainsString('<th scope="col" class="table__num">End Date</th>', $html);
+        $this->assertStringContainsString('class="table__num seasons-index__start"', $html);
+        $this->assertStringContainsString('class="table__num seasons-index__end"', $html);
+    }
+
     public function test_the_empty_state_still_spans_every_column(): void
     {
         // It is one cell pretending to be a row. Under the grid it needs

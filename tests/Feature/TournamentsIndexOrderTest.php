@@ -89,6 +89,40 @@ class TournamentsIndexOrderTest extends TestCase
         );
     }
 
+    public function test_the_start_time_column_is_right_aligned(): void
+    {
+        // Both the header and the cells: .table__num on a bare th loses to
+        // .table th, which is why the class is scoped under .table -- a header
+        // left at the start edge over right-aligned figures is the fault that
+        // scoping was written for.
+        //
+        // Measured in a browser at 1280: header and every cell share a right
+        // edge, and the text inside them does too. On a phone the card layout
+        // puts it back to the start edge, since a card places its cells rather
+        // than columning them.
+        $this->night('Opening Night', now()->toDateTimeString());
+
+        $html = $this->actingAs($this->admin())
+            ->get(route('poker.tournaments.index'))->assertOk()->getContent();
+
+        $this->assertStringContainsString('<th scope="col" class="table__num">Start Time</th>', $html);
+        $this->assertStringContainsString('class="table__num tournaments-index__start"', $html);
+
+        $css = file_get_contents(resource_path('css/3-components/_table.css'));
+
+        $this->assertMatchesRegularExpression(
+            '/\.table--cards \.table__num \{\s*text-align: start;/',
+            $css,
+            'A card has no column to align against, so the phone layout must win.'
+        );
+
+        $this->assertGreaterThan(
+            strpos($css, '.table .table__num'),
+            strpos($css, '.table--cards .table__num'),
+            'Equal specificity: declared first, the card rule loses and a date floats right in a card.'
+        );
+    }
+
     public function test_a_hundred_fit_on_one_page(): void
     {
         // Ten was a page of a fortnight's play. A season is dozens of nights,

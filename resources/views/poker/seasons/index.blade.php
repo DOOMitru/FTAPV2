@@ -23,8 +23,8 @@
                 <x-slot name="head">
                     <th scope="col">{{ __('Name') }}</th>
                     <th scope="col">{{ __('Current') }}</th>
-                    <th scope="col">{{ __('Start Date') }}</th>
-                    <th scope="col">{{ __('End Date') }}</th>
+                    <th scope="col" class="table__num">{{ __('Start Date') }}</th>
+                    <th scope="col" class="table__num">{{ __('End Date') }}</th>
                 </x-slot>
 
                 @forelse ($seasons as $season)
@@ -51,8 +51,12 @@
                             @endif
                         </td>
 
-                        <td class="seasons-index__start">{{ $season->start_date?->format('M d, Y') ?? '—' }}</td>
-                        <td class="seasons-index__end">{{ $season->end_date?->format('M d, Y') ?? '—' }}</td>
+                        {{-- table__num: right-aligned and tabular, so the two
+                             date columns line up digit under digit. The phone
+                             layout is unaffected -- its cells are inline, and
+                             text-align does not reach an inline box. --}}
+                        <td class="table__num seasons-index__start">{{ $season->start_date?->format('M d, Y') ?? '—' }}</td>
+                        <td class="table__num seasons-index__end">{{ $season->end_date?->format('M d, Y') ?? '—' }}</td>
                     </tr>
                 @empty
                     <tr>
