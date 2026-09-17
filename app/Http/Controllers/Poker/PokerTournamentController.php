@@ -24,7 +24,17 @@ class PokerTournamentController extends Controller
      */
     public function index(): View
     {
-        $tournaments = PokerTournament::with(['venue', 'season'])->latest()->paginate(10);
+        // By START TIME, not latest(). latest() orders by created_at -- the
+        // order the rows were typed in -- which for a league that schedules a
+        // season ahead in one sitting is close to arbitrary: a night added
+        // last week sat above the one being played tonight.
+        //
+        // Descending, so the nights nearest now lead and the archive falls
+        // away below. That is the same reading the list had before, now
+        // against the date that means something.
+        $tournaments = PokerTournament::with(['venue', 'season'])
+            ->orderByDesc('start_time')
+            ->paginate(100);
         return view('poker.tournaments.index', compact('tournaments'));
     }
 
