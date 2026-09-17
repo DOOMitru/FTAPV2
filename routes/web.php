@@ -281,7 +281,10 @@ Route::middleware('auth')->group(function () {
         // mistaken one is offered on that same page, which is where an
         // administrator is standing when they notice it.
         Route::resource('registrants', PokerTournamentRegistrantController::class)->only(['destroy']);
-        Route::resource('venue-points', VenuePointsController::class)->except(['show']);
+        // create and store alone. The listing is gone -- venue points are read
+        // on the venue they were earned at -- and the form is reached from
+        // that page with the venue already chosen.
+        Route::resource('venue-points', VenuePointsController::class)->only(['create', 'store']);
         Route::resource('points-structure', PointsStructureController::class)->except(['show']);
     });
 

@@ -251,7 +251,10 @@ class VenuePointsEntryTest extends TestCase
         $admin = $this->admin();
         $hint = 'Whole dollars only, rounded to the nearest dollar.';
 
-        foreach ([route('poker.venue-points.create'), route('poker.venue-points.edit', $point)] as $url) {
+        // Create alone now. It covered the edit form too, which is gone with
+        // the venue-points listing -- a mistyped entry is corrected by
+        // recording a second one against it.
+        foreach ([route('poker.venue-points.create')] as $url) {
             $html = $this->actingAs($admin)->get($url)->assertOk()->assertSee($hint)->getContent();
 
             // Beside the label, not under the control -- and said once, not in

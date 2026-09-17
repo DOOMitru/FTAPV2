@@ -56,47 +56,6 @@
         font-family: var(--font-mono);
     }
 
-    /* The column header is clipped on a phone, so a bare "100" beside a
-       tournament name has nothing to say what it counts. */
-    .venue-points-index__table .venue-points-index__amount::after {
-        content: " pts";
-        font-family: var(--font-body);
-        font-size: var(--step--2);
-        font-weight: 600;
-        letter-spacing: 0.08em;
-        text-transform: uppercase;
-        color: var(--c-text-muted);
-    }
-
-    /* -------- Venue points: who earned them, and how many. -------- */
-    .venue-points-index__table .table tbody tr {
-        grid-template-columns: minmax(0, 1fr) auto auto;
-        grid-template-areas:
-            "player amount actions"
-            "venue  venue  actions"
-            "date   date   actions";
-    }
-
-    .venue-points-index__table .venue-points-index__player {
-        grid-area: player;
-        font-weight: 600;
-    }
-
-    .venue-points-index__table .venue-points-index__amount {
-        grid-area: amount;
-        font-family: var(--font-mono);
-        font-weight: 600;
-    }
-
-    .venue-points-index__table .venue-points-index__venue { grid-area: venue; }
-    .venue-points-index__table .venue-points-index__date { grid-area: date; }
-
-    .venue-points-index__table .venue-points-index__venue,
-    .venue-points-index__table .venue-points-index__date {
-        font-size: var(--step--2);
-        color: var(--c-text-muted);
-    }
-
     /* -------- Sponsors: the logo leads, because that is what a sponsor is. -------- */
     .sponsors-index__table .table tbody tr {
         grid-template-columns: auto minmax(0, 1fr) auto;

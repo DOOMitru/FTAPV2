@@ -94,24 +94,6 @@ class DeleteConfirmationTest extends TestCase
         return $confirmations;
     }
 
-    public function test_venue_points_say_they_are_points_and_not_a_player(): void
-    {
-        $venue = Venue::create(['name' => 'Diamond Club', 'address' => '1 Card Street']);
-
-        VenuePoints::create([
-            'venue_id' => $venue->id,
-            'user_id' => User::factory()->create()->id,
-            'user_name' => 'Ada Lovelace',
-            'event_date' => '2026-08-14',
-            'amount' => 5,
-        ]);
-
-        $this->assertSame(
-            'Delete 5 venue points for Ada Lovelace at Diamond Club on Aug 14, 2026? This cannot be undone.',
-            $this->confirmationOn(route('poker.venue-points.index'))
-        );
-    }
-
     public function test_a_registration_says_it_is_a_registration(): void
     {
         // Read from the tournament page now. The confirmation used to be on

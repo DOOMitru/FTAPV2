@@ -68,10 +68,6 @@ class AdminIndexCardLayoutTest extends TestCase
                 'tournaments-index__name', 'tournaments-index__venue',
                 'tournaments-index__season', 'tournaments-index__start',
             ]],
-            'venue points' => ['poker.venue-points.index', 'venue-points-index__table', [
-                'venue-points-index__player', 'venue-points-index__amount',
-                'venue-points-index__venue', 'venue-points-index__date',
-            ]],
             'sponsors' => ['sponsors.index', 'sponsors-index__table', [
                 'sponsors-index__logo', 'sponsors-index__name', 'sponsors-index__tier',
             ]],

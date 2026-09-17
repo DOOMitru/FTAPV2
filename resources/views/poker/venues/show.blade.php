@@ -59,6 +59,21 @@
              match a list of nineteen tournaments beside it. --}}
         <div class="l-sidebar venue-show__panels">
             <x-card :title="__('Venue points leaderboard')" flush>
+                {{-- The form opens with this venue already chosen, which is
+                     the whole reason the action lives here rather than on a
+                     listing: an administrator entering a night's points is
+                     standing on the venue they were earned at.
+
+                     venue_id is the same query parameter store() hands back
+                     between entries, so arriving from here and arriving from
+                     the previous save are the same path. --}}
+                <x-slot name="actions">
+                    <x-btn variant="primary" size="sm"
+                           :href="route('poker.venue-points.create', ['venue_id' => $venue->id])">
+                        {{ __('Add points') }}
+                    </x-btn>
+                </x-slot>
+
                 <x-table>
                     <x-slot name="head">
                         <th scope="col">{{ __('Rank') }}</th>
