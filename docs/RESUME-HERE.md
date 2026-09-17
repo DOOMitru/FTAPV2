@@ -5,9 +5,11 @@ poker nights in Regina.
 
 ## Where things stand
 
-Suite: **918 passed across 101 files.** `php artisan test` is the command, but
+Suite: **962 passed across 112 files.** `php artisan test` is the command, but
 see the segfault note below -- a full-suite run dies on this machine and has to
-be taken file by file, which is also how that 918 was counted.
+be taken file by file, and the script there is how that 962 was counted. Do not
+count it by hand: the previous figure in this line went stale, and so did the
+loop that produced it.
 
 **The design-system work is finished and is no longer what this project is
 about.** Phases 0-5 moved all 86 views off Tailwind onto hand-built CSS
@@ -240,20 +242,36 @@ runs, at a different point each time -- sometimes 24 tests in, sometimes 567 of
 - Not memory (55GB free), not disk, not opcache (off for CLI), not JIT
   (disabled), and **not PCRE JIT** -- `-d pcre.jit=0` still segfaults.
 
-**Work around it by running in chunks**, which covers all 671:
+**Work around it with `bin/suite.sh`**, which runs one file at a time:
 
 ```bash
-for c in 1 2 3 4 5 6 7; do
-  s=$(( (c-1)*10 + 1 ))
-  ./vendor/bin/phpunit $(ls tests/Feature/*.php | sed -n "$s,$((s+9))p")
-done
-./vendor/bin/phpunit $(find tests/Feature -mindepth 2 -name '*.php')
-./vendor/bin/phpunit tests/Unit
+bin/suite.sh            # every test file
+bin/suite.sh Season     # only files whose path matches
 ```
 
-That last line matters: `ls tests/Feature/*.php` misses `tests/Feature/Auth/`,
-which is 21 tests. The three parts must add up to the whole suite -- if they do
-not, a directory is being skipped rather than passing.
+It is a script in the repo rather than a snippet in this document, because a
+snippet is what went wrong: the version that used to live here hardcoded seven
+chunks of ten, sized to the suite of the day, and by 112 files it ran 70 of the
+103 top-level feature files -- skipping a third of the suite and exiting 0. This
+document warned that the parts must add up to the whole; the loop under it had
+stopped adding up. The script derives its file list and prints `ran N of N`, so
+it cannot drift that way again.
+
+Two more traps are commented in the script itself and worth knowing before
+writing any wrapper around `php artisan test`:
+
+- **Read failure off the summary line, matching lowercase `failed`.** Grepping
+  the output for `FAILED` matches nothing: the tail says `Tests:    1 failed`
+  and the uppercase banner is further up. A wrapper that got this wrong reported
+  a green suite for a whole session while a real failure sat in it, and CI is
+  what found it.
+- **Do not pipe the script.** Its exit status is the answer -- `bin/suite.sh |
+  tail` gives you `tail`'s status. Capture instead: `out=$(bin/suite.sh);
+  status=$?`.
+
+Verified in both directions: 112 of 112 with exit 0; a failed assertion reported
+with its summary line and exit 1; and a file that will not load at all reported
+as crashed, also exit 1.
 
 CI runs on its own PHP build and has never shown this, so it is a local
 toolchain problem rather than something to fix in the app. Worth a look at the
