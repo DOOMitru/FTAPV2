@@ -333,6 +333,13 @@ jobs:
             # localhost sends verification and invite links that go nowhere, and
             # that failure looks exactly like a working mailer.
             $PHP artisan mail:check
+
+            # The same argument for reCAPTCHA: with no keys the registration
+            # form fetches no token and applies no rule, and nothing on the
+            # page or in a log says so. Run AFTER config:cache above, because
+            # the trap this mostly catches is a .env edited without the cache
+            # being rebuilt -- which leaves the keys set and the check off.
+            $PHP artisan recaptcha:check
           EOF
 
       - name: Bring the site back up
