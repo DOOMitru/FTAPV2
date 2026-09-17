@@ -54,6 +54,25 @@
     gap: var(--space-3);
 }
 
+/* Handing the phone layout over to .stat-rows.
+ *
+ * That component already says display:block below this breakpoint, and it
+ * would be enough if specificity settled it -- but .stat-rows and
+ * .venue-show__stats are both single classes, so the later FILE wins, and
+ * 4-pages is imported after 3-components. Without this line the grid above
+ * survives inside the media query and the shared treatment silently does
+ * nothing: the rows get their padding and type, and stay in two columns.
+ *
+ * This project has lost the same argument to the same collision five times.
+ * The gap goes with the grid; .stat-rows draws a hairline between lines
+ * instead. */
+@media (max-width: 48rem) {
+    .venue-show__stats {
+        display: block;
+        gap: 0;
+    }
+}
+
 /* Each panel keeps its own height. Stretched -- the grid default -- an empty
    leaderboard grew to match a list of nineteen tournaments beside it, and the
    page opened on a card that was mostly void. */

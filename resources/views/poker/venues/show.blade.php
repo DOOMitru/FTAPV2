@@ -42,7 +42,12 @@
                          named and counted, and tournament points are a league
                          total that says nothing about this venue in
                          particular. --}}
-                    <div class="venue-show__stats">
+                    {{-- stat-rows: below 48rem these stop being tiles and
+                         become labelled lines, the same treatment the season
+                         page gives its figures. Not --boxed: they sit inside a
+                         card, which already draws the edge, and the body
+                         around them supplies the gutter. --}}
+                    <div class="venue-show__stats stat-rows">
                         <x-stat :label="__('Tournaments')" :value="$totalTournaments" />
                         <x-stat :label="__('Venue points')" :value="number_format($totalVenuePoints)" />
                     </div>
