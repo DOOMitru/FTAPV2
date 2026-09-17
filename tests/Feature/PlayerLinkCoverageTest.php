@@ -27,8 +27,22 @@ class PlayerLinkCoverageTest extends TestCase
         'poker/venues/show.blade.php' => 'the venue leaderboard',
         'rules/points-structure.blade.php' => 'Current Season Leaders',
         'home.blade.php' => 'the landing page leader cards',
-        'events.blade.php' => 'the archive podium',
         'users/index.blade.php' => 'the admin players list, both tables',
+    ];
+
+    /**
+     * Lists that name players and deliberately do NOT link them.
+     *
+     * One entry, one reason, and the reason has to be a rule the app cannot
+     * bend rather than a preference. This is the record that the set above
+     * shrank on purpose.
+     */
+    private const NOT_LINKED = [
+        'events.blade.php' => 'the archive podium — the card is itself one big <a> to the tournament, '
+            .'and an <a> may not contain an <a>. A link here is not a worse link, it is a card the '
+            .'browser takes apart: it closes the outer anchor and spills the podium and the foot into '
+            .'the grid as separate cells. NestedAnchorTest holds that. Nothing is lost -- the card '
+            .'leads to the tournament, where every name is a link.',
     ];
 
     public function test_every_list_of_players_links_them(): void
@@ -36,7 +50,7 @@ class PlayerLinkCoverageTest extends TestCase
         $missing = [];
 
         foreach (self::LINKED as $view => $what) {
-            if (! str_contains(file_get_contents(resource_path('views/'.$view)), 'x-player-link')) {
+            if (! $this->usesTheComponent($view)) {
                 $missing[] = $view.' — '.$what;
             }
         }
@@ -44,6 +58,49 @@ class PlayerLinkCoverageTest extends TestCase
         $this->assertSame([], $missing, implode("\n  ", array_merge(
             ['A list names players without linking them to their figures:'], $missing
         )));
+    }
+
+    public function test_a_list_exempted_from_linking_really_does_not_link(): void
+    {
+        // The exemption is a decision, not a hole. If a name in one of these
+        // becomes a link again, the entry above is a lie and the page is
+        // broken in a browser -- so say it here too, where the reason is
+        // written down, rather than only in NestedAnchorTest.
+        $linking = [];
+
+        foreach (self::NOT_LINKED as $view => $why) {
+            if ($this->usesTheComponent($view)) {
+                $linking[] = $view.' — '.$why;
+            }
+        }
+
+        $this->assertSame([], $linking, implode("\n  ", array_merge(
+            ['A list exempted from linking is linking again:'], $linking
+        )));
+    }
+
+    public function test_the_two_lists_do_not_overlap(): void
+    {
+        // A view in both would make one of the two tests meaningless, and
+        // which one depends on the order they happen to run in.
+        $this->assertSame([], array_intersect_key(self::LINKED, self::NOT_LINKED));
+    }
+
+    /**
+     * The view opens an <x-player-link> tag.
+     *
+     * An opening tag, not the substring: str_contains('x-player-link') is
+     * satisfied by </x-player-link>, by a Blade comment discussing it, and --
+     * as a mutation proved -- by <x-NOPE-player-link>. This project has been
+     * caught by a class name reading as used inside a longer one three times
+     * now; the boundary is the fix each time.
+     */
+    private function usesTheComponent(string $view): bool
+    {
+        return (bool) preg_match(
+            '/<x-player-link(?![\w-])/',
+            (string) file_get_contents(resource_path('views/'.$view))
+        );
     }
 
     public function test_no_view_builds_the_link_itself(): void
