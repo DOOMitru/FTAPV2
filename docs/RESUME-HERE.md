@@ -242,49 +242,36 @@ runs, at a different point each time -- sometimes 24 tests in, sometimes 567 of
 - Not memory (55GB free), not disk, not opcache (off for CLI), not JIT
   (disabled), and **not PCRE JIT** -- `-d pcre.jit=0` still segfaults.
 
-**Work around it by running one file at a time.** Save this as `suite.sh`:
+**Work around it with `bin/suite.sh`**, which runs one file at a time:
 
 ```bash
-#!/usr/bin/env bash
-# Every test file, one at a time. The list is DERIVED, never a counted range.
-files=$(find tests -name '*Test.php' | sort)
-total=$(echo "$files" | wc -l); ran=0; fail=0
-for f in $files; do
-    line=$(php artisan test "$f" 2>&1 | grep -E '^  Tests:' | tail -1)
-    case "$line" in
-        ''|*failed*|*error*)
-            line=$(php artisan test "$f" 2>&1 | grep -E '^  Tests:' | tail -1)  # again: segfaults
-            case "$line" in
-                ''|*failed*|*error*) echo "FAIL  $f -> ${line:-no summary line (crash)}"; fail=$((fail+1)) ;;
-            esac ;;
-    esac
-    ran=$((ran+1))
-done
-echo "ran $ran of $total files, $fail failing"
-[ "$ran" = "$total" ] && [ "$fail" = 0 ]
+bin/suite.sh            # every test file
+bin/suite.sh Season     # only files whose path matches
 ```
 
-**Three things in there are the point, and each replaces a way this went wrong.**
+It is a script in the repo rather than a snippet in this document, because a
+snippet is what went wrong: the version that used to live here hardcoded seven
+chunks of ten, sized to the suite of the day, and by 112 files it ran 70 of the
+103 top-level feature files -- skipping a third of the suite and exiting 0. This
+document warned that the parts must add up to the whole; the loop under it had
+stopped adding up. The script derives its file list and prints `ran N of N`, so
+it cannot drift that way again.
 
-**The file list is derived, never a counted range.** What was here before ran
-`for c in 1 2 3 4 5 6 7` over chunks of ten, sized to the suite of the day. The
-suite is 112 files now, so that loop covered 70 of the 103 top-level feature
-files, skipped a third of them, and exited 0 the whole way. This document warned
-about exactly that -- "the parts must add up to the whole suite" -- and the loop
-under it had stopped adding up. Hence `ran N of N`, printed every time.
+Two more traps are commented in the script itself and worth knowing before
+writing any wrapper around `php artisan test`:
 
-**Grep the summary line for lowercase `failed`.** A wrapper that piped `tail -3`
-into `grep FAILED` was used for a whole session of "suite green" reports and
-could not match: the last lines say `Tests:    1 failed`, and the uppercase
-`FAILED` banner is further up the output. It hid a real failure that CI then
-caught.
+- **Read failure off the summary line, matching lowercase `failed`.** Grepping
+  the output for `FAILED` matches nothing: the tail says `Tests:    1 failed`
+  and the uppercase banner is further up. A wrapper that got this wrong reported
+  a green suite for a whole session while a real failure sat in it, and CI is
+  what found it.
+- **Do not pipe the script.** Its exit status is the answer -- `bin/suite.sh |
+  tail` gives you `tail`'s status. Capture instead: `out=$(bin/suite.sh);
+  status=$?`.
 
-**Do not pipe it.** The script's exit status is the answer -- 1 when anything
-failed -- and `bash suite.sh | tail` reports `tail`'s status instead. Run it
-bare, or capture with `out=$(bash suite.sh); status=$?`.
-
-Verified both ways: 112 of 112 with exit 0, and a deliberately broken assertion
-reported by name with exit 1.
+Verified in both directions: 112 of 112 with exit 0; a failed assertion reported
+with its summary line and exit 1; and a file that will not load at all reported
+as crashed, also exit 1.
 
 CI runs on its own PHP build and has never shown this, so it is a local
 toolchain problem rather than something to fix in the app. Worth a look at the
