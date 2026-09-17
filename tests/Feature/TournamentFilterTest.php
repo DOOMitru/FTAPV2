@@ -13,13 +13,16 @@ use Tests\Concerns\BuildsTournaments;
 use Tests\TestCase;
 
 /**
- * Filtering the results and registrants lists to one tournament.
+ * Filtering the registrants list to one tournament.
  *
- * Both lists are a league's whole history in one table, and an administrator
+ * The list is a league's whole history in one table, and an administrator
  * working on a league night wants the night in front of them. The default is
- * the tournament NEAREST in time -- past or future, whichever is closer --
- * because these two pages are used from opposite sides of a game: registrants
- * before it, results after.
+ * the tournament NEAREST in time -- past or future, whichever is closer.
+ *
+ * It covered the results list too, from the other side of a game: registrants
+ * before it, results after. That list is gone -- results are read on the
+ * tournament page now -- and PokerTournament::nearest(), which both shared,
+ * is still exercised directly by the first four tests below.
  */
 class TournamentFilterTest extends TestCase
 {
@@ -93,31 +96,6 @@ class TournamentFilterTest extends TestCase
         $this->assertNull(PokerTournament::nearest());
     }
 
-    public function test_results_default_to_the_nearest_tournament(): void
-    {
-        $s = $this->schedule();
-
-        $this->score($s['recent'], $this->enrol($s['recent'], 'Nearby'), 1, 100);
-        $this->score($s['old'], $this->enrol($s['old'], 'Ancient'), 1, 100);
-
-        $this->actingAs($this->admin())->get(route('poker.results.index'))->assertOk()
-            ->assertSee('Nearby')
-            ->assertDontSee('Ancient');
-    }
-
-    public function test_results_can_be_filtered_to_another_tournament(): void
-    {
-        $s = $this->schedule();
-
-        $this->score($s['recent'], $this->enrol($s['recent'], 'Nearby'), 1, 100);
-        $this->score($s['old'], $this->enrol($s['old'], 'Ancient'), 1, 100);
-
-        $this->actingAs($this->admin())
-            ->get(route('poker.results.index', ['tournament' => $s['old']->id]))->assertOk()
-            ->assertSee('Ancient')
-            ->assertDontSee('Nearby');
-    }
-
     public function test_registrants_default_to_the_nearest_tournament(): void
     {
         $s = $this->schedule();
@@ -145,7 +123,6 @@ class TournamentFilterTest extends TestCase
     public static function filteredPages(): array
     {
         return [
-            'results' => ['poker.results.index'],
             'registrants' => ['poker.registrants.index'],
         ];
     }

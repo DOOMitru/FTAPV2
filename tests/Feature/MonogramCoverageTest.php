@@ -31,7 +31,6 @@ class MonogramCoverageTest extends TestCase
         'poker/seasons/show.blade.php' => 'the season standings',
         'poker/tournaments/show.blade.php' => 'the registered players panel',
         'poker/registrants/index.blade.php' => 'the admin registrants list',
-        'poker/results/index.blade.php' => 'the admin results list',
         'poker/venue-points/create.blade.php' => 'the venue points player picker',
         'rules/points-structure.blade.php' => 'Current Season Leaders',
         'home.blade.php' => 'the landing page leader cards',
@@ -49,8 +48,6 @@ class MonogramCoverageTest extends TestCase
     private const OUT_OF_REACH = [
         'poker/registrants/create.blade.php',
         'poker/registrants/edit.blade.php',
-        'poker/results/create.blade.php',
-        'poker/results/edit.blade.php',
     ];
 
     public function test_every_list_of_players_pictures_them(): void

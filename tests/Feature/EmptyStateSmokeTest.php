@@ -75,7 +75,7 @@ class EmptyStateSmokeTest extends TestCase
     /**
      * Covers (as admin, with only the admin user created — no other
      * rows in the database at all): poker/seasons, poker/tournaments,
-     * poker/venues, poker/results, poker/registrants, poker/venue-points,
+     * poker/venues, poker/registrants, poker/venue-points,
      * and poker/points-structure index pages, plus every other
      * parameterless admin/auth route (dashboard, profile, users, etc).
      */

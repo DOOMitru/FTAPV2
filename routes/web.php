@@ -8,7 +8,6 @@ use App\Http\Controllers\Poker\PointsStructureController;
 use App\Http\Controllers\Poker\PokerSeasonController;
 use App\Http\Controllers\Poker\PokerTournamentController;
 use App\Http\Controllers\Poker\PokerTournamentRegistrantController;
-use App\Http\Controllers\Poker\PokerTournamentResultController;
 use App\Http\Controllers\Poker\VenueController;
 use App\Http\Controllers\Poker\VenuePointsController;
 use App\Http\Controllers\ProfileController;
@@ -277,7 +276,6 @@ Route::middleware('auth')->group(function () {
             ->name('tournaments.publish');
         Route::delete('tournaments/{tournament}/publish', [PokerTournamentController::class, 'unpublish'])
             ->name('tournaments.unpublish');
-        Route::resource('results', PokerTournamentResultController::class)->except(['show']);
         Route::resource('registrants', PokerTournamentRegistrantController::class)->except(['show']);
         Route::resource('venue-points', VenuePointsController::class)->except(['show']);
         Route::resource('points-structure', PointsStructureController::class)->except(['show']);

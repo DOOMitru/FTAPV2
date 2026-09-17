@@ -79,13 +79,13 @@
                 </x-slot>
 
                 @if ($leaderboard->isEmpty())
+                    {{-- No action any more. It offered "Record a result",
+                         which went to a form that no longer exists: a result
+                         is recorded by eliminating a player on the tournament
+                         being played, so there is no single page to send an
+                         administrator to. The sentence says where instead. --}}
                     <x-empty-state :title="__('No results yet')">
-                        {{ __('Standings appear once the first tournament result is recorded.') }}
-                        @if (auth()->user()->is_admin)
-                            <x-slot name="action">
-                                <x-btn variant="primary" size="sm" :href="route('poker.results.create')">{{ __('Record a result') }}</x-btn>
-                            </x-slot>
-                        @endif
+                        {{ __('Standings appear once players are eliminated from a tournament in this season.') }}
                     </x-empty-state>
                 @else
                     @php

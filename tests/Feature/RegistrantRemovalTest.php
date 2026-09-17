@@ -363,7 +363,7 @@ class RegistrantRemovalTest extends TestCase
             ->delete(route('poker.registrants.destroy', $registrant))
             ->assertSessionHas('error', fn (string $error) => str_contains($error, 'Nadia Okonkwo')
                 && str_contains($error, 'eliminated')
-                && str_contains($error, 'delete the result first'));
+                && str_contains($error, 'position in the field'));
     }
 
     public function test_the_control_is_not_drawn_once_it_cannot_act(): void
@@ -391,12 +391,16 @@ class RegistrantRemovalTest extends TestCase
     public function test_a_player_cannot_withdraw_once_results_exist_either(): void
     {
         // Believed unreachable when this was written -- withdrawing needs
-        // registration open and eliminating needs it closed -- but that was two
-        // other guards happening to agree rather than this rule being enforced,
-        // and they do not actually agree: PokerTournamentResultController
-        // records a result through the admin results form with no requirement
-        // that registration be closed. So this state is reachable, exactly as
-        // set up below, and the guard is load-bearing rather than belt.
+        // registration open and eliminating needed it closed -- but that was
+        // two other guards happening to agree rather than this rule being
+        // enforced, and they did not agree: the admin results form recorded a
+        // result with no requirement that registration be closed.
+        //
+        // That form is gone, and the reachability argument survives it:
+        // Eliminate dropped its own timing gate when the shift hook took over
+        // moving finishes, so a player can be eliminated while registration is
+        // still open -- exactly the state set up below. The guard is
+        // load-bearing rather than belt.
         $tournament = $this->tournament(startsIn: '+3 days');
         $player = User::factory()->create(['approval_status' => 'approved']);
         $this->register($tournament, $player);

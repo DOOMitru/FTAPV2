@@ -129,24 +129,6 @@ class DeleteConfirmationTest extends TestCase
         );
     }
 
-    public function test_a_result_says_it_is_a_finish(): void
-    {
-        $tournament = $this->tournament();
-
-        PokerTournamentResult::create([
-            'tournament_id' => $tournament->id,
-            'user_id' => User::factory()->create()->id,
-            'player_name' => 'Ada Lovelace',
-            'place' => 3,
-            'points' => 75,
-        ]);
-
-        $this->assertSame(
-            'Delete the 3rd place finish for Ada Lovelace in Wednesday Night Poker, worth 75 points? This cannot be undone.',
-            $this->confirmationOn(route('poker.results.index'))
-        );
-    }
-
     public function test_deleting_an_actual_person_still_says_so(): void
     {
         // The counterpart. On the user listing the row IS the person, so

@@ -20,10 +20,13 @@ class PokerTournamentRegistrantController extends Controller
         // withCount on the tournament, because the view asks every row whether
         // its tournament has results yet -- countOf() reads the alias, so this
         // is one query rather than one per row.
-        // Narrowed to one tournament -- see PokerTournamentResultController for
-        // the same reasoning. Nearest to now by default, because registrants are
-        // entered before a game and results after it, so neither "last played"
-        // nor "next scheduled" suits both pages.
+        // Narrowed to one tournament: this list is the league's whole history
+        // in one table, and an administrator working a league night wants that
+        // night. Nearest to now by default rather than "next scheduled",
+        // because entries are checked both before a game and after it.
+        //
+        // The results list shared this reasoning until it was removed; results
+        // are read on the tournament page now.
         $tournaments = PokerTournament::orderByDesc('start_time')->get();
 
         $selected = $tournaments->firstWhere('id', $request->query('tournament'))
@@ -160,8 +163,12 @@ class PokerTournamentRegistrantController extends Controller
         // the mirror of what a late entry does.
         if ($registrant->hasFinished()) {
             return back()->with('error', __(
+                // The second sentence used to send an administrator to the
+                // results screen to delete the finish first. That screen is
+                // gone, and with it the only way to undo one -- so the message
+                // no longer names a remedy, because there is not one to name.
                 ':name has already been eliminated from :tournament and cannot be removed. '
-                .'Their finish is a position in the field; delete the result first if it is wrong.',
+                .'Their finish is a position in the field that the players below them are counted from.',
                 [
                     'name' => emph($registrant->player_name),
                     'tournament' => emph($registrant->tournament->name),

@@ -56,34 +56,8 @@
         font-family: var(--font-mono);
     }
 
-    /* -------- Results: the rank badge leads, as it does in the standings. -------- */
-    .results-index__table .table tbody tr {
-        grid-template-columns: auto minmax(0, 1fr) auto;
-        grid-template-areas:
-            "rank player     actions"
-            "rank tournament actions"
-            "rank points     actions";
-    }
-
-    .results-index__table .results-index__rank {
-        grid-area: rank;
-        align-self: center;
-    }
-
-    .results-index__table .results-index__player { grid-area: player; }
-    .results-index__table .results-index__points {
-        grid-area: points;
-        /* .table__num right-aligns it for the desktop column. On its own line
-           in a card that leaves it floating away from the two lines above, so
-           it goes back to the start edge they share. */
-        text-align: start;
-        font-family: var(--font-mono);
-        font-weight: 600;
-    }
-
     /* The column header is clipped on a phone, so a bare "100" beside a
        tournament name has nothing to say what it counts. */
-    .results-index__table .results-index__points::after,
     .venue-points-index__table .venue-points-index__amount::after {
         content: " pts";
         font-family: var(--font-body);
@@ -91,12 +65,6 @@
         font-weight: 600;
         letter-spacing: 0.08em;
         text-transform: uppercase;
-        color: var(--c-text-muted);
-    }
-
-    .results-index__table .results-index__tournament {
-        grid-area: tournament;
-        font-size: var(--step--2);
         color: var(--c-text-muted);
     }
 

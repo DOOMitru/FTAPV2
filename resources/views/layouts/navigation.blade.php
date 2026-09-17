@@ -83,14 +83,13 @@
             <x-dropdown align="left" :inline-mobile="true">
                 <x-slot name="trigger">
                     <button type="button"
-                            class="nav-link {{ request()->routeIs('poker.results.*', 'poker.registrants.*', 'poker.venue-points.*') ? 'nav-link--current' : '' }}"
-                            @if (request()->routeIs('poker.results.*', 'poker.registrants.*', 'poker.venue-points.*')) aria-current="page" @endif>
+                            class="nav-link {{ request()->routeIs('poker.registrants.*', 'poker.venue-points.*') ? 'nav-link--current' : '' }}"
+                            @if (request()->routeIs('poker.registrants.*', 'poker.venue-points.*')) aria-current="page" @endif>
                         {{ __('Play') }}
                     </button>
                 </x-slot>
 
                 <x-slot name="content">
-                    <x-dropdown-link :href="route('poker.results.index')">{{ __('Results') }}</x-dropdown-link>
                     <x-dropdown-link :href="route('poker.registrants.index')">{{ __('Registrants') }}</x-dropdown-link>
                     <x-dropdown-link :href="route('poker.venue-points.index')">{{ __('Venue points') }}</x-dropdown-link>
                 </x-slot>

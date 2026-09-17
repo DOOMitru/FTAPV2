@@ -212,7 +212,7 @@ class PlayerLeagueAccessTest extends TestCase
         $html = $this->actingAs($this->player())
             ->get(route('dashboard'))->assertOk()->getContent();
 
-        $this->assertStringNotContainsString(route('poker.results.index'), $html);
+        $this->assertStringNotContainsString(route('poker.venue-points.index'), $html);
         $this->assertStringNotContainsString(route('poker.registrants.index'), $html);
         $this->assertStringNotContainsString(route('users.index'), $html);
         $this->assertStringNotContainsString(route('sponsors.index'), $html);
