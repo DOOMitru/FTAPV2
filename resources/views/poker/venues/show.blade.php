@@ -36,11 +36,15 @@
                         <p class="venue-show__lede">{{ $venue->description }}</p>
                     @endif
 
+                    {{-- Two figures, not four. Point Earners and Tournament
+                         pts both answered questions the panels below answer
+                         better: the venue leaderboard IS the point earners,
+                         named and counted, and tournament points are a league
+                         total that says nothing about this venue in
+                         particular. --}}
                     <div class="venue-show__stats">
                         <x-stat :label="__('Tournaments')" :value="$totalTournaments" />
-                        <x-stat :label="__('Point Earners')" :value="$uniqueVenuePointPlayers" />
-                        <x-stat :label="__('Venue pts')" :value="number_format($totalVenuePoints)" />
-                        <x-stat :label="__('Tournament pts')" :value="number_format($totalTournamentPoints)" />
+                        <x-stat :label="__('Venue points')" :value="number_format($totalVenuePoints)" />
                     </div>
                 </div>
             </div>
@@ -49,13 +53,13 @@
         {{-- align-items: start, so an empty leaderboard does not stretch to
              match a list of nineteen tournaments beside it. --}}
         <div class="l-sidebar venue-show__panels">
-            <x-card :title="__('Venue pts leaderboard')" flush>
+            <x-card :title="__('Venue points leaderboard')" flush>
                 <x-table>
                     <x-slot name="head">
                         <th scope="col">{{ __('Rank') }}</th>
                         <th scope="col">{{ __('Player') }}</th>
                         <th scope="col" class="table__num">{{ __('Earned Count') }}</th>
-                        <th scope="col" class="table__num">{{ __('Total pts') }}</th>
+                        <th scope="col" class="table__num">{{ __('Total points') }}</th>
                     </x-slot>
 
                     @forelse ($venueLeaderboard as $index => $entry)
@@ -84,9 +88,9 @@
                     @empty
                         <tr>
                             <td colspan="4">
-                                {{-- Still the whole word: this is a sentence, not a label. "No venue
-                                     pts awarded here yet" is an abbreviation
-                                     read as prose. --}}
+                                {{-- The whole word, as everywhere else on this
+                                     page now: the tile above and the panel
+                                     heading were abbreviated and are not. --}}
                                 <x-empty-state :title="__('No venue points awarded here yet.')" />
                             </td>
                         </tr>

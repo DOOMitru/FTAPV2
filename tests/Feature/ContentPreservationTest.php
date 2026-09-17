@@ -650,21 +650,24 @@ class ContentPreservationTest extends TestCase
             'The venue leaderboard must order by total points, highest first.'
         );
 
-        // Totals across the top: 2 tournaments, 2 unique earners, 125 venue
-        // points awarded, 600 tournament points scored.
+        // The total across the top: 125 venue points awarded here. The
+        // tournament-points total that used to sit beside it was a league
+        // figure rather than a venue one, and went with its tile.
         $response->assertSee('125');
-        $response->assertSee('600');
 
-        // All four tiles, by label. The two sums above already fail if their
-        // own tile goes, but Tournaments and Point Earners both read "2" here
-        // and "2" survives almost any edit -- so those two were unguarded.
-        // Matched as stat markup, because "Tournaments" on its own also
-        // appears in the Recent Tournaments heading.
-        // "Venue pts" and "Tournament pts" since the page abbreviated its data
-        // labels; the tiles themselves are unchanged, which is what this guards.
-        foreach (['Tournaments', 'Point Earners', 'Venue pts', 'Tournament pts'] as $label) {
+        // Both tiles, by label. Matched as stat markup, because "Tournaments"
+        // on its own also appears in the Recent Tournaments heading.
+        //
+        // Two, not four: Point Earners and Tournament pts were removed by
+        // request. The leaderboard below IS the point earners, named and
+        // counted, and tournament points were a league total that said nothing
+        // about this venue.
+        foreach (['Tournaments', 'Venue points'] as $label) {
             $response->assertSee('<span class="stat__label">'.$label.'</span>', false);
         }
+
+        $response->assertDontSee('<span class="stat__label">Point Earners</span>', false);
+        $response->assertDontSee('<span class="stat__label">Tournament pts</span>', false);
 
         // The side panel lists the tournaments held here.
         $response->assertSee('Ironclad Opener');

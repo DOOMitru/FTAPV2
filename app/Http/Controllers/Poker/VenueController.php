@@ -50,16 +50,17 @@ class VenueController extends Controller
      */
     public function show(Venue $venue): View
     {
+        // Not tournaments.results: it was loaded for a Tournament pts tile that
+        // no longer exists, and nothing else on the page reads a result. On a
+        // venue that has hosted a season it was every result of every night,
+        // fetched to be summed once and thrown away.
         $venue->load([
             'tournaments.season',
-            'tournaments.results',
             'venuePoints.user',
         ]);
 
         $totalTournaments = $venue->tournaments->count();
-        $totalTournamentPoints = $venue->tournaments->flatMap->results->sum('points');
         $totalVenuePoints = $venue->venuePoints->sum('amount');
-        $uniqueVenuePointPlayers = $venue->venuePoints->pluck('user_id')->unique()->count();
 
         // Calculate Venue Points Leaderboard
         $venueLeaderboard = $venue->venuePoints
@@ -79,9 +80,7 @@ class VenueController extends Controller
         return view('poker.venues.show', compact(
             'venue',
             'totalTournaments',
-            'totalTournamentPoints',
             'totalVenuePoints',
-            'uniqueVenuePointPlayers',
             'venueLeaderboard'
         ));
     }
