@@ -101,9 +101,11 @@ class AdminIndexCardLayoutTest extends TestCase
             $this->assertStringContainsString($hook, $html, "The grid has no cell to place for {$hook}.");
         }
 
-        // Every card holds its actions in the same place, which the shell
-        // positions rather than each page.
-        $this->assertStringContainsString('table__actions', $html);
+        // The pages no longer agree about actions, so this is not asserted
+        // across them: the tournaments list moved its Edit and Delete to the
+        // tournament's own page and has no actions column at all, while the
+        // sponsors list still carries one. Each page's own cells are what the
+        // hooks above check.
         $this->assertNotSame('', $wrapper);
     }
 }

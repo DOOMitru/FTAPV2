@@ -50,19 +50,19 @@ class SeasonsIndexLayoutTest extends TestCase
             'seasons-index__current',
             'seasons-index__start',
             'seasons-index__end',
-            'table__actions',
         ] as $hook) {
             $this->assertStringContainsString($hook, $html, "The grid has no cell to place for {$hook}.");
         }
     }
 
-    public function test_the_desktop_table_still_has_all_five_headers(): void
+    public function test_the_desktop_table_still_has_all_four_headers(): void
     {
         // The mobile layout hides the header row rather than removing it, and
-        // desktop reads exactly as it did.
+        // desktop reads exactly as it did -- minus Actions, which went with
+        // the controls it headed.
         $html = $this->index();
 
-        foreach (['Name', 'Current', 'Start Date', 'End Date', 'Actions'] as $header) {
+        foreach (['Name', 'Current', 'Start Date', 'End Date'] as $header) {
             $this->assertStringContainsString('>'.$header.'</th>', $html);
         }
     }
@@ -74,7 +74,7 @@ class SeasonsIndexLayoutTest extends TestCase
         $html = $this->actingAs($this->admin())
             ->get(route('poker.seasons.index'))->assertOk()->getContent();
 
-        $this->assertStringContainsString('colspan="5"', $html);
+        $this->assertStringContainsString('colspan="4"', $html);
         $this->assertStringContainsString('No seasons found.', $html);
     }
 }

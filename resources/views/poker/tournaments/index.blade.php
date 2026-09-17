@@ -21,43 +21,33 @@
                     <th scope="col">{{ __('Venue') }}</th>
                     <th scope="col">{{ __('Season') }}</th>
                     <th scope="col">{{ __('Start Time') }}</th>
-                    <th scope="col" class="table__actions">{{ __('Actions') }}</th>
                 </x-slot>
 
                 @forelse ($tournaments as $tournament)
-                    <tr>
-                        <td class="tournaments-index__name">{{ $tournament->name }}</td>
+                    {{-- The whole row is the link, and the only control on it.
+                         tournaments.show is open to anyone signed in -- it is
+                         where a player registers -- and editing or deleting a
+                         tournament is offered there, behind the admin gate the
+                         page already applies.
+
+                         One anchor stretched over the row by .table__link, so
+                         the venue, the season and the time are part of the
+                         target too. --}}
+                    <tr class="table__row--link">
+                        <td class="tournaments-index__name">
+                            <a class="table__link"
+                               href="{{ route('tournaments.show', $tournament) }}">{{ $tournament->name }}</a>
+                        </td>
 
                         <td class="tournaments-index__venue">{{ $tournament->venue->name ?? __('TBD') }}</td>
 
                         <td class="tournaments-index__season">{{ $tournament->season->name }}</td>
 
                         <td class="tournaments-index__start">{{ $tournament->start_time?->format('M d, Y · h:i A') ?? '—' }}</td>
-
-                        <td class="table__actions">
-                            <div class="l-cluster l-cluster--end">
-                            {{-- tournaments.show is open to anyone signed in --
-                                 it is where a player registers. Everything
-                                 below it changes a record. --}}
-                            <x-action icon="view" :label="__('View')" :href="route('tournaments.show', $tournament)" />
-
-                                @if (auth()->user()->is_admin)
-                                <x-action icon="edit" :label="__('Edit')" :href="route('poker.tournaments.edit', $tournament)" />
-
-                                <form action="{{ route('poker.tournaments.destroy', $tournament) }}" method="POST"
-                                      data-confirm="{{ __('Delete :name? This cannot be undone.', ['name' => emph($tournament->name)]) }}">
-                                    @csrf
-                                    @method('DELETE')
-
-                                    <x-action icon="delete" :label="__('Delete')" danger />
-                                </form>
-                                @endif
-                            </div>
-                        </td>
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="5">
+                        <td colspan="4">
                             <x-empty-state :title="__('No tournaments found.')" />
                         </td>
                     </tr>

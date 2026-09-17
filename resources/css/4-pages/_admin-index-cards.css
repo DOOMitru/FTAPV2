@@ -12,28 +12,27 @@
 
 /* Where each admin index puts its cells on a phone.
  *
- * The shell -- grid row, clipped header, cell reset, actions held at the end --
- * is .table--cards in _table.css. These are the area maps only, one page per
- * block, because what leads a card differs: a tournament leads with its name, a
- * result with a rank badge, a venue point with a player, a sponsor with a logo.
+ * The shell -- grid row, clipped header, cell reset -- is .table--cards in
+ * _table.css. These are the area maps only, one page per block, because what
+ * leads a card differs: a tournament leads with its name, a sponsor with a
+ * logo.
  *
- * One rule holds across all of them: exactly ONE column may flex. Everything
- * else is auto. A second flexible column lets a long name widen it, which
- * squeezes the actions into wrapping and pushes dates onto three lines -- the
- * fault the season list shipped with until a long fixture name exposed it. */
+ * One rule holds across both: exactly ONE column may flex. Everything else is
+ * auto. A second flexible column lets a long name widen it and pushes dates
+ * onto three lines -- the fault the season list shipped with until a long
+ * fixture name exposed it. */
 @media (max-width: 48rem) {
     /* -------- Tournaments: name, then where and when. -------- */
-    /* One fact per line. At 375px the actions take about 110px, which leaves
-       roughly 230 for content -- and a season plus a full date and time needs
-       265. Pairing them squeezed the date onto four lines. A tournament has
-       four facts, so it gets four lines, and each one is legible. */
+    /* One fact per line. A tournament has four facts, so it gets four lines,
+       and each one now has the whole width: the actions column that used to
+       take about 110px of a 375px row went with the controls in it. */
     .tournaments-index__table .table tbody tr {
-        grid-template-columns: minmax(0, 1fr) auto;
+        grid-template-columns: minmax(0, 1fr);
         grid-template-areas:
-            "name   actions"
-            "venue  actions"
-            "season actions"
-            "start  actions";
+            "name"
+            "venue"
+            "season"
+            "start";
     }
 
     .tournaments-index__table .tournaments-index__name {

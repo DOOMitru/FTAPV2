@@ -81,7 +81,7 @@ class EmphasisTest extends TestCase
         ]);
 
         $html = $this->actingAs($this->admin())
-            ->get(route('poker.seasons.index'))->assertOk()->getContent();
+            ->get(route('seasons.show', PokerSeason::firstOrFail()))->assertOk()->getContent();
 
         // In the attribute it is still text with markers round it: confirm.ts
         // does the bolding in the browser, out of text nodes.
@@ -93,7 +93,7 @@ class EmphasisTest extends TestCase
         Venue::create(['name' => 'Ace of Spades Lounge', 'address' => '1 Card Street']);
 
         $html = $this->actingAs($this->admin())
-            ->get(route('poker.venues.index'))->assertOk()->getContent();
+            ->get(route('poker.venues.show', Venue::firstOrFail()))->assertOk()->getContent();
 
         $this->assertStringContainsString(EMPH.'Ace of Spades Lounge'.EMPH, $html);
     }

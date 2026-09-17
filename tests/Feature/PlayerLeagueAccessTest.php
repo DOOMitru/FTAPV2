@@ -181,11 +181,17 @@ class PlayerLeagueAccessTest extends TestCase
 
         $admin = $this->admin();
 
+        // The listings keep their "create" action and nothing else: editing and
+        // deleting moved to each record's own page, so Delete is asserted
+        // there rather than in a row.
         $this->actingAs($admin)->get(route('poker.seasons.index'))->assertOk()
-            ->assertSee('Create Season')->assertSee('title="Delete"', false);
+            ->assertSee('Create Season');
+
+        $this->actingAs($admin)->get(route('seasons.show', PokerSeason::firstOrFail()))->assertOk()
+            ->assertSee('Delete season');
 
         $this->actingAs($admin)->get(route('poker.tournaments.index'))->assertOk()
-            ->assertSee('Schedule Tournament')->assertSee('title="Delete"', false);
+            ->assertSee('Schedule Tournament');
 
         $this->actingAs($admin)->get(route('poker.venues.index'))->assertOk()
             ->assertSee('Add Venue')

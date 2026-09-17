@@ -4,6 +4,24 @@
             @if (auth()->user()->is_admin)
                 <x-slot name="actions">
                     <x-btn variant="primary" :href="route('poker.seasons.edit', $season)">{{ __('Edit season') }}</x-btn>
+
+                    {{-- Deleting a season is offered where it is read, not from
+                         a list. An administrator removing one has the thing in
+                         front of them -- how many tournaments it holds, who is
+                         leading it -- which is exactly what a row in a listing
+                         cannot show.
+
+                         data-confirm, never an inline onsubmit: an attribute is
+                         HTML-decoded before its contents reach the JS parser, so
+                         a season named with an apostrophe would break out of a
+                         string literal built that way. See resources/js/confirm.ts. --}}
+                    <form action="{{ route('poker.seasons.destroy', $season) }}" method="POST"
+                          data-confirm="{{ __('Delete :name? This cannot be undone.', ['name' => emph($season->name)]) }}">
+                        @csrf
+                        @method('DELETE')
+
+                        <x-btn variant="danger" type="submit">{{ __('Delete season') }}</x-btn>
+                    </form>
                 </x-slot>
             @endif
         </x-page-header>

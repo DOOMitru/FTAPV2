@@ -57,8 +57,26 @@ class VenueListTest extends TestCase
         $response = $this->actingAs($this->admin())->get(route('poker.venues.index'))->assertOk();
 
         $response->assertSee('venues-table', false);
-        $response->assertSee('class="venue-row"', false);
         $response->assertSee('venue-row__name', false);
-        $response->assertSee('venue-row__actions', false);
+        // venue-row__actions went with the controls it held; they are offered
+        // on the venue's own page now, which the row links to for an admin --
+        // so the row class carries the link hook alongside its own.
+        $response->assertSee('class="venue-row table__row--link"', false);
+    }
+
+    public function test_a_player_gets_a_row_that_does_not_lead_to_a_403(): void
+    {
+        // The venue detail page is admin-only. A linked row would offer a
+        // player a click that refuses them -- the same reason this table gave
+        // them no View Stats control when it had one.
+        Venue::create(['name' => 'Hooked Room', 'address' => '3 Hook Street']);
+
+        $response = $this->actingAs(User::factory()->create(['is_admin' => false]))
+            ->get(route('poker.venues.index'))->assertOk();
+
+        $response->assertSee('Hooked Room');
+        $response->assertSee('class="venue-row"', false);
+        $response->assertDontSee('table__row--link', false);
+        $response->assertDontSee(route('poker.venues.show', Venue::first()), false);
     }
 }

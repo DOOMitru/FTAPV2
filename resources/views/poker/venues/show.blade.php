@@ -4,6 +4,24 @@
             <x-slot name="actions">
                 <x-btn variant="ghost" :href="route('poker.venues.index')">{{ __('Back') }}</x-btn>
                 <x-btn variant="primary" :href="route('poker.venues.edit', $venue)">{{ __('Edit') }}</x-btn>
+
+                {{-- Deleting a venue is offered where it is read. An
+                     administrator removing one has its takings and its
+                     leaderboard in front of them, which a row in a list cannot
+                     show -- and this page is admin-only already, so the
+                     control needs no gate of its own.
+
+                     data-confirm, never an inline onsubmit: an attribute is
+                     HTML-decoded before its contents reach the JS parser, so a
+                     venue named with an apostrophe would break out of a string
+                     literal built that way. See resources/js/confirm.ts. --}}
+                <form action="{{ route('poker.venues.destroy', $venue) }}" method="POST"
+                      data-confirm="{{ __('Delete :name? This cannot be undone.', ['name' => emph($venue->name)]) }}">
+                    @csrf
+                    @method('DELETE')
+
+                    <x-btn variant="danger" type="submit">{{ __('Delete') }}</x-btn>
+                </form>
             </x-slot>
         </x-page-header>
     </x-slot>

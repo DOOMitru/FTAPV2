@@ -34,7 +34,9 @@ class ConfirmDialogTest extends TestCase
             'end_date' => now()->addMonth(),
         ]);
 
-        $html = $this->actingAs($this->admin())->get(route('poker.seasons.index'))
+        // The season's own page: deleting one is offered where it is read,
+        // not from the listing, which now carries no controls at all.
+        $html = $this->actingAs($this->admin())->get(route('seasons.show', PokerSeason::firstOrFail()))
             ->assertOk()->getContent();
 
         $this->assertStringContainsString('data-confirm=', $html, 'Expected a form that asks first.');
@@ -85,7 +87,9 @@ class ConfirmDialogTest extends TestCase
             'end_date' => now()->addMonth(),
         ]);
 
-        $html = $this->actingAs($this->admin())->get(route('poker.seasons.index'))
+        // The season's own page: deleting one is offered where it is read,
+        // not from the listing, which now carries no controls at all.
+        $html = $this->actingAs($this->admin())->get(route('seasons.show', PokerSeason::firstOrFail()))
             ->assertOk()->getContent();
 
         $dom = new \DOMDocument();

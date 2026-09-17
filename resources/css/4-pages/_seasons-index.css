@@ -20,8 +20,9 @@
     .seasons-index__table .table tbody tr {
         display: block;
         position: relative;
-        /* The reserve for the pinned actions: 104px of buttons plus air. */
-        padding: var(--space-3) 7rem var(--space-3) var(--space-4);
+        /* No reserve on the end any more: the actions that were pinned there
+           moved to the season's own page, and the whole row is the link. */
+        padding: var(--space-3) var(--space-4);
         border-block-end: var(--border-width) solid var(--c-border);
     }
 
@@ -59,14 +60,6 @@
     .seasons-index__table .seasons-index__end::before {
         content: "–";
         margin-inline: 0.25em;
-    }
-
-    /* Out of flow, centred in the space the padding reserved. */
-    .seasons-index__table .table__actions {
-        position: absolute;
-        inset-inline-end: var(--space-4);
-        inset-block-start: 50%;
-        transform: translateY(-50%);
     }
 
     /* The empty state is a cell pretending to be a row and must not inherit the

@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\PokerSeason;
+use App\Models\Sponsor;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -115,18 +116,18 @@ class TableActionTest extends TestCase
 
     public function test_the_other_dashboard_tables_use_icon_actions_too(): void
     {
-        // One table from the other eight, to prove the sweep reached beyond
-        // the page the request named. It needs a row: an empty table renders
-        // its empty state and no actions at all, and the assertions below would
-        // then be testing nothing.
-        PokerSeason::create([
-            'name' => 'Season 21',
-            'start_date' => now()->subMonth(),
-            'end_date' => now()->addMonth(),
-        ]);
+        // One table from the others, to prove the sweep reached beyond the page
+        // the request named. It needs a row: an empty table renders its empty
+        // state and no actions at all, and the assertions below would then be
+        // testing nothing.
+        //
+        // The seasons list used to be this sample and no longer has actions at
+        // all -- its row is the link, and editing and deleting are on the
+        // season's page. Sponsors is a listing that still carries them.
+        Sponsor::create(['name' => 'Ace Supplies', 'logo_path' => 'sponsor-logos/ace.png']);
 
-        $this->actingAs($this->admin())->get(route('poker.seasons.index'))->assertOk()
+        $this->actingAs($this->admin())->get(route('sponsors.index'))->assertOk()
             ->assertSee('class="action"', false)
-            ->assertSee('<span class="u-visually-hidden">View Stats</span>', false);
+            ->assertSee('<span class="u-visually-hidden">Edit</span>', false);
     }
 }

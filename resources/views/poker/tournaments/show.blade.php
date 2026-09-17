@@ -40,6 +40,26 @@
                          thing to do with it is publish it. --}}
                     <x-btn :variant="! $tournament->isPublished() && $tournament->isComplete() ? 'ghost' : 'primary'"
                            :href="route('poker.tournaments.edit', $tournament)">{{ __('Edit') }}</x-btn>
+
+                    {{-- Deleting a tournament is offered where it is read, not
+                         from a row in a listing: an administrator removing one
+                         has the field, the finishes and whether it is published
+                         in front of them.
+
+                         The confirmation names what goes with it. A row in a
+                         list could say "this cannot be undone" and mean the
+                         tournament; here it can say what else the cascade
+                         takes, which is the thing somebody would want to know
+                         before clicking. --}}
+                    <form action="{{ route('poker.tournaments.destroy', $tournament) }}" method="POST"
+                          data-confirm="{{ __('Delete :name? Its registrations and every recorded finish go with it. This cannot be undone.', [
+                              'name' => emph($tournament->name),
+                          ]) }}">
+                        @csrf
+                        @method('DELETE')
+
+                        <x-btn variant="danger" type="submit">{{ __('Delete') }}</x-btn>
+                    </form>
                 </x-slot>
             @endif
         </x-page-header>
