@@ -18,13 +18,17 @@
                          :value="old('start_time')" required />
 
                 <div class="l-grid">
-                {{-- Read-only on create: the controller assigns the current
-                     season, so offering a choice would imply one exists. --}}
-                <div>
-                    <span class="field__label">{{ __('Season') }}</span>
+                    {{-- Read-only on create: the controller assigns the current
+                         season, so offering a choice would imply one exists.
 
-                    <p class="row__value">{{ $currentSeason->name ?? __('No Active Season') }}</p>
-                </div>
+                         Shaped like the control beside it rather than like a
+                         value in a list -- see .field__control--static, and the
+                         alignment it was drawn with before it. --}}
+                    <div>
+                        <span class="field__label">{{ __('Season') }}</span>
+
+                        <p class="field__control field__control--static">{{ $currentSeason->name ?? __('No active season') }}</p>
+                    </div>
 
                     <x-field name="venue_id" :label="__('Venue')">
                         <select class="field__control" name="venue_id" id="venue_id" required>

@@ -54,6 +54,31 @@
     font-variant-numeric: tabular-nums;
 }
 
+/* A field's worth of information that cannot be typed into.
+ *
+ * The schedule form assigns the season rather than offering it, and drew it as
+ * a .row__value -- a class from the definition lists on a profile page, where
+ * a value is right-aligned against its label. In a form column that put the
+ * season hard against the right edge while its own label sat on the left.
+ *
+ * It takes the control's box instead, so it lines up with the select beside
+ * it: the same offset under the label, the same height, the same padding. The
+ * ground is raised rather than the control's --c-bg, which is what says it
+ * cannot be typed into -- without greying the value, which is real information
+ * and not a disabled input.
+ *
+ * AFTER .field__control:hover on purpose. The two are equal specificity, so
+ * order is what stops a static field answering the pointer like an editable
+ * one. */
+.field__control--static {
+    background-color: var(--c-surface-raised);
+    cursor: default;
+}
+
+.field__control--static:hover {
+    border-color: var(--c-border);
+}
+
 /* The search row: a control with icon buttons beside it.
  *
  * align-items: stretch, not the .l-cluster centring it replaces. The buttons
