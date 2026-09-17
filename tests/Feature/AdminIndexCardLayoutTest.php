@@ -66,7 +66,7 @@ class AdminIndexCardLayoutTest extends TestCase
         return [
             'tournaments' => ['poker.tournaments.index', 'tournaments-index__table', [
                 'tournaments-index__name', 'tournaments-index__venue',
-                'tournaments-index__season', 'tournaments-index__start',
+                'tournaments-index__start',
             ]],
             'sponsors' => ['sponsors.index', 'sponsors-index__table', [
                 'sponsors-index__logo', 'sponsors-index__name', 'sponsors-index__tier',

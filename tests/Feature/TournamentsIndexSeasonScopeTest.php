@@ -129,12 +129,43 @@ class TournamentsIndexSeasonScopeTest extends TestCase
         $now = $this->season('Season 9', true, '2026-01-01', '2026-12-31');
         $this->night('This year', $now, '2026-06-01 19:00:00');
 
-        // In the HEADER, not anywhere. "Season 9" is also printed in every
-        // row's Season column, so a bare assertSee passes on a page whose
-        // heading says nothing about which season it is showing -- which is
-        // exactly what the first version of this test did.
+        // In the HEADER, and now only there: the Season column that repeated
+        // it on every row is gone, so the heading is the one thing telling a
+        // reader which season these nights belong to. Matched as markup
+        // because a bare assertSee once passed on a page whose heading said
+        // nothing -- the rows were answering for it.
         $this->actingAs($this->admin())->get(route('poker.tournaments.index'))->assertOk()
             ->assertSee('<p class="u-eyebrow">Season 9</p>', false);
+    }
+
+    public function test_the_season_is_named_once_and_not_repeated_down_every_row(): void
+    {
+        // The Season column went with the scoping that made it constant: every
+        // row carried the same name, under a heading that already says it.
+        // Three columns now -- name, venue, start time -- and the empty state
+        // spans all three.
+        $now = $this->season('Season 9', true, '2026-01-01', '2026-12-31');
+        $this->night('This year', $now, '2026-06-01 19:00:00');
+        $this->night('Also this year', $now, '2026-07-01 19:00:00');
+
+        $html = $this->actingAs($this->admin())
+            ->get(route('poker.tournaments.index'))->assertOk()->getContent();
+
+        $this->assertSame(1, substr_count($html, 'Season 9'),
+            'The season should be named in the heading and nowhere else.');
+        $this->assertStringNotContainsString('tournaments-index__season', $html);
+        $this->assertSame(3, substr_count($html, '<th scope="col"'));
+    }
+
+    public function test_the_empty_state_still_spans_every_column(): void
+    {
+        // One cell pretending to be a row. It went from four columns to three
+        // with the Season column, and a colspan left at four pushes a phantom
+        // column into the header row.
+        $this->season('Season 9', true, '2026-01-01', '2026-12-31');
+
+        $this->actingAs($this->admin())->get(route('poker.tournaments.index'))->assertOk()
+            ->assertSee('colspan="3"', false);
     }
 
     public function test_an_older_season_is_still_reachable_from_its_own_page(): void

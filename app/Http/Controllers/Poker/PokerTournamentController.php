@@ -42,7 +42,7 @@ class PokerTournamentController extends Controller
         // CURRENT season, where an unguarded filter becomes no filter at all.
         $currentSeason = PokerSeason::current();
 
-        $tournaments = PokerTournament::with(['venue', 'season'])
+        $tournaments = PokerTournament::with('venue')
             ->when($currentSeason, fn ($query) => $query->whereBelongsTo($currentSeason, 'season'))
             // No season at all is no list. Returning everything would be the
             // opposite of what this page now claims to show, and the empty

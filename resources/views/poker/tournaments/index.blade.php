@@ -23,7 +23,6 @@
                 <x-slot name="head">
                     <th scope="col">{{ __('Name') }}</th>
                     <th scope="col">{{ __('Venue') }}</th>
-                    <th scope="col">{{ __('Season') }}</th>
                     <th scope="col" class="table__num">{{ __('Start Time') }}</th>
                 </x-slot>
 
@@ -35,8 +34,7 @@
                          page already applies.
 
                          One anchor stretched over the row by .table__link, so
-                         the venue, the season and the time are part of the
-                         target too. --}}
+                         the venue and the time are part of the target too. --}}
                     <tr class="table__row--link">
                         <td class="tournaments-index__name">
                             <a class="table__link"
@@ -44,8 +42,6 @@
                         </td>
 
                         <td class="tournaments-index__venue">{{ $tournament->venue->name ?? __('TBD') }}</td>
-
-                        <td class="tournaments-index__season">{{ $tournament->season->name }}</td>
 
                         {{-- table__num: right-aligned and tabular, so a
                              column of dates lines up digit under digit. The
@@ -56,7 +52,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="4">
+                        <td colspan="3">
                             {{-- Two different nothings, and an administrator
                                  can act on only one of them. "No tournaments"
                                  on a league with years of history reads as a

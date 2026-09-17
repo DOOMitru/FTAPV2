@@ -23,15 +23,16 @@
  * fixture name exposed it. */
 @media (max-width: 48rem) {
     /* -------- Tournaments: name, then where and when. -------- */
-    /* One fact per line. A tournament has four facts, so it gets four lines,
-       and each one now has the whole width: the actions column that used to
-       take about 110px of a 375px row went with the controls in it. */
+    /* One fact per line. A tournament has three facts, so it gets three
+       lines, and each one has the whole width: the actions column that used
+       to take about 110px of a 375px row went with the controls in it, and
+       the season went with the column -- the list is one season's nights and
+       the heading names it. */
     .tournaments-index__table .table tbody tr {
         grid-template-columns: minmax(0, 1fr);
         grid-template-areas:
             "name"
             "venue"
-            "season"
             "start";
     }
 
@@ -41,11 +42,9 @@
     }
 
     .tournaments-index__table .tournaments-index__venue { grid-area: venue; }
-    .tournaments-index__table .tournaments-index__season { grid-area: season; }
     .tournaments-index__table .tournaments-index__start { grid-area: start; }
 
     .tournaments-index__table .tournaments-index__venue,
-    .tournaments-index__table .tournaments-index__season,
     .tournaments-index__table .tournaments-index__start {
         font-size: var(--step--2);
         color: var(--c-text-muted);
