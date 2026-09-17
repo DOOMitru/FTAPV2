@@ -1,6 +1,10 @@
 <x-app-layout>
     <x-slot name="header">
-        <x-page-header :eyebrow="__('League')" :title="__('Poker Tournaments')">
+        {{-- The season is the eyebrow, because the list is now one season's
+             nights and a page headed "Poker Tournaments" over them would not
+             say which. --}}
+        <x-page-header :eyebrow="$currentSeason?->name ?? __('League')"
+                       :title="__('Poker Tournaments')">
             @if (auth()->user()->is_admin)
                 <x-slot name="actions">
                     <x-btn variant="primary" :href="route('poker.tournaments.create')">{{ __('Schedule Tournament') }}</x-btn>
@@ -48,7 +52,20 @@
                 @empty
                     <tr>
                         <td colspan="4">
-                            <x-empty-state :title="__('No tournaments found.')" />
+                            {{-- Two different nothings, and an administrator
+                                 can act on only one of them. "No tournaments"
+                                 on a league with years of history reads as a
+                                 fault; the season being unset is the actual
+                                 state and is fixable. --}}
+                            @if ($currentSeason)
+                                <x-empty-state :title="__('No tournaments in :season yet.', ['season' => $currentSeason->name])">
+                                    {{ __('Tournaments scheduled in this season appear here.') }}
+                                </x-empty-state>
+                            @else
+                                <x-empty-state :title="__('No season is running.')">
+                                    {{ __('This list shows the current season. Mark a season as current to see its tournaments here.') }}
+                                </x-empty-state>
+                            @endif
                         </td>
                     </tr>
                 @endforelse

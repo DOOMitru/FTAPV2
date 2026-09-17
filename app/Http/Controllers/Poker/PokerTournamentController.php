@@ -32,10 +32,26 @@ class PokerTournamentController extends Controller
         // Descending, so the nights nearest now lead and the archive falls
         // away below. That is the same reading the list had before, now
         // against the date that means something.
+        // The current season only. This list is worked, not browsed: it is
+        // where a night is scheduled and where an administrator goes to open
+        // the one being played. Seasons past are read from their own page,
+        // which lists the tournaments held in them.
+        //
+        // tournaments.season_id is NOT NULL, so there is no orphan row for this
+        // filter to miss. The case that does need care is the one below: no
+        // CURRENT season, where an unguarded filter becomes no filter at all.
+        $currentSeason = PokerSeason::current();
+
         $tournaments = PokerTournament::with(['venue', 'season'])
+            ->when($currentSeason, fn ($query) => $query->whereBelongsTo($currentSeason, 'season'))
+            // No season at all is no list. Returning everything would be the
+            // opposite of what this page now claims to show, and the empty
+            // state below says which of the two nothings this is.
+            ->unless($currentSeason, fn ($query) => $query->whereRaw('1 = 0'))
             ->orderByDesc('start_time')
             ->paginate(100);
-        return view('poker.tournaments.index', compact('tournaments'));
+
+        return view('poker.tournaments.index', compact('tournaments', 'currentSeason'));
     }
 
     /**
