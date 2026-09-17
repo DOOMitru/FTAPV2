@@ -88,9 +88,22 @@
                                         <li class="p-podium__row">
                                             <x-rank :place="$result->place" />
                                             <x-monogram :name="$result->player_name" size="sm" decorative />
-                                            <span class="p-podium__name">
-                                                <x-player-link :user="$result->user">{{ $result->player_name }}</x-player-link>
-                                            </span>
+                                            {{-- A NAME, not a link. The card
+                                                 is itself one big <a>, and an
+                                                 <a> may not contain an <a>:
+                                                 the browser closes the outer
+                                                 one at the nested start tag
+                                                 and the rest of the card --
+                                                 the podium and the foot --
+                                                 spills into the grid beside
+                                                 it as separate cells.
+                                                 NestedAnchorTest guards it.
+
+                                                 Nothing is lost. The card
+                                                 leads to the tournament, and
+                                                 every name on that page is a
+                                                 link to the player. --}}
+                                            <span class="p-podium__name">{{ $result->player_name }}</span>
                                         </li>
                                     @endforeach
                                 </ol>

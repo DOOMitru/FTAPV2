@@ -187,9 +187,11 @@ Route::get('/events', function () {
 
     // withCount('registrants'): podium() needs the size of the field to know
     // which places are settled, and this page draws one podium per card.
-    // results.user, not just results: the podium links each name to that
-    // player's figures, and three names per card is a query per card without it.
-    $pastTournaments = PokerTournament::with(['venue', 'season', 'results.user'])
+    //
+    // results, not results.user: the podium prints the snapshotted
+    // player_name and does not link it -- the card is already a link, and a
+    // link inside a link is taken apart by the browser.
+    $pastTournaments = PokerTournament::with(['venue', 'season', 'results'])
         ->withCount('registrants')
         ->where('start_time', '<', now())
         ->orderBy('start_time', 'desc')
