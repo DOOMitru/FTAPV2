@@ -49,11 +49,6 @@
     border-color: var(--c-primary);
 }
 
-.field__control--mono {
-    font-family: var(--font-mono);
-    font-variant-numeric: tabular-nums;
-}
-
 /* A field's worth of information that cannot be typed into.
  *
  * The schedule form assigns the season rather than offering it, and drew it as

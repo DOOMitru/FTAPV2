@@ -209,8 +209,18 @@ class PokerTournamentController extends Controller
         // claim -- it is only true once every entered player has a finish, so
         // it waits for isComplete() rather than for the clock. Before any
         // result at all the list is not standings of anything.
+        // Asked once and carried, because isComplete() is two queries and this
+        // page asked it four times -- here and three times in the view.
+        //
+        // Passed as a value rather than memoised on the model, deliberately.
+        // The method queries through the relation METHODS on purpose so that a
+        // caller in a WRITE request sees the result it just recorded (see the
+        // note in eliminate()); a cache on the model would take that away
+        // silently. A read request has nothing to go stale against.
+        $isComplete = $tournament->isComplete();
+
         $standingsTitle = match (true) {
-            $tournament->isComplete() => __('Final Standings'),
+            $isComplete => __('Final Standings'),
             $resultsCount > 0 => __('Standings'),
             default => __('Registered Players'),
         };
@@ -282,6 +292,7 @@ class PokerTournamentController extends Controller
             'isUserRegistered',
             'isPast',
             'registerCandidates',
+            'isComplete',
             'nextPlace',
             'nextPlacePoints',
             'standings',

@@ -98,8 +98,3 @@
     font-size: var(--step--1);
     color: var(--c-text-muted);
 }
-
-/* The one already being shown. */
-.picker__btn--current {
-    background-color: var(--c-surface-raised);
-}

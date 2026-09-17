@@ -1,15 +1,3 @@
-/* The player cell in the admin lists: initials, then the name with any
-   nickname beneath it.
- *
- * The flex row is an inner div rather than the <td> itself. A table cell set
- * to display:flex is no longer a table-cell, so it leaves the column it was
- * aligned in -- on desktop, where these are still real tables. */
-.admin-list__player {
-    display: flex;
-    align-items: center;
-    gap: var(--space-3);
-}
-
 /* Where each admin index puts its cells on a phone.
  *
  * The shell -- grid row, clipped header, cell reset -- is .table--cards in

@@ -9,7 +9,7 @@
                          players who scored and locks the record. Offered only
                          when it can act, so it is never a click that fails --
                          the controller refuses an incomplete field too. --}}
-                    @if (! $tournament->isPublished() && $tournament->isComplete())
+                    @if (! $tournament->isPublished() && $isComplete)
                         <form action="{{ route('poker.tournaments.publish', $tournament) }}" method="POST"
                               data-confirm-tone="primary"
                               data-confirm="{{ __('Publish results for :tournament? Every player who scored points will be notified, and the tournament will be locked.', [
@@ -38,7 +38,7 @@
                          buttons side by side is two calls to action and
                          therefore none; when a tournament is finished, the
                          thing to do with it is publish it. --}}
-                    <x-btn :variant="! $tournament->isPublished() && $tournament->isComplete() ? 'ghost' : 'primary'"
+                    <x-btn :variant="! $tournament->isPublished() && $isComplete ? 'ghost' : 'primary'"
                            :href="route('poker.tournaments.edit', $tournament)">{{ __('Edit') }}</x-btn>
 
                     {{-- Deleting a tournament is offered where it is read, not
@@ -305,7 +305,7 @@
              No data-confirm on the form, because this dialog IS the
              confirmation -- the header's Publish button keeps its own, since
              nothing asked first when you press that one. --}}
-        @if (auth()->user()->is_admin && ! $tournament->isPublished() && $tournament->isComplete())
+        @if (auth()->user()->is_admin && ! $tournament->isPublished() && $isComplete)
             <dialog class="confirm publish-offer"
                     @if (session('offer_publish')) x-init="$el.showModal()" @endif
                     aria-labelledby="publish-offer-title">
