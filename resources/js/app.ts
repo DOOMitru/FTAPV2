@@ -2,6 +2,7 @@ import Alpine from 'alpinejs';
 import { initAutofill } from './autofill';
 import { initConfirm } from './confirm';
 import { initDependentSelects } from './dependent-select';
+import { initRecaptcha } from './recaptcha';
 import { initTheme, toggleTheme } from './theme';
 
 window.Alpine = Alpine;
@@ -22,3 +23,7 @@ initAutofill();
 
 // The result form's player list depends on the chosen tournament.
 document.addEventListener('DOMContentLoaded', initDependentSelects);
+
+// reCAPTCHA v3 scores the submission instead of asking for a click, so the
+// token has to be fetched as the form is sent -- see recaptcha.ts.
+document.addEventListener('DOMContentLoaded', initRecaptcha);

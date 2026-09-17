@@ -16,7 +16,15 @@
             <a class="link" href="{{ route('login') }}">{{ __('sign in to your existing account') }}</a>
         </p>
 
-        <form method="POST" action="{{ route('register') }}" class="l-stack">
+        {{-- v3 scores the submission rather than asking for a click, so the
+             form carries the key and the action and recaptcha.ts fetches a
+             token as it is sent. The key travels on a data attribute because
+             this project keeps JavaScript out of the document. --}}
+        <form method="POST" action="{{ route('register') }}" class="l-stack"
+              @if (\App\Rules\Recaptcha::configured())
+                  data-recaptcha="{{ config('services.recaptcha.site_key') }}"
+                  data-recaptcha-action="register"
+              @endif>
             @csrf
 
             {{-- Paired on one row: five stacked fields in a column this
@@ -51,27 +59,20 @@
             </p>
 
             @if (\App\Rules\Recaptcha::configured())
-                {{-- Above the button, where it is part of filling the form in
-                     rather than something discovered after pressing it.
+                {{-- Nothing to see: v3 has no widget, and the token is written
+                     here as the form is submitted.
 
-                     The error is rendered here by hand: <x-field> owns the
-                     error line for the controls it draws, and the widget is
-                     not one of them -- Google draws it. Without this, a failed
-                     check would reload the page with the form apparently
-                     intact and nothing said. --}}
-                <div class="l-stack l-stack--tight">
-                    {{-- The wrapper exists to scale what it holds: Google's
-                         widget is a fixed 304x78 and does not shrink, and the
-                         form it sits in is 223px wide at 320. --}}
-                    <div class="recaptcha">
-                        <div class="g-recaptcha"
-                             data-sitekey="{{ config('services.recaptcha.site_key') }}"></div>
-                    </div>
+                     The error is rendered by hand because <x-field> owns the
+                     error line only for controls it draws, and this one is
+                     hidden. Without it a refused score would reload the page
+                     with the form apparently intact and nothing said -- the
+                     worst failure this feature can have, because the person
+                     has no widget to look at for a clue. --}}
+                <input type="hidden" name="g-recaptcha-response">
 
-                    @error('g-recaptcha-response')
-                        <p class="field__error">{{ $message }}</p>
-                    @enderror
-                </div>
+                @error('g-recaptcha-response')
+                    <p class="field__error">{{ $message }}</p>
+                @enderror
             @endif
 
             <div class="l-cluster l-cluster--between">
@@ -83,6 +84,11 @@
     </x-card>
 
     @if (\App\Rules\Recaptcha::configured())
-        <script src="https://www.google.com/recaptcha/api.js" async defer></script>
+        {{-- ?render= is what makes this v3: it loads the scoring API for this
+             key instead of drawing a checkbox. Google's badge appears bottom
+             right; it is not hidden, because hiding it obliges the site to
+             carry Google's wording instead, and a badge is less intrusive than
+             a paragraph. --}}
+        <script src="https://www.google.com/recaptcha/api.js?render={{ config('services.recaptcha.site_key') }}" async defer></script>
     @endif
 </x-public-layout>

@@ -19,16 +19,22 @@ return [
     ],
 
     /*
-     * Google reCAPTCHA v2 (the "I'm not a robot" checkbox) on the registration
-     * form. Both keys come from the same pair in Google's console: the site
-     * key is public and reaches the browser, the secret never leaves here.
+     * Google reCAPTCHA v3 on the registration form. Both keys come from the
+     * same pair in Google's console: the site key is public and reaches the
+     * browser, the secret never leaves here.
      *
-     * Absent, the form draws no widget and the rule is not applied -- see
-     * App\Rules\Recaptcha::configured().
+     * threshold is where this league draws the line on Google's 0.0-1.0 score.
+     * 0.5 is Google's own suggested starting point. Raising it turns away more
+     * bots AND more people, and a person turned away by v3 has nothing to
+     * click to prove otherwise -- so move it on evidence, not on nerves.
+     *
+     * Absent keys, the form fetches no token and the rule is not applied --
+     * see App\Rules\Recaptcha::configured().
      */
     'recaptcha' => [
         'site_key' => env('RECAPTCHA_SITE_KEY'),
         'secret' => env('RECAPTCHA_SECRET'),
+        'threshold' => env('RECAPTCHA_THRESHOLD', 0.5),
     ],
 
     'resend' => [

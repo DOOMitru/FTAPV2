@@ -2,7 +2,6 @@
 
 namespace Tests\Feature\Auth;
 
-use App\Models\User;
 use App\Rules\Recaptcha;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\ConnectionException;
@@ -10,24 +9,26 @@ use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
 /**
- * The reCAPTCHA gate on self-registration.
+ * The reCAPTCHA v3 gate on self-registration.
  *
- * The token the widget writes into the form proves nothing by itself -- a bot
- * can post any string -- so what is actually being tested here is that the
- * server asks Google, and refuses when Google says no.
+ * v3 asks the visitor for nothing and hands back a score. So there is no pass
+ * or fail to read off a widget: what is tested here is that the server asks
+ * Google what the token is worth, and refuses a token that is forged, spent on
+ * another action, or scored below this league's line.
  *
- * Http::fake() throughout: a test suite that reached Google would be slow,
- * flaky, and would fail on a laptop with no network.
+ * Http::fake() throughout: a suite that reached Google would be slow, flaky,
+ * and would fail on a laptop with no network.
  */
 class RecaptchaRegistrationTest extends TestCase
 {
     use RefreshDatabase;
 
-    private function withKeys(): void
+    private function withKeys(float $threshold = 0.5): void
     {
         config([
             'services.recaptcha.site_key' => 'test-site-key',
             'services.recaptcha.secret' => 'test-secret',
+            'services.recaptcha.threshold' => $threshold,
         ]);
     }
 
@@ -43,25 +44,42 @@ class RecaptchaRegistrationTest extends TestCase
         ], $extra);
     }
 
-    private function fakeGoogle(bool $success): void
+    private function fakeGoogle(array $body): void
     {
-        Http::fake([
-            'www.google.com/recaptcha/*' => Http::response(['success' => $success]),
-        ]);
+        Http::fake(['www.google.com/recaptcha/*' => Http::response($body)]);
     }
 
-    public function test_the_widget_is_drawn_only_when_the_league_has_keys(): void
+    private function scored(float $score, string $action = 'register'): void
+    {
+        $this->fakeGoogle(['success' => true, 'score' => $score, 'action' => $action]);
+    }
+
+    public function test_the_form_asks_for_a_token_only_when_the_league_has_keys(): void
     {
         $this->get(route('register'))->assertOk()
-            ->assertDontSee('g-recaptcha', false)
-            ->assertDontSee('recaptcha/api.js', false);
+            ->assertDontSee('data-recaptcha', false)
+            ->assertDontSee('recaptcha/api.js', false)
+            ->assertDontSee('g-recaptcha-response', false);
 
         $this->withKeys();
 
         $this->get(route('register'))->assertOk()
-            ->assertSee('class="g-recaptcha"', false)
-            ->assertSee('data-sitekey="test-site-key"', false)
-            ->assertSee('recaptcha/api.js', false);
+            ->assertSee('data-recaptcha="test-site-key"', false)
+            ->assertSee('data-recaptcha-action="register"', false)
+            ->assertSee('name="g-recaptcha-response"', false)
+            // ?render= is what makes the script v3 rather than a checkbox.
+            ->assertSee('recaptcha/api.js?render=test-site-key', false);
+    }
+
+    public function test_there_is_no_widget_to_click(): void
+    {
+        // The v2 checkbox this replaced drew a 304x78 iframe. v3 draws nothing
+        // but a badge, and the token field is hidden.
+        $this->withKeys();
+
+        $this->get(route('register'))->assertOk()
+            ->assertDontSee('class="g-recaptcha"', false)
+            ->assertSee('type="hidden" name="g-recaptcha-response"', false);
     }
 
     public function test_the_secret_never_reaches_the_browser(): void
@@ -74,10 +92,10 @@ class RecaptchaRegistrationTest extends TestCase
         $this->get(route('register'))->assertOk()->assertDontSee('test-secret', false);
     }
 
-    public function test_a_registration_google_accepts_goes_through(): void
+    public function test_a_good_score_goes_through(): void
     {
-        $this->withKeys();
-        $this->fakeGoogle(true);
+        $this->withKeys(threshold: 0.5);
+        $this->scored(0.9);
 
         $this->post(route('register'), $this->fields(['g-recaptcha-response' => 'a-token']))
             ->assertSessionHasNoErrors();
@@ -85,35 +103,96 @@ class RecaptchaRegistrationTest extends TestCase
         $this->assertDatabaseHas('users', ['email' => 'wanda@example.com']);
     }
 
-    public function test_a_registration_google_refuses_does_not(): void
+    public function test_a_score_below_the_line_does_not(): void
     {
-        $this->withKeys();
-        $this->fakeGoogle(false);
+        $this->withKeys(threshold: 0.5);
+        $this->scored(0.3);
 
-        $this->post(route('register'), $this->fields(['g-recaptcha-response' => 'a-forged-token']))
+        $this->post(route('register'), $this->fields(['g-recaptcha-response' => 'a-token']))
             ->assertSessionHasErrors('g-recaptcha-response');
 
         $this->assertDatabaseMissing('users', ['email' => 'wanda@example.com']);
     }
 
-    public function test_a_missing_token_is_refused_without_asking_google(): void
+    public function test_the_line_is_the_configured_one(): void
     {
-        $this->withKeys();
-        Http::fake();
+        // The same score, read against two thresholds. Without this a rule
+        // with the number hard-coded passes both tests above.
+        $this->withKeys(threshold: 0.9);
+        $this->scored(0.7);
 
-        $this->post(route('register'), $this->fields())
+        $this->post(route('register'), $this->fields(['g-recaptcha-response' => 'a-token']))
+            ->assertSessionHasErrors('g-recaptcha-response');
+
+        $this->withKeys(threshold: 0.6);
+        $this->scored(0.7);
+
+        $this->post(route('register'), $this->fields(['g-recaptcha-response' => 'a-token']))
+            ->assertSessionHasNoErrors();
+    }
+
+    public function test_a_score_exactly_on_the_line_passes(): void
+    {
+        $this->withKeys(threshold: 0.5);
+        $this->scored(0.5);
+
+        $this->post(route('register'), $this->fields(['g-recaptcha-response' => 'a-token']))
+            ->assertSessionHasNoErrors();
+    }
+
+    public function test_a_token_minted_for_another_action_is_refused(): void
+    {
+        // Otherwise a token from any other form on the site is spendable here,
+        // which is most of what makes a v3 token worth checking at all.
+        $this->withKeys();
+        $this->scored(0.9, action: 'contact');
+
+        $this->post(route('register'), $this->fields(['g-recaptcha-response' => 'a-token']))
             ->assertSessionHasErrors('g-recaptcha-response');
 
         $this->assertDatabaseMissing('users', ['email' => 'wanda@example.com']);
+    }
+
+    public function test_a_token_google_rejects_is_refused(): void
+    {
+        $this->withKeys();
+        $this->fakeGoogle(['success' => false, 'error-codes' => ['invalid-input-response']]);
+
+        $this->post(route('register'), $this->fields(['g-recaptcha-response' => 'forged']))
+            ->assertSessionHasErrors('g-recaptcha-response');
+    }
+
+    public function test_a_malformed_answer_with_no_score_is_refused(): void
+    {
+        // success with no score casts to 0.0 rather than passing on a loose
+        // comparison against null.
+        $this->withKeys();
+        $this->fakeGoogle(['success' => true, 'action' => 'register']);
+
+        $this->post(route('register'), $this->fields(['g-recaptcha-response' => 'a-token']))
+            ->assertSessionHasErrors('g-recaptcha-response');
+    }
+
+    public function test_an_empty_token_is_refused_without_asking_google(): void
+    {
+        // What recaptcha.ts submits when Google is blocked or hangs: the form
+        // always goes, and the server says why rather than the button
+        // appearing to do nothing.
+        $this->withKeys();
+        Http::fake();
+
+        $this->post(route('register'), $this->fields(['g-recaptcha-response' => '']))
+            ->assertSessionHasErrors('g-recaptcha-response');
+
         Http::assertNothingSent();
     }
 
     public function test_the_token_is_actually_checked_with_google(): void
     {
         // The assertion that makes the rest mean something: without it, a rule
-        // that accepted any non-empty string would pass every test above.
+        // that accepted any non-empty string would pass most of the above.
         $this->withKeys();
-        $this->fakeGoogle(true);
+        $this->scored(0.9);
 
         $this->post(route('register'), $this->fields(['g-recaptcha-response' => 'a-token']));
 
@@ -148,38 +227,6 @@ class RecaptchaRegistrationTest extends TestCase
         Http::assertNothingSent();
     }
 
-    public function test_the_widget_is_scaled_to_fit_a_phone(): void
-    {
-        // Google's widget is a fixed 304x78 iframe that responds to nothing:
-        // no max-width, flex or grid track shrinks it. The register form is
-        // 293px at 375 and 238px at 320, so unscaled it spills over the card
-        // on one and off the page on the other.
-        //
-        // Nothing in a PHP suite can measure a transform. Measured in a
-        // browser at 320, 336, 345, 360, 375, 384, 400 and 768 with a 304x78
-        // stand-in: it fits inside the form at every one, the page never
-        // scrolls, and the wrapper's height matches the scaled height exactly
-        // so no empty band is left under it.
-        $this->withKeys();
-
-        $this->get(route('register'))->assertOk()->assertSee('class="recaptcha"', false);
-
-        $css = file_get_contents(resource_path('css/5-public/_register.css'));
-
-        $this->assertMatchesRegularExpression(
-            '/\.recaptcha \{[^}]*height: calc\(78px \* var\(--recaptcha-scale\)\);/s',
-            $css,
-            'The wrapper must take the scaled height, or a shrunk widget strands 78px of nothing.'
-        );
-
-        foreach (['24rem', '22.5rem', '21rem'] as $breakpoint) {
-            $this->assertStringContainsString(
-                '@media (max-width: '.$breakpoint.')', $css,
-                'The widget needs a step at '.$breakpoint.' to stay inside the form.'
-            );
-        }
-    }
-
     public function test_configured_needs_both_keys(): void
     {
         $this->assertFalse(Recaptcha::configured());
@@ -188,7 +235,7 @@ class RecaptchaRegistrationTest extends TestCase
         $this->assertFalse(Recaptcha::configured(), 'A site key with no secret checks nothing.');
 
         config(['services.recaptcha.site_key' => null, 'services.recaptcha.secret' => 'only-this']);
-        $this->assertFalse(Recaptcha::configured(), 'A secret with no site key draws no widget.');
+        $this->assertFalse(Recaptcha::configured(), 'A secret with no site key fetches no token.');
 
         $this->withKeys();
         $this->assertTrue(Recaptcha::configured());
