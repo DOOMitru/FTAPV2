@@ -92,6 +92,24 @@ jobs:
 
       - run: composer install --no-interaction --prefer-dist --no-progress
 
+      # Known vulnerabilities in the dependencies. Once per run rather than
+      # once per database leg -- the lock file is identical on both, and a
+      # second copy of the same report is noise.
+      #
+      # It lives in `test` rather than in `deploy` so that it stops a release
+      # the same way a red suite does: deploy needs: test. bin/audit.sh is the
+      # same command to run locally, and the script says what stops a release,
+      # what is only reported, and why the severity filter is not composer's
+      # own --ignore-severity (which does nothing in Composer 2.10.2).
+      #
+      # If this fails: `composer update` and commit composer.lock. If it fails
+      # because the advisory database was unreachable, it says so and the fix
+      # is to re-run the job -- it will not pass by pretending it found
+      # nothing.
+      - name: Audit dependencies for known vulnerabilities
+        if: matrix.database == 'sqlite'
+        run: bin/audit.sh
+
       - name: Prepare the environment
         # The suite uses phpunit.xml's own database settings, but the framework
         # still boots from .env, and APP_KEY is empty in the example.

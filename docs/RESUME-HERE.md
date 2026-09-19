@@ -177,13 +177,26 @@ high in guzzle for a host-check bypass, which `App\Rules\Recaptcha` calls Google
 through. Four more highs sat in `league/commonmark`, which renders markdown mail.
 
 Updating inside `^12` cleared all of them; `composer.json` never changed. The
-lesson is the cadence rather than the fix: nothing in the pipeline notices
-dependency drift, so it is worth running `composer audit` deliberately, and
-worth considering as a deploy gate beside `mail:check` and `recaptcha:check`.
+lesson was the cadence rather than the fix -- nothing in the pipeline noticed --
+and **`bin/audit.sh` now does**, in the `test` job, so it stops a release the way
+a red suite does.
+
+It fails on **high, critical or unknown** severity in the dependencies that
+ship, and only reports the rest, so a newly published low in a dev tool does not
+block an unrelated deploy. Unknown counts as serious deliberately: the framework
+advisory that prompted all this carries no severity at all, and a filter that
+blocked only on `high` would have let it through.
+
+The severity tiering is done in the script rather than by
+`composer audit --ignore-severity`, because that flag does nothing in Composer
+2.10.2 -- 36 advisories reported with it, 36 without, whatever values are
+passed. Do not simplify it back to the flag without checking the flag has
+started working. Verified both ways: the lock from before the update fails it,
+naming 13; the lock after it passes.
 Nothing else is known-broken. There are no TODO, FIXME or HACK markers anywhere
-in `app/`, `routes/` or `resources/` -- re-checked 2026-09-17. Both deploy gates
-are wired in CI: `mail:check` and `recaptcha:check` run before the release is
-switched in.
+in `app/`, `routes/` or `resources/` -- re-checked 2026-09-17. Three checks gate
+a release: `bin/audit.sh` before the suite, and `mail:check` and
+`recaptcha:check` on the server before the release is switched in.
 
 ## The pipeline
 
