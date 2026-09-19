@@ -81,7 +81,7 @@ entries, empty states, error copy, dead JS modules, dead CSS blocks and nine to
 twelve test files apiece. The detail is under **Decisions taken since the
 conversion** below; what follows immediately is only what is still open.
 
-### Open, in rough priority — ALL CLOSED as of 2026-09-17
+### Open, in rough priority
 
 1. ~~Seed production through the dashboard~~ **DONE, 2026-09-08.** Venues,
    seasons, sponsors and the points structure were entered by hand by the owner.
@@ -155,13 +155,48 @@ conversion** below; what follows immediately is only what is still open.
 6. `docs/` holds six audit documents from finished phases. Their open-items
    sections are largely resolved; treat this file as the index, not them.
 
-**Nothing on this list is open.** It is kept for the reasons it records, not as
-a queue. The next entry goes under a new heading rather than reopening one of
-these.
+7. **Upgrade to Laravel 13.** Not urgent, and it has a deadline. Laravel 12
+   shipped 2025-02-24; the published policy is 18 months of bug fixes and two
+   years of security fixes, which puts bug fixes as already ended and security
+   patches running out around **February 2027**. Laravel 13.0.0 landed
+   2026-03-17 and is at 13.32.0, so it is mature.
+
+   **PHP is not the obstacle** -- 13 needs `^8.3`, and CI and DreamHost both run
+   8.5 (`/usr/local/php85`). The work is the majors that travel with it:
+   `laravel/tinker` 2→3, `nunomaduro/collision` 8→9 (it declares a conflict with
+   framework `>=13.0.0`), `phpunit` 11→13, `laravel/breeze` →2.4.
+
+   Items 1-6 above are done; this is the only one open.
+
+**On dependencies generally: `composer audit` is the check nobody was running.**
+On 2026-09-19 the app was seven months behind inside its own major -- 12.50.0
+against 12.69.2 -- and carrying **39 advisories**, two of them in code paths this
+app uses on public forms: a high for CRLF injection in the default `email`
+validation rule (CVE-2026-48019), which guards `/register` and `/contact`, and a
+high in guzzle for a host-check bypass, which `App\Rules\Recaptcha` calls Google
+through. Four more highs sat in `league/commonmark`, which renders markdown mail.
+
+Updating inside `^12` cleared all of them; `composer.json` never changed. The
+lesson was the cadence rather than the fix -- nothing in the pipeline noticed --
+and **`bin/audit.sh` now does**, in the `test` job, so it stops a release the way
+a red suite does.
+
+It fails on **high, critical or unknown** severity in the dependencies that
+ship, and only reports the rest, so a newly published low in a dev tool does not
+block an unrelated deploy. Unknown counts as serious deliberately: the framework
+advisory that prompted all this carries no severity at all, and a filter that
+blocked only on `high` would have let it through.
+
+The severity tiering is done in the script rather than by
+`composer audit --ignore-severity`, because that flag does nothing in Composer
+2.10.2 -- 36 advisories reported with it, 36 without, whatever values are
+passed. Do not simplify it back to the flag without checking the flag has
+started working. Verified both ways: the lock from before the update fails it,
+naming 13; the lock after it passes.
 Nothing else is known-broken. There are no TODO, FIXME or HACK markers anywhere
-in `app/`, `routes/` or `resources/` -- re-checked 2026-09-17. Both deploy gates
-are wired in CI: `mail:check` and `recaptcha:check` run before the release is
-switched in.
+in `app/`, `routes/` or `resources/` -- re-checked 2026-09-17. Three checks gate
+a release: `bin/audit.sh` before the suite, and `mail:check` and
+`recaptcha:check` on the server before the release is switched in.
 
 ## The pipeline
 
