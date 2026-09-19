@@ -16,7 +16,7 @@
              reintroduce the flash of the wrong theme it exists to prevent. --}}
         <x-theme-script />
 
-        @vite(['resources/css/app.css', 'resources/js/app.ts'])
+        @vite(['resources/css/app.css', 'resources/js/inertia-app.ts'])
         <link rel="icon" href="{{ asset('favicon.png') }}" type="image/png"/>
 
         @inertiaHead

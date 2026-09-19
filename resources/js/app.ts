@@ -23,3 +23,8 @@ initAutofill();
 // reCAPTCHA v3 scores the submission instead of asking for a click, so the
 // token has to be fetched as the form is sent -- see recaptcha.ts.
 document.addEventListener('DOMContentLoaded', initRecaptcha);
+
+// No Vue here. This entry serves the Blade half of the app -- the public pages
+// and the screens not yet converted -- and Inertia pages load inertia-app.ts
+// instead. Importing the Vue bootstrap here would put it in the bundle every
+// public page downloads.

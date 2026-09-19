@@ -443,7 +443,6 @@ export interface PageProps {
 ```ts
 import { createApp, h, type DefineComponent } from 'vue';
 import { createInertiaApp } from '@inertiajs/vue3';
-import AppLayout from './Layouts/AppLayout.vue';
 
 /**
  * Mounts Vue, but only on a page Inertia actually rendered.
@@ -466,9 +465,10 @@ export function initInertia(): void {
                 throw new Error(`Inertia page not found: ${name}`);
             }
 
-            // Every page gets the persistent shell unless it sets its own.
-            page.default.layout ??= AppLayout;
-
+            // Task 4 assigns the persistent layout here. Deliberately absent
+            // until it exists: importing a file this task does not create
+            // would leave `npm run typecheck` red at this checkpoint, and the
+            // gate added in Task 1 is only worth having if it stays green.
             return page;
         },
         setup({ el, App, props, plugin }) {
@@ -495,17 +495,14 @@ import { initInertia } from './inertia';
 initInertia();
 ```
 
-- [ ] **Step 5: Check the types of what this task created**
-
-A full build cannot pass yet: `inertia.ts` imports `AppLayout.vue`, which Task 4
-creates. Check the types of the new files alone instead:
+- [ ] **Step 5: Type-check and build**
 
 ```bash
-npx tsc --noEmit resources/js/types/inertia.d.ts; echo "exit=$?"
+npm run typecheck && npx vite build; echo "exit=$?"
 ```
 
-Expected: exit 0. The build is verified at the end of Task 4, once the layout
-exists — that is the first point at which a green build is meaningful.
+Expected: exit 0. This task imports nothing it does not create, so the gate
+stays green and the checkpoint is safe to commit and to push.
 
 - [ ] **Step 6: Commit (hand-off)**
 
