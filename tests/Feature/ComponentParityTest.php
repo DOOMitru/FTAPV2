@@ -144,6 +144,27 @@ class ComponentParityTest extends TestCase
         $found = [];
 
         $source = $this->withoutComments($source);
+        $source = $this->withoutNonClassAttributes($source);
+
+        /*
+         * A composed modifier counts as every modifier it can compose.
+         *
+         * Blade writes `'badge badge--'.$variant`; the Vue twin writes the
+         * three names out, because a composed name is invisible to
+         * UnusedCssClassTest and that is how four notification tier classes
+         * went missing. Both are correct, and without this they read as drift
+         * in both directions at once.
+         *
+         * So a file mentioning the PREFIX is credited with every declared
+         * class under it -- the same trade UnusedCssClassTest makes.
+         */
+        foreach ($this->composedPrefixes($source) as $prefix) {
+            foreach ($declared as $class) {
+                if (str_starts_with($class, $prefix)) {
+                    $found[] = $class;
+                }
+            }
+        }
 
         // Every single-, double- or backtick-quoted run, which covers class
         // attributes, PHP string literals, Vue bindings and template literals.
@@ -167,6 +188,53 @@ class ComponentParityTest extends TestCase
         sort($found);
 
         return $found;
+    }
+
+    /**
+     * Modifier prefixes the file builds a class name from at runtime.
+     *
+     * `'badge badge--'.$variant` in Blade, `badge--${variant}` in Vue: in both
+     * the prefix is followed by the end of a string literal or an
+     * interpolation, which is what distinguishes it from a class written out
+     * in full.
+     *
+     * @return list<string>
+     */
+    private function composedPrefixes(string $source): array
+    {
+        preg_match_all(
+            '/(?<![\w-])([a-z][\w-]*--)(?:[\'"`]\s*\.|\$\{|\{\{|\$)/i',
+            $source,
+            $matches
+        );
+
+        return array_values(array_unique($matches[1]));
+    }
+
+    /**
+     * The file with attributes that never carry class names blanked out.
+     *
+     * Two kinds get blanked out, because reading every quoted string in the
+     * file cannot tell either from a class list:
+     *
+     *   - Attributes whose value is an identifier: `<slot name="action" />` is
+     *     a slot called action, not the .action class.
+     *   - Vue DIRECTIVE expressions, which are logic. `v-if="slots.action"`
+     *     mentions `action` while saying nothing about classes -- that is what
+     *     reported EmptyState as drifting from a twin it renders identically
+     *     to. `:class` survives, since it is the `:` shorthand rather than a
+     *     `v-` directive; a caller writing `v-bind:class` in full would be
+     *     stripped and lose coverage, which is why nothing in this codebase
+     *     does.
+     */
+    private function withoutNonClassAttributes(string $source): string
+    {
+        $patterns = [
+            '/\b(?:name|id|for|type|role|href|src|alt|title|icon|label|value)="[^"]*"/i',
+            '/(?:v-(?!bind:class)[\w:.-]+|@[\w:.-]+)="[^"]*"/i',
+        ];
+
+        return (string) preg_replace($patterns, ' ', $source);
     }
 
     /**
