@@ -164,16 +164,17 @@ class PlayerLeagueAccessTest extends TestCase
         // to it is a link to a 403.
         $this->seedLeague();
 
-        $html = $this->actingAs($this->player())
-            ->get(route('poker.venues.index'))->assertOk()->getContent();
-
-        $this->assertStringNotContainsString('Add Venue', $html);
-        $this->assertStringNotContainsString(route('poker.venues.show', Venue::first()), $html);
-        $this->assertStringNotContainsString('title="Edit"', $html);
-        $this->assertStringNotContainsString('title="Delete"', $html);
-
-        // The venue itself is still named -- that is the point of the page.
-        $this->assertStringContainsString(Venue::first()->name, $html);
+        // Props rather than absent substrings, now the page is Inertia.
+        // rows_link false is the decision itself -- the row is not a link at
+        // all, so there is no URL to be absent.
+        $this->actingAs($this->player())
+            ->get(route('poker.venues.index'))->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('can_create', false)
+                ->where('rows_link', false)
+                // The venue itself is still named -- that is the point of the page.
+                ->where('venues.data.0.name', Venue::first()->name)
+            );
     }
 
     public function test_an_admin_still_gets_every_control(): void
@@ -197,8 +198,10 @@ class PlayerLeagueAccessTest extends TestCase
             ->assertSee('Schedule Tournament');
 
         $this->actingAs($admin)->get(route('poker.venues.index'))->assertOk()
-            ->assertSee('Add Venue')
-            ->assertSee(route('poker.venues.show', Venue::first()), false);
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('can_create', true)
+                ->where('rows_link', true)
+            );
     }
 
     public function test_the_league_menu_is_offered_to_a_player(): void

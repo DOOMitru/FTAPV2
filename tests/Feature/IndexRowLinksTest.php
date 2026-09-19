@@ -67,6 +67,7 @@ class IndexRowLinksTest extends TestCase
      */
     private const CONVERTED = [
         'poker.seasons.index' => 'js/Pages/Poker/Seasons/Index.vue',
+        'poker.venues.index' => 'js/Pages/Poker/Venues/Index.vue',
     ];
 
     public function test_each_listing_makes_its_rows_links(): void
@@ -87,9 +88,11 @@ class IndexRowLinksTest extends TestCase
 
                 // The destination is built in the template from an id, so the
                 // check is that the id is sent at all -- without it the row
-                // has nowhere to point.
+                // has nowhere to point. The prop is named for its page.
+                $key = $listing === 'poker.seasons.index' ? 'seasons' : 'venues';
+
                 $this->actingAs($admin)->get(route($listing))->assertOk()
-                    ->assertInertia(fn (Assert $props) => $props->has('seasons.data.0.id'));
+                    ->assertInertia(fn (Assert $props) => $props->has($key.'.data.0.id'));
 
                 continue;
             }

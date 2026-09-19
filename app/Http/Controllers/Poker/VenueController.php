@@ -4,19 +4,45 @@ namespace App\Http\Controllers\Poker;
 
 use App\Http\Controllers\Controller;
 use App\Models\Venue;
+use App\Support\Paginate;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
+use Inertia\Inertia;
+use Inertia\Response;
 
 class VenueController extends Controller
 {
     /**
      * Display a listing of the resource.
      */
-    public function index(): View
+    public function index(): Response
     {
-        $venues = Venue::latest()->paginate(10);
-        return view('poker.venues.index', compact('venues'));
+        $isAdmin = (bool) auth()->user()->is_admin;
+
+        return Inertia::render('Poker/Venues/Index', [
+            'venues' => Paginate::props(
+                Venue::latest()->paginate(10),
+                fn (Venue $venue) => [
+                    'id' => $venue->id,
+                    'name' => $venue->name,
+                    'description' => $venue->description,
+                ]
+            ),
+
+            /*
+             * Whether a row is a link at all.
+             *
+             * poker.venues.show is admin-only -- it carries takings,
+             * leaderboards and per-player point histories -- so a row a player
+             * could follow is a row that leads to a 403. The Blade decided
+             * this with auth()->user()->is_admin inline; as a prop it is
+             * decided where the gate is, and the template has no opinion about
+             * who may read what.
+             */
+            'rows_link' => $isAdmin,
+            'can_create' => $isAdmin,
+        ]);
     }
 
     /**
