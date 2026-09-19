@@ -11,9 +11,13 @@ routes behind `auth` become Vue pages; the 18 public routes keep server-rendered
 Blade. This plan delivers the foundation and exactly one converted page. Nothing
 here changes controller logic, models, migrations, or any public page.
 
-**Tech Stack:** Laravel 13.32, PHP 8.5, Inertia.js v2 (Laravel adapter + Vue 3
-adapter), Vue 3.5 `<script setup lang="ts">`, TypeScript 5.9 strict, Vite 7,
-PHPUnit 12.
+**Tech Stack:** Laravel 13.32, PHP 8.5, Inertia.js (`inertiajs/inertia-laravel`
+v3.3, `@inertiajs/vue3` v3.7), Vue 3.5 `<script setup lang="ts">`, TypeScript
+5.9 strict, Vite 7, PHPUnit 12.
+
+Versions checked against the registries on 2026-09-19, not assumed. An earlier
+draft of this plan said `^2.0` for both Inertia packages, which is two majors
+stale on the npm side and one on the Composer side.
 
 **Spec:** `docs/superpowers/specs/2026-09-19-inertia-vue-conversion-design.md`
 
@@ -80,10 +84,14 @@ gets added.
 - [ ] **Step 1: Install the type checker and the Vue toolchain**
 
 ```bash
-npm install --save-dev vue@^3.5 @vitejs/plugin-vue@^6.0 vue-tsc@^3.1 \
-  @inertiajs/vue3@^2.0
-composer require inertiajs/inertia-laravel:^2.0
+npm install --save-dev vue@^3.5 @vitejs/plugin-vue@^6.0 vue-tsc@^3.3 \
+  @inertiajs/vue3@^3.7
+composer require inertiajs/inertia-laravel:^3.3
 ```
+
+`inertia-laravel` v3.3.4 declares `laravel/framework ^11.35|^12.0|^13.0`, so it
+is the version that works here. `@inertiajs/vue3` is at 3.7.1 with a `vue ^3.0`
+peer; `@vitejs/plugin-vue` 6.0.9 peers `vite ^5|^6|^7|^8`, satisfied by Vite 7.
 
 - [ ] **Step 2: Add the script**
 
