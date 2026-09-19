@@ -9,6 +9,7 @@ use App\Models\Venue;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\Concerns\BuildsTournaments;
+use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
 
 /**
@@ -129,16 +130,18 @@ class PlayerLeagueAccessTest extends TestCase
     {
         $this->seedLeague();
 
-        $html = $this->actingAs($this->player())
-            ->get(route('poker.seasons.index'))->assertOk()->getContent();
-
-        $this->assertStringNotContainsString('Create Season', $html);
-        $this->assertStringNotContainsString(route('poker.seasons.create'), $html);
-        $this->assertStringNotContainsString('title="Edit"', $html);
-        $this->assertStringNotContainsString('title="Delete"', $html);
-
-        // Reading a season is the reason a player is here at all.
-        $this->assertStringContainsString(route('seasons.show', PokerSeason::first()), $html);
+        // Now an Inertia page, so what a player may do is a PROP rather than
+        // a string that happens to be absent from the markup. That reads
+        // better: absence-of-substring passes for the wrong reasons all the
+        // time -- a renamed button, a changed label -- where can_create is the
+        // decision itself.
+        $this->actingAs($this->player())
+            ->get(route('poker.seasons.index'))->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('can_create', false)
+                // Reading a season is the reason a player is here at all.
+                ->has('seasons.data.0.id')
+            );
     }
 
     public function test_the_tournaments_list_offers_a_player_nothing_to_change(): void
@@ -185,7 +188,7 @@ class PlayerLeagueAccessTest extends TestCase
         // deleting moved to each record's own page, so Delete is asserted
         // there rather than in a row.
         $this->actingAs($admin)->get(route('poker.seasons.index'))->assertOk()
-            ->assertSee('Create Season');
+            ->assertInertia(fn (Assert $page) => $page->where('can_create', true));
 
         $this->actingAs($admin)->get(route('seasons.show', PokerSeason::firstOrFail()))->assertOk()
             ->assertSee('Delete season');

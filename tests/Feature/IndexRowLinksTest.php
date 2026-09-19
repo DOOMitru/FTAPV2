@@ -7,6 +7,7 @@ use App\Models\PokerTournament;
 use App\Models\User;
 use App\Models\Venue;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
 
 /**
@@ -53,6 +54,21 @@ class IndexRowLinksTest extends TestCase
         return [$season, $venue, $tournament];
     }
 
+    /**
+     * Listings still rendered by Blade, and the page that replaced one.
+     *
+     * The conversion to Inertia is incremental, so for a while this file
+     * checks the same rule two ways. A Blade listing puts its markup in the
+     * response; a converted one puts it in a .vue file and sends the props the
+     * row is built from. Both are the same claim -- the row is a link and it
+     * reaches the record -- asserted where the evidence now lives.
+     *
+     * @var array<string, string> route name => the .vue page, for converted listings
+     */
+    private const CONVERTED = [
+        'poker.seasons.index' => 'js/Pages/Poker/Seasons/Index.vue',
+    ];
+
     public function test_each_listing_makes_its_rows_links(): void
     {
         [$season, $venue, $tournament] = $this->seedLeague();
@@ -63,6 +79,21 @@ class IndexRowLinksTest extends TestCase
             'poker.venues.index' => route('poker.venues.show', $venue),
             'poker.tournaments.index' => route('tournaments.show', $tournament),
         ] as $listing => $destination) {
+            if (array_key_exists($listing, self::CONVERTED)) {
+                $page = file_get_contents(resource_path(self::CONVERTED[$listing]));
+
+                $this->assertStringContainsString('table__row--link', $page, $listing.' has no linked row.');
+                $this->assertStringContainsString('class="table__link"', $page, $listing.' has no stretched anchor.');
+
+                // The destination is built in the template from an id, so the
+                // check is that the id is sent at all -- without it the row
+                // has nowhere to point.
+                $this->actingAs($admin)->get(route($listing))->assertOk()
+                    ->assertInertia(fn (Assert $props) => $props->has('seasons.data.0.id'));
+
+                continue;
+            }
+
             $html = $this->actingAs($admin)->get(route($listing))->assertOk()->getContent();
 
             $this->assertStringContainsString('table__row--link', $html, $listing.' has no linked row.');

@@ -4,21 +4,40 @@ namespace App\Http\Controllers\Poker;
 
 use App\Http\Controllers\Controller;
 use App\Models\PokerSeason;
+use App\Support\Paginate;
 use App\Models\PokerTournamentResult;
 use App\Models\VenuePoints;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
+use Inertia\Inertia;
+use Inertia\Response;
 
 class PokerSeasonController extends Controller
 {
     /**
      * Display a listing of the resource.
      */
-    public function index(): View
+    public function index(): Response
     {
-        $seasons = PokerSeason::latest()->paginate(10);
-        return view('poker.seasons.index', compact('seasons'));
+        return Inertia::render('Poker/Seasons/Index', [
+            'seasons' => Paginate::props(
+                PokerSeason::latest()->paginate(10),
+                fn (PokerSeason $season) => [
+                    'id' => $season->id,
+                    'name' => $season->name,
+                    'is_current' => (bool) $season->is_current,
+                    // Formatted here, per spec §5a. The em dash is the empty
+                    // state for a date, not a null for Vue to decide about.
+                    'start_label' => $season->start_date?->format('M d, Y') ?? '—',
+                    'end_label' => $season->end_date?->format('M d, Y') ?? '—',
+                ]
+            ),
+
+            // A server decision, not auth.user.is_admin read in the template:
+            // what a reader may do is decided where the gate is.
+            'can_create' => (bool) auth()->user()->is_admin,
+        ]);
     }
 
     /**
