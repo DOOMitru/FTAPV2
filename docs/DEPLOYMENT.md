@@ -30,7 +30,8 @@ against it.
 
 The version lives in one place, `PHP_VERSION` at the top of the workflow, and is
 set to **8.5** -- the server offers `/usr/local/php85` and local development runs
-8.5.4, so dev, CI and production are one interpreter rather than three.
+8.5.4, so dev, CI and production are one interpreter rather than three. The floor
+is 8.3, which is what Laravel 13 requires; 8.5 is well clear of it.
 
 Three things have to agree, and this is the whole requirement:
 

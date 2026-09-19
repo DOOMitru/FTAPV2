@@ -5,7 +5,7 @@ poker nights in Regina.
 
 ## Where things stand
 
-Suite: **962 passed across 112 files.** `php artisan test` is the command, but
+Suite: **962 passed across 112 files**, on Laravel 13.32.0 and PHPUnit 12. `php artisan test` is the command, but
 see the segfault note below -- a full-suite run dies on this machine and has to
 be taken file by file, and the script there is how that 962 was counted. Do not
 count it by hand: the previous figure in this line went stale, and so did the
@@ -81,7 +81,7 @@ entries, empty states, error copy, dead JS modules, dead CSS blocks and nine to
 twelve test files apiece. The detail is under **Decisions taken since the
 conversion** below; what follows immediately is only what is still open.
 
-### Open, in rough priority
+### Open, in rough priority — ALL CLOSED as of 2026-09-19
 
 1. ~~Seed production through the dashboard~~ **DONE, 2026-09-08.** Venues,
    seasons, sponsors and the points structure were entered by hand by the owner.
@@ -155,18 +155,30 @@ conversion** below; what follows immediately is only what is still open.
 6. `docs/` holds six audit documents from finished phases. Their open-items
    sections are largely resolved; treat this file as the index, not them.
 
-7. **Upgrade to Laravel 13.** Not urgent, and it has a deadline. Laravel 12
-   shipped 2025-02-24; the published policy is 18 months of bug fixes and two
-   years of security fixes, which puts bug fixes as already ended and security
-   patches running out around **February 2027**. Laravel 13.0.0 landed
-   2026-03-17 and is at 13.32.0, so it is mature.
+7. ~~Upgrade to Laravel 13.~~ **DONE, 2026-09-19.** On 13.32.0. It was three
+   constraints in the end, not the five this entry predicted:
+   `laravel/framework` ^12→^13, `laravel/tinker` ^2→^3, `phpunit` ^11.5→^12.5,
+   plus the app's own `php` floor ^8.2→^8.3, which is what 13 requires.
 
-   **PHP is not the obstacle** -- 13 needs `^8.3`, and CI and DreamHost both run
-   8.5 (`/usr/local/php85`). The work is the majors that travel with it:
-   `laravel/tinker` 2→3, `nunomaduro/collision` 8→9 (it declares a conflict with
-   framework `>=13.0.0`), `phpunit` 11→13, `laravel/breeze` →2.4.
+   **Two of the predictions here were wrong, and both in the same direction --
+   read the skeleton rather than guessing.** `laravel/laravel` v13's own
+   `require-dev` asks for `nunomaduro/collision ^8.6` and
+   `phpunit/phpunit ^12.5.12`: there is no collision 9.x at all, and 13 is not
+   the PHPUnit that goes with it. Collision and Breeze needed no change
+   whatever -- the 2026-09-19 in-major update had already moved collision to
+   8.9.5, whose conflict rule is now `<11.48.0 || >=14.0.0`, and Breeze to
+   2.4.2, which allows `illuminate/support ^13.0`.
 
-   Items 1-6 above are done; this is the only one open.
+   **What actually broke: one thing.** PHPUnit 12 reports a data provider that
+   hands a test more arguments than it accepts, where 11 dropped the extra
+   silently. `AdminIndexCardLayoutTest` had one. Everything else passed
+   untouched -- 962 tests.
+
+   Measured in a throwaway copy of the app before anything was changed here.
+   Worth knowing for the next major: the first run of that copy showed 494
+   failures and meant nothing, because `tar --exclude=vendor` had also
+   excluded `resources/views/vendor/`, `public/build` held a stub manifest,
+   and `public/storage` still pointed at the original checkout.
 
 **On dependencies generally: `composer audit` is the check nobody was running.**
 On 2026-09-19 the app was seven months behind inside its own major -- 12.50.0
