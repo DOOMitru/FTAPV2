@@ -72,18 +72,25 @@ into Vue.
 **Interfaces:**
 - Produces:
   - `Paginated<T>` in `types/inertia.d.ts` — `{ data: T[]; links: PageLink[]; status_label: string | null }`.
-  - `PageLink` — `{ url: string | null; label: string; active: boolean }`.
+  - `PageLink` — `{ kind: 'previous' | 'next' | 'page' | 'gap'; url: string | null; label: string; active: boolean; aria_label: string | null }`.
+    `kind` rather than inferring from the label: Laravel's labels carry HTML
+    entities, and a template asking "is this Previous?" by looking for the word
+    breaks the first time it is translated.
   - `Pagination.vue` — props `links: PageLink[]`, `statusLabel: string | null`.
 
 **Port target.** `resources/views/vendor/pagination/design-system.blade.php`.
 Read it in full first. Three things in it must survive:
 
 - **The page numbers are windowed by the view**, not taken from Laravel's
-  `$elements`. Laravel's own window cannot produce the shape this app wants:
-  under eight pages it renders every one, and over that its slider widens
-  around the current page. Laravel's `linkCollection()` produces exactly the
-  elements the Blade deliberately ignores, so the window is computed in PHP
-  alongside it — see step 2.
+  `$elements`: first two, the page you are on, last two. Laravel's own window
+  cannot produce that shape — under eight pages it renders every one, and over
+  that its slider widens around the current page.
+
+  **Do not use `linkCollection()`.** An earlier draft of this plan said to, and
+  it is wrong: it returns exactly the elements the Blade deliberately ignores,
+  so it would have quietly changed the shape of every pager in the app. The
+  window is reproduced in `Paginate` instead, and checked against the Blade's
+  across every page count and current-page position.
 - **Previous and Next carry both a word and an arrow, always in the DOM.**
   Below 48rem the label is clipped rather than removed, so the link is an arrow
   to look at and still reads as "Previous" to a screen reader. `display: none`

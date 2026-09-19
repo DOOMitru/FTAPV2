@@ -20,6 +20,29 @@ export interface AuthUser {
     is_admin: boolean;
 }
 
+export interface PageLink {
+    /**
+     * What this link IS, rather than something for the template to infer from
+     * its label. Laravel's own labels carry HTML entities -- "&laquo;
+     * Previous" -- and a template deciding "is this the previous link?" by
+     * looking for the word would break the first time it was translated.
+     */
+    kind: 'previous' | 'next' | 'page' | 'gap';
+    /** Null when there is nowhere to go: the current page, a gap, or an edge. */
+    url: string | null;
+    label: string;
+    active: boolean;
+    aria_label: string | null;
+}
+
+/** A page of results, as Laravel's paginator crosses into Vue. */
+export interface Paginated<T> {
+    data: T[];
+    links: PageLink[];
+    /** "Showing 1 to 10 of 43", or null when there is only one page. */
+    status_label: string | null;
+}
+
 /**
  * One notification, ready to render.
  *
