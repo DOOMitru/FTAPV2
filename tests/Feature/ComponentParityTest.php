@@ -107,38 +107,136 @@ class ComponentParityTest extends TestCase
     }
 
     /**
-     * Every class literal written in a class attribute.
+     * Every class hook a file mentions, as literal text.
      *
-     * Both `class="a b"` and Vue's `:class` bindings are read: a hook that
-     * appears only inside a binding still has to exist on both sides. Blade
-     * echoes and Vue expressions are stripped first, so a conditional class
-     * contributes its literals and not its logic.
+     * Two naive versions of this were wrong in opposite directions, which is
+     * why it works the way it does:
+     *
+     *   - Reading only `class="..."` missed Blade's
+     *     `$attributes->merge(['class' => 'dropdown__item'])`, where the hook
+     *     is a PHP string rather than an attribute.
+     *   - Reading Vue's `:class="classes"` counted the VARIABLE NAME as a hook,
+     *     so a component was reported as having one its twin lacked.
+     *
+     * So: take every quoted string in the file, split it into tokens, and keep
+     * only the tokens the stylesheet actually declares. A variable called
+     * `classes` is not a declared class and drops out; `dropdown__item` is one
+     * and is counted wherever it is written. Computed halves like
+     * `'btn btn--'.$variant` contribute `btn`, and the modifier is covered by
+     * UnusedCssClassTest rather than here.
+     *
+     * Two more things the first version got wrong, both found by running it:
+     *
+     *   - COMMENTS are stripped first. This project's components explain
+     *     themselves at length and name class hooks while doing it --
+     *     dropdown-link.blade.php mentions `.nav-link` in prose -- so a
+     *     comment would report drift against a twin that renders identically.
+     *     UnusedCssClassTest strips comments for exactly this reason.
+     *   - BACKTICK strings are read too. A Vue template literal like
+     *     `btn btn--${variant}` is where a computed class list naturally
+     *     lands, and a regex looking only for quotes cannot see it.
      *
      * @return list<string>
      */
     private function classes(string $source): array
     {
-        preg_match_all('/(?::class|class)="([^"]*)"/', $source, $matches);
+        $declared = $this->declaredCssClasses();
+        $found = [];
 
-        $classes = [];
+        $source = $this->withoutComments($source);
 
-        foreach ($matches[1] as $attribute) {
-            $literal = preg_replace('/\{\{.*?\}\}/s', ' ', $attribute);
+        // Every single-, double- or backtick-quoted run, which covers class
+        // attributes, PHP string literals, Vue bindings and template literals.
+        preg_match_all('/"([^"]*)"|\'([^\']*)\'|`([^`]*)`/', $source, $matches);
 
-            foreach (preg_split('/[\s\'{}:,?()]+/', (string) $literal, -1, PREG_SPLIT_NO_EMPTY) as $token) {
-                // A class name, not an identifier from an expression. Both look
-                // alike, so this errs towards including a token: a false
-                // positive shows up as drift on both sides and cancels out, a
-                // false negative silently drops a hook from the comparison.
-                if (preg_match('/^[a-z][a-z0-9_-]*$/', $token)) {
-                    $classes[] = $token;
+        $strings = array_merge($matches[1], $matches[2], $matches[3]);
+
+        foreach ($strings as $string) {
+            // Quotes, backticks and `$` are separators too: a nested literal
+            // inside a template string -- `btn ${x ? ' btn--sm' : ''}` -- would
+            // otherwise yield the token "'btn--sm'" with its quotes attached,
+            // which matches no declared class and reads as drift.
+            foreach (preg_split('/[\s{}:,?()\[\].\'"`$]+/', $string, -1, PREG_SPLIT_NO_EMPTY) as $token) {
+                if (in_array($token, $declared, true)) {
+                    $found[] = $token;
                 }
             }
         }
 
+        $found = array_values(array_unique($found));
+        sort($found);
+
+        return $found;
+    }
+
+    /**
+     * The file with its commentary removed.
+     *
+     * Blade comments, HTML comments, and JavaScript block and line comments.
+     * The line-comment pattern deliberately requires whitespace or a line
+     * start before `//` so a URL's scheme is not mistaken for one.
+     */
+    private function withoutComments(string $source): string
+    {
+        $patterns = [
+            '/\{\{--.*?--\}\}/s',   // Blade
+            '/<!--.*?-->/s',         // HTML
+            '/\/\*.*?\*\//s',        // /* block */
+            '/(^|\s)\/\/[^\n]*/m',    // // line
+
+            /*
+             * A function NAME is not a class hook, and one of them collides.
+             * `emph()` is a helper; `emph` is also the class on the <strong>
+             * it produces. Blade calling emph() therefore looked like a hook
+             * the Vue twin was missing. Dropping the name and keeping the
+             * arguments leaves the strings inside the call readable.
+             */
+            '/\b[a-z_]\w*\s*\(/i',
+        ];
+
+        return (string) preg_replace($patterns, ' ', $source);
+    }
+
+    /**
+     * Every class the stylesheets declare.
+     *
+     * The same extraction UnusedCssClassTest uses, for the same reason:
+     * comments discuss class names constantly in this project, so they are
+     * stripped before the selectors are read.
+     *
+     * @return list<string>
+     */
+    private function declaredCssClasses(): array
+    {
+        static $classes = null;
+
+        if ($classes !== null) {
+            return $classes;
+        }
+
+        $classes = [];
+
+        $files = new \RecursiveIteratorIterator(
+            new \RecursiveDirectoryIterator(resource_path('css'))
+        );
+
+        foreach ($files as $file) {
+            if (! $file->isFile() || $file->getExtension() !== 'css') {
+                continue;
+            }
+
+            $css = preg_replace('#/\*.*?\*/#s', '', (string) file_get_contents($file->getPathname()));
+
+            preg_match_all('/\.(-?[_a-zA-Z][\w-]*)/', (string) $css, $matches);
+
+            foreach ($matches[1] as $class) {
+                $classes[] = $class;
+            }
+        }
+
         $classes = array_values(array_unique($classes));
-        sort($classes);
 
         return $classes;
     }
+
 }
