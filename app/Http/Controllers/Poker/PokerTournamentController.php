@@ -7,6 +7,7 @@ use App\Models\PointsStructure;
 use App\Models\PokerSeason;
 use App\Models\PokerTournament;
 use App\Models\Venue;
+use App\Support\Paginate;
 use App\Notifications\TournamentPlacement;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\RedirectResponse;
@@ -22,7 +23,7 @@ class PokerTournamentController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index(): View
+    public function index(): \Inertia\Response
     {
         // By START TIME, not latest(). latest() orders by created_at -- the
         // order the rows were typed in -- which for a league that schedules a
@@ -51,7 +52,31 @@ class PokerTournamentController extends Controller
             ->orderByDesc('start_time')
             ->paginate(100);
 
-        return view('poker.tournaments.index', compact('tournaments', 'currentSeason'));
+        return \Inertia\Inertia::render('Poker/Tournaments/Index', [
+            'tournaments' => Paginate::props(
+                $tournaments,
+                fn (PokerTournament $tournament) => [
+                    'id' => $tournament->id,
+                    'name' => $tournament->name,
+                    // TBD is the venue's empty state, decided here rather than
+                    // left as a null the template has an opinion about.
+                    'venue_name' => $tournament->venue->name ?? __('TBD'),
+                    'start_label' => $tournament->start_time?->format('M d, Y · h:i A') ?? '—',
+                ]
+            ),
+
+            /*
+             * Null when no season is running, and the page says something
+             * different in each case.
+             *
+             * An administrator can act on an unset season and cannot act on an
+             * empty one, so "No tournaments in Season 9 yet." and "No season is
+             * running." must not read alike. The name is what distinguishes
+             * them, so it is sent rather than inferred from an empty list.
+             */
+            'season_name' => $currentSeason?->name,
+            'can_create' => (bool) auth()->user()->is_admin,
+        ]);
     }
 
     /**

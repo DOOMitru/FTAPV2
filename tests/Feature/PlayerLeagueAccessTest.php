@@ -148,14 +148,13 @@ class PlayerLeagueAccessTest extends TestCase
     {
         $this->seedLeague();
 
-        $html = $this->actingAs($this->player())
-            ->get(route('poker.tournaments.index'))->assertOk()->getContent();
-
-        $this->assertStringNotContainsString('Schedule Tournament', $html);
-        $this->assertStringNotContainsString('title="Edit"', $html);
-        $this->assertStringNotContainsString('title="Delete"', $html);
-
-        $this->assertStringContainsString(route('tournaments.show', PokerTournament::first()), $html);
+        $this->actingAs($this->player())
+            ->get(route('poker.tournaments.index'))->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('can_create', false)
+                // Reading the night is the point: a player registers there.
+                ->where('tournaments.data.0.id', PokerTournament::first()->id)
+            );
     }
 
     public function test_the_venue_list_offers_a_player_no_way_in_at_all(): void
@@ -195,7 +194,7 @@ class PlayerLeagueAccessTest extends TestCase
             ->assertSee('Delete season');
 
         $this->actingAs($admin)->get(route('poker.tournaments.index'))->assertOk()
-            ->assertSee('Schedule Tournament');
+            ->assertInertia(fn (Assert $page) => $page->where('can_create', true));
 
         $this->actingAs($admin)->get(route('poker.venues.index'))->assertOk()
             ->assertInertia(fn (Assert $page) => $page
