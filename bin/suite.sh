@@ -21,6 +21,12 @@
 #      further up -- and reported a green suite for a whole session while a real
 #      failure sat in it.
 #
+#   2b. ANSI escapes are stripped before the line is matched. Laravel's test
+#      runner colours its output even when piped, so under PHPUnit 12 the
+#      summary arrives as ESC[90mTests:ESC[39m and an anchored `^  Tests:`
+#      matches nothing. The script then reported all 112 files as crashed --
+#      correctly, since it could not read a result, but for the wrong reason.
+#
 #   3. The exit status is the answer: 1 if anything failed or was skipped. Do
 #      not pipe this script, or you will read the exit status of whatever you
 #      piped into. Capture instead: out=$(bin/suite.sh); status=$?
@@ -48,14 +54,21 @@ total=$(echo "$files" | wc -l)
 ran=0
 fail=0
 
+summarise() {
+    php artisan test "$1" 2>&1 \
+        | sed -E 's/\x1b\[[0-9;]*[A-Za-z]//g' \
+        | grep -E '^  Tests:' \
+        | tail -1
+}
+
 for file in $files; do
-    summary=$(php artisan test "$file" 2>&1 | grep -E '^  Tests:' | tail -1)
+    summary=$(summarise "$file")
 
     case "$summary" in
         ''|*failed*|*error*)
             # Once more before believing it: a segfault takes the whole run
             # down and leaves no summary line at all.
-            summary=$(php artisan test "$file" 2>&1 | grep -E '^  Tests:' | tail -1)
+            summary=$(summarise "$file")
 
             case "$summary" in
                 ''|*failed*|*error*)

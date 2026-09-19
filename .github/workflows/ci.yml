@@ -31,8 +31,9 @@ on:
 #
 #     ssh you@host 'ls -d /usr/local/php*'
 #
-# and set this to it. The app itself is not the constraint: composer.json allows
-# ^8.2 and nothing in composer.lock caps it.
+# and set this to it. The app asks for ^8.3 -- raised from ^8.2 with Laravel 13,
+# which requires it -- so anything from 8.3 up satisfies composer; the server is
+# what actually decides.
 #
 # 8.5 because the server has /usr/local/php85 and local development runs 8.5.4,
 # so dev, CI and production are one interpreter rather than three. The pinned

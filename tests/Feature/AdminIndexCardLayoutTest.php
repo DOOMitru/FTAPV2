@@ -74,9 +74,20 @@ class AdminIndexCardLayoutTest extends TestCase
         ];
     }
 
+    /**
+     * @param  list<string>  $hooks  not used here -- see below
+     */
     #[DataProvider('pages')]
-    public function test_the_table_opts_into_the_card_layout(string $route, string $wrapper): void
+    public function test_the_table_opts_into_the_card_layout(string $route, string $wrapper, array $hooks): void
     {
+        // $hooks is declared and ignored on purpose. One provider feeds both
+        // tests, so the list of pages has a single definition; this test only
+        // needs the first two columns of it. PHPUnit 12 treats a provider
+        // handing a method more arguments than it accepts as a warning, where
+        // 11 simply dropped the extra -- and the alternative, a second
+        // provider, is the same list written twice and free to disagree with
+        // itself.
+
         $this->seedRecords();
 
         $html = $this->actingAs($this->admin())->get(route($route))->assertOk()->getContent();
