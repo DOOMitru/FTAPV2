@@ -752,9 +752,12 @@ twin, keeping its Blade original for the public pages, and each is added to
 Read each Blade file in full before porting it. The CSS is keyed on these
 class names and is not being changed.
 
-- [ ] **Step 2: Register each pair in the parity guard**
+- [ ] **Step 2: Nothing to register**
 
-Add each to `ComponentParityTest::TWINS` as it is created.
+`ComponentParityTest` discovers pairs from the filesystem: any
+`Components/X.vue` whose kebab-cased name matches a
+`views/components/x.blade.php` is compared automatically. There is no list to
+add to and none to forget.
 
 - [ ] **Step 3: Type-check and build**
 
@@ -912,7 +915,10 @@ dropdown--notifications.
 
 ## Task 5: The component parity guard
 
-Written now, before the eleven twins exist, so it is never retrofitted. Spec §2.
+Written before any twin exists, so it is never retrofitted. Spec §2 asks for it
+"before the second component is converted, not after the eleventh", which puts
+it ahead of Task 4b rather than after it -- that is the order it was executed
+in, and the order it should be read in.
 
 **Files:**
 - Create: `tests/Feature/ComponentParityTest.php`
