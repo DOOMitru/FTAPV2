@@ -100,8 +100,18 @@ class ProfileTest extends TestCase
         $this->assertNotNull($user->fresh());
     }
 
-    public function test_delete_account_modal_reopens_when_wrong_password_is_provided(): void
+    public function test_a_wrong_password_sends_the_delete_error_back_to_the_page(): void
     {
+        // The dialog has to reopen so the person can try again -- otherwise a
+        // typo silently dismisses the whole thing and looks like it worked.
+        //
+        // This used to assert `show: true,` in the markup, which was Alpine's
+        // way of saying it. /profile is an Inertia page now and that string is
+        // gone, so the assertion is on the CONTRACT the reopening is built on:
+        // the page comes back carrying the userDeletion error bag, and the Vue
+        // dialog opens itself when that bag has a password error. The visible
+        // reopening is checked in a browser, since no server-side assertion can
+        // see it.
         $user = User::factory()->create();
 
         $response = $this
@@ -112,9 +122,17 @@ class ProfileTest extends TestCase
                 'password' => 'wrong-password',
             ]);
 
-        $response
-            ->assertOk()
-            ->assertSee('show: true,', false);
+        $response->assertOk();
+
+        // Inertia shares errors as an object, not an array, so this is cast
+        // before it is read -- assertArrayHasKey on a stdClass is a TypeError,
+        // not a failed assertion, and reads as a broken test rather than a
+        // broken page.
+        $errors = (array) $response->viewData('page')['props']['errors'];
+
+        $this->assertArrayHasKey('userDeletion', $errors,
+            'The delete form uses a named error bag; without it a failure here lights up the other two forms on the page.');
+        $this->assertArrayHasKey('password', (array) $errors['userDeletion']);
 
         $this->assertNotNull($user->fresh());
     }
