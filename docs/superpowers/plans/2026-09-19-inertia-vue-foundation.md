@@ -519,32 +519,298 @@ is no #app element, which is what keeps the public pages working.
 
 ---
 
-## Task 4: AppLayout and Navigation
+## Task 4a: Shared props for the shell
+
+`navigation.blade.php` needs two things the middleware does not yet share, and
+both belong in shared props rather than on every page for the same reason a
+View Composer supplies them today. `AppServiceProvider::composeNotifications()`
+says it outright: "thirty-odd controllers should not each remember to supply it
+-- the one that forgot would render a page with no badge and no list, and
+nothing would say so."
 
 **Files:**
-- Create: `resources/js/Layouts/AppLayout.vue`, `resources/js/Layouts/Navigation.vue`
+- Modify: `app/Http/Middleware/HandleInertiaRequests.php`,
+  `resources/js/types/inertia.d.ts`, `tests/Feature/InertiaSharedPropsTest.php`
 
 **Interfaces:**
-- Produces: `AppLayout` — the default layout for every page in
-  `resources/js/Pages`. Exposes a `header` slot mirroring Blade's
-  `<x-slot name="header">`.
+- Produces: `auth.user.display_name: string`; and
+  `notifications: { unread_count: number, recent: Array<{ id: string, read_at: string|null, data: { tournament_name: string, place: number, points: number, played_on: string } }> }`.
+
+- [ ] **Step 1: Write the failing tests**
+
+Add to `tests/Feature/InertiaSharedPropsTest.php`:
+
+```php
+    public function test_the_shell_is_given_the_display_name_rather_than_deriving_it(): void
+    {
+        // display_name is an accessor: the nickname when there is one, the
+        // first name otherwise. Recomputing that rule in TypeScript would be a
+        // second definition of it, free to disagree the first time somebody
+        // changes the PHP.
+        $user = User::factory()->create([
+            'first_name' => 'Wanda', 'nickname' => 'Wan', 'approval_status' => 'approved',
+        ]);
+
+        $this->actingAs($user)->get(route('profile.edit'))->assertOk()
+            ->assertInertia(fn (Assert $page) => $page->where('auth.user.display_name', 'Wan'));
+    }
+
+    public function test_the_shell_is_given_the_notification_badge_and_list(): void
+    {
+        $user = User::factory()->create(['approval_status' => 'approved']);
+
+        $this->actingAs($user)->get(route('profile.edit'))->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('notifications.unread_count', 0)
+                ->has('notifications.recent', 0)
+            );
+    }
+
+    public function test_the_recent_list_is_capped_at_ten(): void
+    {
+        // The panel scrolls. A player with three seasons of history should not
+        // have all of it serialised into every page they load -- the same cap
+        // the View Composer applies.
+        $user = User::factory()->create(['approval_status' => 'approved']);
+
+        for ($i = 0; $i < 12; $i++) {
+            $user->notifications()->create([
+                'id' => (string) \Illuminate\Support\Str::uuid(),
+                'type' => 'test',
+                'data' => ['tournament_name' => "Night {$i}", 'place' => 1, 'points' => 100, 'played_on' => '2026-09-01'],
+            ]);
+        }
+
+        $this->actingAs($user)->get(route('profile.edit'))->assertOk()
+            ->assertInertia(fn (Assert $page) => $page->has('notifications.recent', 10));
+    }
+
+    public function test_a_guest_request_costs_no_notification_queries(): void
+    {
+        // The composer this replaces says "Guests get nothing. layouts/public
+        // renders the same x-topbar and must not pay for a query it has no
+        // user for." The middleware runs on the whole web group, so without a
+        // guard every public page would run two queries for nobody.
+        \Illuminate\Support\Facades\DB::flushQueryLog();
+        \Illuminate\Support\Facades\DB::enableQueryLog();
+
+        $this->get(route('home'))->assertOk();
+
+        $queries = \Illuminate\Support\Facades\DB::getQueryLog();
+        \Illuminate\Support\Facades\DB::disableQueryLog();
+
+        $touched = collect($queries)->filter(
+            fn ($query) => str_contains($query['query'], 'notifications')
+        );
+
+        $this->assertCount(0, $touched, 'A signed-out page ran a notification query.');
+    }
+```
+
+- [ ] **Step 2: Run them and watch them fail**
+
+```bash
+php artisan test tests/Feature/InertiaSharedPropsTest.php
+```
+
+Expected: the four new tests fail; the four from Task 2 still pass.
+
+- [ ] **Step 3: Share the display name**
+
+In `HandleInertiaRequests::share()`, inside the `auth.user` array, after
+`'nickname'`:
+
+```php
+                    // The accessor's answer, not the ingredients. Vue must not
+                    // re-derive "nickname, or first name" -- that rule lives on
+                    // the model.
+                    'display_name' => $user->display_name,
+```
+
+- [ ] **Step 4: Share the notifications**
+
+Add a third top-level key to the array returned by `share()`:
+
+```php
+            /*
+             * The shell's notification badge and panel.
+             *
+             * Shared rather than per-page for the reason
+             * AppServiceProvider::composeNotifications() gives about the View
+             * Composer it replaces: thirty-odd controllers should not each
+             * remember to supply layout data, and the one that forgot would
+             * render a page with no badge and nothing to say so.
+             *
+             * Guests get the empty shape rather than a query. The middleware
+             * runs on the whole web group, so without this guard every public
+             * page would ask the database about notifications for nobody.
+             *
+             * Closures: not evaluated unless the response is an Inertia one.
+             */
+            'notifications' => [
+                'unread_count' => fn () => $user?->unreadNotifications()->count() ?? 0,
+
+                // Capped at ten, as the composer caps it. The panel scrolls;
+                // three seasons of history should not be serialised into every
+                // page load.
+                'recent' => fn () => $user === null ? [] : $user->notifications()
+                    ->latest()
+                    ->limit(10)
+                    ->get()
+                    ->map(fn ($notification) => [
+                        'id' => $notification->id,
+                        'read_at' => $notification->read_at?->toIso8601String(),
+                        'data' => $notification->data,
+                    ])
+                    ->all(),
+            ],
+```
+
+- [ ] **Step 5: Declare the types**
+
+In `resources/js/types/inertia.d.ts`, add `display_name: string;` to `AuthUser`
+after `nickname`, and add to `PageProps`:
+
+```ts
+    /** What the notification card reads -- see notification-card.blade.php. */
+    notifications: {
+        unread_count: number;
+        recent: Array<{
+            id: string;
+            read_at: string | null;
+            data: {
+                tournament_name: string;
+                place: number;
+                points: number;
+                played_on: string;
+            };
+        }>;
+    };
+```
+
+- [ ] **Step 6: Run the tests and the type check**
+
+```bash
+php artisan test tests/Feature/InertiaSharedPropsTest.php
+npm run typecheck
+```
+
+Expected: all eight tests pass, typecheck exits 0.
+
+- [ ] **Step 7: Full suite**
+
+```bash
+out=$(bin/suite.sh); echo "$out" | tail -1
+```
+
+Expected: `0 failing`.
+
+- [ ] **Step 8: Commit (hand-off)**
+
+Files: `app/Http/Middleware/HandleInertiaRequests.php`,
+`resources/js/types/inertia.d.ts`, `tests/Feature/InertiaSharedPropsTest.php`
+
+```
+feat: share the shell's display name and notifications
+
+navigation.blade.php reads both, and both are layout data rather than page
+data -- the same argument the View Composer they replace makes for itself.
+Guests get the empty shape without a query, since the middleware runs on the
+whole web group.
+
+display_name is shared as the accessor's answer rather than its ingredients,
+so Vue does not re-derive a rule the model owns.
+```
+
+---
+
+## Task 4b: The seven leaf components
+
+`Navigation.vue` depends on seven Blade components. Each is ported as a Vue
+twin, keeping its Blade original for the public pages, and each is added to
+`ComponentParityTest::TWINS` (Task 5) as it lands.
+
+**Files:**
+- Create, in `resources/js/Components/`: `Topbar.vue`, `Dropdown.vue`,
+  `DropdownLink.vue`, `ThemeToggle.vue`, `Monogram.vue`,
+  `NotificationCard.vue`, `Btn.vue`
+
+**Port targets and what carries over:**
+
+| Blade | Lines | Note |
+|---|---|---|
+| `topbar.blade.php` | 41 | Alpine `{ menuOpen: false }` becomes a `ref`. |
+| `dropdown.blade.php` | 29 | Alpine `{ open: false }` becomes a `ref`. Keep the `x-on:click.stop` behaviour for any input placed inside — see the note in RESUME-HERE about the filter's search box. |
+| `dropdown-link.blade.php` | 6 | Trivial. |
+| `theme-toggle.blade.php` | 17 | Calls `toggleTheme()` imported from `theme.ts` directly, not via `data-theme-toggle` — `initTheme()` is not loaded on Inertia pages. |
+| `monogram.blade.php` | 51 | Takes a name string; uses `initials()`. Vue needs the initials computed in PHP or ported — prefer passing `display_name` and reusing the existing helper's rule. |
+| `notification-card.blade.php` | 66 | Reads `data.tournament_name`, `data.place`, `data.points`, `data.played_on`, and `read_at`. Its two forms post to `notifications.update` and `notifications.destroy`. |
+| `btn.blade.php` | 22 | Composes `btn btn--{variant}` plus `btn--sm`. |
+
+- [ ] **Step 1: Port each component, copying every class hook verbatim**
+
+Read each Blade file in full before porting it. The CSS is keyed on these
+class names and is not being changed.
+
+- [ ] **Step 2: Register each pair in the parity guard**
+
+Add each to `ComponentParityTest::TWINS` as it is created.
+
+- [ ] **Step 3: Type-check and build**
+
+```bash
+npm run typecheck && npx vite build
+```
+
+- [ ] **Step 4: Run the parity guard**
+
+```bash
+php artisan test tests/Feature/ComponentParityTest.php
+```
+
+Expected: PASS. A failure means a port dropped or renamed a hook — fix the
+component, not the test.
+
+- [ ] **Step 5: Commit (hand-off)**
+
+```
+feat: port the seven components the app shell needs to Vue
+
+Topbar, Dropdown, DropdownLink, ThemeToggle, Monogram, NotificationCard and
+Btn. Each keeps its Blade original for the public pages and is registered in
+ComponentParityTest, which fails when a pair stops agreeing about the class
+hooks the stylesheet is keyed on.
+```
+
+---
+
+## Task 4c: Navigation and AppLayout
+
+**Files:**
+- Create: `resources/js/Layouts/AppLayout.vue`, `resources/js/Layouts/Navigation.vue`,
+  `resources/js/Components/SiteFooter.vue`, `resources/js/Components/ConfirmDialog.vue`
+- Modify: `resources/js/inertia.ts`
 
 **Port target.** `resources/views/layouts/app.blade.php` and
-`resources/views/layouts/navigation.blade.php` (181 lines). Read both before
-starting. The markup and every class hook are copied verbatim; only the
-templating language changes.
+`resources/views/layouts/navigation.blade.php` (181 lines). Read both first.
 
 **Behaviours that must survive, each currently in the Blade:**
 - `.shell` / `.shell__header` / `.shell__header-inner` / `.shell__content`
   structure, in that nesting. `.shell` is a flex column at `min-height: 100vh`
-  with `.shell__content` at `flex: 1`, which is what holds the footer down on a
-  short page.
-- **No `.l-container` in the layout.** Every page supplies its own;
-  two of them applied the gutter twice, giving 32px a side on a phone.
+  with `.shell__content` at `flex: 1`, which holds the footer down on a short
+  page.
+- **No `.l-container` in the layout.** Every page supplies its own; two of them
+  applied the gutter twice, giving 32px a side on a phone.
 - The header block renders only when a page provides one.
-- `<x-site-footer />` and `<x-confirm-dialog />` at the end of `.shell`.
-- The nav's `nav-link--current` state, driven by the current route.
-- The mobile menu toggle, currently Alpine's `{ menuOpen: false }`.
+- `nav-link--current` and `aria-current="page"` on the active item, driven by
+  the current URL rather than `route()` — Ziggy is not installed.
+- The two distinct action structures: `topbar__actions-desktop` (identity as a
+  dropdown) and `topbar__actions-mobile` (a flat row, logout on the left). They
+  differ in shape, not just layout, so one markup tree cannot express both.
+- The mobile bell menu carries `topbar__bell-menu` and deliberately NOT
+  `dropdown--notifications` — both selectors are (0,2,0) and `_dropdown.css`
+  loads after `_topbar.css`, so carrying both let the fixed 22rem width win and
+  pushed the panel off screen.
 
 - [ ] **Step 1: Write AppLayout.vue**
 
@@ -586,59 +852,60 @@ import ConfirmDialog from '../Components/ConfirmDialog.vue';
 
 - [ ] **Step 2: Port Navigation.vue**
 
-Read `resources/views/layouts/navigation.blade.php` in full and port it,
-copying every class name unchanged. Replace Alpine's `x-data="{ menuOpen: false }"`
-with a `ref`:
+Use the shared props from Task 4a and the components from Task 4b:
 
-```vue
-<script setup lang="ts">
-import { ref } from 'vue';
+```ts
 import { usePage } from '@inertiajs/vue3';
 import type { PageProps } from '../types/inertia';
 
-const menuOpen = ref(false);
 const page = usePage<PageProps>();
 const user = page.props.auth.user;
-</script>
+
+// route() is not available client-side: Ziggy is not installed and is out of
+// scope. Current state is decided from the page URL instead.
+const isCurrent = (...prefixes: string[]): boolean =>
+    prefixes.some((prefix) => page.url.startsWith(prefix));
 ```
 
-Use `:class="{ 'nav-link--current': route().current('dashboard') }"` equivalents
-by comparing against the Inertia page URL, since `route()` is not available
-client-side:
+- [ ] **Step 3: Port SiteFooter.vue and ConfirmDialog.vue**
+
+From `resources/views/components/site-footer.blade.php` and
+`confirm-dialog.blade.php`, copying class hooks verbatim. Register both in
+`ComponentParityTest::TWINS`.
+
+- [ ] **Step 4: Assign the layout**
+
+In `resources/js/inertia.ts`, inside `resolve`, before `return page`:
 
 ```ts
-const isCurrent = (prefix: string): boolean => page.url.startsWith(prefix);
+            // Every page gets the persistent shell unless it sets its own.
+            page.default.layout ??= AppLayout;
 ```
 
-- [ ] **Step 3: Create the two components AppLayout imports**
+and add the import at the top:
 
-Port `resources/views/components/site-footer.blade.php` to
-`resources/js/Components/SiteFooter.vue` and
-`resources/views/components/confirm-dialog.blade.php` to
-`resources/js/Components/ConfirmDialog.vue`, copying class hooks verbatim. Both
-are on the shared list from the spec's §2 and keep their Blade originals.
+```ts
+import AppLayout from './Layouts/AppLayout.vue';
+```
 
-- [ ] **Step 4: Build and type-check**
+- [ ] **Step 5: Type-check, build, parity guard, full suite**
 
 ```bash
-npx vite build && npm run typecheck; echo "exit=$?"
+npm run typecheck && npx vite build
+php artisan test tests/Feature/ComponentParityTest.php
+out=$(bin/suite.sh); echo "$out" | tail -1
 ```
 
-Expected: exit 0.
-
-- [ ] **Step 5: Commit (hand-off)**
-
-Files: `resources/js/Layouts/AppLayout.vue`, `resources/js/Layouts/Navigation.vue`,
-`resources/js/Components/SiteFooter.vue`, `resources/js/Components/ConfirmDialog.vue`
+- [ ] **Step 6: Commit (hand-off)**
 
 ```
-feat: add the persistent Vue app layout
+feat: add the persistent Vue app layout and navigation
 
 Ports layouts/app.blade.php and layouts/navigation.blade.php, copying every
-class hook unchanged. Keeps the two decisions recorded in the Blade: no
-.l-container in the layout, because pages supply their own and two applied the
-gutter twice; and no flash block, because sentinel flashes would be printed to
-the reader.
+class hook unchanged. Keeps the decisions recorded in the Blade: no
+.l-container in the layout, no flash block, two distinct action structures
+rather than one restyled, and the mobile bell menu without
+dropdown--notifications.
 ```
 
 ---

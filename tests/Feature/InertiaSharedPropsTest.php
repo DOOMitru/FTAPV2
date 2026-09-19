@@ -4,6 +4,8 @@ namespace Tests\Feature;
 
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
 
@@ -40,7 +42,7 @@ class InertiaSharedPropsTest extends TestCase
         // Not the model. A shared prop is on EVERY page, so handing over the
         // whole user would put its password hash, remember token and email in
         // the HTML of every screen in the app -- readable in view-source by
-        // anyone sitting at the machine. The five keys below are the ones the
+        // anyone sitting at the machine. The keys below are the ones the
         // navigation and layout actually use.
         $user = User::factory()->create(['approval_status' => 'approved']);
 
@@ -48,8 +50,12 @@ class InertiaSharedPropsTest extends TestCase
 
         $shared = $response->viewData('page')['props']['auth']['user'];
 
+        // An exact list, not a subset. Widening it should be a decision
+        // somebody makes on purpose -- display_name was added here for the
+        // navigation, and this assertion is what made that visible rather
+        // than letting a sixth field arrive unnoticed.
         $this->assertSame(
-            ['id', 'first_name', 'last_name', 'nickname', 'is_admin'],
+            ['id', 'first_name', 'last_name', 'nickname', 'display_name', 'is_admin'],
             array_keys($shared)
         );
 
@@ -71,6 +77,71 @@ class InertiaSharedPropsTest extends TestCase
             ->withSession(['status' => 'profile-updated'])
             ->get(route('profile.edit'))->assertOk()
             ->assertInertia(fn (Assert $page) => $page->where('flash.status', 'profile-updated'));
+    }
+
+    public function test_the_shell_is_given_the_display_name_rather_than_deriving_it(): void
+    {
+        // display_name is an accessor: the nickname when there is one, the
+        // first name otherwise. Recomputing that rule in TypeScript would be a
+        // second definition of it, free to disagree the first time somebody
+        // changes the PHP.
+        $user = User::factory()->create([
+            'first_name' => 'Wanda', 'nickname' => 'Wan', 'approval_status' => 'approved',
+        ]);
+
+        $this->actingAs($user)->get(route('profile.edit'))->assertOk()
+            ->assertInertia(fn (Assert $page) => $page->where('auth.user.display_name', 'Wan'));
+    }
+
+    public function test_the_shell_is_given_the_notification_badge_and_list(): void
+    {
+        $user = User::factory()->create(['approval_status' => 'approved']);
+
+        $this->actingAs($user)->get(route('profile.edit'))->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('notifications.unread_count', 0)
+                ->has('notifications.recent', 0)
+            );
+    }
+
+    public function test_the_recent_list_is_capped_at_ten(): void
+    {
+        // The panel scrolls. A player with three seasons of history should not
+        // have all of it serialised into every page they load -- the same cap
+        // the View Composer applies.
+        $user = User::factory()->create(['approval_status' => 'approved']);
+
+        for ($i = 0; $i < 12; $i++) {
+            $user->notifications()->create([
+                'id' => (string) Str::uuid(),
+                'type' => 'test',
+                'data' => ['tournament_name' => "Night {$i}", 'place' => 1, 'points' => 100, 'played_on' => '2026-09-01'],
+            ]);
+        }
+
+        $this->actingAs($user)->get(route('profile.edit'))->assertOk()
+            ->assertInertia(fn (Assert $page) => $page->has('notifications.recent', 10));
+    }
+
+    public function test_a_guest_request_costs_no_notification_queries(): void
+    {
+        // The composer this replaces says: "Guests get nothing. layouts/public
+        // renders the same x-topbar and must not pay for a query it has no
+        // user for." The middleware runs on the whole web group, so without a
+        // guard every public page would run two queries for nobody.
+        DB::flushQueryLog();
+        DB::enableQueryLog();
+
+        $this->get(route('home'))->assertOk();
+
+        $queries = DB::getQueryLog();
+        DB::disableQueryLog();
+
+        $touched = collect($queries)->filter(
+            fn ($query) => str_contains($query['query'], 'notifications')
+        );
+
+        $this->assertCount(0, $touched, 'A signed-out page ran a notification query.');
     }
 
     public function test_a_guest_page_carries_a_null_user_rather_than_no_key(): void

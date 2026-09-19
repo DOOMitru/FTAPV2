@@ -37,6 +37,10 @@ class HandleInertiaRequests extends Middleware
                     'first_name' => $user->first_name,
                     'last_name' => $user->last_name,
                     'nickname' => $user->nickname,
+                    // The accessor's answer, not its ingredients. "Nickname,
+                    // or first name" is a rule the model owns; re-deriving it
+                    // in TypeScript would be a second copy free to disagree.
+                    'display_name' => $user->display_name,
                     'is_admin' => (bool) $user->is_admin,
                 ],
             ],
@@ -64,6 +68,39 @@ class HandleInertiaRequests extends Middleware
             'flash' => [
                 'status' => fn () => $request->session()->get('status'),
                 'error' => fn () => $request->session()->get('error'),
+            ],
+
+            /*
+             * The shell's notification badge and panel.
+             *
+             * Shared rather than per-page, for the reason
+             * AppServiceProvider::composeNotifications() gives about the View
+             * Composer this replaces: thirty-odd controllers should not each
+             * remember to supply layout data, and the one that forgot would
+             * render a page with no badge and no list, with nothing to say so.
+             *
+             * Guests get the empty shape rather than a query. This middleware
+             * runs on the whole web group, so without the null check every
+             * public page would ask the database about notifications for
+             * nobody -- the same point the composer makes when it says
+             * layouts/public "must not pay for a query it has no user for".
+             */
+            'notifications' => [
+                'unread_count' => fn () => $user?->unreadNotifications()->count() ?? 0,
+
+                // Capped at ten, as the composer caps it. The panel scrolls;
+                // three seasons of history should not be serialised into every
+                // page the player loads.
+                'recent' => fn () => $user === null ? [] : $user->notifications()
+                    ->latest()
+                    ->limit(10)
+                    ->get()
+                    ->map(fn ($notification) => [
+                        'id' => $notification->id,
+                        'read_at' => $notification->read_at?->toIso8601String(),
+                        'data' => $notification->data,
+                    ])
+                    ->all(),
             ],
         ];
     }

@@ -13,6 +13,8 @@ export interface AuthUser {
     first_name: string;
     last_name: string;
     nickname: string | null;
+    /** The accessor's answer: the nickname, or the first name. */
+    display_name: string;
     is_admin: boolean;
 }
 
@@ -29,4 +31,24 @@ export interface PageProps {
      * printed flash.status would show a reader the sentinel itself.
      */
     flash: { status: string | null; error: string | null };
+
+    /**
+     * The shell's badge and panel.
+     *
+     * `data` carries exactly the four keys notification-card.blade.php reads.
+     * Shared on every page because the navigation is on every page.
+     */
+    notifications: {
+        unread_count: number;
+        recent: Array<{
+            id: string;
+            read_at: string | null;
+            data: {
+                tournament_name: string;
+                place: number;
+                points: number;
+                played_on: string;
+            };
+        }>;
+    };
 }
