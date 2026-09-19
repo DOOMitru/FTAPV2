@@ -55,7 +55,7 @@ class InertiaSharedPropsTest extends TestCase
         // navigation, and this assertion is what made that visible rather
         // than letting a sixth field arrive unnoticed.
         $this->assertSame(
-            ['id', 'first_name', 'last_name', 'nickname', 'display_name', 'is_admin'],
+            ['id', 'first_name', 'last_name', 'nickname', 'display_name', 'initials', 'is_admin'],
             array_keys($shared)
         );
 
@@ -91,6 +91,78 @@ class InertiaSharedPropsTest extends TestCase
 
         $this->actingAs($user)->get(route('profile.edit'))->assertOk()
             ->assertInertia(fn (Assert $page) => $page->where('auth.user.display_name', 'Wan'));
+    }
+
+    public function test_the_monogram_is_given_its_letters_rather_than_a_name_to_reduce(): void
+    {
+        // initials() is one definition on purpose. Its call site in
+        // monogram.blade.php says why: the register dialog already builds a
+        // player list in the browser from letters PHP computed, because two
+        // copies of the rule would be free to disagree. Vue is that situation
+        // with a different renderer.
+        //
+        // Note which name it reduces: the FULL name, not display_name. A
+        // player nicknamed "Ace" must not become a lone A.
+        $user = User::factory()->create([
+            'first_name' => 'Wanda', 'last_name' => 'Reeve', 'nickname' => 'Ace',
+            'approval_status' => 'approved',
+        ]);
+
+        $this->actingAs($user)->get(route('profile.edit'))->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('auth.user.initials', 'WR')
+                ->where('auth.user.display_name', 'Ace')
+            );
+    }
+
+    public function test_a_notification_arrives_ready_to_render(): void
+    {
+        // Display-ready, per spec §5a. The ordinal, the formatted date, the
+        // points label and the confirmation sentence are all PHP rules, so
+        // they are decided here rather than re-derived in TypeScript.
+        $user = User::factory()->create(['approval_status' => 'approved']);
+
+        $user->notifications()->create([
+            'id' => (string) Str::uuid(),
+            'type' => 'test',
+            'data' => [
+                'tournament_name' => 'Autumn Series',
+                'place' => 3,
+                'points' => 70,
+                'played_on' => '2026-09-01',
+            ],
+        ]);
+
+        $this->actingAs($user)->get(route('profile.edit'))->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('notifications.recent.0.title', 'Autumn Series')
+                ->where('notifications.recent.0.place_label', '3rd')
+                ->where('notifications.recent.0.meta', '70 pts · Sep 1, 2026')
+                ->where('notifications.recent.0.tier', 'bronze')
+                ->where('notifications.recent.0.is_read', false)
+            );
+    }
+
+    public function test_the_tier_is_semantic_rather_than_a_class_name(): void
+    {
+        // "gold", not "notification--gold". The rule -- first three places take
+        // medal tiers, a lower scoring finish takes the accent -- lives once in
+        // PHP; turning a tier into a class name is each template's own trivial
+        // business, and the middleware has no opinion about the stylesheet.
+        $user = User::factory()->create(['approval_status' => 'approved']);
+
+        foreach ([[1, 'gold'], [2, 'silver'], [3, 'bronze'], [9, 'scored']] as [$place, $tier]) {
+            $user->notifications()->delete();
+            $user->notifications()->create([
+                'id' => (string) Str::uuid(),
+                'type' => 'test',
+                'data' => ['tournament_name' => 'N', 'place' => $place, 'points' => 1, 'played_on' => '2026-09-01'],
+            ]);
+
+            $this->actingAs($user)->get(route('profile.edit'))->assertOk()
+                ->assertInertia(fn (Assert $page) => $page
+                    ->where('notifications.recent.0.tier', $tier));
+        }
     }
 
     public function test_the_shell_is_given_the_notification_badge_and_list(): void

@@ -15,7 +15,29 @@ export interface AuthUser {
     nickname: string | null;
     /** The accessor's answer: the nickname, or the first name. */
     display_name: string;
+    /** The letters, from the FULL name -- see spec §5a. */
+    initials: string;
     is_admin: boolean;
+}
+
+/**
+ * One notification, ready to render.
+ *
+ * Every field is decided by PHP -- spec §5a. There is no `place: number` here
+ * on purpose: the ordinal, the date format and the points label are PHP rules,
+ * and a second copy in TypeScript would be free to disagree with the Blade
+ * card still serving unconverted pages.
+ */
+export interface Notification {
+    id: string;
+    is_read: boolean;
+    /** Semantic, not a class name: the template maps it to one. */
+    tier: 'gold' | 'silver' | 'bronze' | 'scored';
+    place_label: string;
+    title: string;
+    meta: string;
+    /** Carries U+2063 emphasis markers; render through <Emph>. */
+    delete_confirm: string;
 }
 
 export interface PageProps {
@@ -33,22 +55,11 @@ export interface PageProps {
     flash: { status: string | null; error: string | null };
 
     /**
-     * The shell's badge and panel.
-     *
-     * `data` carries exactly the four keys notification-card.blade.php reads.
-     * Shared on every page because the navigation is on every page.
+     * The shell's badge and panel. Shared on every page, because the
+     * navigation is on every page.
      */
     notifications: {
         unread_count: number;
-        recent: Array<{
-            id: string;
-            read_at: string | null;
-            data: {
-                tournament_name: string;
-                place: number;
-                points: number;
-                played_on: string;
-            };
-        }>;
+        recent: Notification[];
     };
 }

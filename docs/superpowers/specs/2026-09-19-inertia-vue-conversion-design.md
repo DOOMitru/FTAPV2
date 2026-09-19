@@ -170,6 +170,46 @@ The guard is deliberately shallow -- top-level keys, not nested shapes. It
 catches the common failure (a prop renamed, added or removed) without
 reimplementing a type checker in PHP.
 
+## 5a. Props carry display-ready values
+
+Decided on 2026-09-19, while porting the app shell, after four components in a
+row turned out to render values PHP computes: `initials()`, `display_name`,
+`Number::ordinal()`, `Carbon::parse()->format()`, `number_format()`, `emph()`
+and `__()`.
+
+**The rule: PHP decides a value, Vue places it.** A prop carries
+`place_label: "3rd"`, not `place: 3` for the template to ordinalise. It carries
+`initials: "WR"`, not a first and last name for the template to reduce.
+
+**Why, and it is not a preference.** This project has one definition of a rule
+and a test for each: `PokerSeason::current()`, `VenuePoints::readableBy()`,
+`initials()`. The last of those already answered this exact question -- the note
+at its call site in `monogram.blade.php` reads: "initials() rather than the
+derivation inline: the register dialog builds a player list in the browser and
+needs the same letters from PHP, and two copies of this would be free to
+disagree." A player list is already rendered in the browser from letters PHP
+computed. Vue is the same situation with a different renderer.
+
+`__()` deserves its own note: there is no `lang/` directory, so it returns its
+key and translation is a convention rather than a live feature. That makes
+hardcoding English in Vue harmless today and wrong later -- a `lang/` file added
+in a year would translate the Blade half and not the Vue half, and nothing would
+say so. User-facing strings therefore come from PHP too.
+
+**What this costs.** Props get chattier, and a value cannot be reformatted
+client-side without a round trip. Neither matters at this scale: the largest
+list any page sends is ten notifications.
+
+**Where the line sits.** Vue owns what is genuinely presentational and has no
+PHP rule behind it: which element gets a class, whether a panel is open, how a
+grid wraps. It does not own what a value reads as.
+
+**Semantic, not stylistic.** A prop says `tier: "gold"`, not
+`tier: "notification--gold"`. The rule -- first three places take medal tiers,
+a lower scoring finish takes the accent -- lives once in PHP; mapping a tier to
+a class name is each template's own trivial business, and the middleware has no
+opinion about the stylesheet.
+
 ## 6. Tests
 
 Of 112 test files:
