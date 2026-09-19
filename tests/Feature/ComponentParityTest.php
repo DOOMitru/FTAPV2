@@ -142,9 +142,41 @@ class ComponentParityTest extends TestCase
     {
         $declared = $this->declaredCssClasses();
         $found = [];
+        $strings = [];
 
         $source = $this->withoutComments($source);
         $source = $this->withoutNonClassAttributes($source);
+
+        // Kept before the binding strip below, because a composed modifier is
+        // usually written INSIDE a binding -- :class="`alert--${variant}`" --
+        // and detecting prefixes after removing them found none.
+        $beforeBindings = $source;
+
+        /*
+         * `class` and `:class` are not the same kind of attribute.
+         *
+         * `class="a b"` is a list of classes. `:class="row.medal"` is an
+         * EXPRESSION, and reading it as a list credited this file with `row`,
+         * which is a declared class and had nothing to do with anything. The
+         * same shape as `:class="classes"` earlier, except that one dropped
+         * out because `classes` is not a declared class and this one did not.
+         *
+         * So a binding contributes only the quoted strings written INSIDE it,
+         * and is then removed before the general pass. A component building
+         * its class names in a const still gets full credit, because those
+         * strings are quoted where they are declared.
+         */
+        preg_match_all('/:class="([^"]*)"/', $source, $bindings);
+
+        foreach ($bindings[1] as $expression) {
+            preg_match_all('/\'([^\']*)\'|`([^`]*)`/', $expression, $inner);
+
+            foreach (array_merge($inner[1], $inner[2]) as $literal) {
+                $strings[] = $literal;
+            }
+        }
+
+        $source = (string) preg_replace('/:class="[^"]*"/', ' ', $source);
 
         /*
          * A composed modifier counts as every modifier it can compose.
@@ -158,7 +190,7 @@ class ComponentParityTest extends TestCase
          * So a file mentioning the PREFIX is credited with every declared
          * class under it -- the same trade UnusedCssClassTest makes.
          */
-        foreach ($this->composedPrefixes($source) as $prefix) {
+        foreach ($this->composedPrefixes($beforeBindings) as $prefix) {
             foreach ($declared as $class) {
                 if (str_starts_with($class, $prefix)) {
                     $found[] = $class;
@@ -170,7 +202,7 @@ class ComponentParityTest extends TestCase
         // attributes, PHP string literals, Vue bindings and template literals.
         preg_match_all('/"([^"]*)"|\'([^\']*)\'|`([^`]*)`/', $source, $matches);
 
-        $strings = array_merge($matches[1], $matches[2], $matches[3]);
+        $strings = array_merge($strings ?? [], $matches[1], $matches[2], $matches[3]);
 
         foreach ($strings as $string) {
             // Quotes, backticks and `$` are separators too: a nested literal
@@ -232,6 +264,23 @@ class ComponentParityTest extends TestCase
         $patterns = [
             '/\b(?:name|id|for|type|role|href|src|alt|title|icon|label|value)="[^"]*"/i',
             '/(?:v-(?!bind:class)[\w:.-]+|@[\w:.-]+)="[^"]*"/i',
+
+            /*
+             * Every other `:` binding. :key="row.key", :title, :href, :style --
+             * all expressions, none of them class lists, and each one able to
+             * mention a declared class name by coincidence. :key="row.key"
+             * credited a component with `row`, which is a real class in
+             * _rows.css and had nothing to do with anything here.
+             *
+             * :class is excluded: it is handled separately above, where only
+             * the quoted strings inside it are read.
+             *
+             * Anchored to whitespace. Unanchored, it matched the `:enter=` part
+             * inside Blade's `x-transition:enter="dropdown__motion"` and ate
+             * the transition classes off the Blade side of every pair that has
+             * them -- reporting them as Vue-only when both had them.
+             */
+            '/(?<=\s):(?!class[=\s])[\w:.-]+="[^"]*"/',
         ];
 
         return (string) preg_replace($patterns, ' ', $source);
