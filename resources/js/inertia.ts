@@ -1,6 +1,5 @@
 import { createApp, h, type DefineComponent } from 'vue';
 import { createInertiaApp } from '@inertiajs/vue3';
-import AppLayout from './Layouts/AppLayout.vue';
 
 /**
  * Mounts Vue, but only on a page Inertia actually rendered.
@@ -33,11 +32,21 @@ export function initInertia(): void {
                 throw new Error(`Inertia page not found: ${name}`);
             }
 
-            // The persistent shell, unless a page sets its own. Persistent
-            // means it does not remount between visits, so the navigation keeps
-            // its state and the dialog keeps its place in the top layer.
-            page.default.layout ??= AppLayout;
-
+            /*
+             * No layout assigned here, deliberately.
+             *
+             * Inertia's persistent layout makes the page the layout's DEFAULT
+             * slot, so a page has no way to fill a named one -- and this app's
+             * shell needs `header`, a full-width band above the content that
+             * every page fills differently. Assigning the layout here compiles
+             * to an error the moment a page declares <template #header>.
+             *
+             * So each page wraps itself in <AppLayout> instead. The cost is
+             * that the shell remounts on each visit rather than persisting.
+             * Nothing in it wants to survive a navigation: the nav's open menu
+             * and the dropdowns should close when you go somewhere, which is
+             * what a remount does for free.
+             */
             return page;
         },
 

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\ProfileUpdateRequest;
+use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -28,7 +29,12 @@ class ProfileController extends Controller
                 'last_name' => $user->last_name,
                 'nickname' => $user->nickname,
                 'email' => $user->email,
-                'email_verified_at' => $user->email_verified_at?->toIso8601String(),
+                // The decision, not the ingredients -- spec §5a. Whether a
+                // reminder is due depends on the model implementing
+                // MustVerifyEmail as well as on the timestamp, and that is a
+                // PHP question with no business being asked again in Vue.
+                'needs_email_verification' => $user instanceof MustVerifyEmail
+                    && ! $user->hasVerifiedEmail(),
             ],
         ]);
     }
