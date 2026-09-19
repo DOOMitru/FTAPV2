@@ -15,6 +15,25 @@ export default defineConfig({
             ],
             refresh: true,
         }),
-        vue(),
+        vue({
+            template: {
+                /*
+                 * Leave absolute asset URLs alone.
+                 *
+                 * Vite rewrites src/href in SFC templates into module imports
+                 * and bundles the result. That is right for assets living in
+                 * resources/, and wrong for this app: its images sit in
+                 * public/ and are served by the webserver, which is exactly
+                 * what Blade's asset() emits. Without this the build fails on
+                 * "/images/header_logo.png" -- Rollup looks for a module and
+                 * finds a file the webserver was always going to serve.
+                 */
+                transformAssetUrls: {
+                    img: [],
+                    image: [],
+                    use: [],
+                },
+            },
+        }),
     ],
 });

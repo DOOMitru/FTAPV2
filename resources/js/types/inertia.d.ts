@@ -41,6 +41,16 @@ export interface Notification {
 }
 
 export interface PageProps {
+    /**
+     * Inertia's usePage<T>() constrains T to its own PageProps, which carries
+     * an index signature -- a page may be handed props nobody declared here.
+     * Without this the constraint is unsatisfied and every usePage call fails
+     * to compile. It does NOT weaken the declared keys below: those keep their
+     * types, and InertiaPropContractTest still checks a page against what its
+     * controller actually sends.
+     */
+    [key: string]: unknown;
+
     /** `user` is null when signed out, never absent -- see the middleware. */
     auth: { user: AuthUser | null };
 

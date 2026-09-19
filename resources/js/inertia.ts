@@ -1,5 +1,6 @@
 import { createApp, h, type DefineComponent } from 'vue';
 import { createInertiaApp } from '@inertiajs/vue3';
+import AppLayout from './Layouts/AppLayout.vue';
 
 /**
  * Mounts Vue, but only on a page Inertia actually rendered.
@@ -31,6 +32,11 @@ export function initInertia(): void {
                 // page with no error anywhere.
                 throw new Error(`Inertia page not found: ${name}`);
             }
+
+            // The persistent shell, unless a page sets its own. Persistent
+            // means it does not remount between visits, so the navigation keeps
+            // its state and the dialog keeps its place in the top layer.
+            page.default.layout ??= AppLayout;
 
             return page;
         },
