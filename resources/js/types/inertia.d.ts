@@ -63,6 +63,63 @@ export interface Notification {
     delete_confirm: string;
 }
 
+/**
+ * One season's figures for one player, as App\Support\SeasonFigures builds
+ * them.
+ *
+ * Here rather than inside SeasonPanel.vue because three files share it: the
+ * component renders it, and the dashboard and a player's profile each declare
+ * it among their props. A copy in each would be three definitions of one
+ * shape.
+ */
+export interface SeasonFigures {
+    /** "#3", or "—" when unranked. */
+    rank_label: string;
+    /**
+     * "8.4 pts per event", or null when the player has not entered yet.
+     *
+     * One decimal, decided in PHP: these run to a couple of hundred points
+     * over a couple of dozen events, so the second decimal is noise that
+     * changes every night.
+     */
+    per_event_label: string | null;
+    /** "218 pts over 26 events" -- pluralised in PHP. */
+    totals_label: string;
+    /** "of 41 ranked players", or null when unranked. Pluralised in PHP. */
+    ranked_label: string | null;
+    first: string;
+    second: string;
+    third: string;
+    events_label: string;
+    points_label: string;
+    /**
+     * Null means the viewer may not read them -- VenuePoints::readableBy(),
+     * applied by the controller. The row is absent rather than blank or zero:
+     * a zero is a fact about the player, and this is a fact about the reader.
+     *
+     * Spec §8 requires the figure withheld from the PROPS, not hidden here.
+     * This component only renders what it is given.
+     */
+    venue_points_label: string | null;
+}
+
+/**
+ * The four props a page spreads in for the panel.
+ *
+ * snake_case, unlike the component's own props: these are what the controller
+ * sends, and the template bridges the two -- :season-name="season_name".
+ */
+export interface SeasonPanelProps {
+    /** The card's title: the season's name, or a generic heading. */
+    season_name: string;
+    /** Where "Full Season Stats" goes, or null when no season is running. */
+    season_href: string | null;
+    /** Null when no season is running. */
+    season: SeasonFigures | null;
+    /** Whether the viewer is the player. Changes the COPY only. */
+    self: boolean;
+}
+
 export interface PageProps {
     /**
      * Inertia's usePage<T>() constrains T to its own PageProps, which carries

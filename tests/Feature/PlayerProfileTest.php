@@ -94,6 +94,24 @@ class PlayerProfileTest extends TestCase
         return $viewer === null ? $this->get($url) : $this->actingAs($viewer)->get($url);
     }
 
+    /**
+     * What the page is sent, rather than what it renders.
+     *
+     * The page is Vue: the server sends props and an empty shell, so assertSee
+     * on a figure would be asserting against markup the browser has not built.
+     * The props are the better question anyway -- a withheld venue tally is
+     * ABSENT here, where the old assertion could only look for a number and
+     * hope it was not on the page for another reason.
+     *
+     * @return array<string, mixed>
+     */
+    private function props(?User $viewer, ?User $subject = null): array
+    {
+        return $this->actingAs($viewer)
+            ->get(route('players.show', $subject ?? $this->player))->assertOk()
+            ->viewData('page')['props'];
+    }
+
     public function test_a_guest_cannot_read_a_players_figures(): void
     {
         $this->profile(null)->assertRedirect(route('login'));
@@ -107,35 +125,104 @@ class PlayerProfileTest extends TestCase
 
     public function test_it_shows_the_season_figures(): void
     {
-        $response = $this->profile($this->other)->assertOk();
+        // Labels, not numbers: SeasonFigures decides the formatting so that
+        // the panel places a value rather than computing one (spec §5a).
+        $figures = $this->props($this->other)['season'];
 
-        $figures = $response->viewData('season');
-
-        $this->assertSame(1, $figures['events']);
-        $this->assertSame(500, $figures['points']);
-        $this->assertSame(1, $figures['first']);
-        $this->assertSame(1, $figures['rank']);
+        $this->assertSame('1', $figures['events_label']);
+        $this->assertSame('500', $figures['points_label']);
+        $this->assertSame('1', $figures['first']);
+        $this->assertSame('#1', $figures['rank_label']);
     }
 
     public function test_the_figures_are_the_dashboards_figures(): void
     {
-        // Same method, so the two pages cannot disagree about a player. A
-        // second copy of the arithmetic is what this is guarding against.
-        $mine = $this->actingAs($this->player)->get(route('dashboard'))
+        // Same source, so the two pages cannot disagree about a player. A
+        // second copy of the arithmetic is what this is guarding against, and
+        // App\Support\SeasonFigures is where that copy would have gone.
+        //
+        // The two are compared in the forms they currently emit: the dashboard
+        // is still Blade and hands its view raw figures, while this page sends
+        // labels. When the dashboard converts this collapses to comparing one
+        // props array with another -- but not before, because a comparison
+        // that runs both sides through the same formatter would prove nothing.
+        $raw = $this->actingAs($this->player)->get(route('dashboard'))
             ->assertOk()->viewData('season');
 
-        $theirs = $this->profile($this->other)->assertOk()->viewData('season');
+        $labels = $this->props($this->other)['season'];
 
-        unset($mine['venuePoints'], $theirs['venuePoints']);
-
-        $this->assertSame($mine, $theirs);
+        $this->assertSame((string) $raw['events'], $labels['events_label']);
+        $this->assertSame(number_format($raw['points']), $labels['points_label']);
+        $this->assertSame('#'.$raw['rank'], $labels['rank_label']);
+        $this->assertSame((string) $raw['first'], $labels['first']);
     }
 
     public function test_it_shows_their_recent_results(): void
     {
-        $this->profile($this->other)->assertOk()
-            ->assertSee('Wednesday Night Poker')
-            ->assertSee('Recent Results');
+        $results = $this->props($this->other)['results'];
+
+        $this->assertSame(
+            ['Wednesday Night Poker'],
+            collect($results)->pluck('tournament_name')->all()
+        );
+
+        // And the card they sit in, which is the page's, not the props'.
+        $this->assertStringContainsString(
+            'title="Recent Results"',
+            (string) file_get_contents(resource_path('js/Pages/Players/Show.vue'))
+        );
+    }
+
+    public function test_the_nickname_leads_where_there_is_one(): void
+    {
+        // The full name titles the page and the nickname sits above it.
+        // display_name is not used here: it PREFERS a nickname and falls back
+        // to the first name alone, which is right beside an avatar and wrong
+        // at the head of a profile. Untested while this was Blade, so the
+        // eyebrow could have read "Player" for everybody and nothing would
+        // have said so.
+        $this->player->update(['nickname' => 'Wolf']);
+
+        $props = $this->props($this->other);
+
+        $this->assertSame('Wolf', $props['eyebrow']);
+        $this->assertSame('Wanda Reeve', $props['title']);
+
+        $this->player->update(['nickname' => null]);
+
+        $this->assertSame('Player', $this->props($this->other)['eyebrow']);
+    }
+
+    public function test_only_five_results_are_sent_and_the_note_says_so(): void
+    {
+        // The cap was ->take(5) in the template and a ->count() on the whole
+        // collection for the note. Both are the controller's now, and neither
+        // was covered by anything -- changing the five to a six broke no test.
+        for ($i = 0; $i < 6; $i++) {
+            $tournament = PokerTournament::create([
+                'name' => 'Night '.$i,
+                'start_time' => now()->subDays(20 - $i),
+                'venue_id' => Venue::first()->id,
+                'season_id' => PokerSeason::first()->id,
+            ]);
+
+            PokerTournamentResult::create([
+                'tournament_id' => $tournament->id, 'user_id' => $this->player->id,
+                'player_name' => 'Wanda Reeve', 'place' => 4, 'points' => 10,
+            ]);
+        }
+
+        $props = $this->props($this->other);
+
+        $this->assertCount(5, $props['results'], 'The page is sent more rows than it draws.');
+        $this->assertTrue($props['has_more_results']);
+    }
+
+    public function test_a_short_career_gets_no_note(): void
+    {
+        // "Showing latest 5" over a list of one is noise, and the same rule
+        // the dashboard's upcoming note follows.
+        $this->assertFalse($this->props($this->other)['has_more_results']);
     }
 
     public function test_it_does_not_show_upcoming_tournaments(): void
@@ -155,43 +242,58 @@ class PlayerProfileTest extends TestCase
 
     public function test_another_player_does_not_read_the_venue_tally(): void
     {
-        $response = $this->profile($this->other)->assertOk();
+        // Absent from the props, which is stronger than absent from the page:
+        // the figure never reaches the browser at all, so no future markup
+        // can show it by accident.
+        $this->assertNull($this->props($this->other)['season']['venue_points_label']);
 
-        $this->assertNull($response->viewData('season')['venuePoints']);
-        $response->assertDontSee('Venue Points');
-        $response->assertDontSee((string) self::TALLY);
+        $this->profile($this->other)->assertOk()->assertDontSee((string) self::TALLY);
     }
 
     public function test_the_owner_reads_their_own(): void
     {
-        $response = $this->profile($this->player)->assertOk();
-
-        $this->assertSame(self::TALLY, $response->viewData('season')['venuePoints']);
-        $response->assertSee('Venue Points');
+        $this->assertSame(
+            (string) self::TALLY,
+            $this->props($this->player)['season']['venue_points_label']
+        );
     }
 
     public function test_an_admin_reads_it_too(): void
     {
-        $response = $this->profile($this->admin)->assertOk();
-
-        $this->assertSame(self::TALLY, $response->viewData('season')['venuePoints']);
+        $this->assertSame(
+            (string) self::TALLY,
+            $this->props($this->admin)['season']['venue_points_label']
+        );
     }
 
     public function test_the_owner_is_offered_their_dashboard(): void
     {
         // The page is not a replacement for it -- the dashboard has the diary.
-        $this->profile($this->player)->assertOk()->assertSee('Your dashboard');
-        $this->profile($this->other)->assertOk()->assertDontSee('Your dashboard');
+        $this->assertTrue($this->props($this->player)['is_self']);
+        $this->assertFalse($this->props($this->other)['is_self']);
+
+        // And the page hangs the link on that flag rather than on anything of
+        // its own, so the two cannot come apart.
+        $this->assertStringContainsString(
+            '<template v-if="is_self" #actions>',
+            (string) file_get_contents(resource_path('js/Pages/Players/Show.vue'))
+        );
     }
 
     public function test_a_player_with_nothing_yet_still_has_a_page(): void
     {
         $newcomer = $this->makePlayer('Newly', 'Joined');
 
-        $this->actingAs($this->other)
-            ->get(route('players.show', $newcomer))->assertOk()
-            ->assertSee('Newly')
-            ->assertSee('No results recorded yet.');
+        $props = $this->props($this->other, $newcomer);
+
+        $this->assertSame('Newly Joined', $props['title']);
+        $this->assertSame([], $props['results']);
+
+        // The empty state is the page's answer to an empty list.
+        $this->assertStringContainsString(
+            'title="No results recorded yet."',
+            (string) file_get_contents(resource_path('js/Pages/Players/Show.vue'))
+        );
     }
 
     public function test_a_result_with_no_account_behind_it_is_not_a_link(): void
@@ -286,12 +388,17 @@ class PlayerProfileTest extends TestCase
         // somebody else.
         $newcomer = $this->makePlayer('Newly', 'Joined');
 
-        $this->actingAs($this->other)
-            ->get(route('players.show', $newcomer))->assertOk()
-            ->assertSee('A player is ranked once they enter a tournament.')
-            ->assertDontSee('Enter a tournament to be ranked.');
+        // `self` is what chooses between the two sentences, and it is the
+        // controller's answer rather than the panel's: a person reading their
+        // own figures is told what to DO, a person reading somebody else's is
+        // told what is true.
+        $this->assertFalse($this->props($this->other, $newcomer)['self']);
+        $this->assertTrue($this->props($newcomer, $newcomer)['self']);
 
-        $this->actingAs($newcomer)->get(route('dashboard'))->assertOk()
-            ->assertSee('Enter a tournament to be ranked.');
+        // Both sentences live in the panel, one per branch.
+        $panel = (string) file_get_contents(resource_path('js/Components/SeasonPanel.vue'));
+
+        $this->assertStringContainsString('A player is ranked once they enter a tournament.', $panel);
+        $this->assertStringContainsString('Enter a tournament to be ranked.', $panel);
     }
 }

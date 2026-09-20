@@ -60,6 +60,7 @@ class InertiaPropContractTest extends TestCase
         'Sponsors/Create' => ['sponsors.create', null],
         'Sponsors/Edit' => ['sponsors.edit', 'sponsor'],
         'Poker/VenuePoints/Create' => ['poker.venue-points.create', null],
+        'Players/Show' => ['players.show', 'player'],
     ];
 
     /**
@@ -111,6 +112,10 @@ class InertiaPropContractTest extends TestCase
             // logo_path is never null in practice -- store() requires the
             // upload -- so the fixture has one, and logoUrl() has something to
             // build a URL from.
+            'player' => \App\Models\User::factory()->create([
+                'email' => 'fixture.player@example.test',
+            ])->id,
+
             'sponsor' => \App\Models\Sponsor::create([
                 'name' => 'Fixture Sponsor',
                 'logo_path' => 'sponsor-logos/fixture.png',
@@ -250,8 +255,20 @@ class InertiaPropContractTest extends TestCase
         // answer for a create form: it is sent nothing. Not a failure of its
         // own -- a page that IS sent props and has no interface still fails,
         // as a mismatch between what arrived and the empty list below.
-        if (! preg_match('/interface\s+Props\s*\{(.*?)\n\}/s', $source, $block)) {
+        if (! preg_match('/interface\s+Props(?:\s+extends\s+([\w\s,]+?))?\s*\{(.*?)\n\}/s', $source, $block)) {
             return [];
+        }
+
+        // `interface Props extends SeasonPanelProps` declares those keys too.
+        // Without this the whole interface read as empty -- the pattern wanted
+        // a brace straight after the name -- and a page inheriting its props
+        // was reported as declaring none at all.
+        $inherited = [];
+
+        foreach (preg_split('/\s*,\s*/', trim($block[1] ?? '')) as $parent) {
+            if ($parent !== '') {
+                $inherited = array_merge($inherited, $this->keysOfInterface($parent));
+            }
         }
 
         // Top level only: anything nested inside a braced sub-shape is skipped,
@@ -259,7 +276,7 @@ class InertiaPropContractTest extends TestCase
         $depth = 0;
         $keys = [];
 
-        foreach (explode("\n", $block[1]) as $line) {
+        foreach (explode("\n", $block[2]) as $line) {
             if ($depth === 0 && preg_match('/^\s*([A-Za-z_]\w*)\??\s*:/', $line, $key)) {
                 $keys[] = $key[1];
             }
@@ -267,6 +284,52 @@ class InertiaPropContractTest extends TestCase
             $depth += substr_count($line, '{') - substr_count($line, '}');
         }
 
-        return array_values(array_unique($keys));
+        return array_values(array_unique(array_merge($keys, $inherited)));
+    }
+
+    /**
+     * The top-level keys of an interface declared anywhere under resources/js.
+     *
+     * Found by searching rather than by following the import, because the
+     * import path is relative to the page and the shapes a page inherits live
+     * in one file -- types/inertia.d.ts. An interface that cannot be found
+     * fails loudly here: a silent empty list would make the inheriting page
+     * look as though it declared nothing, which is the failure this method
+     * exists to stop.
+     *
+     * @return list<string>
+     */
+    private function keysOfInterface(string $name): array
+    {
+        $files = new \RecursiveIteratorIterator(
+            new \RecursiveDirectoryIterator(resource_path('js'))
+        );
+
+        foreach ($files as $file) {
+            if (! $file->isFile() || ! in_array($file->getExtension(), ['ts', 'vue'], true)) {
+                continue;
+            }
+
+            $source = (string) file_get_contents($file->getPathname());
+
+            if (! preg_match('/interface\s+'.preg_quote($name, '/').'\s*\{(.*?)\n\}/s', $source, $block)) {
+                continue;
+            }
+
+            $depth = 0;
+            $keys = [];
+
+            foreach (explode("\n", $block[1]) as $line) {
+                if ($depth === 0 && preg_match('/^\s*([A-Za-z_]\w*)\??\s*:/', $line, $key)) {
+                    $keys[] = $key[1];
+                }
+
+                $depth += substr_count($line, '{') - substr_count($line, '}');
+            }
+
+            return $keys;
+        }
+
+        $this->fail("A page's Props extends {$name}, which is declared nowhere under resources/js.");
     }
 }

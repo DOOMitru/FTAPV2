@@ -2,6 +2,7 @@
 import Card from './Card.vue';
 import Btn from './Btn.vue';
 import EmptyState from './EmptyState.vue';
+import type { SeasonFigures } from '../types/inertia';
 
 /**
  * One season's figures for one player.
@@ -10,36 +11,6 @@ import EmptyState from './EmptyState.vue';
  * about different people -- as a copy it would be a hundred lines free to
  * drift, and the venue-points rule is not something to enforce twice.
  */
-interface SeasonFigures {
-    /** "#3", or "—" when unranked. */
-    rank_label: string;
-    /**
-     * "8.4 pts per event", or null when the player has not entered yet.
-     *
-     * One decimal, decided in PHP: these run to a couple of hundred points
-     * over a couple of dozen events, so the second decimal is noise that
-     * changes every night.
-     */
-    per_event_label: string | null;
-    /** "218 pts over 26 events" -- pluralised in PHP. */
-    totals_label: string;
-    /** "of 41 ranked players", or null when unranked. Pluralised in PHP. */
-    ranked_label: string | null;
-    first: string;
-    second: string;
-    third: string;
-    events_label: string;
-    points_label: string;
-    /**
-     * Null means the viewer may not read them -- VenuePoints::readableBy(),
-     * applied by the controller. The row is absent rather than blank or zero:
-     * a zero is a fact about the player, and this is a fact about the reader.
-     *
-     * Spec §8 requires the figure withheld from the PROPS, not hidden here.
-     * This component only renders what it is given.
-     */
-    venue_points_label: string | null;
-}
 
 interface Props {
     /** The card's title: the season's name, or a generic heading. */

@@ -440,7 +440,7 @@ player, and this is a fact about the reader.
 
 ---
 
-## Task 2: `/players/{player}`
+## Task 2: `/players/{player}` — DONE
 
 The smallest consumer of the panel, so the panel is proven before the dashboard
 leans on it too.
@@ -456,7 +456,7 @@ leans on it too.
 - Produces: component `Players/Show` with props
   `eyebrow, title, is_self, season_name, season_href, season, self, results`.
 
-- [ ] **Step 1: Change the controller**
+- [x] **Step 1: Change the controller**
 
 ```php
     public function show(User $player): Response
@@ -500,7 +500,7 @@ leans on it too.
 The `VenuePoints::readableBy()` block in this method **goes**: Task 1 owns that
 decision now. Leaving both is two definitions of the rule.
 
-- [ ] **Step 2: Write `resources/js/Pages/Players/Show.vue`**
+- [x] **Step 2: Write `resources/js/Pages/Players/Show.vue`**
 
 ```vue
 <script setup lang="ts">
@@ -608,7 +608,7 @@ const props = defineProps<Props>();
 slot, so rows are written as direct children — the same shape as the Blade
 component.
 
-- [ ] **Step 3: Register the page and delete the Blade view**
+- [x] **Step 3: Register the page and delete the Blade view**
 
 In `tests/Feature/InertiaPropContractTest.php`, add to `PAGES`:
 
@@ -626,7 +626,7 @@ and an arm to `fixture()`:
 
 Then `rm resources/views/players/show.blade.php`.
 
-- [ ] **Step 4: Type-check, build, full suite**
+- [x] **Step 4: Type-check, build, full suite**
 
 ```bash
 npm run typecheck && npx vite build
@@ -643,12 +643,12 @@ the rule, now against the props.
 stronger than the one it replaced, and two of them caught real faults while
 being ported.
 
-- [ ] **Step 5: Prove each ported assertion fails**
+- [x] **Step 5: Prove each ported assertion fails**
 
 For each one, break the thing it describes and watch it fail, then put it back.
 A ported assertion that has never failed is a comment.
 
-- [ ] **Step 6: Verify in a browser at 1440, 960 and 375**
+- [x] **Step 6: Verify in a browser at 1440, 960 and 375**
 
 - the panel shows rank, the three medals and the totals
 - a player with no events reads "Not entered yet" and **"A player is ranked
@@ -658,7 +658,7 @@ A ported assertion that has never failed is a comment.
 - a result row is one link, not three: `document.querySelectorAll('a a').length`
   is 0 and the row has one anchor
 
-- [ ] **Step 7: Commit (hand-off)**
+- [x] **Step 7: Commit (hand-off)**
 
 ```
 feat: convert a player's profile to Inertia + Vue
