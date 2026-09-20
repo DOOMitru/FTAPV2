@@ -6,7 +6,8 @@ use App\Models\Sponsor;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\View\View;
+use Inertia\Inertia;
+use Inertia\Response;
 
 /**
  * Sponsors shown on the home page.
@@ -42,9 +43,9 @@ class SponsorController extends Controller
         ]);
     }
 
-    public function create(): View
+    public function create(): Response
     {
-        return view('sponsors.create');
+        return Inertia::render('Sponsors/Create');
     }
 
     public function store(Request $request): RedirectResponse
@@ -61,9 +62,22 @@ class SponsorController extends Controller
         ]));
     }
 
-    public function edit(Sponsor $sponsor): View
+    public function edit(Sponsor $sponsor): Response
     {
-        return view('sponsors.edit', compact('sponsor'));
+        return Inertia::render('Sponsors/Edit', [
+            'sponsor' => [
+                'id' => $sponsor->id,
+                'name' => $sponsor->name,
+                'website_url' => $sponsor->website_url,
+                'tier' => $sponsor->tier,
+                'sort_order' => $sponsor->sort_order,
+
+                // The URL, not the path. logoUrl() is where this app turns one
+                // into the other, and a page rebuilding it from logo_path
+                // would be a second definition of the storage layout.
+                'logo_url' => $sponsor->logoUrl(),
+            ],
+        ]);
     }
 
     public function update(Request $request, Sponsor $sponsor): RedirectResponse

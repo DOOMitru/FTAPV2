@@ -388,7 +388,7 @@ posting one name would be one more thing to keep in step.
 '.$last` — a translated prefix joined to a person's name, both PHP's to decide
 (spec §5a) — so `title` is sent alongside `user`.
 
-### Task 6: `sponsors` create and edit
+### Task 6: `sponsors` create and edit — DONE
 
 **Props:** create — none. edit —
 `sponsor: { id, name, website_url, tier, sort_order, logo_url }`.
@@ -408,14 +408,17 @@ must be a `POST`. Two consequences:
 
 - **An edit cannot use `form.patch()`.** PHP does not parse a multipart body on
   PUT or PATCH, so the file never arrives. Post to the update route with
-  `_method: 'patch'` in the form data — the same method-spoofing the Blade does
-  with `@method('patch')`.
+  `_method: 'put'` in the form data — the same method-spoofing the Blade does,
+  and it is `@method('PUT')` there, not PATCH.
 - The file input is not `v-model`-able. Bind it by hand:
 
 ```vue
-<input type="file" class="field__control" accept="image/*"
-       @input="form.logo = ($event.target as HTMLInputElement).files?.[0] ?? null">
+<input id="logo" name="logo" type="file" class="field__control"
+       :required="sponsor === null" @input="takeFile">
 ```
+
+No `accept`: the Blade has none, and adding one would quietly change which
+files the picker offers.
 
 **On edit the logo is optional** — "Leave this empty to keep the current logo."
 Send `null` and let the controller keep what it has.

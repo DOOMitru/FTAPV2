@@ -57,6 +57,8 @@ class InertiaPropContractTest extends TestCase
         'Poker/PointsStructure/Edit' => ['poker.points-structure.edit', 'points_structure'],
         'Users/Create' => ['users.create', null],
         'Users/Edit' => ['users.edit', 'user'],
+        'Sponsors/Create' => ['sponsors.create', null],
+        'Sponsors/Edit' => ['sponsors.edit', 'sponsor'],
     ];
 
     /**
@@ -103,6 +105,16 @@ class InertiaPropContractTest extends TestCase
             // question.
             'user' => \App\Models\User::factory()->create([
                 'email' => 'fixture.subject@example.test',
+            ])->id,
+
+            // logo_path is never null in practice -- store() requires the
+            // upload -- so the fixture has one, and logoUrl() has something to
+            // build a URL from.
+            'sponsor' => \App\Models\Sponsor::create([
+                'name' => 'Fixture Sponsor',
+                'logo_path' => 'sponsor-logos/fixture.png',
+                'tier' => 'regular',
+                'sort_order' => 0,
             ])->id,
         };
     }
