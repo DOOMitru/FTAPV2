@@ -303,15 +303,23 @@ restore and re-seeding from the session would overwrite what is on screen.
 Each is Task 1's shape with its own fields. Read the Blade first and copy its
 labels, hints and button text verbatim — tests assert on them.
 
-### Task 2: `poker/seasons` create and edit
+### Task 2: `poker/seasons` create and edit — DONE
 
 **Props:** create — none beyond shared. edit —
 `season: { id, name, description, start_date, end_date, is_current, finale_points_required, finale_wins_required, finale_venue_points_required }`.
 
-**The two pages do not have the same fields.** Create has name, description,
-the two dates and the three finale thresholds. Edit has all of those **plus
-`is_current`**, as a checkbox — a season is marked current after it exists,
-not as it is made. Do not give Create an is_current field it never had.
+**Both pages have the same fields**, `is_current` included — this plan said
+twice, in both directions, that they did not. Read
+`resources/views/poker/seasons/{create,edit}.blade.php`: name, description, the
+two dates, the three finale thresholds, and an `is_current` checkbox, on each.
+
+**`is_current` on Create is not what it looks like.** The checkbox is only
+POSTed when ticked, and `PokerSeason::booted()` defaults an unset `is_current`
+to **true** — so creating a season with the box clear makes it current anyway.
+`useForm` sends every field every time, which would silently turn that into
+"clear means not current". Preserve the behaviour: `form.transform()` drops
+`is_current` when it is false, exactly as an unticked checkbox does. The
+oddity is pre-existing and is not this plan's to fix.
 
 **Dates** are `<input type="date">`, so they need `Y-m-d` strings:
 `$season->start_date?->format('Y-m-d')`. A Carbon instance serialises to ISO

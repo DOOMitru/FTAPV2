@@ -43,9 +43,9 @@ class PokerSeasonController extends Controller
     /**
      * Show the form for creating a new resource.
      */
-    public function create(): View
+    public function create(): Response
     {
-        return view('poker.seasons.create');
+        return Inertia::render('Poker/Seasons/Create');
     }
 
     /** The finale thresholds, named once so both writes and the reset below agree. */
@@ -280,9 +280,34 @@ class PokerSeasonController extends Controller
     /**
      * Show the form for editing the specified resource.
      */
-    public function edit(PokerSeason $season): View
+    public function edit(PokerSeason $season): Response
     {
-        return view('poker.seasons.edit', compact('season'));
+        return Inertia::render('Poker/Seasons/Edit', [
+            'season' => [
+                'id' => $season->id,
+                'name' => $season->name,
+                'description' => $season->description,
+
+                // Y-m-d, not the cast Carbon. An <input type="date"> renders
+                // anything else BLANK, so editing a season silently offered to
+                // wipe its dates -- the fault the Blade view's own comment
+                // records, and which arrives again through any prop that
+                // hands the date over as it is stored.
+                'start_date' => $season->start_date?->format('Y-m-d'),
+                'end_date' => $season->end_date?->format('Y-m-d'),
+
+                // A real boolean: v-model on a checkbox given 0 or 1 renders
+                // unchecked and posts the wrong value back.
+                'is_current' => (bool) $season->is_current,
+
+                // Null means NOT PUBLISHED, which is not zero -- a target of 0
+                // is one everybody has met. Sent as null so the number input
+                // is empty.
+                'finale_points_required' => $season->finale_points_required,
+                'finale_wins_required' => $season->finale_wins_required,
+                'finale_venue_points_required' => $season->finale_venue_points_required,
+            ],
+        ]);
     }
 
     /**

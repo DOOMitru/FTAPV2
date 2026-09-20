@@ -49,6 +49,8 @@ class InertiaPropContractTest extends TestCase
         'Users/Index' => ['users.index', null],
         'Poker/Venues/Create' => ['poker.venues.create', null],
         'Poker/Venues/Edit' => ['poker.venues.edit', 'venue'],
+        'Poker/Seasons/Create' => ['poker.seasons.create', null],
+        'Poker/Seasons/Edit' => ['poker.seasons.edit', 'season'],
     ];
 
     /**
@@ -64,6 +66,15 @@ class InertiaPropContractTest extends TestCase
         return match ($binding) {
             'venue' => \App\Models\Venue::create([
                 'name' => 'Fixture Room', 'address' => '1 Test St',
+            ])->id,
+
+            // Both dates, because seasons.start_date and end_date are NOT
+            // NULL -- an earlier test here was written for a season with
+            // neither and could not be inserted at all.
+            'season' => \App\Models\PokerSeason::create([
+                'name' => 'Fixture Season',
+                'start_date' => '2026-01-01',
+                'end_date' => '2026-12-31',
             ])->id,
         };
     }

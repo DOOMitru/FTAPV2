@@ -4,7 +4,12 @@ import { computed } from 'vue';
 interface Props {
     name: string;
     label: string;
-    modelValue?: string | null;
+    /**
+     * A number field's value is a number: the seasons form's three thresholds
+     * are ints, and Blade put them in the input as ints. The emit stays a
+     * string, because that is what an <input> gives back.
+     */
+    modelValue?: string | number | null;
     type?: string;
     required?: boolean;
     hint?: string | null;

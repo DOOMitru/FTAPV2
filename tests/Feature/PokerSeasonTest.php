@@ -91,40 +91,36 @@ class PokerSeasonTest extends TestCase
      * a fact. .l-grid does the pairing and drops to a single column when two
      * 16rem tracks no longer fit, so the breakpoint is the card's real width
      * rather than a number guessed at here -- which is also why this asserts
-     * the STRUCTURE and not the widths. The project has no browser tests, so a
-     * media query is not a thing that can be checked; that the two inputs hang
-     * off one grid is.
+     * the STRUCTURE and not the widths.
+     *
+     * Read from the PAGE FILE now that both forms are Vue. The server sends an
+     * empty shell and the props; the grid lives in the component, so rendering
+     * the route and parsing the response would assert against markup the
+     * browser has not built yet. The template parses as HTML well enough for
+     * one XPath: <Field name="start_date"> is an unknown element with a name
+     * attribute, which is all this asks about.
      */
     public function test_both_season_forms_pair_the_dates_on_one_line(): void
     {
-        $admin = User::factory()->create(['is_admin' => true]);
-        $season = PokerSeason::create([
-            'name' => 'Season 41',
-            'start_date' => now()->subMonth(),
-            'end_date' => now()->addMonth(),
-        ]);
+        foreach (['Create', 'Edit'] as $page) {
+            $path = resource_path("js/Pages/Poker/Seasons/{$page}.vue");
 
-        $pages = [
-            route('poker.seasons.create'),
-            route('poker.seasons.edit', $season),
-        ];
-
-        foreach ($pages as $url) {
-            $html = $this->actingAs($admin)->get($url)->assertOk()->getContent();
+            $this->assertFileExists($path);
 
             $dom = new \DOMDocument();
-            @$dom->loadHTML($html);
+            @$dom->loadHTML((string) file_get_contents($path));
 
             $paired = (new \DOMXPath($dom))->query(
                 '//div[contains(@class, "l-grid")]'
-                .'[.//input[@name="start_date"]][.//input[@name="end_date"]]'
+                .'[.//*[@name="start_date"]][.//*[@name="end_date"]]'
             );
 
             $this->assertSame(
                 1,
                 $paired->length,
-                "Both dates must sit inside one .l-grid on {$url}."
+                "Both dates must sit inside one .l-grid on Poker/Seasons/{$page}.vue."
             );
         }
     }
+
 }
