@@ -31,13 +31,17 @@ class InertiaPropContractTest extends TestCase
     use RefreshDatabase;
 
     /**
-     * Inertia component => [route name, the name of its route parameter].
+     * Inertia component => [route name, route parameter, who asks for it].
      *
      * The second element is null for a page that takes none. Until the forms
      * arrived every converted page was parameterless and this was a plain
      * name => route map; an edit route needs a record, and route('x.edit')
      * with no argument THROWS rather than failing an assertion, which reads as
      * a broken test rather than a missing fixture.
+     *
+     * The third is the actor, and exists for exactly one page: /verify-email
+     * REDIRECTS an account that has already verified, so the admin every other
+     * page is fetched as never sees it. Omitted means that admin.
      */
     private const PAGES = [
         'Profile/Edit' => ['profile.edit', null],
@@ -64,6 +68,8 @@ class InertiaPropContractTest extends TestCase
         'Dashboard' => ['dashboard', null],
         'Users/Show' => ['users.show', 'user'],
         'Poker/Venues/Show' => ['poker.venues.show', 'venue'],
+        'Auth/ConfirmPassword' => ['password.confirm', null],
+        'Auth/VerifyEmail' => ['verification.notice', null, 'unverified'],
     ];
 
     /**
@@ -148,8 +154,15 @@ class InertiaPropContractTest extends TestCase
         $mismatches = [];
 
         foreach (self::PAGES as $component => $definition) {
-            $response = $this->actingAs($admin)->get($this->urlFor($definition));
-            $response->assertOk();
+            $actor = ($definition[2] ?? null) === 'unverified'
+                ? User::factory()->unverified()->create(['approval_status' => 'approved'])
+                : $admin;
+
+            $response = $this->actingAs($actor)->get($this->urlFor($definition));
+
+            $response->assertOk(
+                "{$definition[0]} did not render for the actor this page is listed with."
+            );
 
             $page = $response->viewData('page');
 
@@ -191,6 +204,7 @@ class InertiaPropContractTest extends TestCase
         $stale = [];
 
         foreach (self::PAGES as $component => [$routeName, $binding]) {
+            unset($binding);
             if (! app('router')->has($routeName)) {
                 $stale[] = "{$component}: route {$routeName} does not exist.";
             }

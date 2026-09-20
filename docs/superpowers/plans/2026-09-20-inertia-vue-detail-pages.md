@@ -1,4 +1,4 @@
-# Inertia + Vue Conversion — Plan 5: The detail pages and two auth screens
+# Inertia + Vue Conversion — Plan 5: The detail pages and two auth screens — COMPLETE
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
@@ -1023,7 +1023,7 @@ re-point the first entry and leave the second, which converts in Plan 6.
 
 ---
 
-## Task 6: `GuestLayout.vue`, `/verify-email` and `/confirm-password`
+## Task 6: `GuestLayout.vue`, `/verify-email` and `/confirm-password` — DONE
 
 Last, and independent of everything above.
 
@@ -1060,7 +1060,7 @@ the word `verification-link-sent` on screen.
 It becomes `RedirectResponse|Response` — the redirect for an already-verified
 account stays exactly as it is, including `redirect()->intended()`.
 
-- [ ] **Step 1: Write `GuestLayout.vue`**
+- [x] **Step 1: Write `GuestLayout.vue`**
 
 ```vue
 <script setup lang="ts">
@@ -1082,7 +1082,7 @@ import Brand from '../Components/Brand.vue';
 </template>
 ```
 
-- [ ] **Step 2: Convert both controllers**
+- [x] **Step 2: Convert both controllers**
 
 ```php
     public function __invoke(Request $request): RedirectResponse|Response
@@ -1105,7 +1105,7 @@ import Brand from '../Components/Brand.vue';
     }
 ```
 
-- [ ] **Step 3: Write both pages**
+- [x] **Step 3: Write both pages**
 
 `VerifyEmail.vue`: the `.u-muted` paragraph, the alert when `link_sent`, and a
 `.l-cluster.l-cluster--between` holding two actions — Resend (primary) and Log
@@ -1119,7 +1119,7 @@ Out (ghost). Both are `router.post` calls now rather than forms;
 
 **`autofocus` is not on the Blade's password field** — do not add one.
 
-- [ ] **Step 4: Register both pages and delete both Blade views**
+- [x] **Step 4: Register both pages and delete both Blade views**
 
 ```php
         'Auth/VerifyEmail' => ['verification.notice', null],
@@ -1134,16 +1134,16 @@ user or leave `Auth/VerifyEmail` out of `PAGES` and cover its props in
 `EmailVerificationTest` instead. **Do not** weaken the "every converted page is
 listed" assertion to make this fit.
 
-- [ ] **Step 5: Type-check, build, full suite; port what breaks**
+- [x] **Step 5: Type-check, build, full suite; port what breaks**
 
-- [ ] **Step 6: Verify in a browser at 1440 and 375**
+- [x] **Step 6: Verify in a browser at 1440 and 375**
 
 - `/confirm-password` as a signed-in user: the panel is centred, the brand is
   above it, a wrong password shows the error under the field
 - `/verify-email` as an unverified account: Resend shows the alert with the
   **sentence**, not the sentinel; Log Out signs out
 
-- [ ] **Step 7: Commit (hand-off)**
+- [x] **Step 7: Commit (hand-off)**
 
 ---
 

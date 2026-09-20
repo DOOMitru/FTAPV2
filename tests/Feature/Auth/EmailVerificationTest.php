@@ -24,6 +24,53 @@ class EmailVerificationTest extends TestCase
         $response->assertStatus(200);
     }
 
+    public function test_resending_says_so_without_printing_the_sentinel(): void
+    {
+        // session('status') holds 'verification-link-sent' on this screen --
+        // a SENTINEL a page matches on, not a message. Handing it to an alert
+        // would print that word to the reader, which is why the page is sent a
+        // boolean and keeps the sentence itself.
+        $user = User::factory()->unverified()->create();
+
+        $this->actingAs($user)->post(route('verification.send'))
+            ->assertRedirect();
+
+        $page = $this->actingAs($user)->get('/verify-email')->assertOk()->viewData('page');
+
+        $this->assertTrue($page['props']['link_sent']);
+        $this->assertNotContains('verification-link-sent', $page['props'],
+            'The sentinel reached the page as a value it could render.');
+
+        // The sentence is the component's, and the sentinel is nowhere in it.
+        $source = (string) file_get_contents(resource_path('js/Pages/Auth/VerifyEmail.vue'));
+
+        $this->assertStringContainsString(
+            'A new verification link has been sent to the email address you provided',
+            $source
+        );
+
+        $this->assertStringNotContainsString('{{ link_sent }}', $source);
+    }
+
+    public function test_the_prompt_says_nothing_until_a_link_is_sent(): void
+    {
+        // The other half: an alert that is always there says nothing.
+        $user = User::factory()->unverified()->create();
+
+        $this->assertFalse(
+            $this->actingAs($user)->get('/verify-email')->assertOk()
+                ->viewData('page')['props']['link_sent']
+        );
+
+        // And the alert is gated on that. Without this the prop could be
+        // correct while the page showed the confirmation to everybody, which
+        // is what removing the v-if does and what nothing here noticed.
+        $this->assertStringContainsString(
+            '<Alert v-if="link_sent"',
+            (string) file_get_contents(resource_path('js/Pages/Auth/VerifyEmail.vue'))
+        );
+    }
+
     public function test_email_can_be_verified(): void
     {
         $user = User::factory()->unverified()->create();
