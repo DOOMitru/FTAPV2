@@ -46,51 +46,64 @@ class VenuePointsFromVenuePageTest extends TestCase
     public function test_the_form_opens_with_that_venue_chosen(): void
     {
         $venue = $this->venue();
-        $other = $this->venue('Somewhere Else');
+        $this->venue('Somewhere Else');
 
-        $response = $this->actingAs($this->admin())
-            ->get(route('poker.venue-points.create', ['venue_id' => $venue->id]))->assertOk();
+        $props = $this->props(['venue_id' => $venue->id]);
 
-        $response->assertViewHas('venueId', $venue->id);
+        // The id, which the select is bound to. The old version of this read
+        // the rendered <option> tags looking for a bare `selected` attribute,
+        // and two earlier versions of THAT looked for selected="selected" and
+        // never found it. A prop has one spelling.
+        $this->assertSame($venue->id, $props['venue_id']);
 
-        // Selected in the MARKUP, not merely passed to the view.
-        //
-        // @selected renders a BARE attribute, and the template puts it on the
-        // next line -- so the pattern has to cross whitespace and must not
-        // expect selected="selected", which is what two earlier versions of
-        // this assertion looked for and never found.
-        preg_match_all(
-            '/<option value="([^"]+)"[^>]*\bselected\b/',
-            $response->getContent(), $chosen
-        );
-
-        $this->assertContains($venue->id, $chosen[1], 'The venue arrived unselected.');
-        $this->assertNotContains($other->id, $chosen[1]);
+        // And the select really is bound to it, rather than the prop being
+        // sent and ignored.
+        $this->assertStringContainsString('v-model="form.venue_id"', $this->page());
     }
 
     public function test_the_form_still_opens_without_one(): void
     {
         // A link followed without a venue -- a bookmark, or the route typed --
         // must not be a broken page.
-        $this->actingAs($this->admin())
-            ->get(route('poker.venue-points.create'))->assertOk()
-            ->assertViewHas('venueId', null);
+        $this->assertNull($this->props()['venue_id']);
     }
 
-    public function test_back_returns_to_the_venue(): void
+    public function test_back_returns_to_the_venue_or_to_the_list_without_one(): void
     {
-        $venue = $this->venue();
+        // Both branches of one expression, so they are read together. The page
+        // builds the href from the venue_id prop; what the two tests above
+        // establish is that the prop is the venue when there is one and null
+        // when there is not.
+        // A nowdoc: ${...} in a double-quoted PHP string is interpolation, and
+        // the expression being looked for is full of it.
+        $expected = <<<'JS'
+props.venue_id ? `/poker/venues/${props.venue_id}` : '/poker/venues'
+JS;
 
-        $this->actingAs($this->admin())
-            ->get(route('poker.venue-points.create', ['venue_id' => $venue->id]))->assertOk()
-            ->assertSee(route('poker.venues.show', $venue), false);
+        $this->assertStringContainsString($expected, $this->page());
     }
 
-    public function test_back_falls_back_to_the_venue_list_with_no_venue(): void
+    /** The page component's own source. The markup is Vue's now. */
+    private function page(): string
     {
-        $this->actingAs($this->admin())
-            ->get(route('poker.venue-points.create'))->assertOk()
-            ->assertSee(route('poker.venues.index'), false);
+        $path = resource_path('js/Pages/Poker/VenuePoints/Create.vue');
+
+        $this->assertFileExists($path);
+
+        return (string) file_get_contents($path);
+    }
+
+    /**
+     * What the controller sends the form.
+     *
+     * @param  array<string, string>  $query
+     * @return array<string, mixed>
+     */
+    private function props(array $query = []): array
+    {
+        return $this->actingAs($this->admin())
+            ->get(route('poker.venue-points.create', $query))->assertOk()
+            ->viewData('page')['props'];
     }
 
     public function test_saving_returns_to_the_form_with_the_venue_and_date_kept(): void

@@ -425,7 +425,7 @@ Send `null` and let the controller keep what it has.
 
 ---
 
-## Task 7: `poker/venue-points/create` — the player picker
+## Task 7: `poker/venue-points/create` — the player picker — DONE
 
 163 lines, and the only form with real client state. Convert it last.
 
@@ -478,15 +478,15 @@ const matches = computed(() => {
 });
 ```
 
-- [ ] **Step 1: Change the controller to send the three props**
-- [ ] **Step 2: Write the page, with `q` and `chosen` as refs**
-- [ ] **Step 3: Register in `InertiaPropContractTest::PAGES`**
-- [ ] **Step 4: Port the tests that assert on the picker's markup**
-- [ ] **Step 5: Type-check, build, full suite**
-- [ ] **Step 6: Verify in a browser**, including that choosing a player
+- [x] **Step 1: Change the controller to send the three props**
+- [x] **Step 2: Write the page, with `q` and `chosen` as refs**
+- [x] **Step 3: Register in `InertiaPropContractTest::PAGES`**
+- [x] **Step 4: Port the tests that assert on the picker's markup**
+- [x] **Step 5: Type-check, build, full suite**
+- [x] **Step 6: Verify in a browser**, including that choosing a player
       replaces the list with the name, Change reopens it, and the points save
       against the right person
-- [ ] **Step 7: Commit (hand-off)**
+- [x] **Step 7: Commit (hand-off)**
 
 ---
 
