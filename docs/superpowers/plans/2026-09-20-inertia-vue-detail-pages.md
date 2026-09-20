@@ -853,7 +853,7 @@ template deciding them again is a second definition of each.
 
 ---
 
-## Task 4: `/users/{user}`
+## Task 4: `/users/{user}` — DONE
 
 **Files:**
 - Create: `resources/js/Pages/Users/Show.vue`
@@ -910,35 +910,35 @@ do something.
 direct child of `.l-sidebar` becomes one of its two columns, so an alert placed
 inside renders as a sidebar. Keep the two containers separate.
 
-- [ ] **Step 1: Change the controller** — `decidedBy` stays resolved by
+- [x] **Step 1: Change the controller** — `decidedBy` stays resolved by
   `User::find()`, because `approval_decided_by` is a plain string column rather
   than a foreign key: `users.id` is a ULID and the row it names may since have
   been deleted. Send `decided_label` already joined.
 
-- [ ] **Step 2: Write the page**, with `Monogram`, `Badge`, the two `rows`
+- [x] **Step 2: Write the page**, with `Monogram`, `Badge`, the two `rows`
   definition lists, and the action cluster. Class names to keep: `.rows`,
   `.row`, `.row__label`, `.row__value`, `.field__media`, `.entry__title`,
   `.entry__meta`, `.l-sidebar`, `.l-cluster`, `.u-mono`.
 
-- [ ] **Step 3: Register the page and delete the Blade view**
+- [x] **Step 3: Register the page and delete the Blade view**
 
-- [ ] **Step 4: Type-check, build, full suite; port what breaks**
+- [x] **Step 4: Type-check, build, full suite; port what breaks**
 
 `MonogramCoverageTest::LISTS` names `views/users/show.blade.php`; re-point it
 at `js/Pages/Users/Show.vue`. `FormActionAlignmentTest` skips this page's
 action row deliberately — it is a toolbar of independent actions, not a form's
 Save and Cancel — so check its floor counts still hold.
 
-- [ ] **Step 5: Prove the ported assertions fail**
+- [x] **Step 5: Prove the ported assertions fail**
 
-- [ ] **Step 6: Verify in a browser at 1440, 960 and 375**
+- [x] **Step 6: Verify in a browser at 1440, 960 and 375**
 
 - approve a pending account: the badge changes and the buttons swap
 - reject an approved one: the confirmation names the player in bold
 - the password link alert shows a URL that actually works
 - at 375 the sidebar grid stacks and the alerts stay above it
 
-- [ ] **Step 7: Commit (hand-off)**
+- [x] **Step 7: Commit (hand-off)**
 
 ---
 

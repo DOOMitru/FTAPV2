@@ -62,6 +62,7 @@ class InertiaPropContractTest extends TestCase
         'Poker/VenuePoints/Create' => ['poker.venue-points.create', null],
         'Players/Show' => ['players.show', 'player'],
         'Dashboard' => ['dashboard', null],
+        'Users/Show' => ['users.show', 'user'],
     ];
 
     /**
@@ -107,12 +108,16 @@ class InertiaPropContractTest extends TestCase
             // account, and an admin editing their own is a different screen's
             // question.
             'user' => \App\Models\User::factory()->create([
-                'email' => 'fixture.subject@example.test',
+                'email' => 'fixture.subject-'.\Illuminate\Support\Str::random(6).'@example.test',
             ])->id,
 
             // logo_path is never null in practice -- store() requires the
             // upload -- so the fixture has one, and logoUrl() has something to
             // build a URL from.
+            // A distinct email per arm. Two arms make a User, and the
+            // prop-contract test resolves every page in one run -- so a shared
+            // address fails as a unique constraint rather than as an
+            // assertion.
             'player' => \App\Models\User::factory()->create([
                 'email' => 'fixture.player@example.test',
             ])->id,

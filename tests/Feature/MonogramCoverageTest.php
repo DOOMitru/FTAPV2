@@ -41,7 +41,7 @@ class MonogramCoverageTest extends TestCase
         'views/home.blade.php' => 'the landing page leader cards',
         'views/events.blade.php' => 'the archive podium',
         'js/Pages/Users/Index.vue' => 'the players list',
-        'views/users/show.blade.php' => 'a player profile',
+        'js/Pages/Users/Show.vue' => 'a player profile',
     ];
 
     public function test_every_list_of_players_pictures_them(): void

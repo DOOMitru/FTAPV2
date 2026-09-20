@@ -12,7 +12,6 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Str;
-use Illuminate\View\View;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -296,17 +295,83 @@ class UserController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(User $user): View
+    public function show(User $user): Response
     {
         // Resolved here rather than via a relation: approval_decided_by is a
         // plain string column, not a foreign key, because users.id is a ULID
         // and the row it points at may since have been deleted. Null is the
-        // normal case for accounts the migration grandfathered.
+        // normal case for accounts the migration grandfathered, and naming
+        // nobody is better than naming the wrong person.
         $decidedBy = $user->approval_decided_by
             ? User::find($user->approval_decided_by)
             : null;
 
-        return view('users.show', compact('user', 'decidedBy'));
+        $name = trim($user->first_name.' '.$user->last_name);
+
+        return Inertia::render('Users/Show', [
+            'title' => __('User Details').': '.$name,
+
+            'user' => [
+                'id' => $user->id,
+                'full_name' => $name,
+
+                // The dash is a decision about how an absent nickname reads,
+                // and it is made here rather than in the template (spec 5a).
+                'nickname_label' => $user->nickname ?? '—',
+                'email' => $user->email,
+                'display_name' => $user->display_name,
+
+                // initials() is one definition, in PHP.
+                'initials' => initials($name),
+
+                'role_label' => $user->is_admin ? __('Administrator') : __('Player'),
+                'role_badge' => $user->is_admin ? __('Admin') : __('Player'),
+
+                // Null is a variant: it is the badge's default, and the Blade
+                // this replaces wrote <x-badge> with nothing for a player.
+                // Badge.vue declares the same three names plus null, so these
+                // are passed straight through rather than mapped in the page.
+                'role_tone' => $user->is_admin ? 'primary' : null,
+                'is_admin' => (bool) $user->is_admin,
+                'member_since_label' => $user->created_at?->format('M d, Y') ?? '—',
+
+                'approval_label' => match (true) {
+                    $user->isApproved() => __('Approved'),
+                    $user->isPendingApproval() => __('Pending'),
+                    default => __('Rejected'),
+                },
+
+                'approval_tone' => match (true) {
+                    $user->isApproved() => 'open',
+                    $user->isPendingApproval() => null,
+                    default => 'primary',
+                },
+
+                'decided_label' => $user->approval_decided_at
+                    ? trim($user->approval_decided_at->format('M d, Y')
+                        .($decidedBy ? ' '.__('by').' '.trim($decidedBy->first_name.' '.$decidedBy->last_name) : ''))
+                    : null,
+
+                // Offered only while it can do something. Sending a password
+                // link, by contrast, is offered unconditionally: whether an
+                // account has ever set a password is not knowable from the
+                // schema, because every account has a hash and the random one
+                // a new player starts with is indistinguishable from a chosen
+                // one.
+                'can_verify' => ! $user->hasVerifiedEmail(),
+                'can_approve' => ! $user->isApproved(),
+                'can_reject' => $user->isApproved(),
+                'reject_confirm' => __('Reject :name? They keep their account but cannot enter tournaments.', [
+                    'name' => emph($name),
+                ]),
+            ],
+
+            // Shown as well as sent. MAIL_MAILER is log, so a link that is
+            // only emailed reaches nobody; these stay useful once a mailer
+            // exists, for when a player says it never arrived.
+            'invite_url' => session('invite_url'),
+            'verification_url' => session('verification_url'),
+        ]);
     }
 
     /**

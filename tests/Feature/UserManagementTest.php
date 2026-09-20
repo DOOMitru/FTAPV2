@@ -210,6 +210,35 @@ class UserManagementTest extends TestCase
         $this->assertFalse($other->fresh()->isApproved());
     }
 
+    public function test_the_account_page_offers_only_the_decision_that_is_available()
+    {
+        // Each control is offered only while it can do something. The Blade
+        // this replaces wrote that as @unless($user->isApproved()) around
+        // Approve and @if(...) around Reject, and nothing asserted either --
+        // making Approve unconditional broke no test.
+        $admin = User::factory()->create(['is_admin' => true]);
+
+        $approved = User::factory()->create(['approval_status' => 'approved']);
+        $pending = User::factory()->create(['approval_status' => 'pending']);
+
+        $of = fn (User $user) => $this->actingAs($admin)->get(route('users.show', $user))
+            ->assertOk()->viewData('page')['props']['user'];
+
+        $this->assertFalse($of($approved)['can_approve'], 'An approved account was offered Approve.');
+        $this->assertTrue($of($approved)['can_reject']);
+
+        $this->assertTrue($of($pending)['can_approve']);
+        $this->assertFalse($of($pending)['can_reject'], 'A pending account was offered Reject.');
+
+        // And a verified address is not offered a verification link, which is
+        // the third control with a condition of its own.
+        $verified = User::factory()->create(['email_verified_at' => now()]);
+        $unverified = User::factory()->unverified()->create();
+
+        $this->assertFalse($of($verified)['can_verify']);
+        $this->assertTrue($of($unverified)['can_verify']);
+    }
+
     public function test_a_rejected_account_is_still_listed_and_still_reversible()
     {
         // The main table no longer prints an approval state -- the column was
@@ -243,9 +272,20 @@ class UserManagementTest extends TestCase
 
         $this->assertStringContainsString('<Action icon="view" label="View" :href="`/users/${user.id}`" />', $page);
 
-        $this->actingAs($admin)->get(route('users.show', $rejected))
-            ->assertOk()
-            ->assertSee(route('users.approve', $rejected), false);
+        // And the approve control is offered there. It is a flag on the props
+        // now rather than a form in the markup -- which is the better thing to
+        // assert: the old version looked for the route's URL, and finding a
+        // URL is not the same as being offered the button that calls it.
+        $shown = $this->actingAs($admin)->get(route('users.show', $rejected))
+            ->assertOk()->viewData('page')['props'];
+
+        $this->assertTrue($shown['user']['can_approve'],
+            'A rejected account must still be offered Approve.');
+
+        $this->assertStringContainsString(
+            'v-if="user.can_approve"',
+            (string) file_get_contents(resource_path('js/Pages/Users/Show.vue'))
+        );
     }
 
     public function test_an_admin_can_register_a_player_who_is_approved_immediately()
