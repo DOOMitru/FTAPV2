@@ -17,11 +17,29 @@ use Illuminate\View\View;
  */
 class SponsorController extends Controller
 {
-    public function index(): View
+    public function index(): \Inertia\Response
     {
         // ordered(), the same scope the home page uses, so an administrator
         // arranging the list sees the sequence the page will actually render.
-        return view('sponsors.index', ['sponsors' => Sponsor::ordered()->get()]);
+        //
+        // Not paginated, and no Paginate::props: this is a short, hand-kept
+        // list, and the home page renders all of it at once anyway.
+        return \Inertia\Inertia::render('Sponsors/Index', [
+            'sponsors' => Sponsor::ordered()->get()->map(fn (Sponsor $sponsor) => [
+                'id' => $sponsor->id,
+                'name' => $sponsor->name,
+                // The stored value, not a prettied host: this is the screen an
+                // administrator checks the setting on, so it shows what was
+                // actually saved.
+                'website_url' => $sponsor->website_url,
+                'logo_url' => $sponsor->logoUrl(),
+                'is_premium' => $sponsor->isPremium(),
+                'tier_label' => $sponsor->isPremium() ? __('Premium') : __('Regular'),
+                'delete_confirm' => __('Delete :name? Their uploaded logo is deleted too, and that cannot be undone.', [
+                    'name' => emph($sponsor->name),
+                ]),
+            ])->all(),
+        ]);
     }
 
     public function create(): View

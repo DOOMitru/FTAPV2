@@ -126,8 +126,24 @@ class TableActionTest extends TestCase
         // season's page. Sponsors is a listing that still carries them.
         Sponsor::create(['name' => 'Ace Supplies', 'logo_path' => 'sponsor-logos/ace.png']);
 
-        $this->actingAs($this->admin())->get(route('sponsors.index'))->assertOk()
-            ->assertSee('class="action"', false)
-            ->assertSee('<span class="u-visually-hidden">Edit</span>', false);
+        $this->actingAs($this->admin())->get(route('sponsors.index'))->assertOk();
+
+        // Sponsors is an Inertia page now, so the icon action is rendered by
+        // the Action component in the browser. What the page file shows is
+        // that it asks for one, with the label the component turns into both a
+        // title and a visually-hidden span.
+        $page = file_get_contents(resource_path('js/Pages/Sponsors/Index.vue'));
+
+        $this->assertStringContainsString('<Action icon="edit" label="Edit"', $page);
+
+        $component = file_get_contents(resource_path('js/Components/Action.vue'));
+
+        // The class is composed, not written as an attribute: the component
+        // builds `action` plus an optional --danger modifier.
+        // Single-quoted: PHP interpolates \${ inside double quotes, and this
+        // string is looking for exactly that sequence in the Vue source.
+        $this->assertStringContainsString('`action${', $component);
+        $this->assertStringContainsString(':class="classes"', $component);
+        $this->assertStringContainsString('<span class="u-visually-hidden">{{ label }}</span>', $component);
     }
 }

@@ -74,7 +74,7 @@ class AdminIndexCardLayoutTest extends TestCase
             ], 'js/Pages/Poker/Tournaments/Index.vue'],
             'sponsors' => ['sponsors.index', 'sponsors-index__table', [
                 'sponsors-index__logo', 'sponsors-index__name', 'sponsors-index__tier',
-            ], null],
+            ], 'js/Pages/Sponsors/Index.vue'],
         ];
     }
 

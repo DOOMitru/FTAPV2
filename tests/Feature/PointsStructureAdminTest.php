@@ -159,26 +159,29 @@ class PointsStructureAdminTest extends TestCase
     {
         $this->ladder(100, 85, 75);
 
-        $html = $this->actingAs($this->admin())->get(route('poker.points-structure.index'))
-            ->assertOk()->getContent();
+        // can_delete per row, which is the decision itself.
+        //
+        // The assertion this replaces matched the delete form's action URL,
+        // and its comment records why it had to: a count of the row's id got
+        // it wrong, because the id appears twice on the deepest row -- once
+        // for edit and once for delete. There is no URL to match now, and
+        // nothing to miscount: the row either carries the permission or it
+        // does not.
+        $props = $this->actingAs($this->admin())->get(route('poker.points-structure.index'))
+            ->assertOk()->viewData('page')['props'];
 
-        // The delete form's action, not a count of the row's id -- the id
-        // appears twice on the deepest row, once for edit and once for delete,
-        // which is what a count-of-one assertion got wrong here.
-        $this->assertStringContainsString(
-            'action="'.route('poker.points-structure.destroy', PointsStructure::where('place', 3)->value('id')).'"',
-            $html,
-            'The deepest place must be offered a delete form.'
-        );
+        $byPlace = collect($props['structures']['data'])->keyBy('place');
+
+        $this->assertTrue($byPlace[3]['can_delete'],
+            'The deepest place must be offered a delete.');
 
         foreach ([1, 2] as $place) {
-            $id = PointsStructure::where('place', $place)->value('id');
-            $this->assertStringNotContainsString(
-                'action="'.route('poker.points-structure.destroy', $id).'"',
-                $html,
-                "Place {$place} must not be offered a delete form."
-            );
+            $this->assertFalse($byPlace[$place]['can_delete'],
+                "Place {$place} must not be offered a delete.");
         }
+
+        // And the sentence it would ask, formatted in PHP.
+        $this->assertSame('Remove 3rd place, worth 75 points?', $byPlace[3]['delete_confirm']);
     }
 
     public function test_the_create_form_shows_the_place_it_will_assign(): void

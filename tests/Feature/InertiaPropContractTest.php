@@ -36,6 +36,8 @@ class InertiaPropContractTest extends TestCase
         'Poker/Seasons/Index' => 'poker.seasons.index',
         'Poker/Venues/Index' => 'poker.venues.index',
         'Poker/Tournaments/Index' => 'poker.tournaments.index',
+        'Poker/PointsStructure/Index' => 'poker.points-structure.index',
+        'Sponsors/Index' => 'sponsors.index',
     ];
 
     public function test_each_page_declares_exactly_the_props_it_is_sent(): void
