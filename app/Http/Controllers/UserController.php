@@ -13,6 +13,8 @@ use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
+use Inertia\Inertia;
+use Inertia\Response;
 
 class UserController extends Controller
 {
@@ -25,7 +27,7 @@ class UserController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index(Request $request): \Inertia\Response
+    public function index(Request $request): Response
     {
         $search = trim((string) $request->query('search', ''));
 
@@ -52,7 +54,7 @@ class UserController extends Controller
             'email' => $user->email,
         ];
 
-        return \Inertia\Inertia::render('Users/Index', [
+        return Inertia::render('Users/Index', [
             'users' => \App\Support\Paginate::props($users, fn (User $user) => [
                 ...$row($user),
                 'nickname' => $user->nickname ?? '—',
@@ -108,9 +110,9 @@ class UserController extends Controller
         return $query;
     }
 
-    public function create(): View
+    public function create(): Response
     {
-        return view('users.create');
+        return Inertia::render('Users/Create');
     }
 
     /**
@@ -310,9 +312,22 @@ class UserController extends Controller
     /**
      * Show the form for editing the specified resource.
      */
-    public function edit(User $user): View
+    public function edit(User $user): Response
     {
-        return view('users.edit', compact('user'));
+        return Inertia::render('Users/Edit', [
+            // The heading, composed here: it is a translated prefix joined to
+            // a person's name, and both halves of that are PHP's to decide
+            // (spec 5a).
+            'title' => __('Edit User').': '.$user->first_name.' '.$user->last_name,
+            'user' => [
+                'id' => $user->id,
+                'first_name' => $user->first_name,
+                'last_name' => $user->last_name,
+                'nickname' => $user->nickname,
+                'email' => $user->email,
+                'is_admin' => (bool) $user->is_admin,
+            ],
+        ]);
     }
 
     /**

@@ -55,6 +55,8 @@ class InertiaPropContractTest extends TestCase
         'Poker/Tournaments/Edit' => ['poker.tournaments.edit', 'tournament'],
         'Poker/PointsStructure/Create' => ['poker.points-structure.create', null],
         'Poker/PointsStructure/Edit' => ['poker.points-structure.edit', 'points_structure'],
+        'Users/Create' => ['users.create', null],
+        'Users/Edit' => ['users.edit', 'user'],
     ];
 
     /**
@@ -94,6 +96,13 @@ class InertiaPropContractTest extends TestCase
 
             'points_structure' => \App\Models\PointsStructure::create([
                 'place' => 1, 'points' => 100,
+            ])->id,
+
+            // Not the acting admin: the page under test is somebody else's
+            // account, and an admin editing their own is a different screen's
+            // question.
+            'user' => \App\Models\User::factory()->create([
+                'email' => 'fixture.subject@example.test',
             ])->id,
         };
     }
