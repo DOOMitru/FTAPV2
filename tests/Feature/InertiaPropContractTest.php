@@ -51,6 +51,8 @@ class InertiaPropContractTest extends TestCase
         'Poker/Venues/Edit' => ['poker.venues.edit', 'venue'],
         'Poker/Seasons/Create' => ['poker.seasons.create', null],
         'Poker/Seasons/Edit' => ['poker.seasons.edit', 'season'],
+        'Poker/Tournaments/Create' => ['poker.tournaments.create', null],
+        'Poker/Tournaments/Edit' => ['poker.tournaments.edit', 'tournament'],
     ];
 
     /**
@@ -75,6 +77,17 @@ class InertiaPropContractTest extends TestCase
                 'name' => 'Fixture Season',
                 'start_date' => '2026-01-01',
                 'end_date' => '2026-12-31',
+            ])->id,
+
+            'tournament' => \App\Models\PokerTournament::create([
+                'name' => 'Fixture Night',
+                'start_time' => '2026-06-01 19:00:00',
+                'season_id' => \App\Models\PokerSeason::create([
+                    'name' => 'Fixture Season For A Tournament',
+                    'start_date' => '2026-01-01',
+                    'end_date' => '2026-12-31',
+                ])->id,
+                'venue_id' => \App\Models\Venue::create(['name' => 'Fixture Hall'])->id,
             ])->id,
         };
     }

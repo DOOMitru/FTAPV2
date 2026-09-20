@@ -332,10 +332,16 @@ and posts the wrong value.
 **The three finale thresholds are nullable.** Null means "no requirement", which
 is not the same as zero. Send `null` and let the number input be empty.
 
-### Task 3: `poker/tournaments` create and edit
+### Task 3: `poker/tournaments` create and edit — DONE
 
-**Props:** create — `venues: { id, name }[]`, `current_season_name: string|null`.
-edit — `tournament: { id, name, venue_id, start_time }`, `venues`, `seasons`.
+**Props:** create — `venues: { id, name }[]`, `season_label: string`.
+edit — `tournament: { id, name, description, venue_id, season_id, start_time }`,
+`venues`, `seasons`.
+
+`season_label`, not `current_season_name`: the box shows the season's name or
+the words "No active season", and choosing between them is a translated string
+decided in PHP (spec §5a). The create view's `$seasons` goes away — it was
+fetched and never read.
 
 **The season is not chosen on create.** It is fixed to the current season and
 shown as static text in a `.field__control--static` box — styled to look almost

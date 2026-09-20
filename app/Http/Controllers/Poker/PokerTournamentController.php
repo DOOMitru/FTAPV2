@@ -17,6 +17,8 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Number;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
+use Inertia\Inertia;
+use Inertia\Response;
 
 class PokerTournamentController extends Controller
 {
@@ -82,13 +84,21 @@ class PokerTournamentController extends Controller
     /**
      * Show the form for creating a new resource.
      */
-    public function create(): View
+    public function create(): Response
     {
-        $venues = Venue::all();
-        $seasons = PokerSeason::orderBy('name', 'desc')->get();
-        $currentSeason = PokerSeason::current();
-        
-        return view('poker.tournaments.create', compact('venues', 'seasons', 'currentSeason'));
+        // No $seasons here. The Blade view was handed a list it never read --
+        // the season is not chosen on this page, it is assigned by store().
+        return Inertia::render('Poker/Tournaments/Create', [
+            'venues' => Venue::all()->map(fn (Venue $venue) => [
+                'id' => $venue->id,
+                'name' => $venue->name,
+            ])->all(),
+
+            // The label, not the season: it is read-only here and the fallback
+            // wording is a translated string, which belongs on this side of
+            // the wire rather than in a template (spec 5a).
+            'season_label' => PokerSeason::current()?->name ?? __('No active season'),
+        ]);
     }
 
     /**
@@ -620,11 +630,30 @@ class PokerTournamentController extends Controller
     /**
      * Show the form for editing the specified resource.
      */
-    public function edit(PokerTournament $tournament): View
+    public function edit(PokerTournament $tournament): Response
     {
-        $venues = Venue::all();
-        $seasons = PokerSeason::all();
-        return view('poker.tournaments.edit', compact('tournament', 'venues', 'seasons'));
+        return Inertia::render('Poker/Tournaments/Edit', [
+            'tournament' => [
+                'id' => $tournament->id,
+                'name' => $tournament->name,
+                'description' => $tournament->description,
+                'venue_id' => $tournament->venue_id,
+                'season_id' => $tournament->season_id,
+
+                // Y-m-d\TH:i, the only shape an <input type="datetime-local">
+                // will show. The cast Carbon stringifies with a space and
+                // seconds, and the control renders that as blank.
+                'start_time' => $tournament->start_time?->format('Y-m-d\TH:i'),
+            ],
+            'venues' => Venue::all()->map(fn (Venue $venue) => [
+                'id' => $venue->id,
+                'name' => $venue->name,
+            ])->all(),
+            'seasons' => PokerSeason::all()->map(fn (PokerSeason $season) => [
+                'id' => $season->id,
+                'name' => $season->name,
+            ])->all(),
+        ]);
     }
 
     /**
