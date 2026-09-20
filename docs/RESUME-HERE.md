@@ -1,15 +1,41 @@
 # Resume here
 
-**Last worked: 2026-09-17.** First to Act Poker — a league app for free-to-play
+**Last worked: 2026-09-20.** First to Act Poker — a league app for free-to-play
 poker nights in Regina.
 
 ## Where things stand
 
-Suite: **962 passed across 112 files**, on Laravel 13.32.0 and PHPUnit 12. `php artisan test` is the command, but
+Suite: **982 passed across 116 files**, on Laravel 13.32.0 and PHPUnit 12. `php artisan test` is the command, but
 see the segfault note below -- a full-suite run dies on this machine and has to
-be taken file by file, and the script there is how that 962 was counted. Do not
+be taken file by file, and `bin/suite.sh` is how that 982 was counted. Do not
 count it by hand: the previous figure in this line went stale, and so did the
 loop that produced it.
+
+**The current work is the Inertia + Vue conversion, on a branch.** The view
+layer is moving from Blade + Alpine to Inertia with Vue 3 and TypeScript, for
+the 29 authenticated routes only -- the 18 public ones stay Blade, because
+Inertia SSR needs a persistent Node process and DreamHost shared hosting cannot
+run one, and because `/register` carries the reCAPTCHA gate that is verified
+end to end. Two Vite entries keep Vue out of the public pages' bundle.
+
+Read `docs/superpowers/specs/2026-09-19-inertia-vue-conversion-design.md`
+first; the plans beside it are `-foundation`, `-components`, `-index-pages` and
+`-forms`, all four complete.
+
+**Where the conversion stands: 20 routes of 29.** Done are `/profile`, the six
+index pages, all thirteen create and edit forms, and the venue-points player
+picker. Each converted page's Blade view is deleted with it, so
+`resources/views` now holds the public side, the layouts, the shared components
+and the six screens still to convert.
+
+**What is left, in two plans that are not yet written.** Plan 5 is the detail
+pages and two auth screens: `dashboard` (192 lines), `users/show` (178),
+`poker/venues/show` (174), `players/show` (73), `verify-email`,
+`confirm-password`. Plan 6 is the two large ones: `poker/seasons/show` (346,
+with the points/rank toggle and the venue points privacy rule) and
+`poker/tournaments/show` (499, plus porting `p-event` at 308). Then Alpine and
+`MarkupBalanceTest` and `AlpineAttributeGuardTest` go -- all three still have
+targets in `modal`, `topbar`, `dropdown` and `tournaments/show`.
 
 **The design-system work is finished and is no longer what this project is
 about.** Phases 0-5 moved all 86 views off Tailwind onto hand-built CSS
@@ -651,6 +677,38 @@ looking rather than by running the suite.
 The first two share `Tests\Concerns\RendersEveryPage`, which carries the
 requirement both depend on: the fixture's tournament must be PAST and scored, or
 the events page renders no archive and passes a check it never ran.
+
+### The guards learned about Vue (2026-09-20)
+
+Ten guards swept `resources/views` for `*.blade.php` and nothing else, which
+meant their coverage shrank with every page converted -- passing more easily
+each time. They read `.vue` too now, through `Tests\Concerns\ScansTemplates`,
+which yields every template keyed by a path relative to `resources/` so a
+failure says which half it is in.
+
+Nothing had slipped through yet. What the change turned up was subtler, and
+came from mutating the dead-CSS guard rather than running it: **a class named
+in a COMMENT counted as used.** `venues-table` is discussed in a comment
+directly above the element that uses it, so deleting the class from that
+element left the guard silent. It strips comments first now -- block comments
+in all three languages, and line comments only where one starts a line, since a
+mid-line `//` is usually the middle of a URL. Both halves are mutation-proven:
+removing a Vue-only class and a Blade-only class each fail it.
+
+Three re-pointings worth knowing about:
+
+- `UnusedCssClassTest` reads `.vue` as well as `.ts` under `resources/js`, and
+  its composed-modifier rule now recognises a template literal --
+  `` `badge--${variant}` `` is the same thing as `'badge badge--'.$variant`.
+- `PlayerLinkCoverageTest` and `MonogramCoverageTest` name screens, not files.
+  An entry moves from `views/` to `js/Pages/` the day its page converts, and
+  both accept either spelling of their component.
+- `FlashMessageParityTest` was rewritten. It used to pair a converted page with
+  the Blade view it replaced; that premise expired the moment converted views
+  started being deleted. It reads the CONTROLLERS now: a redirect carrying
+  `->with('status')` names the route it lands on, and the page that route
+  renders must read the flash. Which is a better question anyway -- it asks
+  what the app sends rather than what the old template happened to draw.
 
 ### Players can read the league's records (2026-09-08)
 

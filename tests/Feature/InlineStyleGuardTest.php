@@ -2,7 +2,7 @@
 
 namespace Tests\Feature;
 
-use Symfony\Component\Finder\Finder;
+use Tests\Concerns\ScansTemplates;
 use Tests\TestCase;
 
 /**
@@ -18,6 +18,8 @@ use Tests\TestCase;
  */
 class InlineStyleGuardTest extends TestCase
 {
+    use ScansTemplates;
+
     /**
      * Where the rule genuinely inverts.
      *
@@ -34,7 +36,7 @@ class InlineStyleGuardTest extends TestCase
      * design system requires. It is themes/default.css rather than
      * resources/css/, because the destination is an inbox rather than a page.
      */
-    private const EXEMPT = ['vendor/mail'];
+    private const EXEMPT = ['views/vendor/mail'];
 
     public function test_no_view_contains_an_inline_style_attribute(): void
     {
@@ -43,7 +45,8 @@ class InlineStyleGuardTest extends TestCase
         foreach ($this->views() as $relative => $lines) {
             foreach ($lines as $index => $line) {
                 // \b...style catches x-bind:style and :style too -- an Alpine
-                // binding writes the same inline CSS, just later.
+                // binding and a Vue one both write the same inline CSS, just
+                // later.
                 if (! preg_match('/\bstyle\s*=\s*(["\'])(.*?)\1/', $line, $matches)) {
                     continue;
                 }
@@ -85,20 +88,16 @@ class InlineStyleGuardTest extends TestCase
      */
     private function views(): array
     {
-        $root = resource_path('views').DIRECTORY_SEPARATOR;
         $views = [];
 
-        $finder = Finder::create()->files()->in(resource_path('views'))->name('*.blade.php');
+        foreach ($this->templates() as $relative => $source) {
+            foreach (self::EXEMPT as $path) {
+                if (str_starts_with($relative, $path)) {
+                    continue 2;
+                }
+            }
 
-        foreach (self::EXEMPT as $path) {
-            $finder->notPath($path);
-        }
-
-        foreach ($finder as $file) {
-            $views[str_replace($root, '', $file->getRealPath())] = file(
-                $file->getRealPath(),
-                FILE_IGNORE_NEW_LINES
-            );
+            $views[$relative] = explode("\n", $source);
         }
 
         return $views;
@@ -110,7 +109,7 @@ class InlineStyleGuardTest extends TestCase
         // exists -- a directory added here is a directory the design system no
         // longer governs. Pinned, so widening it is a deliberate edit to a test
         // rather than a line in a diff nobody reads.
-        $this->assertSame(['vendor/mail'], self::EXEMPT);
+        $this->assertSame(['views/vendor/mail'], self::EXEMPT);
     }
 
     /**
@@ -119,6 +118,13 @@ class InlineStyleGuardTest extends TestCase
      */
     private function isOnlyCustomProperties(string $attribute): bool
     {
+        // A Vue binding writes the same declaration inside a template literal
+        // -- :style="`--meter-fill: ${percentage}%`" is the Blade twin's
+        // style="--meter-fill: {{ $percentage }}%" -- so the backticks come
+        // off before the declarations are read. Without this the one approved
+        // escape hatch fails the moment it is written in Vue.
+        $attribute = trim($attribute, '`');
+
         $declarations = array_filter(array_map('trim', explode(';', $attribute)), 'strlen');
 
         if ($declarations === []) {

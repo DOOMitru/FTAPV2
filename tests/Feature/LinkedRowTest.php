@@ -6,8 +6,8 @@ use App\Models\PokerSeason;
 use App\Models\PokerTournament;
 use App\Models\Venue;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Symfony\Component\Finder\Finder;
 use Tests\Concerns\BuildsTournaments;
+use Tests\Concerns\ScansTemplates;
 use Tests\TestCase;
 
 /**
@@ -20,7 +20,7 @@ use Tests\TestCase;
  */
 class LinkedRowTest extends TestCase
 {
-    use BuildsTournaments, RefreshDatabase;
+    use BuildsTournaments, RefreshDatabase, ScansTemplates;
 
     public function test_the_venue_page_marks_its_rows_as_links(): void
     {
@@ -47,15 +47,15 @@ class LinkedRowTest extends TestCase
         // An <a class="entry"> with no entry--link is the exact fault this
         // fixes, and it is invisible in a test that only checks the page loads.
         $offenders = [];
-        $root = resource_path('views').DIRECTORY_SEPARATOR;
 
-        foreach (Finder::create()->files()->in(resource_path('views'))->name('*.blade.php') as $file) {
-            $body = file_get_contents($file->getRealPath());
-
-            if (preg_match_all('/<a\b[^>]*class="([^"]*\bentry\b[^"]*)"/', $body, $matches)) {
+        foreach ($this->templates() as $relative => $body) {
+            // <Link> as well as <a>: Inertia's component renders an anchor, so
+            // a linked row written in Vue is underlined three times over in
+            // exactly the same way.
+            if (preg_match_all('/<(?:a|Link)\b[^>]*class="([^"]*\bentry\b[^"]*)"/', $body, $matches)) {
                 foreach ($matches[1] as $classes) {
                     if (! str_contains($classes, 'entry--link')) {
-                        $offenders[] = str_replace($root, '', $file->getRealPath());
+                        $offenders[] = $relative;
                     }
                 }
             }

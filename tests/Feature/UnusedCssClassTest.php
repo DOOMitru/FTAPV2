@@ -45,13 +45,24 @@ class UnusedCssClassTest extends TestCase
         'link--danger' => 'Cited by name in _btn.css and _action.css as the pattern each follows. Deleting the class would leave both notes pointing at nothing.',
     ];
 
-    /** Where a class may be put to use. Not the stylesheets themselves. */
+    /**
+     * Where a class may be put to use. Not the stylesheets themselves.
+     *
+     * `.vue` matters as much as `.blade.php` now. This listed resources/js for
+     * its `.ts` files -- confirm.ts writes class names -- and stopped there,
+     * so every class used only by a Vue component read as unused. Nothing had
+     * failed yet only because the Blade page each one came from was still on
+     * disk, unrendered: dead templates were propping up the classes their
+     * replacements use.
+     *
+     * @var array<string, list<string>>
+     */
     private const MARKUP = [
-        'resources/views' => '.blade.php',
-        'resources/js' => '.ts',
-        'app' => '.php',
-        'config' => '.php',
-        'routes' => '.php',
+        'resources/views' => ['.blade.php'],
+        'resources/js' => ['.ts', '.vue'],
+        'app' => ['.php'],
+        'config' => ['.php'],
+        'routes' => ['.php'],
     ];
 
     public function test_every_declared_class_is_used_or_deliberately_kept(): void
@@ -141,13 +152,46 @@ class UnusedCssClassTest extends TestCase
     {
         $markup = '';
 
-        foreach (self::MARKUP as $directory => $extension) {
-            foreach ($this->filesIn(base_path($directory), $extension) as $path) {
-                $markup .= file_get_contents($path)."\n";
+        foreach (self::MARKUP as $directory => $extensions) {
+            foreach ($extensions as $extension) {
+                foreach ($this->filesIn(base_path($directory), $extension) as $path) {
+                    $markup .= $this->withoutComments((string) file_get_contents($path))."\n";
+                }
             }
         }
 
         return $markup;
+    }
+
+    /**
+     * Comments do not put a class on an element.
+     *
+     * This project explains itself at length, and those explanations name
+     * class hooks while doing it -- `venues-table` is discussed in a comment
+     * directly above the element that uses it. A prose mention counted as a
+     * use, so deleting the last real use of a class left the guard silent,
+     * which is the whole failure this test exists to prevent. Found by
+     * mutation: removing the class from the element it styles did not fail.
+     *
+     * ComponentParityTest and ConvertedViewsTest strip comments first for the
+     * same reason.
+     *
+     * Block comments in all three languages, and LINE comments only where one
+     * starts a line. A mid-line `//` is usually the middle of a URL, and
+     * cutting from there to the end of the line would throw away real markup.
+     */
+    private function withoutComments(string $source): string
+    {
+        return (string) preg_replace(
+            [
+                '/\{\{--.*?--\}\}/s',   // Blade
+                '/<!--.*?-->/s',         // HTML
+                '#/\*.*?\*/#s',          // PHP, JS, CSS
+                '/^[ \t]*(?:\/\/|#(?!\[)).*$/m', // a line that is only a comment
+            ],
+            ' ',
+            $source
+        );
     }
 
     /** Written out in full, with no class-name character either side. */
@@ -165,8 +209,11 @@ class UnusedCssClassTest extends TestCase
 
         $prefix = substr($class, 0, (int) strrpos($class, '--') + 2);
 
+        // `'badge badge--'.$variant` in Blade, `{{ }}` in a view, and
+        // `` `badge--${variant}` `` in Vue -- three spellings of one thing,
+        // which is a modifier assembled at runtime.
         return (bool) preg_match(
-            '/(?<![\w-])'.preg_quote($prefix, '/').'(?:[\'"]\s*\.|\{\{|\$)/',
+            '/(?<![\w-])'.preg_quote($prefix, '/').'(?:[\'"]\s*\.|\{\{|\$\{|\$)/',
             $markup
         );
     }

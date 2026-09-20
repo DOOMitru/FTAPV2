@@ -5,54 +5,85 @@ namespace Tests\Feature;
 use Tests\TestCase;
 
 /**
- * A converted page still shows the flash message its Blade twin showed.
+ * A page that is sent a flash message shows it.
  *
- * The flash is shared by HandleInertiaRequests, not sent by a controller, so
- * InertiaPropContractTest cannot see it: the page declares no prop for it and
- * the middleware sends it whether or not anyone renders it. A page that simply
- * does not draw the alert therefore passes every other guard here while
- * swallowing "Venue :name created." on the way back from the form -- which is
- * what three of the converted index pages were doing when this was written.
+ * The flash is shared by HandleInertiaRequests rather than sent by a
+ * controller, so InertiaPropContractTest cannot see it: the page declares no
+ * prop for it and the middleware shares it whether or not anyone draws it. A
+ * page that simply omits the alert therefore passes every other guard here
+ * while swallowing "Venue :name created." on the way back from the form --
+ * which is what three of the converted index pages were doing when this was
+ * written.
  *
- * Paired by path, the way ComponentParityTest pairs components: Poker/Venues/
- * Index.vue against views/poker/venues/index.blade.php. A page whose Blade
- * twin is gone is not checked -- the Blade half of the app is being deleted as
- * it is converted, and a missing twin is that, not a fault.
+ * Two rules, and the second is the one that cost a morning:
+ *
+ *   1. Every page a controller redirects to with a flash must read it.
+ *   2. No page may capture it in a plain const. Inertia REUSES a component
+ *      when a visit renders the same page, so a value read once at setup
+ *      survives the visit while the props under it change -- and every
+ *      redirect back to the page you are on shows nothing.
+ *
+ * The first rule used to be checked by pairing each converted page with the
+ * Blade view it replaced. That premise expired: a converted page's Blade twin
+ * is deleted with it, so the pairing found nothing and said so.
  */
 class FlashMessageParityTest extends TestCase
 {
-    public function test_a_converted_page_renders_the_flash_its_blade_twin_rendered(): void
+    public function test_a_page_a_flash_is_sent_to_renders_it(): void
     {
+        /*
+         * A controller that redirects with a flash is making a promise on the
+         * receiving page's behalf. Whether that page keeps it is not visible
+         * from either end alone -- the middleware shares the flash whether or
+         * not anyone draws it, so the props are identical either way, and the
+         * only symptom is a confirmation that never appears.
+         *
+         * This used to pair each converted page with the Blade view it
+         * replaced and compare the two. That premise expired: the Blade half
+         * of a converted page is deleted with it, so the pairing found nothing
+         * and said so. Reading the redirects is better anyway -- it asks what
+         * the app actually sends rather than what the old template happened to
+         * draw, and it keeps working when the last Blade page is gone.
+         */
         $missing = [];
 
-        foreach ($this->pairs() as $vuePath => $bladePath) {
-            $blade = (string) file_get_contents($bladePath);
-            $vue = (string) file_get_contents($vuePath);
-            $page = $this->componentName($vuePath);
+        foreach ($this->flashTargets() as $routeName => $keys) {
+            $component = $this->componentFor($routeName);
 
-            foreach (['status', 'error'] as $key) {
-                if (! str_contains($blade, "session('{$key}')")) {
-                    continue;
-                }
+            // A route still rendering Blade is not this guard's business; the
+            // Blade views read session('status') directly.
+            if ($component === null) {
+                continue;
+            }
 
-                // Either spelling counts: a page may read the whole bag once
-                // into a `flash` const, as the index pages do, or reach for
-                // the one key it wants inline.
-                if (str_contains($vue, "flash.{$key}") || str_contains($vue, "flash?.{$key}")) {
+            $source = (string) file_get_contents(resource_path('js/Pages/'.$component.'.vue'));
+
+            foreach ($keys as $key) {
+                if (str_contains($source, 'flash.'.$key) || str_contains($source, 'flash?.'.$key)) {
                     continue;
                 }
 
                 $missing[] = sprintf(
-                    '%s: its Blade twin renders session(%s) and this does not read flash.%s. '
-                    .'The middleware shares it either way, so nothing else notices.',
-                    $page, "'{$key}'", $key
+                    '%s (%s): a controller redirects here with a %s flash, and the page never reads it.',
+                    $component, $routeName, $key
                 );
             }
         }
 
         $this->assertSame([], $missing,
-            "A converted page drops a flash message its Blade twin shows:\n  "
-            .implode("\n  ", $missing)."\n");
+            "A flash is sent to a page that does not show it:\n  ".implode("\n  ", $missing)."\n");
+    }
+
+    public function test_the_redirect_scan_actually_finds_flashes(): void
+    {
+        // The guard above passes trivially on an empty set, and a broken regex
+        // looks exactly like a clean run. Controllers do flash; this says so.
+        $targets = $this->flashTargets();
+
+        $this->assertNotEmpty($targets, 'No flashing redirect found. The scan is broken.');
+
+        $this->assertArrayHasKey('poker.venues.index', $targets,
+            'The venue controller flashes on create, update and delete; the scan missed it.');
     }
 
     public function test_no_page_reads_the_flash_into_a_plain_const(): void
@@ -94,6 +125,84 @@ class FlashMessageParityTest extends TestCase
     }
 
     /**
+     * Route name => the flash keys controllers send to it.
+     *
+     * `back()->with(...)` is deliberately not read: where back() lands depends
+     * on the referrer, so there is no page to hold to anything.
+     *
+     * @return array<string, list<string>>
+     */
+    private function flashTargets(): array
+    {
+        $targets = [];
+
+        $files = new \RecursiveIteratorIterator(
+            new \RecursiveDirectoryIterator(app_path('Http/Controllers'))
+        );
+
+        foreach ($files as $file) {
+            if (! $file->isFile() || $file->getExtension() !== 'php') {
+                continue;
+            }
+
+            $source = (string) file_get_contents($file->getPathname());
+
+            // One statement: the redirect, its route, and everything chained
+            // onto it up to the semicolon.
+            preg_match_all(
+                "/redirect\(\)->route\('([^']+)'(?:[^;]*?)->with\('(status|error)'/s",
+                $source, $matches, PREG_SET_ORDER
+            );
+
+            foreach ($matches as [, $routeName, $key]) {
+                if (! in_array($key, $targets[$routeName] ?? [], true)) {
+                    $targets[$routeName][] = $key;
+                }
+            }
+        }
+
+        ksort($targets);
+
+        return $targets;
+    }
+
+    /**
+     * The Inertia component a named route renders, or null if it renders Blade.
+     *
+     * Read out of the controller method, because nothing else knows: the link
+     * between a route and a component is a string passed to Inertia::render().
+     */
+    private function componentFor(string $routeName): ?string
+    {
+        $route = app('router')->getRoutes()->getByName($routeName);
+
+        if ($route === null || ! is_string($action = $route->getActionName()) || ! str_contains($action, '@')) {
+            return null;
+        }
+
+        [$class, $method] = explode('@', $action);
+
+        if (! class_exists($class)) {
+            return null;
+        }
+
+        $path = (new \ReflectionClass($class))->getFileName();
+
+        if ($path === false) {
+            return null;
+        }
+
+        $reflection = new \ReflectionMethod($class, $method);
+        $body = implode('', array_slice(
+            file($path),
+            $reflection->getStartLine(),
+            $reflection->getEndLine() - $reflection->getStartLine()
+        ));
+
+        return preg_match("/Inertia::render\('([^']+)'/", $body, $found) ? $found[1] : null;
+    }
+
+    /**
      * Every Vue page file, partials included.
      *
      * Wider than pairs(): a partial reads the flash too, and a page with no
@@ -118,65 +227,4 @@ class FlashMessageParityTest extends TestCase
         return $paths;
     }
 
-    public function test_the_pairing_actually_finds_pages(): void
-    {
-        // The guard above passes trivially when it pairs nothing, and a broken
-        // path mapping looks exactly like a clean run. Pages exist and some of
-        // them still have Blade twins, so this must find some.
-        $this->assertNotEmpty($this->pairs(),
-            'No converted page was paired with a Blade view. The path mapping is broken, '
-            .'and the guard above has been checking nothing.');
-    }
-
-    /**
-     * Vue page path => its Blade counterpart, for every pair that still exists.
-     *
-     * @return array<string, string>
-     */
-    private function pairs(): array
-    {
-        $pairs = [];
-
-        $files = new \RecursiveIteratorIterator(
-            new \RecursiveDirectoryIterator(resource_path('js/Pages'))
-        );
-
-        foreach ($files as $file) {
-            if (! $file->isFile() || $file->getExtension() !== 'vue') {
-                continue;
-            }
-
-            $component = $this->componentName($file->getPathname());
-
-            // Partials are rendered inside a page and have no Blade view of
-            // their own to pair with; their Blade equivalents live under a
-            // partials/ directory the name mapping would not reach anyway.
-            if (str_contains($component, '/Partials/')) {
-                continue;
-            }
-
-            $blade = resource_path('views/'.$this->kebabPath($component).'.blade.php');
-
-            if (file_exists($blade)) {
-                $pairs[$file->getPathname()] = $blade;
-            }
-        }
-
-        return $pairs;
-    }
-
-    /** .../js/Pages/Poker/Venues/Index.vue => Poker/Venues/Index */
-    private function componentName(string $path): string
-    {
-        return str_replace([resource_path('js/Pages').'/', '.vue'], '', $path);
-    }
-
-    /** Poker/PointsStructure/Index => poker/points-structure/index */
-    private function kebabPath(string $component): string
-    {
-        return implode('/', array_map(
-            fn (string $segment) => strtolower((string) preg_replace('/(?<!^)[A-Z]/', '-$0', $segment)),
-            explode('/', $component)
-        ));
-    }
 }

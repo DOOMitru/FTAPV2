@@ -2,7 +2,7 @@
 
 namespace Tests\Feature;
 
-use Symfony\Component\Finder\Finder;
+use Tests\Concerns\ScansTemplates;
 use Tests\TestCase;
 
 /**
@@ -22,20 +22,26 @@ use Tests\TestCase;
  */
 class MonogramCoverageTest extends TestCase
 {
+    use ScansTemplates;
+
     /**
-     * Every view that lists players, and must picture them.
+     * Every screen that lists players, and must picture them.
      *
-     * @var array<string, string> view => what it lists
+     * Paths are relative to `resources/`. An entry moves from `views/` to
+     * `js/Pages/` the day its page converts -- the rule is about screens, not
+     * about which half of the app they are written in.
+     *
+     * @var array<string, string> template => what it lists
      */
     private const LISTS = [
-        'poker/seasons/show.blade.php' => 'the season standings',
-        'poker/tournaments/show.blade.php' => 'the registered players panel',
-        'poker/venue-points/create.blade.php' => 'the venue points player picker',
-        'rules/points-structure.blade.php' => 'Current Season Leaders',
-        'home.blade.php' => 'the landing page leader cards',
-        'events.blade.php' => 'the archive podium',
-        'users/index.blade.php' => 'the players list',
-        'users/show.blade.php' => 'a player profile',
+        'views/poker/seasons/show.blade.php' => 'the season standings',
+        'views/poker/tournaments/show.blade.php' => 'the registered players panel',
+        'js/Pages/Poker/VenuePoints/Create.vue' => 'the venue points player picker',
+        'views/rules/points-structure.blade.php' => 'Current Season Leaders',
+        'views/home.blade.php' => 'the landing page leader cards',
+        'views/events.blade.php' => 'the archive podium',
+        'js/Pages/Users/Index.vue' => 'the players list',
+        'views/users/show.blade.php' => 'a player profile',
     ];
 
     public function test_every_list_of_players_pictures_them(): void
@@ -43,11 +49,13 @@ class MonogramCoverageTest extends TestCase
         $missing = [];
 
         foreach (self::LISTS as $view => $what) {
-            $source = file_get_contents(resource_path('views/'.$view));
+            $source = (string) file_get_contents(resource_path($view));
 
-            // Either the component, or its classes where the rows are built in
-            // the browser and the component cannot run.
-            if (! str_contains($source, 'x-monogram') && ! str_contains($source, 'class="monogram')) {
+            // Either spelling of the component, or its classes where the rows
+            // are built in the browser and no component can run.
+            if (! str_contains($source, 'x-monogram')
+                && ! str_contains($source, '<Monogram')
+                && ! str_contains($source, 'class="monogram')) {
                 $missing[] = $view.' — '.$what;
             }
         }
@@ -91,16 +99,18 @@ class MonogramCoverageTest extends TestCase
         // The failure this prevents is silent: a second derivation renders
         // something plausible and drifts the first time either is corrected.
         $offenders = [];
-        $root = resource_path('views').DIRECTORY_SEPARATOR;
 
-        foreach (Finder::create()->files()->in(resource_path('views'))->name('*.blade.php') as $file) {
-            if (preg_match('/mb_substr\s*\(\s*\$\w+(\[|->|\s*,)/', $file->getContents())) {
-                $offenders[] = str_replace($root, '', $file->getRealPath());
+        foreach ($this->templates() as $relative => $source) {
+            // mb_substr in Blade; charAt, slice or substring in Vue, which is
+            // the same second derivation written in the other language.
+            if (preg_match('/mb_substr\s*\(\s*\$\w+(\[|->|\s*,)/', $source)
+                || preg_match('/\.(?:charAt|slice|substring)\s*\(\s*0\s*,?\s*1?\s*\)/', $source)) {
+                $offenders[] = $relative;
             }
         }
 
         $this->assertSame([], $offenders, implode("\n  ", array_merge(
-            ['A view cuts letters out of a name itself instead of calling initials():'], $offenders
+            ['A template cuts letters out of a name itself instead of calling initials():'], $offenders
         )));
     }
 }

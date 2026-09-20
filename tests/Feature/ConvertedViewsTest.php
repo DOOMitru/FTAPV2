@@ -2,7 +2,7 @@
 
 namespace Tests\Feature;
 
-use Symfony\Component\Finder\Finder;
+use Tests\Concerns\ScansTemplates;
 use Tests\TestCase;
 
 /**
@@ -23,10 +23,18 @@ use Tests\TestCase;
  * Phase 3 removes the auth and profile entries, Phase 4 the three showcase
  * pages, Phase 5 the admin CRUD. When the array is empty, Tailwind can be
  * deleted from package.json and app.css -- and that is a test going green
- * rather than somebody's judgement call.
+ * rather than somebody's judgement call. The array is empty; the guard stays,
+ * because the first assertion is what stops a utility class coming back.
+ *
+ * It reads Vue components as well as Blade views. A rule about which class
+ * names are allowed is a rule about markup, and half the markup moved -- a
+ * ledger that only counted the shrinking half would have let the new templates
+ * reach for Tailwind freely.
  */
 class ConvertedViewsTest extends TestCase
 {
+    use ScansTemplates;
+
     /**
      * Views that may still contain Tailwind utility classes.
      *
@@ -98,6 +106,11 @@ class ConvertedViewsTest extends TestCase
 
     private function tailwindClassCount(string $source): int
     {
+        // Bound classes are read too, but only the quoted strings inside them:
+        // :class="`badge badge--${tier}`" puts real class names in a template
+        // literal, and a Vue page could hide a utility there. The expression
+        // itself is not a class list -- reading it as one is what credited
+        // ComponentParityTest with a variable name.
         preg_match_all('/class="([^"]*)"/', $source, $attributes);
 
         $count = 0;
@@ -116,13 +129,6 @@ class ConvertedViewsTest extends TestCase
      */
     private function views(): array
     {
-        $root = resource_path('views').DIRECTORY_SEPARATOR;
-        $views = [];
-
-        foreach (Finder::create()->files()->in(resource_path('views'))->name('*.blade.php') as $file) {
-            $views[str_replace($root, '', $file->getRealPath())] = file_get_contents($file->getRealPath());
-        }
-
-        return $views;
+        return $this->templates();
     }
 }

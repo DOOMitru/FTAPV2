@@ -2,7 +2,7 @@
 
 namespace Tests\Feature;
 
-use Symfony\Component\Finder\Finder;
+use Tests\Concerns\ScansTemplates;
 use Tests\TestCase;
 
 /**
@@ -24,6 +24,8 @@ use Tests\TestCase;
  */
 class FormActionAlignmentTest extends TestCase
 {
+    use ScansTemplates;
+
     /** A cluster and its contents. None of these rows nests a <div>. */
     private const CLUSTER = '/<div class="(l-cluster[^"]*)">(.*?)<\/div>/s';
 
@@ -36,12 +38,8 @@ class FormActionAlignmentTest extends TestCase
         $misordered = [];
         $rows = 0;
         $withCancel = 0;
-        $root = resource_path('views').DIRECTORY_SEPARATOR;
 
-        foreach (Finder::create()->files()->in(resource_path('views'))->name('*.blade.php') as $file) {
-            $content = file_get_contents($file->getRealPath());
-            $name = str_replace($root, '', $file->getRealPath());
-
+        foreach ($this->templates() as $name => $content) {
             foreach (self::PUBLIC_LAYOUTS as $layout) {
                 if (str_contains($content, $layout)) {
                     continue 2;
