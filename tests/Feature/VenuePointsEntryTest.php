@@ -279,11 +279,19 @@ class VenuePointsEntryTest extends TestCase
         // The inline note is opt-in. Every other hinted field in the app --
         // the finale thresholds, the points-structure minimum -- keeps the
         // placement it had, and this is what says so.
-        $html = $this->actingAs($this->admin())->get(route('poker.points-structure.create'))
-            ->assertOk()->getContent();
+        //
+        // Asked of the page rather than of rendered HTML: that page is Vue
+        // now, and where a hint lands is Field's decision, made from whether
+        // the caller opted in. So what is checked here is that this caller
+        // does not -- the placement itself belongs to Field, which its Blade
+        // twin is held to by ComponentParityTest.
+        $page = (string) file_get_contents(
+            resource_path('js/Pages/Poker/PointsStructure/Create.vue')
+        );
 
-        $this->assertStringContainsString('<p class="field__hint">', $html);
-        $this->assertStringNotContainsString('field__label-row', $html);
+        $this->assertStringContainsString('hint="Must be at least 1.', $page);
+        $this->assertStringNotContainsString('hint-inline', $page);
+        $this->assertStringNotContainsString('hintInline', $page);
     }
 
     public function test_a_first_visit_starts_at_the_venue(): void

@@ -55,6 +55,69 @@ class FlashMessageParityTest extends TestCase
             .implode("\n  ", $missing)."\n");
     }
 
+    public function test_no_page_reads_the_flash_into_a_plain_const(): void
+    {
+        /*
+         * `const flash = usePage().props.flash` is the flash that arrived with
+         * this component, captured once and never updated.
+         *
+         * Inertia REUSES a component when a visit renders the same page, so
+         * the const survives the visit while the props underneath it change.
+         * Every redirect back to the page you are already on is affected --
+         * deleting a user and landing on the user list again, the
+         * points-structure form returning to itself after each entry -- and
+         * those are exactly the places a confirmation matters most, because
+         * nothing else on screen changes enough to say the thing worked.
+         *
+         * A computed re-reads on every render and is correct in both cases.
+         * Checked here rather than in a type: both spellings type-check, and
+         * both render on a first visit, so nothing else can tell them apart.
+         */
+        $stale = [];
+
+        foreach ($this->vuePages() as $path) {
+            $source = (string) file_get_contents($path);
+
+            if (preg_match('/=\s*usePage<[^>]*>\(\)\.props\.flash\s*;/', $source)) {
+                $stale[] = str_replace(resource_path('js/').'', '', $path);
+            }
+        }
+
+        $this->assertSame([], $stale,
+            "A page captures the flash once instead of reading it reactively. Use
+"
+            ."computed(() => usePage<PageProps>().props.flash) -- a plain const goes stale
+"
+            ."the moment a visit re-renders the same component:
+  ".implode("\n  ", $stale)."
+");
+    }
+
+    /**
+     * Every Vue page file, partials included.
+     *
+     * Wider than pairs(): a partial reads the flash too, and a page with no
+     * Blade twin left is still a page.
+     *
+     * @return list<string>
+     */
+    private function vuePages(): array
+    {
+        $paths = [];
+
+        $files = new \RecursiveIteratorIterator(
+            new \RecursiveDirectoryIterator(resource_path('js/Pages'))
+        );
+
+        foreach ($files as $file) {
+            if ($file->isFile() && $file->getExtension() === 'vue') {
+                $paths[] = $file->getPathname();
+            }
+        }
+
+        return $paths;
+    }
+
     public function test_the_pairing_actually_finds_pages(): void
     {
         // The guard above passes trivially when it pairs nothing, and a broken

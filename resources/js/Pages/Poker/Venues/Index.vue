@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { computed } from 'vue';
 import { Link, usePage } from '@inertiajs/vue3';
 import AppLayout from '../../../Layouts/AppLayout.vue';
 import PageHeader from '../../../Components/PageHeader.vue';
@@ -32,7 +33,12 @@ const props = defineProps<Props>();
 // "Venue X created." on the way back from the form. Shared by the middleware,
 // so the page declares no prop for it -- which is also why it was missed
 // here: nothing in the props said a message was arriving.
-const flash = usePage<PageProps>().props.flash;
+// computed, not a plain const: usePage().props.flash read once at setup is
+// the flash that ARRIVED WITH THIS COMPONENT. Inertia reuses a component when
+// a visit renders the same page, so every redirect back to the page you are on
+// -- a delete returning to its listing, a form returning to itself -- left the
+// old value in place and showed nothing.
+const flash = computed(() => usePage<PageProps>().props.flash);
 </script>
 
 <template>

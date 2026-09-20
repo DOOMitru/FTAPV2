@@ -7,7 +7,8 @@ use App\Models\PointsStructure;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Number;
-use Illuminate\View\View;
+use Inertia\Inertia;
+use Inertia\Response;
 
 /**
  * The points structure, kept as a ladder from first place down.
@@ -65,9 +66,15 @@ class PointsStructureController extends Controller
     /**
      * Show the form for creating a new resource.
      */
-    public function create(): View
+    public function create(): Response
     {
-        return view('poker.points-structure.create', ['nextPlace' => $this->nextPlace()]);
+        // The ordinal, not the number. Which suffix "3" takes is a language
+        // question, and Number::ordinal() is where this app answers it
+        // (spec 5a) -- the same call the flash message and the delete
+        // confirmation make.
+        return Inertia::render('Poker/PointsStructure/Create', [
+            'next_place_label' => Number::ordinal($this->nextPlace()),
+        ]);
     }
 
     /**
@@ -99,9 +106,15 @@ class PointsStructureController extends Controller
     /**
      * Show the form for editing the specified resource.
      */
-    public function edit(PointsStructure $points_structure): View
+    public function edit(PointsStructure $points_structure): Response
     {
-        return view('poker.points-structure.edit', compact('points_structure'));
+        return Inertia::render('Poker/PointsStructure/Edit', [
+            'structure' => [
+                'id' => $points_structure->id,
+                'place_label' => Number::ordinal($points_structure->place),
+                'points' => $points_structure->points,
+            ],
+        ]);
     }
 
     /**

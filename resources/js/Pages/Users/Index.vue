@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 import { router, usePage } from '@inertiajs/vue3';
 import AppLayout from '../../Layouts/AppLayout.vue';
 import PageHeader from '../../Components/PageHeader.vue';
@@ -49,7 +49,12 @@ interface Props {
 }
 
 const props = defineProps<Props>();
-const flash = usePage<PageProps>().props.flash;
+// computed, not a plain const: usePage().props.flash read once at setup is
+// the flash that ARRIVED WITH THIS COMPONENT. Inertia reuses a component when
+// a visit renders the same page, so every redirect back to the page you are on
+// -- a delete returning to its listing, a form returning to itself -- left the
+// old value in place and showed nothing.
+const flash = computed(() => usePage<PageProps>().props.flash);
 const { ask } = useConfirm();
 
 const term = ref(props.search);

@@ -351,7 +351,7 @@ error; keep that.
 
 **`start_time` is `datetime-local`**, so it needs `Y-m-d\TH:i`.
 
-### Task 4: `poker/points-structure` create and edit
+### Task 4: `poker/points-structure` create and edit — DONE
 
 **Props:** create — `next_place_label: string` ("3rd"). edit —
 `structure: { id, place_label, points }`.
@@ -361,6 +361,14 @@ will add — "3rd" — and posts no `place` field at all;
 `PointsStructureAdminTest` asserts both (`assertSee('3rd')` and
 `assertDontSee('name="place"')`). Port the second to a check that the page file
 has no `name="place"` input, stripping comments first.
+
+**The form returns to itself, and two things Blade gave it for free must be
+done by hand.** `old()` is only refilled after a FAILED submission, so the
+points box came back empty; `useForm` keeps what was typed, so the success
+handler calls `reset()` or the same figure sits there ready to be saved twice.
+And `autofocus` fires when an input enters the document — once. What comes back
+from a save is the SAME component re-rendered, so the component focuses the
+input itself.
 
 ### Task 5: `users` create and edit
 

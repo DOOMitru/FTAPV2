@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { computed } from 'vue';
 import { usePage } from '@inertiajs/vue3';
 import AppLayout from '../../Layouts/AppLayout.vue';
 import PageHeader from '../../Components/PageHeader.vue';
@@ -24,7 +25,12 @@ const props = defineProps<Props>();
 // Flash is shared but never rendered by the layout: these are SENTINELS, not
 // copy. 'profile-updated' and 'password-updated' say which form saved, and the
 // partials match on them exactly as the Blade partials do.
-const flash = usePage<PageProps>().props.flash;
+// computed, not a plain const: usePage().props.flash read once at setup is
+// the flash that ARRIVED WITH THIS COMPONENT. Inertia reuses a component when
+// a visit renders the same page, so every redirect back to the page you are on
+// -- a delete returning to its listing, a form returning to itself -- left the
+// old value in place and showed nothing.
+const flash = computed(() => usePage<PageProps>().props.flash);
 </script>
 
 <template>

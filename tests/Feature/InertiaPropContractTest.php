@@ -53,6 +53,8 @@ class InertiaPropContractTest extends TestCase
         'Poker/Seasons/Edit' => ['poker.seasons.edit', 'season'],
         'Poker/Tournaments/Create' => ['poker.tournaments.create', null],
         'Poker/Tournaments/Edit' => ['poker.tournaments.edit', 'tournament'],
+        'Poker/PointsStructure/Create' => ['poker.points-structure.create', null],
+        'Poker/PointsStructure/Edit' => ['poker.points-structure.edit', 'points_structure'],
     ];
 
     /**
@@ -88,6 +90,10 @@ class InertiaPropContractTest extends TestCase
                     'end_date' => '2026-12-31',
                 ])->id,
                 'venue_id' => \App\Models\Venue::create(['name' => 'Fixture Hall'])->id,
+            ])->id,
+
+            'points_structure' => \App\Models\PointsStructure::create([
+                'place' => 1, 'points' => 100,
             ])->id,
         };
     }
