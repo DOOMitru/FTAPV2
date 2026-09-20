@@ -27,6 +27,14 @@ const props = withDefaults(defineProps<Props>(), {
 
 defineEmits<{ 'update:modelValue': [value: string] }>();
 
+// Anything the caller passes that is not a prop above -- autocomplete,
+// autofocus, placeholder -- belongs on the control, not on the wrapper <div>
+// Vue would otherwise put it on. This is the Blade twin's
+// $attributes->merge(['class' => 'field__control']), which lands on the input
+// for the same reason; it is the one component in the set whose attributes
+// have somewhere to go other than its root.
+defineOptions({ inheritAttrs: false });
+
 // The id follows the name unless a caller overrides it, and a caller has to
 // when the same field name appears twice on one page -- /profile has two
 // `password` fields, and two inputs with one id make a label point at
@@ -50,6 +58,7 @@ const noteId = computed(() => (noted.value ? `${controlId.value}-note` : undefin
         <!-- Non-text controls go through the slot, styled by the caller. -->
         <slot>
             <input
+                v-bind="$attrs"
                 :id="controlId"
                 :name="name"
                 :type="type"

@@ -1,13 +1,14 @@
 <script setup lang="ts">
-import { Link } from '@inertiajs/vue3';
+import { Link, usePage } from '@inertiajs/vue3';
 import AppLayout from '../../../Layouts/AppLayout.vue';
 import PageHeader from '../../../Components/PageHeader.vue';
 import Card from '../../../Components/Card.vue';
 import Table from '../../../Components/Table.vue';
 import Btn from '../../../Components/Btn.vue';
+import Alert from '../../../Components/Alert.vue';
 import EmptyState from '../../../Components/EmptyState.vue';
 import Pagination from '../../../Components/Pagination.vue';
-import type { Paginated } from '../../../types/inertia';
+import type { PageProps, Paginated } from '../../../types/inertia';
 
 interface Tournament {
     id: string;
@@ -24,6 +25,10 @@ interface Props {
 }
 
 const props = defineProps<Props>();
+
+// "Tournament X deleted." and the rest of what the tournament controllers
+// flash. Shared by the middleware, so the page declares no prop for it.
+const flash = usePage<PageProps>().props.flash;
 </script>
 
 <template>
@@ -42,6 +47,8 @@ const props = defineProps<Props>();
         </template>
 
         <div class="l-container l-stack">
+            <Alert v-if="flash.status" variant="success" :message="flash.status" />
+
             <Card flush>
                 <Table cards class="tournaments-index__table">
                     <template #head>

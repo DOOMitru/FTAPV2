@@ -100,7 +100,7 @@ The smallest pair (27 and 28 lines), and the shape every later form follows.
 - Produces: `Poker/Venues/Create` — no props beyond shared.
   `Poker/Venues/Edit` — `venue: { id, name, address, description }`.
 
-- [ ] **Step 1: Change the controller**
+- [x] **Step 1: Change the controller**
 
 ```php
     public function create(): Response
@@ -125,7 +125,7 @@ The smallest pair (27 and 28 lines), and the shape every later form follows.
     }
 ```
 
-- [ ] **Step 2: Write Create.vue**
+- [x] **Step 2: Write Create.vue**
 
 ```vue
 <script setup lang="ts">
@@ -181,7 +181,7 @@ button reading "Save". Read that file first and check them again — an earlier
 draft of this plan invented "Venue Name", "Address" and "Save Venue", none of
 which appear anywhere in the app. Address is NOT required there either.
 
-- [ ] **Step 3: Write Edit.vue**
+- [x] **Step 3: Write Edit.vue**
 
 Same shape, seeded from the prop and submitting with `patch`:
 
@@ -211,7 +211,7 @@ const submit = (): void => { form.patch(`/poker/venues/${props.venue.id}`); };
 </script>
 ```
 
-- [ ] **Step 4: Teach the prop guard about parameterised routes**
+- [x] **Step 4: Teach the prop guard about parameterised routes**
 
 `InertiaPropContractTest` calls `route($routeName)` with no arguments, which
 works for every page converted so far because all six take no parameters. An
@@ -268,7 +268,7 @@ Each later task adds its own arm to that match. An unhandled binding throws
 `\UnhandledMatchError`, which names the missing arm — better than a null id
 producing a 404 that reads as a routing problem.
 
-- [ ] **Step 5: Type-check, build, full suite**
+- [x] **Step 5: Type-check, build, full suite**
 
 ```bash
 npm run typecheck && npx vite build
@@ -278,14 +278,14 @@ out=$(bin/suite.sh); status=$?; echo "$out" | tail -1; echo "exit=$status"
 Expect failures in any test asserting the old markup; port each to props or to
 the page file as Plan 3 did.
 
-- [ ] **Step 6: Verify in a browser at 1440, 960 and 375**
+- [x] **Step 6: Verify in a browser at 1440, 960 and 375**
 
 - the form saves and redirects
 - a validation failure shows the message under the right field, and **what was
   typed is still there** — this is the behaviour `old()` used to provide
 - Cancel returns to the list
 
-- [ ] **Step 7: Commit (hand-off)**
+- [x] **Step 7: Commit (hand-off)**
 
 ```
 feat: convert the venue forms to Inertia + Vue

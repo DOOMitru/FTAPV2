@@ -48,9 +48,9 @@ class VenueController extends Controller
     /**
      * Show the form for creating a new resource.
      */
-    public function create(): View
+    public function create(): Response
     {
-        return view('poker.venues.create');
+        return Inertia::render('Poker/Venues/Create');
     }
 
     /**
@@ -113,9 +113,20 @@ class VenueController extends Controller
     /**
      * Show the form for editing the specified resource.
      */
-    public function edit(Venue $venue): View
+    public function edit(Venue $venue): Response
     {
-        return view('poker.venues.edit', compact('venue'));
+        // The record's values, once. No old(): useForm holds what was typed
+        // and a failed submission returns errors without re-rendering, so
+        // there is nothing to restore -- and re-seeding from the session would
+        // overwrite what is on screen.
+        return Inertia::render('Poker/Venues/Edit', [
+            'venue' => [
+                'id' => $venue->id,
+                'name' => $venue->name,
+                'description' => $venue->description,
+                'address' => $venue->address,
+            ],
+        ]);
     }
 
     /**

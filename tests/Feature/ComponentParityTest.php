@@ -77,6 +77,152 @@ class ComponentParityTest extends TestCase
             'Discovery missed a pair it should have found: '.implode(', ', $vueWithBladeTwin));
     }
 
+    public function test_each_pair_delivers_caller_attributes_to_the_same_element(): void
+    {
+        /*
+         * A caller can pass a component an attribute it has no prop for --
+         * autocomplete, autofocus, placeholder -- and both halves have to put
+         * it in the same place, or one of them puts it somewhere it does
+         * nothing.
+         *
+         * Usually they agree for free: Blade merges into its outermost
+         * element, and Vue's default is to drop leftover attributes on the
+         * root. The exception is a component whose attributes belong on an
+         * element INSIDE it. Field is the one: its root is a wrapper <div>
+         * and the attributes belong on the control. Blade says so by merging
+         * further down; Vue has to be told, with inheritAttrs: false and an
+         * explicit v-bind="$attrs", and without it the profile forms' four
+         * autocomplete hints sat on a <div> where no browser reads them --
+         * which is what this was written after finding.
+         *
+         * Class hooks, above, would not have caught it: the attributes land on
+         * the right element there whether or not they are forwarded.
+         */
+        $drifted = [];
+
+        foreach ($this->pairs() as $vuePath => $bladePath) {
+            $bladeGoesDeep = $this->bladeRendersAttributesBelowTheRoot(
+                (string) file_get_contents($bladePath)
+            );
+
+            // Nothing rendered means the component takes no caller attributes
+            // at all, and there is no placement for the two to disagree about.
+            if ($bladeGoesDeep === null) {
+                continue;
+            }
+
+            $vueSource = (string) file_get_contents($vuePath);
+            $vueForwards = str_contains($vueSource, 'inheritAttrs: false')
+                && str_contains($vueSource, 'v-bind="$attrs"');
+
+            if ($bladeGoesDeep === $vueForwards) {
+                continue;
+            }
+
+            $drifted[] = $bladeGoesDeep
+                ? sprintf(
+                    '%s: its Blade twin puts caller attributes on an element inside the '
+                    ."component, so this one needs defineOptions({ inheritAttrs: false })
+"
+                    .'        and v-bind="$attrs" on the same element. Without both, Vue '
+                    .'leaves them on the root.',
+                    basename($vuePath)
+                )
+                : sprintf(
+                    '%s: forwards $attrs to an inner element, but its Blade twin merges '
+                    ."them onto the root. One of the two moved.",
+                    basename($vuePath)
+                );
+        }
+
+        $this->assertSame([], $drifted,
+            "A component and its Blade twin deliver caller attributes to different
+"
+            ."elements:\n  ".implode("\n  ", $drifted)."\n");
+    }
+
+    /**
+     * Does this Blade component render $attributes below its outermost element?
+     *
+     * Null when it renders them nowhere. Only `->merge([...])` and a bare
+     * `{{ $attributes }}` count as rendering: modal.blade.php asks
+     * `$attributes->has('focusable')` inside an echo, which produces a
+     * fragment of JavaScript and no attributes at all.
+     *
+     * "Outermost" rather than "the root", because a Blade component may open
+     * with an @if and have two candidate roots -- btn renders an <a> or a
+     * <button>, player-link an <a> or a <span>, and both merge onto each. Any
+     * opening tag at depth zero counts.
+     */
+    private function bladeRendersAttributesBelowTheRoot(string $source): ?bool
+    {
+        // Blade comments and @php blocks discuss $attributes in prose and
+        // carry no markup, so they are removed before anything is counted --
+        // as they are for the class hooks above, and for the same reason.
+        $source = (string) preg_replace('/\{\{--.*?--\}\}/s', '', $source);
+        $source = (string) preg_replace('/@php.*?@endphp/s', '', $source);
+
+        $renders = [];
+
+        if (preg_match_all('/\{\{\s*\$attributes(?:->merge\()?/s', $source, $hits, PREG_OFFSET_CAPTURE)) {
+            foreach ($hits[0] as [$text, $offset]) {
+                $isMerge = str_contains($text, 'merge');
+                $isBare = (bool) preg_match('/^\{\{\s*\$attributes\s*\}\}/', substr($source, $offset, 40));
+
+                if ($isMerge || $isBare) {
+                    $renders[] = $offset;
+                }
+            }
+        }
+
+        if ($renders === []) {
+            return null;
+        }
+
+        // Where every opening tag sits, by nesting depth. A void element has
+        // no close to match, so it never opens a level -- and <input>, the one
+        // this test exists for, is void.
+        $void = ['input', 'img', 'br', 'hr', 'meta', 'link', 'source', 'area', 'col', 'embed', 'track', 'wbr'];
+        $depth = 0;
+        $openingTags = [];
+
+        preg_match_all('/<(\/?)([a-zA-Z][\w-]*)([^>]*)>/s', $source, $tags, PREG_OFFSET_CAPTURE | PREG_SET_ORDER);
+
+        foreach ($tags as $tag) {
+            [$whole, $offset] = $tag[0];
+
+            if ($tag[1][0] === '/') {
+                $depth = max(0, $depth - 1);
+
+                continue;
+            }
+
+            $openingTags[] = [$offset, $offset + strlen($whole), $depth];
+
+            if (! str_ends_with(rtrim($whole, '>'), '/') && ! in_array(strtolower($tag[2][0]), $void, true)) {
+                $depth++;
+            }
+        }
+
+        foreach ($renders as $position) {
+            $atRoot = false;
+
+            foreach ($openingTags as [$start, $end, $tagDepth]) {
+                if ($position >= $start && $position < $end && $tagDepth === 0) {
+                    $atRoot = true;
+
+                    break;
+                }
+            }
+
+            if (! $atRoot) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     /**
      * Vue component path => its Blade counterpart, for every pair that exists.
      *

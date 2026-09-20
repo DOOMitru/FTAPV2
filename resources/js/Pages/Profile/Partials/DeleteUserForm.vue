@@ -72,7 +72,7 @@ const destroy = (): void => {
                         DuplicateElementIdTest guards it.
                     -->
                     <Field v-model="form.password" name="password" id="delete-account-password"
-                           type="password" label="Password"
+                           type="password" label="Password" placeholder="Password"
                            :error="(page.props.errors as Record<string, Record<string, string>>)?.userDeletion?.password" />
                 </div>
 

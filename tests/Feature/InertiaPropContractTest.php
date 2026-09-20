@@ -30,30 +30,67 @@ class InertiaPropContractTest extends TestCase
 {
     use RefreshDatabase;
 
-    /** Inertia component name => the route that renders it. */
+    /**
+     * Inertia component => [route name, the name of its route parameter].
+     *
+     * The second element is null for a page that takes none. Until the forms
+     * arrived every converted page was parameterless and this was a plain
+     * name => route map; an edit route needs a record, and route('x.edit')
+     * with no argument THROWS rather than failing an assertion, which reads as
+     * a broken test rather than a missing fixture.
+     */
     private const PAGES = [
-        'Profile/Edit' => 'profile.edit',
-        'Poker/Seasons/Index' => 'poker.seasons.index',
-        'Poker/Venues/Index' => 'poker.venues.index',
-        'Poker/Tournaments/Index' => 'poker.tournaments.index',
-        'Poker/PointsStructure/Index' => 'poker.points-structure.index',
-        'Sponsors/Index' => 'sponsors.index',
-        'Users/Index' => 'users.index',
+        'Profile/Edit' => ['profile.edit', null],
+        'Poker/Seasons/Index' => ['poker.seasons.index', null],
+        'Poker/Venues/Index' => ['poker.venues.index', null],
+        'Poker/Tournaments/Index' => ['poker.tournaments.index', null],
+        'Poker/PointsStructure/Index' => ['poker.points-structure.index', null],
+        'Sponsors/Index' => ['sponsors.index', null],
+        'Users/Index' => ['users.index', null],
+        'Poker/Venues/Create' => ['poker.venues.create', null],
+        'Poker/Venues/Edit' => ['poker.venues.edit', 'venue'],
     ];
+
+    /**
+     * A record for a parameterised page to be rendered against.
+     *
+     * Made inside the test rather than listed as an id: RefreshDatabase gives
+     * each test an empty database. An unhandled binding raises
+     * \UnhandledMatchError, which names the missing arm -- better than a null
+     * id producing a 404 that reads as a routing problem.
+     */
+    private function fixture(string $binding): string
+    {
+        return match ($binding) {
+            'venue' => \App\Models\Venue::create([
+                'name' => 'Fixture Room', 'address' => '1 Test St',
+            ])->id,
+        };
+    }
+
+    /** The URL for a page, with its parameter resolved if it has one. */
+    private function urlFor(array $page): string
+    {
+        [$routeName, $binding] = $page;
+
+        return $binding === null
+            ? route($routeName)
+            : route($routeName, [$binding => $this->fixture($binding)]);
+    }
 
     public function test_each_page_declares_exactly_the_props_it_is_sent(): void
     {
         $admin = User::factory()->create(['is_admin' => true, 'approval_status' => 'approved']);
         $mismatches = [];
 
-        foreach (self::PAGES as $component => $routeName) {
-            $response = $this->actingAs($admin)->get(route($routeName));
+        foreach (self::PAGES as $component => $definition) {
+            $response = $this->actingAs($admin)->get($this->urlFor($definition));
             $response->assertOk();
 
             $page = $response->viewData('page');
 
             $this->assertSame($component, $page['component'],
-                "Route {$routeName} rendered {$page['component']}, not {$component}.");
+                "Route {$definition[0]} rendered {$page['component']}, not {$component}.");
 
             // Shared props come from the middleware and are not a page's to
             // declare; InertiaSharedPropsTest covers those. `errors` is
@@ -89,7 +126,7 @@ class InertiaPropContractTest extends TestCase
         // that has been removed would otherwise sit here looking like coverage.
         $stale = [];
 
-        foreach (self::PAGES as $component => $routeName) {
+        foreach (self::PAGES as $component => [$routeName, $binding]) {
             if (! app('router')->has($routeName)) {
                 $stale[] = "{$component}: route {$routeName} does not exist.";
             }
@@ -157,8 +194,12 @@ class InertiaPropContractTest extends TestCase
 
         $source = (string) file_get_contents($path);
 
+        // No interface at all means no props declared, which is the honest
+        // answer for a create form: it is sent nothing. Not a failure of its
+        // own -- a page that IS sent props and has no interface still fails,
+        // as a mismatch between what arrived and the empty list below.
         if (! preg_match('/interface\s+Props\s*\{(.*?)\n\}/s', $source, $block)) {
-            $this->fail("{$component} declares no `interface Props`.");
+            return [];
         }
 
         // Top level only: anything nested inside a braced sub-shape is skipped,

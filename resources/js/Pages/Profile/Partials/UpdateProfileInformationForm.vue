@@ -59,7 +59,7 @@ watch(() => props.status, (status) => {
         <form class="l-stack" @submit.prevent="submit">
             <div class="l-grid">
                 <Field v-model="form.first_name" name="first_name" label="First Name"
-                       required autocomplete="given-name" :error="form.errors.first_name" />
+                       required autofocus autocomplete="given-name" :error="form.errors.first_name" />
 
                 <Field v-model="form.last_name" name="last_name" label="Last Name"
                        required autocomplete="family-name" :error="form.errors.last_name" />
