@@ -61,6 +61,7 @@ class InertiaPropContractTest extends TestCase
         'Sponsors/Edit' => ['sponsors.edit', 'sponsor'],
         'Poker/VenuePoints/Create' => ['poker.venue-points.create', null],
         'Players/Show' => ['players.show', 'player'],
+        'Dashboard' => ['dashboard', null],
     ];
 
     /**

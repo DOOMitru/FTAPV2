@@ -264,43 +264,54 @@ class ContentPreservationTest extends TestCase
         // checked as values. This fails if the controller ever counts the wrong
         // thing -- and counting the wrong thing is easy here, because events
         // come from one table and points from another.
-        $figures = $response->viewData('season');
+        $figures = $response->viewData('page')['props']['season'];
 
-        $this->assertSame(4, $figures['events']);
-        $this->assertSame(645, $figures['points']);
-        $this->assertSame(2, $figures['first']);
-        $this->assertSame(0, $figures['second']);
-        $this->assertSame(1, $figures['third']);
-        $this->assertSame(0, $figures['venuePoints']);
+        $this->assertSame('4', $figures['events_label']);
+        $this->assertSame('645', $figures['points_label']);
+        $this->assertSame('2', $figures['first']);
+        $this->assertSame('0', $figures['second']);
+        $this->assertSame('1', $figures['third']);
+        $this->assertSame('0', $figures['venue_points_label']);
 
         // Only ranked player in the season, so first by default -- but ranked
-        // at all is the point: a null here means the denominator was lost.
-        $this->assertSame(1, $figures['rank']);
-        $this->assertSame(161.25, $figures['perEvent']);
+        // at all is the point: a dash here means the denominator was lost.
+        $this->assertSame('#1', $figures['rank_label']);
 
-        // viewData above proves the CONTROLLER computes the right figures. It
-        // would still pass if a rewrite deleted the panel entirely, so it does
-        // not, on its own, protect displayed content.
-        //
-        // These close that gap. Tag-stripping removes the noise that made a
-        // bare assertSee('4') useless, and pairing each figure with its own
-        // label makes the match unique.
-        //
-        // If a later phase renames one of these labels, this assertion fails.
-        // That is intended: a label is user-facing copy, and changing it should
-        // be a deliberate decision recorded here, not a silent side effect of
-        // restyling.
-        $text = preg_replace('/\s+/', ' ', strip_tags($response->getContent()));
+        // 645 over 4 is 161.25, said to one decimal because that is what the
+        // panel shows -- the arithmetic is still being checked, in the form
+        // the reader actually gets.
+        $this->assertSame('161.3 pts per event', $figures['per_event_label']);
 
-        $this->assertStringContainsString('Season Points 645', $text);
-        $this->assertStringContainsString('Events Played 4', $text);
-        $this->assertStringContainsString('Venue Points 0', $text);
+        // The props above prove the CONTROLLER computes the right figures.
+        // That would still pass if a rewrite deleted the panel entirely, so it
+        // does not, on its own, protect displayed content.
+        //
+        // The panel is Vue, so the pairing of a label with its figure is in
+        // the component rather than in the response. Each label is checked
+        // against the prop rendered beside it: rename a label, or draw the
+        // wrong figure under it, and this fails.
+        //
+        // A renamed label failing here is intended. It is user-facing copy,
+        // and changing it should be a deliberate decision recorded in a test
+        // rather than a silent side effect of restyling.
+        $panel = (string) file_get_contents(resource_path('js/Components/SeasonPanel.vue'));
+
+        foreach ([
+            'Events Played' => 'events_label',
+            'Season Points' => 'points_label',
+            'Venue Points' => 'venue_points_label',
+        ] as $label => $key) {
+            $this->assertMatchesRegularExpression(
+                '/'.preg_quote($label, '/').'.{0,200}'.preg_quote($key, '/').'/s',
+                $panel,
+                "The panel does not draw {$key} under \"{$label}\"."
+            );
+        }
 
         // The rank, and the division it is made of -- the reason the panel
         // shows a ratio rather than a bare number.
-        $this->assertStringContainsString('#1', $text);
-        $this->assertStringContainsString('161.3 pts per event', $text);
-        $this->assertStringContainsString('645 pts over 4 events', $text);
+        $this->assertSame('645 pts over 4 events', $figures['totals_label']);
+        $this->assertSame('of 1 ranked player', $figures['ranked_label']);
     }
 
     // -----------------------------------------------------------------

@@ -99,9 +99,14 @@ class CurrentSeasonTest extends TestCase
             );
         }
 
-        $this->actingAs($admin)->get(route('dashboard'))->assertOk()->assertViewHas(
-            'currentSeason',
-            fn ($season) => $season !== null && $season->id === $current->id
+        // The dashboard is Vue, and it is sent the season's NAME rather than
+        // the record: the panel's title is the only thing that page does with
+        // it. Same question -- which season does this page say we are in --
+        // asked of what the page is actually given.
+        $this->assertSame(
+            $current->name,
+            $this->actingAs($admin)->get(route('dashboard'))->assertOk()
+                ->viewData('page')['props']['season_name']
         );
 
         $this->assertNotSame($current->id, $old->id);

@@ -73,10 +73,31 @@ class SeasonPanelTest extends TestCase
         ]);
     }
 
-    /** @return array<string, mixed> */
+    /**
+     * The figures the panel is sent, as raw numbers.
+     *
+     * These tests are about the arithmetic -- which table an event count comes
+     * from, how a rank is ordered, which season a venue tally belongs to --
+     * and the props carry labels rather than numbers. So the source is asked
+     * directly, and the labels built from it are covered by SeasonFiguresTest.
+     *
+     * The page is still loaded first: a figure computed for a page that 500s
+     * is not a figure anybody sees.
+     *
+     * @return array<string, mixed>
+     */
     private function figures(User $as): array
     {
-        return $this->actingAs($as)->get(route('dashboard'))->assertOk()->viewData('season');
+        $this->actingAs($as)->get(route('dashboard'))->assertOk();
+
+        return PokerSeason::figuresFor(PokerSeason::current(), $as->id);
+    }
+
+    /** What the dashboard is sent. @return array<string, mixed> */
+    private function props(User $as): array
+    {
+        return $this->actingAs($as)->get(route('dashboard'))->assertOk()
+            ->viewData('page')['props'];
     }
 
     public function test_events_played_counts_entries_not_results(): void
@@ -259,27 +280,42 @@ class SeasonPanelTest extends TestCase
     {
         $this->season('Season 12');
 
-        $this->actingAs($this->player())->get(route('dashboard'))->assertOk()
-            ->assertSee('Season 12')
-            ->assertDontSee('Current Season');
+        // The season IS the heading. "Current Season" is the wording for
+        // having none, and it told you nothing about the season you were in.
+        $this->assertSame('Season 12', $this->props($this->player())['season_name']);
     }
 
     public function test_the_panel_says_so_when_no_season_is_running(): void
     {
         // Every figure is scoped to a season, so without one there is nothing
         // to show and a row of zeroes would be a lie.
-        $this->actingAs($this->player())->get(route('dashboard'))->assertOk()
-            ->assertSee('No season is running.')
-            ->assertDontSee('pts per event');
+        $props = $this->props($this->player());
+
+        $this->assertNull($props['season'], 'A row of zeroes would be a lie.');
+        $this->assertSame('Current Season', $props['season_name']);
+
+        // Which is what the panel draws its empty state from.
+        $this->assertStringContainsString(
+            'v-if="! season" title="No season is running."',
+            (string) file_get_contents(resource_path('js/Components/SeasonPanel.vue'))
+        );
     }
 
     public function test_a_player_yet_to_enter_is_told_how_to_be_ranked(): void
     {
         $this->season();
 
-        $this->actingAs($this->player())->get(route('dashboard'))->assertOk()
-            ->assertSee('Not entered yet')
-            ->assertSee('Enter a tournament to be ranked.');
+        $props = $this->props($this->player());
+
+        // Null is what "not entered yet" is made of, and `self` is what picks
+        // the sentence addressed to the reader rather than about them.
+        $this->assertNull($props['season']['per_event_label']);
+        $this->assertTrue($props['self']);
+
+        $panel = (string) file_get_contents(resource_path('js/Components/SeasonPanel.vue'));
+
+        $this->assertStringContainsString('Not entered yet', $panel);
+        $this->assertStringContainsString('Enter a tournament to be ranked.', $panel);
     }
 
     public function test_the_career_figures_are_gone_from_the_page(): void
@@ -292,20 +328,29 @@ class SeasonPanelTest extends TestCase
         $this->enter($t, $player);
         $this->score($t, $player, 1, 100);
 
-        $this->actingAs($player)->get(route('dashboard'))->assertOk()
-            ->assertDontSee('Career Points')
-            ->assertDontSee('Podium Finishes');
+        $this->actingAs($player)->get(route('dashboard'))->assertOk();
+
+        $page = (string) file_get_contents(resource_path('js/Pages/Dashboard.vue'));
+        $panel = (string) file_get_contents(resource_path('js/Components/SeasonPanel.vue'));
+
+        foreach (['Career Points', 'Podium Finishes'] as $gone) {
+            $this->assertStringNotContainsString($gone, $page);
+            $this->assertStringNotContainsString($gone, $panel);
+        }
     }
 
-    /** The season panel's markup, and nothing else on the page. */
+    /**
+     * The season panel's markup.
+     *
+     * Its own component now, so there is nothing to cut it out of -- the old
+     * version sliced the dashboard's HTML between `season__grid` and the next
+     * card's title.
+     */
     private function panel(User $as): string
     {
-        $html = $this->actingAs($as)->get(route('dashboard'))->assertOk()->getContent();
+        $this->actingAs($as)->get(route('dashboard'))->assertOk();
 
-        $at = strpos($html, 'season__grid');
-        $this->assertNotFalse($at, 'The season panel is not on the dashboard.');
-
-        return substr($html, $at, (int) (strpos($html, 'Upcoming Tournaments', $at) ?: strlen($html)) - $at);
+        return (string) file_get_contents(resource_path('js/Components/SeasonPanel.vue'));
     }
 
     public function test_the_finishes_are_labelled_and_counted_like_the_totals(): void
@@ -326,23 +371,43 @@ class SeasonPanelTest extends TestCase
             $this->score($t, $player, $place, 10);
         }
 
-        $text = preg_replace('/\s+/', ' ', strip_tags($this->panel($player)));
+        // The counts, from the props. Pairing them with their labels is the
+        // panel's job and is checked below -- the two halves used to be one
+        // assertion over rendered text.
+        $figures = $this->props($player)['season'];
 
-        $this->assertStringContainsString('Tournament Wins 2', $text);
-        $this->assertStringContainsString('2nd Place Finishes 1', $text);
-        $this->assertStringContainsString('3rd Place Finishes 3', $text);
+        $this->assertSame('2', $figures['first']);
+        $this->assertSame('1', $figures['second']);
+        $this->assertSame('3', $figures['third']);
+        $this->assertSame('6', $figures['events_label']);
+        $this->assertSame('60', $figures['points_label']);
+        $this->assertSame('0', $figures['venue_points_label']);
 
-        // Read the same way as the figures beside them.
-        // Order matters as well as wording: events first, because it is the
-        // denominator of the rank above it, then the two point totals.
-        $this->assertStringContainsString('Events Played 6', $text);
-        $this->assertStringContainsString('Season Points 60', $text);
-        $this->assertStringContainsString('Venue Points 0', $text);
+        $panel = $this->panel($player);
+
+        // The three finishes are a list in the component, each entry naming
+        // the figure it draws beside its label.
+        foreach ([
+            'Tournament Wins' => 'first',
+            '2nd Place Finishes' => 'second',
+            '3rd Place Finishes' => 'third',
+        ] as $label => $key) {
+            $this->assertMatchesRegularExpression(
+                "/label: '".preg_quote($label, '/')."', key: '".$key."'/",
+                $panel,
+                "The podium does not draw {$key} beside \"{$label}\"."
+            );
+        }
+
+        // Read the same way as the figures beside them, and in the same order:
+        // events first, because it is the denominator of the rank above it,
+        // then the two point totals.
+        $totals = substr($panel, (int) strpos($panel, 'season__totals'));
 
         $this->assertMatchesRegularExpression(
-            '/Events Played 6 Season Points 60 Venue Points 0/',
-            $text,
-            'The totals are out of order.'
+            '/Events Played.*?events_label.*?Season Points.*?points_label.*?Venue Points.*?venue_points_label/s',
+            $totals,
+            'The totals are out of order, or one is drawn under the wrong label.'
         );
     }
 
@@ -354,17 +419,19 @@ class SeasonPanelTest extends TestCase
         $this->season();
         $panel = $this->panel($this->player());
 
-        foreach ([1, 2, 3] as $place) {
-            $this->assertMatchesRegularExpression(
-                '/<span class="rank rank--'.$place.'" aria-hidden="true">\s*<\/span>/',
-                $panel,
-                "The {$place} badge must be empty."
-            );
-        }
+        // One span, drawn for each of the three rows, with nothing inside it.
+        $this->assertMatchesRegularExpression(
+            '/<span :class="row\.medal" aria-hidden="true">\s*<\/span>/',
+            $panel,
+            'The medal badge must be empty.'
+        );
 
-        // And the medal colours are the standings', not a second set: rank--1
-        // is where gold is defined for the whole app.
-        $this->assertStringContainsString('rank--1', $panel);
+        // The three medals, written out rather than composed: `rank--${place}`
+        // would be invisible to UnusedCssClassTest and to ComponentParityTest.
+        foreach ([1, 2, 3] as $place) {
+            $this->assertStringContainsString("medal: 'rank rank--{$place}'", $panel,
+                "The {$place} medal is missing or composed.");
+        }
     }
 
     public function test_the_rank_label_sits_above_the_figure_and_its_reasoning_to_the_right(): void

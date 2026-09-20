@@ -671,7 +671,7 @@ a tally.
 
 ---
 
-## Task 3: `/dashboard`
+## Task 3: `/dashboard` — DONE
 
 The panel again, plus the only list in this plan with actions on it.
 
@@ -728,7 +728,7 @@ interface Tournament {
 Send that string as `unregister_confirm` and pass it to `ask()` — `Emph.vue` and
 `confirm.ts` share `emph.ts`, so the markers render the same on both sides.
 
-- [ ] **Step 1: Change the controller**
+- [x] **Step 1: Change the controller**
 
 Keep every query as it is — `take(5)` is on the QUERY and must stay there, and
 `withCount('results')` exists so `hasRecordedResults()` does not run a query per
@@ -786,7 +786,7 @@ row. Map to props:
         ]);
 ```
 
-- [ ] **Step 2: Write `resources/js/Pages/Dashboard.vue`**
+- [x] **Step 2: Write `resources/js/Pages/Dashboard.vue`**
 
 The registration actions, which is the part with no precedent in Plans 3–4:
 
@@ -817,19 +817,19 @@ The rest is the Blade's markup with Vue's control flow. Keep every class:
 `.entry__title`, `.entry__meta`, `.entry__actions`, `.card__note`,
 `.card__note--split`.
 
-- [ ] **Step 3: Register the page, delete the Blade view**
+- [x] **Step 3: Register the page, delete the Blade view**
 
 `'Dashboard' => ['dashboard', null],` in `PAGES`, then
 `rm resources/views/dashboard.blade.php`.
 
-- [ ] **Step 4: Type-check, build, full suite; port what breaks**
+- [x] **Step 4: Type-check, build, full suite; port what breaks**
 
 Seven test files read this page's HTML. Expect 40-odd assertions to move.
 `DashboardGutterTest` already reads `.vue` and may need only its path updating.
 
-- [ ] **Step 5: Prove the ported assertions fail**
+- [x] **Step 5: Prove the ported assertions fail**
 
-- [ ] **Step 6: Verify in a browser at 1440, 960 and 375**
+- [x] **Step 6: Verify in a browser at 1440, 960 and 375**
 
 - Register on an upcoming tournament: the row becomes "Registered" with an
   Unregister button, and the page does not jump
@@ -839,7 +839,7 @@ Seven test files read this page's HTML. Expect 40-odd assertions to move.
 - Signed in as an unapproved account: "Awaiting approval", no Register button
 - With three upcoming tournaments and a cap of five: **no note at all**
 
-- [ ] **Step 7: Commit (hand-off)**
+- [x] **Step 7: Commit (hand-off)**
 
 ```
 feat: convert the dashboard to Inertia + Vue

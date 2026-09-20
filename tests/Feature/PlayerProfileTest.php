@@ -140,21 +140,18 @@ class PlayerProfileTest extends TestCase
         // Same source, so the two pages cannot disagree about a player. A
         // second copy of the arithmetic is what this is guarding against, and
         // App\Support\SeasonFigures is where that copy would have gone.
-        //
-        // The two are compared in the forms they currently emit: the dashboard
-        // is still Blade and hands its view raw figures, while this page sends
-        // labels. When the dashboard converts this collapses to comparing one
-        // props array with another -- but not before, because a comparison
-        // that runs both sides through the same formatter would prove nothing.
-        $raw = $this->actingAs($this->player)->get(route('dashboard'))
-            ->assertOk()->viewData('season');
+        // Both pages are Vue now, so this is what it was always trying to be:
+        // one props array against another. The venue tally is the one field
+        // that differs by design -- the dashboard's reader is always the
+        // subject, and a stranger reading this page is not.
+        $mine = $this->actingAs($this->player)->get(route('dashboard'))
+            ->assertOk()->viewData('page')['props']['season'];
 
-        $labels = $this->props($this->other)['season'];
+        $theirs = $this->props($this->other)['season'];
 
-        $this->assertSame((string) $raw['events'], $labels['events_label']);
-        $this->assertSame(number_format($raw['points']), $labels['points_label']);
-        $this->assertSame('#'.$raw['rank'], $labels['rank_label']);
-        $this->assertSame((string) $raw['first'], $labels['first']);
+        unset($mine['venue_points_label'], $theirs['venue_points_label']);
+
+        $this->assertSame($mine, $theirs);
     }
 
     public function test_it_shows_their_recent_results(): void

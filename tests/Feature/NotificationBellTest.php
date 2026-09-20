@@ -38,6 +38,30 @@ class NotificationBellTest extends TestCase
         return User::factory()->create(['approval_status' => 'approved']);
     }
 
+    /**
+     * The notifications the page is sent.
+     *
+     * The topbar is Vue on every authenticated page now, so the badge and the
+     * panel are drawn after mount from this shared prop rather than written
+     * into the response. Which is the better thing to assert: the old version
+     * had to cut the HTML around 'nav-link__badge' and read the digits out of
+     * it, and its own comment records that assertViewHas could not be used
+     * because the data was bound by a composer to an @included view.
+     *
+     * @return array{unread_count: int, recent: list<array<string, mixed>>}
+     */
+    private function shared(User $user): array
+    {
+        return $this->actingAs($user)->get(route('dashboard'))->assertOk()
+            ->viewData('page')['props']['notifications'];
+    }
+
+    /** The topbar's markup, which both surfaces are written in. */
+    private function navigation(): string
+    {
+        return (string) file_get_contents(resource_path('js/Layouts/Navigation.vue'));
+    }
+
     public function test_the_badge_counts_unread_only(): void
     {
         // Asserted on the rendered badge rather than on view data.
@@ -49,13 +73,14 @@ class NotificationBellTest extends TestCase
         $this->notify($user);
         $this->notify($user, read: true);
 
-        $html = $this->actingAs($user)->get(route('dashboard'))->assertOk()->getContent();
+        $this->assertSame(2, $this->shared($user)['unread_count'],
+            'The count included a read notification.');
 
-        $badge = substr($html, (int) strpos($html, 'nav-link__badge'));
-        $badge = substr($badge, 0, (int) strpos($badge, '</span>'));
-
-        $this->assertStringContainsString('2', $badge);
-        $this->assertStringNotContainsString('3', $badge, 'The badge counted a read notification.');
+        // And the badge draws that count rather than a length of the list.
+        $this->assertStringContainsString(
+            '{{ page.props.notifications.unread_count }}',
+            $this->navigation()
+        );
     }
 
     public function test_there_is_no_badge_at_zero(): void
@@ -64,11 +89,16 @@ class NotificationBellTest extends TestCase
         $user = $this->player();
         $this->notify($user, read: true);
 
-        // Not assertViewHas: the key is absent from the root view, so it reads
-        // null, and assertViewHas compares loosely -- assertEquals(0, null) is
-        // true in PHP, so that assertion would pass at any count at all.
-        $this->actingAs($user)->get(route('dashboard'))->assertOk()
-            ->assertDontSee('nav-link__badge', false);
+        $this->assertSame(0, $this->shared($user)['unread_count']);
+
+        // Both badges are gated on the count being above zero. Asserting the
+        // absence of a class in the response would pass for the wrong reason
+        // now -- no badge is ever IN the response, at any count.
+        $this->assertSame(
+            2,
+            substr_count($this->navigation(), 'v-if="page.props.notifications.unread_count > 0"'),
+            'A badge is drawn without checking the count, or a surface lost its gate.'
+        );
     }
 
     public function test_the_dropdown_lists_notifications(): void
@@ -76,9 +106,18 @@ class NotificationBellTest extends TestCase
         $user = $this->player();
         $this->notify($user, 'Autumn Showdown');
 
-        $this->actingAs($user)->get(route('dashboard'))->assertOk()
-            ->assertSee('Autumn Showdown')
-            ->assertSee('notification--gold', false);
+        $recent = $this->shared($user)['recent'];
+
+        $this->assertSame(['Autumn Showdown'], collect($recent)->pluck('title')->all());
+
+        // The tier is semantic in the props and becomes a class in the card --
+        // spec §5a. A first place is gold.
+        $this->assertSame('gold', $recent[0]['tier']);
+
+        $this->assertStringContainsString(
+            'notification--gold',
+            (string) file_get_contents(resource_path('js/Components/NotificationCard.vue'))
+        );
     }
 
     public function test_the_dropdown_still_holds_profile_and_log_out(): void
@@ -86,15 +125,20 @@ class NotificationBellTest extends TestCase
         // The redesign must not lose what the menu was already for.
         $user = $this->player();
 
-        $this->actingAs($user)->get(route('dashboard'))->assertOk()
-            ->assertSee(route('profile.edit'), false)
-            ->assertSee(route('logout'), false);
+        $this->actingAs($user)->get(route('dashboard'))->assertOk();
+
+        $nav = $this->navigation();
+
+        $this->assertStringContainsString('href="/profile"', $nav);
+        $this->assertStringContainsString('/logout', $nav);
     }
 
     public function test_an_empty_list_says_so(): void
     {
-        $this->actingAs($this->player())->get(route('dashboard'))->assertOk()
-            ->assertSee('No notifications yet.');
+        $this->assertSame([], $this->shared($this->player())['recent']);
+
+        // Once per surface, so neither is left with a blank panel.
+        $this->assertSame(2, substr_count($this->navigation(), 'No notifications yet.'));
     }
 
     public function test_clear_read_is_offered_only_when_something_is_read(): void
@@ -102,13 +146,16 @@ class NotificationBellTest extends TestCase
         $user = $this->player();
         $this->notify($user);
 
-        $this->actingAs($user)->get(route('dashboard'))->assertOk()
-            ->assertDontSee('Clear read', false);
+        // Whether anything is read is decided from the list the page is sent,
+        // by hasRead() -- so the data has to carry it.
+        $this->assertSame([false], collect($this->shared($user)['recent'])->pluck('is_read')->all());
 
         $this->notify($user, read: true);
 
-        $this->actingAs($user)->get(route('dashboard'))->assertOk()
-            ->assertSee('Clear read', false);
+        $this->assertContains(true, collect($this->shared($user)['recent'])->pluck('is_read')->all());
+
+        // And the control is gated on that, on both surfaces.
+        $this->assertSame(2, substr_count($this->navigation(), 'v-if="hasRead()"'));
     }
 
     public function test_the_list_is_capped_and_newest_first(): void
@@ -122,21 +169,24 @@ class NotificationBellTest extends TestCase
                 ->forceFill(['created_at' => now()->addMinutes($i)])->save();
         }
 
-        $response = $this->actingAs($user)->get(route('dashboard'))->assertOk();
-        $html = $response->getContent();
+        $titles = collect($this->shared($user)['recent'])->pluck('title')->all();
 
-        // Ten per surface, and an authenticated page draws two of them -- the
-        // desktop user menu and the mobile bell panel, both rendered, each
-        // hidden at the other's breakpoint.
+        // Ten, sent once and drawn by both surfaces -- the desktop user menu
+        // and the mobile bell panel, each hidden at the other's breakpoint.
+        // The cap used to be counted in the markup, where ten appeared twice;
+        // one list is sent now and both surfaces read it.
+        $this->assertCount(10, $titles, 'The list is not capped at ten.');
+
+        $this->assertSame('Tournament 12', $titles[0], 'Newest first.');
+        $this->assertSame('Tournament 03', $titles[9]);
+        $this->assertNotContains('Tournament 02', $titles);
+        $this->assertNotContains('Tournament 01', $titles);
+
         $this->assertSame(
-            10 * 2,
-            substr_count($html, 'class="notification '),
-            'The list is not capped at ten per surface.'
+            2,
+            substr_count($this->navigation(), 'v-for="notification in page.props.notifications.recent"'),
+            'Both surfaces must draw the one list they are sent.'
         );
-
-        $response->assertSeeInOrder(['Tournament 12', 'Tournament 11', 'Tournament 03'])
-            ->assertDontSee('Tournament 02')
-            ->assertDontSee('Tournament 01');
     }
 
     public function test_one_players_notifications_do_not_reach_another(): void
@@ -145,9 +195,13 @@ class NotificationBellTest extends TestCase
         $theirs = $this->player();
         $this->notify($theirs, 'Not Mine');
 
-        $this->actingAs($mine)->get(route('dashboard'))->assertOk()
-            ->assertDontSee('Not Mine')
-            ->assertDontSee('nav-link__badge', false);
+        // Absent from the props, which is what "does not reach" means. The
+        // old assertDontSee would pass now whatever the middleware shared:
+        // nothing is in the response either way.
+        $shared = $this->shared($mine);
+
+        $this->assertSame([], $shared['recent']);
+        $this->assertSame(0, $shared['unread_count']);
     }
 
     public function test_the_mobile_bell_is_rendered_for_a_signed_in_player(): void
@@ -155,8 +209,9 @@ class NotificationBellTest extends TestCase
         $user = $this->player();
         $this->notify($user);
 
-        $this->actingAs($user)->get(route('dashboard'))->assertOk()
-            ->assertSee('topbar__bell', false);
+        $this->actingAs($user)->get(route('dashboard'))->assertOk();
+
+        $this->assertStringContainsString('class="topbar__bell"', $this->navigation());
     }
 
     public function test_the_bell_carries_its_own_badge(): void
@@ -165,13 +220,15 @@ class NotificationBellTest extends TestCase
         $this->notify($user);
         $this->notify($user);
 
-        $html = $this->actingAs($user)->get(route('dashboard'))->assertOk()->getContent();
+        $this->assertSame(2, $this->shared($user)['unread_count']);
 
-        $bell = substr($html, (int) strpos($html, 'topbar__bell'));
+        // Its own badge, inside the bell's own button.
+        $nav = $this->navigation();
+        $bell = substr($nav, (int) strpos($nav, 'class="topbar__bell"'));
         $bell = substr($bell, 0, (int) strpos($bell, '</button>'));
 
         $this->assertStringContainsString('topbar__bell-badge', $bell);
-        $this->assertStringContainsString('2', $bell);
+        $this->assertStringContainsString('{{ page.props.notifications.unread_count }}', $bell);
     }
 
     public function test_the_bell_has_no_badge_at_zero(): void
@@ -179,28 +236,54 @@ class NotificationBellTest extends TestCase
         $user = $this->player();
         $this->notify($user, read: true);
 
-        $this->actingAs($user)->get(route('dashboard'))->assertOk()
-            ->assertSee('topbar__bell', false)
-            ->assertDontSee('topbar__bell-badge', false);
+        $this->assertSame(0, $this->shared($user)['unread_count']);
+
+        // The bell is always drawn; its badge is not. Both facts read off the
+        // one element, so a badge that escaped its v-if would show here.
+        $nav = $this->navigation();
+        $bell = substr($nav, (int) strpos($nav, 'class="topbar__bell"'));
+        $bell = substr($bell, 0, (int) strpos($bell, '</button>'));
+
+        $this->assertMatchesRegularExpression(
+            '/v-if="page\.props\.notifications\.unread_count > 0"[^>]*class="topbar__bell-badge"/s',
+            $bell,
+            'The bell badge is drawn without checking the count.'
+        );
     }
 
     public function test_the_bell_sits_before_the_burger(): void
     {
         // "Left of the menu button" is the requirement, and in a
-        // direction-agnostic layout that is document order.
-        $html = $this->actingAs($this->player())->get(route('dashboard'))->assertOk()->getContent();
+        // direction-agnostic layout that is document order -- which is now the
+        // order of the two slots the topbar is given.
+        $this->actingAs($this->player())->get(route('dashboard'))->assertOk();
+
+        $nav = $this->navigation();
+        $topbar = (string) file_get_contents(resource_path('js/Components/Topbar.vue'));
 
         // Both markers asserted present first. strpos returns false for a
         // missing needle, and assertLessThan coerces that to 0 -- so without
         // this the comparison passes when there is no bell at all.
-        $this->assertStringContainsString('topbar__bell', $html);
-        $this->assertStringContainsString('topbar__burger', $html);
+        $this->assertStringContainsString('topbar__bell', $nav);
+        $this->assertStringContainsString('topbar__burger', $topbar);
 
-        $this->assertLessThan(
-            strpos($html, 'topbar__burger'),
-            strpos($html, 'topbar__bell'),
-            'The bell must be rendered before the burger.'
-        );
+        // The bell fills the topbar's `leading` slot -- "anything that belongs
+        // beside the burger rather than inside the panel" -- and that slot is
+        // rendered before the burger button.
+        $this->assertStringContainsString('<template #leading>', $nav,
+            'The bell is no longer in the slot that sits beside the burger.');
+
+        $leadingAt = strpos($topbar, '<slot name="leading" />');
+        $burgerAt = strpos($topbar, 'class="topbar__burger"');
+
+        // strpos returns false for a missing needle and assertLessThan coerces
+        // that to 0, so a missing slot would pass. Both are asserted present
+        // first, which is the trap the previous version of this test recorded
+        // and which this one fell into while being ported.
+        $this->assertNotFalse($leadingAt, 'The topbar has no leading slot.');
+        $this->assertNotFalse($burgerAt);
+
+        $this->assertLessThan($burgerAt, $leadingAt, 'The bell must come before the burger.');
     }
 
     public function test_the_bell_panel_lists_the_same_notifications(): void
@@ -208,11 +291,16 @@ class NotificationBellTest extends TestCase
         $user = $this->player();
         $this->notify($user, 'Autumn Showdown');
 
-        $html = $this->actingAs($user)->get(route('dashboard'))->assertOk()->getContent();
+        // Two surfaces, ONE list. It used to be counted by the name appearing
+        // twice in the markup; the list is sent once now and both panels read
+        // the same prop, which is the thing that makes them agree.
+        $this->assertSame(['Autumn Showdown'], collect($this->shared($user)['recent'])->pluck('title')->all());
 
-        // Two surfaces, one list: the card appears in the bell panel and in the
-        // user menu, so the tournament name is rendered twice.
-        $this->assertSame(2, substr_count($html, 'Autumn Showdown'));
+        $this->assertSame(
+            2,
+            substr_count($this->navigation(), ':notification="notification"'),
+            'Both surfaces must render the same list.'
+        );
     }
 
     public function test_the_public_shell_has_no_bell(): void

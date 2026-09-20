@@ -207,13 +207,24 @@ class PlayerLeagueAccessTest extends TestCase
     {
         $this->seedLeague();
 
-        $html = $this->actingAs($this->player())
-            ->get(route('dashboard'))->assertOk()->getContent();
-
         // Access with no way to navigate to it is half a feature.
-        $this->assertStringContainsString(route('poker.seasons.index'), $html);
-        $this->assertStringContainsString(route('poker.venues.index'), $html);
-        $this->assertStringContainsString(route('poker.tournaments.index'), $html);
+        //
+        // The navigation is Vue and renders after mount, so the links are in
+        // the component rather than in the response. What makes this a real
+        // check is the ungated part: the League menu sits OUTSIDE the
+        // v-if="…is_admin" that wraps the admin one, so a player is offered
+        // it. The page still has to load for a player at all, which the
+        // assertOk below keeps.
+        $this->actingAs($this->player())->get(route('dashboard'))->assertOk();
+
+        $nav = (string) file_get_contents(resource_path('js/Layouts/Navigation.vue'));
+
+        $league = substr($nav, 0, (int) strpos($nav, 'v-if="page.props.auth.user?.is_admin"'));
+
+        foreach (['/poker/seasons', '/poker/venues', '/poker/tournaments'] as $href) {
+            $this->assertStringContainsString('href="'.$href.'"', $league,
+                'The League menu must be offered to a player, outside the admin gate.');
+        }
     }
 
     public function test_the_admin_menus_are_not(): void

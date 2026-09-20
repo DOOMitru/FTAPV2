@@ -20,22 +20,37 @@ class ViewAuthorizationTest extends TestCase
         // a player must still not see is the machinery for running the league.
         $user = User::factory()->create(['is_admin' => false]);
 
-        $response = $this->actingAs($user)->get(route('dashboard'));
+        // The dashboard is Vue, so the menus are in Navigation.vue rather
+        // than in the response. The question is unchanged: which links a
+        // player is offered, and which are behind the admin gate.
+        $this->actingAs($user)->get(route('dashboard'))->assertOk();
 
-        $response->assertOk();
-        $response->assertSee(route('poker.seasons.index'), false);
-        $response->assertDontSee(route('poker.seasons.create'), false);
-        $response->assertDontSee(route('users.index'), false);
+        $nav = (string) file_get_contents(resource_path('js/Layouts/Navigation.vue'));
+        $gate = 'v-if="page.props.auth.user?.is_admin"';
+
+        $this->assertStringContainsString($gate, $nav, 'The admin menu has lost its gate.');
+
+        $league = substr($nav, 0, (int) strpos($nav, $gate));
+
+        $this->assertStringContainsString('href="/poker/seasons"', $league);
+        $this->assertStringNotContainsString('href="/poker/seasons/create"', $league);
+        $this->assertStringNotContainsString('href="/users"', $league);
     }
 
     public function test_admin_sees_poker_seasons_link_on_dashboard()
     {
         $admin = User::factory()->create(['is_admin' => true]);
 
-        $response = $this->actingAs($admin)->get(route('dashboard'));
+        // is_admin reaches the page, which is what the menus are drawn from.
+        $props = $this->actingAs($admin)->get(route('dashboard'))->assertOk()
+            ->viewData('page')['props'];
 
-        $response->assertOk();
-        $response->assertSee(route('poker.seasons.index'), false);
+        $this->assertTrue($props['auth']['user']['is_admin']);
+
+        $this->assertStringContainsString(
+            'href="/poker/seasons"',
+            (string) file_get_contents(resource_path('js/Layouts/Navigation.vue'))
+        );
     }
 
     public function test_non_admin_does_not_see_tournament_edit_link_on_tournament_show()

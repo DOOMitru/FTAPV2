@@ -55,6 +55,35 @@ class DashboardTournamentActionsTest extends TestCase
         ]);
     }
 
+    /**
+     * The row the dashboard is sent for one tournament.
+     *
+     * Every question this file asks -- which control is offered, and why -- is
+     * answered by a flag on the row now rather than by a button in the
+     * response. The controller decides all three: it refuses a registration
+     * from an unapproved account and a withdrawal once a finish is recorded,
+     * so the row says what it will accept rather than the template guessing.
+     *
+     * @return array<string, mixed>
+     */
+    private function row(User $viewer, PokerTournament $tournament): array
+    {
+        $upcoming = $this->actingAs($viewer)->get(route('dashboard'))->assertOk()
+            ->viewData('page')['props']['upcoming'];
+
+        $row = collect($upcoming)->firstWhere('id', $tournament->id);
+
+        $this->assertNotNull($row, 'The tournament is missing from Upcoming Tournaments.');
+
+        return $row;
+    }
+
+    /** The dashboard's markup. */
+    private function page(): string
+    {
+        return (string) file_get_contents(resource_path('js/Pages/Dashboard.vue'));
+    }
+
     private function register(PokerTournament $tournament, User $player): void
     {
         PokerTournamentRegistrant::create([
@@ -67,11 +96,14 @@ class DashboardTournamentActionsTest extends TestCase
 
     public function test_the_button_says_register(): void
     {
-        $this->tournament();
+        $tournament = $this->tournament();
 
-        $this->actingAs($this->player())->get(route('dashboard'))->assertOk()
-            ->assertSee('>Register<', false)
-            ->assertDontSee('Sign Up');
+        $this->assertTrue($this->row($this->player(), $tournament)['can_register']);
+
+        $page = $this->page();
+
+        $this->assertStringContainsString('>Register</Btn>', $page);
+        $this->assertStringNotContainsString('Sign Up', $page);
     }
 
     public function test_a_registered_player_keeps_the_badge_and_gains_a_way_out(): void
@@ -80,11 +112,18 @@ class DashboardTournamentActionsTest extends TestCase
         $player = $this->player();
         $this->register($tournament, $player);
 
-        $this->actingAs($player)->get(route('dashboard'))->assertOk()
-            ->assertSee('Registered')
-            ->assertSee('>Unregister<', false)
-            ->assertSee(route('tournaments.unregister', $tournament))
-            ->assertDontSee('>Register<', false);
+        $row = $this->row($player, $tournament);
+
+        $this->assertTrue($row['is_registered']);
+        $this->assertTrue($row['can_unregister']);
+        $this->assertFalse($row['can_register'], 'A registered player was offered Register.');
+
+        $page = $this->page();
+
+        $this->assertStringContainsString('>Unregister</Btn>', $page);
+
+        // The path the button calls, which is not /register under another verb.
+        $this->assertStringContainsString('/unregister`', $page);
     }
 
     public function test_unregistering_from_the_dashboard_works(): void
@@ -121,18 +160,28 @@ class DashboardTournamentActionsTest extends TestCase
             'points' => 0,
         ]);
 
-        $this->actingAs($player)->get(route('dashboard'))->assertOk()
-            ->assertSee('Registered')
-            ->assertDontSee('>Unregister<', false);
+        $row = $this->row($player, $tournament);
+
+        // The badge stands alone, which is the truth of it: the controller
+        // refuses the withdrawal once a finish is recorded, because a place is
+        // a position in a field.
+        $this->assertTrue($row['is_registered']);
+        $this->assertFalse($row['can_unregister']);
+
+        $this->assertStringContainsString('v-if="tournament.can_unregister"', $this->page());
     }
 
     public function test_an_unapproved_player_is_told_why_rather_than_offered_a_button(): void
     {
-        $this->tournament();
+        $tournament = $this->tournament();
 
-        $this->actingAs($this->player(approved: false))->get(route('dashboard'))->assertOk()
-            ->assertSee('Awaiting approval')
-            ->assertDontSee('>Register<', false);
+        $row = $this->row($this->player(approved: false), $tournament);
+
+        $this->assertFalse($row['can_register'],
+            'An unapproved account was offered a click the controller refuses.');
+
+        // And the row says why instead.
+        $this->assertStringContainsString('>Awaiting approval</Badge>', $this->page());
     }
 
     public function test_an_unapproved_registration_is_refused_by_the_controller(): void
@@ -158,10 +207,17 @@ class DashboardTournamentActionsTest extends TestCase
         $player = $this->player();
         $this->register($tournament, $player);
 
-        foreach ([route('dashboard'), route('tournaments.show', $tournament)] as $url) {
-            $this->actingAs($player)->get($url)->assertOk()
-                ->assertSee('Registered')
-                ->assertDontSee("You're registered");
-        }
+        // The dashboard is Vue and the tournament page is still Blade, so the
+        // one word is checked in each half's own source.
+        $this->actingAs($player)->get(route('dashboard'))->assertOk();
+
+        $dashboard = $this->page();
+
+        $this->assertStringContainsString('>Registered</Badge>', $dashboard);
+        $this->assertStringNotContainsString("You're registered", $dashboard);
+
+        $this->actingAs($player)->get(route('tournaments.show', $tournament))->assertOk()
+            ->assertSee('Registered')
+            ->assertDontSee("You're registered");
     }
 }
