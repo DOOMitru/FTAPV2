@@ -109,7 +109,7 @@ the task that replaces it.
 
 ---
 
-## Task 1: `App\Support\SeasonFigures`
+## Task 1: `App\Support\SeasonFigures` — DONE
 
 The shared piece, first, because two pages depend on it and the venue-points
 rule lives in it. No page converts in this task.
@@ -126,7 +126,7 @@ rule lives in it. No page converts in this task.
   returning `['season_name' => string, 'season_href' => ?string, 'season' => ?array, 'self' => bool]`
   — the four props `SeasonPanel.vue` declares.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 `tests/Feature/SeasonFiguresTest.php`:
 
@@ -288,7 +288,7 @@ class SeasonFiguresTest extends TestCase
 }
 ```
 
-- [ ] **Step 2: Run it and watch it fail**
+- [x] **Step 2: Run it and watch it fail**
 
 ```bash
 vendor/bin/phpunit tests/Feature/SeasonFiguresTest.php 2>&1 | sed -E 's/\x1b\[[0-9;]*[A-Za-z]//g' | tail -20
@@ -306,7 +306,7 @@ venue points between seasons and changed who qualified for the finale.
 viewer and returns false for a guest, so `SeasonFigures` can hand it
 `auth()->user()` without checking first.
 
-- [ ] **Step 3: Write the class**
+- [x] **Step 3: Write the class**
 
 `app/Support/SeasonFigures.php`:
 
@@ -405,13 +405,13 @@ class SeasonFigures
 }
 ```
 
-- [ ] **Step 4: Run it green**
+- [x] **Step 4: Run it green**
 
 ```bash
 vendor/bin/phpunit tests/Feature/SeasonFiguresTest.php 2>&1 | sed -E 's/\x1b\[[0-9;]*[A-Za-z]//g' | tail -8
 ```
 
-- [ ] **Step 5: Prove the privacy assertion fails when the rule is broken**
+- [x] **Step 5: Prove the privacy assertion fails when the rule is broken**
 
 Temporarily replace `VenuePoints::readableBy($viewer, $subjectId)` with `true`
 and run the test again. Expect
@@ -419,7 +419,7 @@ and run the test again. Expect
 that has not been seen to fail is not yet a guard, and this is the one the
 owner asked for by name.
 
-- [ ] **Step 6: Full suite, then commit (hand-off)**
+- [x] **Step 6: Full suite, then commit (hand-off)**
 
 ```bash
 out=$(bin/suite.sh); echo "$out" | grep -E "FAIL|crash|ran "
