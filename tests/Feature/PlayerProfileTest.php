@@ -244,33 +244,39 @@ class PlayerProfileTest extends TestCase
             'first_name' => 'Pending', 'last_name' => 'Person', 'approval_status' => 'pending',
         ]);
 
-        $html = $this->actingAs($this->admin)->get(route('users.index'))->assertOk()->getContent();
+        $props = $this->actingAs($this->admin)->get(route('users.index'))
+            ->assertOk()->viewData('page')['props'];
 
-        // Sliced per table. The main table lists EVERYONE, pending accounts
-        // included, so a page-wide search for the pending player's link finds
-        // the one in the lower table and says nothing about the queue above --
-        // unlinking the queue left this green until it was scoped.
-        $queue = substr($html, 0, strpos($html, 'Clear search') ?: strpos($html, 'name="search"'));
-        $main = substr($html, strlen($queue));
-
-        $this->assertStringContainsString(
-            route('players.show', $pending), $queue,
-            'The awaiting-approval queue lists a player without a way to their figures.'
+        // The two tables are two props now, so there is nothing to slice.
+        //
+        // The old version cut the HTML in half at the search box, and its
+        // comment says why: the main table lists EVERYONE, pending accounts
+        // included, so a page-wide search for the pending player's link found
+        // the one in the LOWER table and said nothing about the queue above --
+        // unlinking the queue left it green until it was scoped. Separate
+        // props cannot be confused for each other.
+        $this->assertContains(
+            $pending->id,
+            collect($props['pending'])->pluck('id')->all(),
+            'The awaiting-approval queue does not list the pending player.'
         );
 
-        $this->assertStringContainsString(
-            route('players.show', $this->player), $main,
-            'The main table lists a player without a way to their figures.'
+        $this->assertContains(
+            $this->player->id,
+            collect($props['users']['data'])->pluck('id')->all(),
+            'The main table does not list the player.'
         );
 
-        // And the account view is still reachable: the two answer different
-        // questions and neither replaces the other.
-        // The exact href, closing quote included: route('users.show', $u) is a
-        // prefix of route('users.edit', $u), so a bare substring search is
-        // satisfied by the Edit link and proves nothing about View.
-        $this->assertStringContainsString(
-            'href="'.route('users.show', $this->player).'"', $html
-        );
+        // Both tables reach the figures through <PlayerLink>, which builds
+        // /players/{id} from the id above, and both keep a View action to the
+        // account: the two answer different questions and neither replaces the
+        // other.
+        $page = file_get_contents(resource_path('js/Pages/Users/Index.vue'));
+
+        $this->assertSame(2, substr_count($page, '<PlayerLink :player-id='),
+            'Both tables must link their names to the player\'s figures.');
+        $this->assertSame(2, substr_count($page, '<Action icon="view" label="View"'),
+            'Both tables must keep a View action to the account.');
     }
 
     public function test_an_unranked_player_is_told_so_in_the_third_person(): void

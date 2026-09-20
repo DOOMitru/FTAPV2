@@ -25,7 +25,7 @@ class UserController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index(Request $request): View
+    public function index(Request $request): \Inertia\Response
     {
         $search = trim((string) $request->query('search', ''));
 
@@ -43,7 +43,43 @@ class UserController extends Controller
         // longest is the one to deal with.
         $pending = User::awaitingApproval()->orderBy('created_at')->get();
 
-        return view('users.index', compact('users', 'pending', 'search'));
+        $row = fn (User $user) => [
+            'id' => $user->id,
+            'name' => trim($user->first_name.' '.$user->last_name),
+            // The letters, not the name to reduce -- initials() is one
+            // definition, in PHP. See spec §5a.
+            'initials' => initials(trim($user->first_name.' '.$user->last_name)),
+            'email' => $user->email,
+        ];
+
+        return \Inertia\Inertia::render('Users/Index', [
+            'users' => \App\Support\Paginate::props($users, fn (User $user) => [
+                ...$row($user),
+                'nickname' => $user->nickname ?? '—',
+                'is_admin' => (bool) $user->is_admin,
+                'role_label' => $user->is_admin ? __('Admin') : __('Player'),
+                'delete_confirm' => __('Delete :name? This cannot be undone.', [
+                    'name' => emph(trim($user->first_name.' '.$user->last_name)),
+                ]),
+            ]),
+
+            'pending' => $pending->map(fn (User $candidate) => [
+                ...$row($candidate),
+                'registered_label' => $candidate->created_at?->format('M d, Y') ?? '—',
+                // Says DELETED, not demoted. Rejecting a pending account
+                // removes it: there is nothing to keep, and an account the
+                // league never accepted should not sit in the table forever.
+                'reject_confirm' => __('Reject :name? Their account will be deleted and cannot be recovered.', [
+                    'name' => emph(trim($candidate->first_name.' '.$candidate->last_name)),
+                ]),
+            ])->all(),
+
+            'search' => $search,
+
+            // Shown as well as emailed. MAIL_MAILER is log locally, so a link
+            // that is only sent reaches nobody.
+            'invite_url' => session('invite_url'),
+        ]);
     }
 
     /**

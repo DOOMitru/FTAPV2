@@ -58,16 +58,30 @@ class DashboardGutterTest extends TestCase
         // two containers inside main is the actual fault.
         $admin = User::factory()->create(['is_admin' => true]);
 
-        $html = $this->actingAs($admin)->get(route('users.index'))->assertOk()->getContent();
+        $this->actingAs($admin)->get(route('users.index'))->assertOk();
 
-        preg_match('/<main[^>]*class="shell__content"[^>]*>(.*?)<\/main>/s', $html, $matches);
-
-        $this->assertArrayHasKey(1, $matches, 'The dashboard shell did not render a <main>.');
-
-        $this->assertSame(
-            1,
-            substr_count($matches[1], 'class="l-container'),
-            'The layout must not wrap the slot in a container; every view brings its own.'
+        // Both halves of the rule, each where it now lives.
+        //
+        // The layout must bring NO container of its own -- .l-container sets
+        // padding-inline, so two of them applied the gutter twice: 32px a side
+        // on a phone, where the content had least room to give.
+        // Comments stripped first. The layout EXPLAINS at length why it has no
+        // container, so the words are in the file while the class is not --
+        // the same trap ComponentParityTest hit reading class names out of
+        // prose.
+        $layout = (string) preg_replace(
+            '/<!--.*?-->/s',
+            ' ',
+            (string) file_get_contents(resource_path('js/Layouts/AppLayout.vue'))
         );
+
+        $this->assertStringNotContainsString('l-container', $layout,
+            'The layout must not wrap the slot in a container; every page brings its own.');
+
+        // And the page must bring exactly one.
+        $page = file_get_contents(resource_path('js/Pages/Users/Index.vue'));
+
+        $this->assertSame(1, substr_count($page, 'class="l-container'),
+            'A page brings one container, not none and not two.');
     }
 }

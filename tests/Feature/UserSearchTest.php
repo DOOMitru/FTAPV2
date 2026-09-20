@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
 
 /**
@@ -72,19 +73,50 @@ class UserSearchTest extends TestCase
         ];
     }
 
+    /**
+     * The ids the list came back with.
+     *
+     * The assertions this replaces looked for each user's View URL in the
+     * rendered page, and the docblock above says why they could not simply
+     * look for the name: the search box echoes the term, so assertSee('Lovelace')
+     * passes on the box alone with an empty table underneath.
+     *
+     * Props end that problem rather than working around it. The term and the
+     * rows are separate keys, so asking which users came back is a direct
+     * question with a direct answer.
+     *
+     * @return list<string>
+     */
+    private function listedIds(?string $term = null): array
+    {
+        $url = $term === null
+            ? route('users.index')
+            : route('users.index', ['search' => $term]);
+
+        // An existing admin if there is one. admin() creates a user with a
+        // fixed email, so calling this twice in one test violated the unique
+        // constraint rather than answering the question twice.
+        $admin = User::where('is_admin', true)->first() ?? $this->admin();
+
+        $props = $this->actingAs($admin)->get($url)->assertOk()
+            ->viewData('page')['props'];
+
+        return collect($props['users']['data'])->pluck('id')->all();
+    }
+
     #[\PHPUnit\Framework\Attributes\DataProvider('matchingTerms')]
     public function test_a_search_finds_a_user_by(string $term): void
     {
         $subject = $this->subject();
         $decoy = $this->decoy();
 
-        $this->actingAs($this->admin())
-            ->get(route('users.index', ['search' => $term]))
-            ->assertOk()
-            ->assertSee(route('users.show', $subject), false)
-            // The decoy is what makes this a search rather than a page load:
-            // without it every assertion here passes on an unfiltered list.
-            ->assertDontSee(route('users.show', $decoy), false);
+        $listed = $this->listedIds($term);
+
+        $this->assertContains($subject->id, $listed);
+
+        // The decoy is what makes this a search rather than a page load:
+        // without it every assertion here passes on an unfiltered list.
+        $this->assertNotContains($decoy->id, $listed);
     }
 
     public function test_a_full_name_matches_across_two_columns(): void
@@ -94,11 +126,10 @@ class UserSearchTest extends TestCase
         $subject = $this->subject();
         $decoy = $this->decoy();
 
-        $this->actingAs($this->admin())
-            ->get(route('users.index', ['search' => 'Ada Lovelace']))
-            ->assertOk()
-            ->assertSee(route('users.show', $subject), false)
-            ->assertDontSee(route('users.show', $decoy), false);
+        $listed = $this->listedIds('Ada Lovelace');
+
+        $this->assertContains($subject->id, $listed);
+        $this->assertNotContains($decoy->id, $listed);
     }
 
     public function test_every_word_has_to_match_not_just_one(): void
@@ -121,11 +152,10 @@ class UserSearchTest extends TestCase
         $subject = $this->subject();
         $decoy = $this->decoy();
 
-        $this->actingAs($this->admin())
-            ->get(route('users.index', ['search' => '   ']))
-            ->assertOk()
-            ->assertSee(route('users.show', $subject), false)
-            ->assertSee(route('users.show', $decoy), false);
+        $listed = $this->listedIds('   ');
+
+        $this->assertContains($subject->id, $listed);
+        $this->assertContains($decoy->id, $listed);
     }
 
     public function test_a_search_with_no_matches_says_which_term_failed(): void
@@ -137,9 +167,15 @@ class UserSearchTest extends TestCase
         $this->actingAs($this->admin())
             ->get(route('users.index', ['search' => 'Babbage']))
             ->assertOk()
-            ->assertSee('No users match')
-            ->assertSee('Babbage')
-            ->assertDontSee(route('users.show', $subject), false);
+            ->assertInertia(fn (Assert $page) => $page
+                // The term comes back, so the page can say which search
+                // failed: "No users found." under a search reads as an empty
+                // database rather than an empty result.
+                ->where('search', 'Babbage')
+                ->has('users.data', 0)
+            );
+
+        $this->assertNotContains($subject->id, $this->listedIds('Babbage'));
     }
 
     public function test_paging_a_search_keeps_the_search(): void
@@ -152,14 +188,15 @@ class UserSearchTest extends TestCase
         User::factory()->count(20)->create(['last_name' => 'Searchable']);
         User::factory()->count(5)->create(['last_name' => 'Unrelated']);
 
-        $body = $this->actingAs(User::where('is_admin', true)->first())
+        $props = $this->actingAs(User::where('is_admin', true)->first())
             ->get(route('users.index', ['search' => 'Searchable']))
-            ->assertOk()
-            ->getContent();
+            ->assertOk()->viewData('page')['props'];
+
+        $urls = collect($props['users']['links'])->pluck('url')->filter()->implode(' ');
 
         $this->assertStringContainsString(
             'search=Searchable',
-            $body,
+            $urls,
             'The pagination links must carry the search term.'
         );
     }
@@ -176,15 +213,26 @@ class UserSearchTest extends TestCase
     public function test_the_echoed_search_term_is_escaped(): void
     {
         // The term comes back twice -- in the input's value and in the empty
-        // state's title -- so this page reflects user input by design. Both go
-        // through {{ }}, and this is what keeps it that way.
+        // state's title -- so this page reflects user input by design.
+        //
+        // It travels as a prop now and is interpolated by Vue, which escapes
+        // as {{ }} did. The claim worth asserting is the one that matters:
+        // the script tag never reaches the document as markup. The positive
+        // form is dropped because it depended on how the payload is encoded,
+        // which is Inertia's business rather than this rule's.
         $this->subject();
 
-        $this->actingAs($this->admin())
+        $response = $this->actingAs($this->admin())
             ->get(route('users.index', ['search' => '<script>alert(1)</script>']))
-            ->assertOk()
-            ->assertDontSee('<script>alert(1)</script>', false)
-            ->assertSee('&lt;script&gt;', false);
+            ->assertOk();
+
+        $response->assertDontSee('<script>alert(1)</script>', false);
+
+        // And it survives intact as DATA, so the page can echo it back.
+        $this->assertSame(
+            '<script>alert(1)</script>',
+            $response->viewData('page')['props']['search']
+        );
     }
 
     public function test_the_icon_only_controls_still_have_names(): void
@@ -194,11 +242,13 @@ class UserSearchTest extends TestCase
         // identical and a screen reader is left announcing "button".
         $subject = $this->subject();
 
-        $this->actingAs($this->admin())
-            ->get(route('users.index', ['search' => 'Ada']))
-            ->assertOk()
-            ->assertSee('<span class="u-visually-hidden">Search</span>', false)
-            ->assertSee('<span class="u-visually-hidden">Clear search</span>', false)
-            ->assertSee(route('users.show', $subject), false);
+        $this->assertContains($subject->id, $this->listedIds('Ada'));
+
+        // The names are in the page file now. Clear appears only when there is
+        // something to clear, which is a v-if rather than a second render.
+        $page = file_get_contents(resource_path('js/Pages/Users/Index.vue'));
+
+        $this->assertStringContainsString('<span class="u-visually-hidden">Search</span>', $page);
+        $this->assertStringContainsString('<span class="u-visually-hidden">Clear search</span>', $page);
     }
 }

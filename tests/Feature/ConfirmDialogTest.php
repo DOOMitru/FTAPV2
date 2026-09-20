@@ -53,10 +53,20 @@ class ConfirmDialogTest extends TestCase
         // It is addressed by attribute and labelled by a fixed id. Two of them
         // would give the script the first one and the screen reader an
         // ambiguous label.
-        $html = $this->actingAs($this->admin())->get(route('users.index'))->assertOk()->getContent();
+        // On a converted page the dialog is mounted by AppLayout, once. The
+        // id is still fixed and still has to be unique, which is what
+        // DuplicateElementIdTest checks across every route -- here the claim is
+        // that the layout mounts exactly one.
+        $this->actingAs($this->admin())->get(route('users.index'))->assertOk();
 
-        $this->assertSame(1, substr_count($html, 'data-confirm-dialog'));
-        $this->assertSame(1, substr_count($html, 'id="confirm-dialog-message"'));
+        $layout = file_get_contents(resource_path('js/Layouts/AppLayout.vue'));
+
+        $this->assertSame(1, substr_count($layout, '<ConfirmDialog />'),
+            'Two dialogs would give the composable the first and a screen reader an ambiguous label.');
+
+        $dialog = file_get_contents(resource_path('js/Components/ConfirmDialog.vue'));
+
+        $this->assertSame(1, substr_count($dialog, 'id="confirm-dialog-message"'));
     }
 
     public function test_the_buttons_report_which_one_closed_it(): void
@@ -64,13 +74,18 @@ class ConfirmDialogTest extends TestCase
         // method="dialog" plus a value on each submit button is the whole
         // mechanism: it puts the answer in returnValue with no handler of its
         // own. confirm.ts compares against "confirm" exactly.
-        $html = $this->actingAs($this->admin())->get(route('users.index'))->assertOk()->getContent();
+        // The Vue dialog keeps method="dialog" and the two values -- that is
+        // still the whole mechanism, and it is what closes the dialog without
+        // a handler of its own. The data-* hooks are gone with the delegated
+        // script: a Vue component reaches its own parts by ref, so attributes
+        // for a document-wide querySelector have nothing left to do.
+        $this->actingAs($this->admin())->get(route('users.index'))->assertOk();
 
-        $this->assertStringContainsString('<form method="dialog">', $html);
-        $this->assertStringContainsString('value="confirm"', $html);
-        $this->assertStringContainsString('value="cancel"', $html);
-        $this->assertStringContainsString('data-confirm-accept', $html);
-        $this->assertStringContainsString('data-confirm-message', $html);
+        $dialog = file_get_contents(resource_path('js/Components/ConfirmDialog.vue'));
+
+        $this->assertStringContainsString('<form method="dialog">', $dialog);
+        $this->assertStringContainsString('value="confirm"', $dialog);
+        $this->assertStringContainsString('value="cancel"', $dialog);
     }
 
     public function test_the_message_survives_as_a_value_not_as_source(): void
@@ -129,9 +144,14 @@ class ConfirmDialogTest extends TestCase
     {
         // A <dialog> without the open attribute is display: none. Rendering it
         // open would put a stray confirmation on every page.
-        $html = $this->actingAs($this->admin())->get(route('users.index'))->assertOk()->getContent();
+        // showModal() is the only thing that opens it, and the composable
+        // calls that only when something asks. The markup carries no `open`.
+        $this->actingAs($this->admin())->get(route('users.index'))->assertOk();
 
-        $this->assertStringNotContainsString('<dialog class="confirm" open', $html);
-        $this->assertStringContainsString('<dialog class="confirm"', $html);
+        $dialog = file_get_contents(resource_path('js/Components/ConfirmDialog.vue'));
+
+        $this->assertStringContainsString('class="confirm"', $dialog);
+        $this->assertStringNotContainsString(' open>', $dialog);
+        $this->assertStringContainsString('showModal()', $dialog);
     }
 }

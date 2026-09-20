@@ -204,13 +204,23 @@ class MonogramTest extends TestCase
             'first_name' => 'Priya', 'last_name' => 'Raman', 'approval_status' => 'pending',
         ]);
 
-        $html = $this->actingAs($admin)->get(route('users.index'))->assertOk()->getContent();
+        // The users list is an Inertia page, so the letters travel as a prop
+        // and the <Monogram> that draws them is in the page file. Slicing the
+        // rendered HTML per table is no longer possible -- and no longer
+        // needed: the queue is its own prop, so there is no lower table for a
+        // page-wide search to find by accident.
+        $props = $this->actingAs($admin)->get(route('users.index'))
+            ->assertOk()->viewData('page')['props'];
 
-        $awaiting = substr($html, (int) strpos($html, 'Awaiting approval'));
-        $awaiting = substr($awaiting, 0, (int) strpos($awaiting, '</table>'));
+        $this->assertSame('PR', $props['pending'][0]['initials']);
 
-        $this->assertStringContainsString('monogram', $awaiting);
-        $this->assertStringContainsString('>PR<', $awaiting);
+        $page = file_get_contents(resource_path('js/Pages/Users/Index.vue'));
+
+        $this->assertMatchesRegularExpression(
+            '/Awaiting approval.*?<Monogram :initials="candidate\.initials"/s',
+            $page,
+            'The awaiting-approval table must draw its candidates with the component.'
+        );
     }
 
     public function test_the_tournament_page_draws_players_with_the_component(): void

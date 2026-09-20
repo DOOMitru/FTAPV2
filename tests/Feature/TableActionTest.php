@@ -34,12 +34,21 @@ class TableActionTest extends TestCase
     {
         User::factory()->create(['first_name' => 'Listed', 'last_name' => 'Player']);
 
-        $response = $this->actingAs($this->admin())->get(route('users.index'))->assertOk();
+        $this->actingAs($this->admin())->get(route('users.index'))->assertOk();
+
+        // The label is passed once and the component turns it into BOTH the
+        // visually-hidden name and the title -- so the page asks for it, and
+        // Action.vue is where the two come from.
+        $page = file_get_contents(resource_path('js/Pages/Users/Index.vue'));
 
         foreach (['View', 'Edit', 'Delete'] as $action) {
-            $response->assertSee('<span class="u-visually-hidden">'.$action.'</span>', false);
-            $response->assertSee('title="'.$action.'"', false);
+            $this->assertStringContainsString('label="'.$action.'"', $page);
         }
+
+        $component = file_get_contents(resource_path('js/Components/Action.vue'));
+
+        $this->assertStringContainsString('<span class="u-visually-hidden">{{ label }}</span>', $component);
+        $this->assertStringContainsString(':title="label"', $component);
     }
 
     public function test_the_approval_queue_actions_carry_their_names(): void
@@ -52,10 +61,12 @@ class TableActionTest extends TestCase
             'approval_status' => 'pending',
         ]);
 
-        $response = $this->actingAs($this->admin())->get(route('users.index'))->assertOk();
+        $this->actingAs($this->admin())->get(route('users.index'))->assertOk();
+
+        $page = file_get_contents(resource_path('js/Pages/Users/Index.vue'));
 
         foreach (['Approve', 'Reject'] as $action) {
-            $response->assertSee('<span class="u-visually-hidden">'.$action.'</span>', false);
+            $this->assertStringContainsString('label="'.$action.'"', $page);
         }
     }
 
@@ -66,31 +77,27 @@ class TableActionTest extends TestCase
         // row grows a control that looks right and does nothing.
         User::factory()->create();
 
-        $html = $this->actingAs($this->admin())->get(route('users.index'))
-            ->assertOk()->getContent();
+        $this->actingAs($this->admin())->get(route('users.index'))->assertOk();
 
-        // Matched as a tag, not as the string type="submit" -- the search
-        // form's button carries that too, so the looser assertion passed even
-        // when every action was rendered as an anchor.
-        $this->assertMatchesRegularExpression(
-            '/<button[^>]*class="action action--danger"/',
-            $html,
-            'Delete must render as a submit button.'
+        // The rule lives in the component: it renders a Link when given an
+        // href and a submit button otherwise. Both directions matter -- a
+        // destructive action that is a link does nothing, and a navigating
+        // action that is a button looks right and goes nowhere.
+        $component = file_get_contents(resource_path('js/Components/Action.vue'));
+
+        $this->assertStringContainsString(
+            'v-bind="href ? { href } : { type: \'submit\' }"',
+            $component,
+            'The component must pick a submit button when it has no href.'
         );
 
-        $this->assertDoesNotMatchRegularExpression(
-            '/<a[^>]*class="action action--danger"/',
-            $html,
-            'A destructive action must never be a link.'
-        );
+        $this->assertStringContainsString(':is="href ? Link : \'button\'"', $component);
 
-        // And the other direction, which was unguarded: rendering everything as
-        // a button leaves View and Edit looking right and navigating nowhere.
-        $this->assertMatchesRegularExpression(
-            '/<a[^>]*href="[^"]+"[^>]*class="action"/',
-            $html,
-            'A navigating action must render as an anchor with an href.'
-        );
+        // And the page asks the right way round: Delete carries no href.
+        $page = file_get_contents(resource_path('js/Pages/Users/Index.vue'));
+
+        $this->assertStringContainsString('<Action icon="delete" label="Delete" danger />', $page);
+        $this->assertMatchesRegularExpression('/<Action icon="view" label="View" :href=/', $page);
     }
 
     public function test_the_user_tables_are_stacked_and_their_cells_are_labelled(): void
@@ -99,19 +106,23 @@ class TableActionTest extends TestCase
         // nothing naming them -- the header row is off-screen by then.
         User::factory()->create(['approval_status' => 'pending']);
 
-        $response = $this->actingAs($this->admin())->get(route('users.index'))->assertOk();
+        $this->actingAs($this->admin())->get(route('users.index'))->assertOk();
 
-        $response->assertSee('table--stacked', false);
+        $page = file_get_contents(resource_path('js/Pages/Users/Index.vue'));
+
+        // `stacked` on the component, which becomes table--stacked.
+        $this->assertSame(2, substr_count($page, '<Table stacked>'),
+            'Both user tables stack on a narrow screen.');
 
         // Approval is gone from this table, by request. A rejected account now
         // reads the same as an approved one here; the status, and the way back
         // from a rejection, are on the account page the View action opens.
         foreach (['Name', 'Nickname', 'Email', 'Role'] as $column) {
-            $response->assertSee('data-label="'.$column.'"', false);
+            $this->assertStringContainsString('data-label="'.$column.'"', $page);
         }
 
         // The queue above has its own columns.
-        $response->assertSee('data-label="Registered"', false);
+        $this->assertStringContainsString('data-label="Registered"', $page);
     }
 
     public function test_the_other_dashboard_tables_use_icon_actions_too(): void
