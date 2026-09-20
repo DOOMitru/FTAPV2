@@ -36,11 +36,21 @@ class VenuePointsFromVenuePageTest extends TestCase
     {
         $venue = $this->venue();
 
-        $this->actingAs($this->admin())
+        $props = $this->actingAs($this->admin())
             ->get(route('poker.venues.show', $venue))->assertOk()
-            ->assertSee('Add points')
-            // Carrying the venue, which is the whole point of moving it here.
-            ->assertSee(route('poker.venue-points.create', ['venue_id' => $venue->id]), false);
+            ->viewData('page')['props'];
+
+        // Carrying the venue, which is the whole point of moving it here.
+        $this->assertSame(
+            route('poker.venue-points.create', ['venue_id' => $venue->id]),
+            $props['add_points_href']
+        );
+
+        // And it is the button's href, rather than a URL the page merely holds.
+        $this->assertStringContainsString(
+            ':href="add_points_href">Add points<',
+            (string) file_get_contents(resource_path('js/Pages/Poker/Venues/Show.vue'))
+        );
     }
 
     public function test_the_form_opens_with_that_venue_chosen(): void

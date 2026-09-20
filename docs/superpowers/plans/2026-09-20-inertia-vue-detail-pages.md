@@ -942,7 +942,7 @@ Save and Cancel — so check its floor counts still hold.
 
 ---
 
-## Task 5: `/poker/venues/{venue}`
+## Task 5: `/poker/venues/{venue}` — DONE
 
 **Files:**
 - Create: `resources/js/Pages/Poker/Venues/Show.vue`
@@ -996,30 +996,30 @@ children.
 an administrator removing one has its takings and its leaderboard in front of
 them.
 
-- [ ] **Step 1: Change the controller** — keep the existing `load()` and the
+- [x] **Step 1: Change the controller** — keep the existing `load()` and the
   leaderboard grouping exactly as they are. The comment on that method records
   that `tournaments.results` was dropped deliberately: it loaded every result
   of every night to sum once and throw away.
 
-- [ ] **Step 2: Write the page**
+- [x] **Step 2: Write the page**
 
-- [ ] **Step 3: Register the page and delete the Blade view**
+- [x] **Step 3: Register the page and delete the Blade view**
 
-- [ ] **Step 4: Type-check, build, full suite; port what breaks**
+- [x] **Step 4: Type-check, build, full suite; port what breaks**
 
 `VenueStatRowsTest` reads both this view and `poker/seasons/show.blade.php`;
 re-point the first entry and leave the second, which converts in Plan 6.
 
-- [ ] **Step 5: Prove the ported assertions fail**
+- [x] **Step 5: Prove the ported assertions fail**
 
-- [ ] **Step 6: Verify in a browser at 1440, 960 and 375**
+- [x] **Step 6: Verify in a browser at 1440, 960 and 375**
 
 - the map renders, and a venue with no address shows the body full-width
 - "Add points" opens the picker with this venue already chosen
 - ten rows, each one link: `document.querySelectorAll('a a').length` is 0
 - delete asks first, naming the venue in bold
 
-- [ ] **Step 7: Commit (hand-off)**
+- [x] **Step 7: Commit (hand-off)**
 
 ---
 

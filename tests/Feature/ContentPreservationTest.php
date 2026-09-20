@@ -641,47 +641,44 @@ class ContentPreservationTest extends TestCase
             'event_date' => now()->subWeeks(3),
         ]);
 
-        $response = $this->actingAs($admin)->get('/poker/venues/'.$venue->id);
-        $response->assertOk();
+        $props = $this->actingAs($admin)->get('/poker/venues/'.$venue->id)
+            ->assertOk()->viewData('page')['props'];
 
-        $response->assertSee('The Ironclad Room');
-        $response->assertSee('1820 Scarth St, Regina SK');
+        $this->assertSame('The Ironclad Room', $props['venue']['name']);
+        $this->assertSame('1820 Scarth St, Regina SK', $props['venue']['address']);
 
-        // Both leaderboard players, and their totals: 40 + 35 = 75 beats 50.
-        $response->assertSee('Perpetua Souza');
-        $response->assertSee('Baltazar Whitlock');
-        $response->assertSee('75');
-
-        // Ordering is the point of the leaderboard, so assert it rather than
-        // just membership.
-        $text = preg_replace('/\s+/', ' ', strip_tags($response->getContent()));
-        $this->assertLessThan(
-            strpos($text, 'Baltazar Whitlock'),
-            strpos($text, 'Perpetua Souza'),
-            'The venue leaderboard must order by total points, highest first.'
+        // Both leaderboard players, in order, with their totals: 40 + 35 = 75
+        // beats 50. Ordering is the point of a leaderboard, and comparing the
+        // list directly says it better than two strpos calls over stripped
+        // text -- which is how the old version had to ask.
+        $this->assertSame(
+            [['Perpetua Souza', '75'], ['Baltazar Whitlock', '50']],
+            collect($props['leaderboard'])->map(fn (array $row) => [$row['player_name'], $row['total_label']])->all()
         );
 
         // The total across the top: 125 venue points awarded here. The
         // tournament-points total that used to sit beside it was a league
         // figure rather than a venue one, and went with its tile.
-        $response->assertSee('125');
+        $this->assertSame('125', $props['venue_points_label']);
+        $this->assertSame('2', $props['tournaments_label']);
 
-        // Both tiles, by label. Matched as stat markup, because "Tournaments"
-        // on its own also appears in the Recent Tournaments heading.
-        //
-        // Two, not four: Point Earners and Tournament pts were removed by
-        // request. The leaderboard below IS the point earners, named and
+        // Two figures, not four: Point Earners and Tournament pts were removed
+        // by request. The leaderboard below IS the point earners, named and
         // counted, and tournament points were a league total that said nothing
         // about this venue.
-        foreach (['Tournaments', 'Venue points'] as $label) {
-            $response->assertSee('<span class="stat__label">'.$label.'</span>', false);
-        }
+        $page = (string) file_get_contents(resource_path('js/Pages/Poker/Venues/Show.vue'));
 
-        $response->assertDontSee('<span class="stat__label">Point Earners</span>', false);
-        $response->assertDontSee('<span class="stat__label">Tournament pts</span>', false);
+        $this->assertSame(2, substr_count($page, '<Stat label='),
+            'The venue draws a different number of figures than the two it should.');
+        $this->assertStringContainsString('<Stat label="Tournaments"', $page);
+        $this->assertStringContainsString('<Stat label="Venue points"', $page);
+        $this->assertStringNotContainsString('Point Earners', $page);
+        $this->assertStringNotContainsString('Tournament pts', $page);
 
-        // The side panel lists the tournaments held here.
-        $response->assertSee('Ironclad Opener');
-        $response->assertSee('Ironclad Closer');
+        // The side panel lists the tournaments held here, newest first.
+        $this->assertSame(
+            ['Ironclad Opener', 'Ironclad Closer'],
+            collect($props['tournaments'])->pluck('name')->all()
+        );
     }
 }

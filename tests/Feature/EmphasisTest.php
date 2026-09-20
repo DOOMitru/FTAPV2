@@ -92,10 +92,15 @@ class EmphasisTest extends TestCase
     {
         Venue::create(['name' => 'Ace of Spades Lounge', 'address' => '1 Card Street']);
 
-        $html = $this->actingAs($this->admin())
-            ->get(route('poker.venues.show', Venue::firstOrFail()))->assertOk()->getContent();
+        // The marked sentence is a prop now. It still reaches the browser as
+        // a VALUE carrying markers rather than as markup -- which is the whole
+        // reason the markers exist, since a venue called '<img onerror=...>'
+        // would otherwise be markup by the time it reached the dialog.
+        $confirm = $this->actingAs($this->admin())
+            ->get(route('poker.venues.show', Venue::firstOrFail()))->assertOk()
+            ->viewData('page')['props']['venue']['delete_confirm'];
 
-        $this->assertStringContainsString(EMPH.'Ace of Spades Lounge'.EMPH, $html);
+        $this->assertStringContainsString(EMPH.'Ace of Spades Lounge'.EMPH, $confirm);
     }
 
     public function test_a_player_name_is_bolded_in_a_flash_message(): void

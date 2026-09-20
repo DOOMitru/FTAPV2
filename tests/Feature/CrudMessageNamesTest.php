@@ -33,6 +33,21 @@ class CrudMessageNamesTest extends TestCase
         'deleted successfully',
     ];
 
+    /**
+     * Strings that name an entity and are NOT messages.
+     *
+     * The rule is about text a reader is shown as a receipt -- a flash, a
+     * confirmation -- where the name is what tells them which record they just
+     * acted on. A label on an embedded frame is not that, and an emph marker
+     * in an attribute is a stray U+2063 a screen reader reads out.
+     *
+     * Pinned by the test below so the list cannot grow quietly: an exemption
+     * that is easy to add is a rule that stops meaning anything.
+     */
+    private const NOT_A_MESSAGE = [
+        'Map of :venue',
+    ];
+
     /** @return array<int, string> every controller file, keyed by nothing */
     private function controllers(): array
     {
@@ -104,6 +119,12 @@ class CrudMessageNamesTest extends TestCase
             );
 
             foreach ($calls as $call) {
+                foreach (self::NOT_A_MESSAGE as $exempt) {
+                    if (str_contains($call['msg'], $exempt)) {
+                        continue 2;
+                    }
+                }
+
                 foreach ($keys as $key) {
                     if (! str_contains($call['msg'], ':'.$key)) {
                         continue;
@@ -134,5 +155,13 @@ class CrudMessageNamesTest extends TestCase
             ['An entity name reaches a message unmarked, so it will not be set apart:'],
             $offenders
         )));
+    }
+
+    public function test_the_exemption_covers_only_the_map_label(): void
+    {
+        // The same pinning InlineStyleGuardTest gives its one exception.
+        // Widening this should be a deliberate edit to a test rather than a
+        // line in a diff nobody reads.
+        $this->assertSame(['Map of :venue'], self::NOT_A_MESSAGE);
     }
 }

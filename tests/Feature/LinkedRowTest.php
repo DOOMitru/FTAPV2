@@ -32,14 +32,20 @@ class LinkedRowTest extends TestCase
             'venue_id' => $venue->id, 'season_id' => PokerSeason::first()->id,
         ]);
 
-        $html = $this->actingAs($this->admin())
-            ->get(route('poker.venues.show', $venue))->assertOk()->getContent();
+        // Two rows at this venue, so the page has a list to draw.
+        $this->assertCount(
+            2,
+            $this->actingAs($this->admin())->get(route('poker.venues.show', $venue))
+                ->assertOk()->viewData('page')['props']['tournaments']
+        );
 
-        $this->assertStringContainsString('entry entry--link', $html);
+        $page = (string) file_get_contents(resource_path('js/Pages/Poker/Venues/Show.vue'));
+
+        $this->assertStringContainsString('entry entry--link', $page);
 
         // The chevron is the affordance the underlines were doing badly, and it
         // is always drawn -- a hover state says nothing on a touch screen.
-        $this->assertStringContainsString('entry__go', $html);
+        $this->assertStringContainsString('entry__go', $page);
     }
 
     public function test_no_view_links_a_row_without_marking_it(): void

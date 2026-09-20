@@ -38,8 +38,11 @@ class VenueStatRowsTest extends TestCase
 
         $admin = User::factory()->create(['is_admin' => true, 'approval_status' => 'approved']);
 
-        return $this->actingAs($admin)
-            ->get(route('poker.venues.show', $venue))->assertOk()->getContent();
+        // The page still has to load for an administrator; what it draws is in
+        // the component, because the server sends props and an empty shell.
+        $this->actingAs($admin)->get(route('poker.venues.show', $venue))->assertOk();
+
+        return (string) file_get_contents(resource_path('js/Pages/Poker/Venues/Show.vue'));
     }
 
     public function test_the_figures_carry_the_hook_the_phone_layout_is_scoped_to(): void
@@ -88,7 +91,7 @@ class VenueStatRowsTest extends TestCase
         $html = $this->venuePage();
 
         $start = strpos($html, 'Venue points leaderboard');
-        $table = substr($html, $start, strpos($html, '</table>', $start) - $start);
+        $table = substr($html, $start, strpos($html, '</Table>', $start) - $start);
 
         $this->assertSame(3, preg_match_all('/<th\b/', $table));
         $this->assertStringContainsString('colspan="3"', $table);
@@ -104,10 +107,17 @@ class VenueStatRowsTest extends TestCase
     {
         // The point of the exercise: one treatment, not two that resemble each
         // other until one of them is edited.
-        foreach (['poker/venues/show.blade.php', 'poker/seasons/show.blade.php'] as $view) {
+        // One of the two is Vue now and the other is not yet, so the paths
+        // say which half each lives in. The treatment is the same either way,
+        // which is the point: one class, not two that resemble each other
+        // until one of them is edited.
+        foreach ([
+            'js/Pages/Poker/Venues/Show.vue',
+            'views/poker/seasons/show.blade.php',
+        ] as $template) {
             $this->assertStringContainsString(
-                'stat-rows', file_get_contents(resource_path('views/'.$view)),
-                $view.' draws its figures some other way.'
+                'stat-rows', (string) file_get_contents(resource_path($template)),
+                $template.' draws its figures some other way.'
             );
         }
     }

@@ -33,7 +33,7 @@ class PlayerLinkCoverageTest extends TestCase
     private const LINKED = [
         'views/poker/seasons/show.blade.php' => 'the season standings',
         'views/poker/tournaments/show.blade.php' => 'the registered players panel',
-        'views/poker/venues/show.blade.php' => 'the venue leaderboard',
+        'js/Pages/Poker/Venues/Show.vue' => 'the venue leaderboard',
         'views/rules/points-structure.blade.php' => 'Current Season Leaders',
         'views/home.blade.php' => 'the landing page leader cards',
         'js/Pages/Users/Index.vue' => 'the admin players list, both tables',
