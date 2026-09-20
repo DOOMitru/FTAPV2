@@ -370,7 +370,7 @@ And `autofocus` fires when an input enters the document — once. What comes bac
 from a save is the SAME component re-rendered, so the component focuses the
 input itself.
 
-### Task 5: `users` create and edit
+### Task 5: `users` create and edit — DONE
 
 **Props:** create — none beyond shared. edit —
 `user: { id, first_name, last_name, nickname, email, is_admin }`.
@@ -378,6 +378,15 @@ input itself.
 **Creating a player returns an invite URL**, flashed as `invite_url` and
 rendered by the users index — already handled in Plan 3. Nothing to do here
 beyond not breaking it.
+
+**The edit form's hidden `is_admin` field goes.** It existed because an
+unchecked checkbox submits nothing, so without it clearing the box left
+`is_admin` untouched; `useForm` sends the value it holds either way. Two fields
+posting one name would be one more thing to keep in step.
+
+**The heading is a prop.** Blade builds it as `__('Edit User').': '.$first.'
+'.$last` — a translated prefix joined to a person's name, both PHP's to decide
+(spec §5a) — so `title` is sent alongside `user`.
 
 ### Task 6: `sponsors` create and edit
 

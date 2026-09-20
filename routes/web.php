@@ -315,24 +315,3 @@ Route::middleware('auth')->group(function () {
 });
 
 require __DIR__.'/auth.php';
-
-
-Route::get('/__shot_login', function () {
-    abort_unless(app()->environment('local'), 404);
-    auth()->loginUsingId(\App\Models\User::where('is_admin', true)->value('id'));
-    return redirect(request('to', '/dashboard'));
-});
-
-
-Route::post('/__report', function () {
-    abort_unless(app()->environment('local'), 404);
-    file_put_contents('/tmp/claude-1000/probe-report.txt', request()->getContent()."\n", FILE_APPEND);
-    return 'ok';
-});
-
-Route::get('/__frame', function () {
-    abort_unless(app()->environment('local'), 404);
-    $w = (int) request('w', 375);
-    return response('<!doctype html><meta charset="utf-8"><style>html,body{margin:0}iframe{width:'.$w.'px;height:1300px;border:0}</style>'
-        .'<iframe id="f" src="'.e(request('to','/')).'"></iframe>');
-});
