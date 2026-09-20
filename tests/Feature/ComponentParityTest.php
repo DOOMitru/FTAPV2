@@ -253,6 +253,28 @@ class ComponentParityTest extends TestCase
     }
 
     /**
+     * A route name is not a class list.
+     *
+     * The extractor below splits a quoted string on `.` among other things, so
+     * `route('tournaments.register')` yields the token `register` -- which is
+     * a real declared class, the one the register dialog uses. The Blade card
+     * was reported as carrying a hook its Vue twin lacked, and the hook was a
+     * route name.
+     *
+     * Only the first argument goes: `route('x', $y)` keeps its $y, which is
+     * never a class list either but is not a quoted literal and so is never
+     * read as one.
+     *
+     * Runs BEFORE withoutComments. That method drops every function name and
+     * deliberately keeps the arguments -- emph() is a helper and `emph` is
+     * also a class -- so after it there is no `route(` to anchor on.
+     */
+    private function withoutRouteNames(string $source): string
+    {
+        return (string) preg_replace("/route\(\s*'[^']*'/", 'route(', $source);
+    }
+
+    /**
      * Every class hook a file mentions, as literal text.
      *
      * Two naive versions of this were wrong in opposite directions, which is
@@ -290,6 +312,10 @@ class ComponentParityTest extends TestCase
         $found = [];
         $strings = [];
 
+        // BEFORE withoutComments, which strips function names and keeps their
+        // arguments -- so by the time it has run there is no `route(` left to
+        // find and the route name reads as a bare string.
+        $source = $this->withoutRouteNames($source);
         $source = $this->withoutComments($source);
         $source = $this->withoutNonClassAttributes($source);
 

@@ -82,7 +82,7 @@ guards on a prediction that did not hold.
 
 ---
 
-## Task 1: `PEvent.vue`, the twelfth twin
+## Task 1: `PEvent.vue`, the twelfth twin — DONE
 
 **Files:**
 - Create: `resources/js/Components/PEvent.vue`
@@ -143,11 +143,11 @@ included.
 Plan 2. Its two entries are Season Standings, and a Venue Report that is drawn
 only for an admin with a venue — offering it to a player is offering a 403.
 
-- [ ] **Step 1: Write the component**, copying every class hook and every
+- [x] **Step 1: Write the component**, copying every class hook and every
       explanatory comment from the Blade. `ComponentParityTest` will fail on
       the first missing hook, which is the fastest way to find them.
 
-- [ ] **Step 2: Run the parity guard**
+- [x] **Step 2: Run the parity guard**
 
 ```bash
 vendor/bin/phpunit tests/Feature/ComponentParityTest.php 2>&1 | sed -E 's/\x1b\[[0-9;]*[A-Za-z]//g' | tail -20
@@ -156,12 +156,12 @@ vendor/bin/phpunit tests/Feature/ComponentParityTest.php 2>&1 | sed -E 's/\x1b\[
 It discovers the pair with no edit. Expect a list of hooks to reconcile; work
 through it until it is empty.
 
-- [ ] **Step 3: Prove the pair is actually being checked**
+- [x] **Step 3: Prove the pair is actually being checked**
 
 Remove one class from `PEvent.vue` and watch the guard name it. A pair that has
 never failed may not be a pair at all — the mapping is by filename.
 
-- [ ] **Step 4: Type-check, build, full suite**
+- [x] **Step 4: Type-check, build, full suite**
 
 Nothing renders the component yet, so the suite should be unchanged. Two things
 can still fail here:
@@ -173,7 +173,7 @@ can still fail here:
 Both now read `.vue` (the guard re-homing, 2026-09-20), so they see this file
 the day it is written rather than the day something renders it.
 
-- [ ] **Step 5: Commit (hand-off)**
+- [x] **Step 5: Commit (hand-off)**
 
 ```
 feat: add the Vue half of the shared event card
