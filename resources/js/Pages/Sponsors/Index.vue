@@ -1,6 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue';
-import { router, usePage } from '@inertiajs/vue3';
+import { router } from '@inertiajs/vue3';
 import AppLayout from '../../Layouts/AppLayout.vue';
 import PageHeader from '../../Components/PageHeader.vue';
 import Card from '../../Components/Card.vue';
@@ -8,10 +7,8 @@ import Table from '../../Components/Table.vue';
 import Btn from '../../Components/Btn.vue';
 import Badge from '../../Components/Badge.vue';
 import Action from '../../Components/Action.vue';
-import Alert from '../../Components/Alert.vue';
 import EmptyState from '../../Components/EmptyState.vue';
 import { useConfirm } from '../../composables/useConfirm';
-import type { PageProps } from '../../types/inertia';
 
 interface Sponsor {
     id: string;
@@ -28,12 +25,7 @@ interface Props {
 }
 
 const props = defineProps<Props>();
-// computed, not a plain const: usePage().props.flash read once at setup is
-// the flash that ARRIVED WITH THIS COMPONENT. Inertia reuses a component when
-// a visit renders the same page, so every redirect back to the page you are on
-// -- a delete returning to its listing, a form returning to itself -- left the
-// old value in place and showed nothing.
-const flash = computed(() => usePage<PageProps>().props.flash);
+
 const { ask } = useConfirm();
 
 const remove = async (sponsor: Sponsor): Promise<void> => {
@@ -54,8 +46,6 @@ const remove = async (sponsor: Sponsor): Promise<void> => {
         </template>
 
         <div class="l-container l-stack">
-            <Alert v-if="flash.status" variant="success" :message="flash.status" />
-
             <Card flush>
                 <!--
                     Listed in ordered() sequence, the same scope the home page

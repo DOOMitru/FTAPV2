@@ -1,6 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue';
-import { router, usePage } from '@inertiajs/vue3';
+import { router } from '@inertiajs/vue3';
 import AppLayout from '../../Layouts/AppLayout.vue';
 import PageHeader from '../../Components/PageHeader.vue';
 import Card from '../../Components/Card.vue';
@@ -9,7 +8,6 @@ import Badge from '../../Components/Badge.vue';
 import Btn from '../../Components/Btn.vue';
 import Monogram from '../../Components/Monogram.vue';
 import { useConfirm } from '../../composables/useConfirm';
-import type { PageProps } from '../../types/inertia';
 
 interface Props {
     /** "User Details: Dana Whitlock", composed in PHP. */
@@ -41,7 +39,6 @@ interface Props {
 
 const props = defineProps<Props>();
 
-const flash = computed(() => usePage<PageProps>().props.flash);
 const { ask } = useConfirm();
 
 const sendInvite = (): void => {
@@ -77,10 +74,8 @@ const reject = async (): Promise<void> => {
         <!-- Its own container, above the sidebar grid rather than inside it: a
              direct child of .l-sidebar becomes one of its two columns, so an
              alert placed there would render as a sidebar rather than a notice. -->
-        <div v-if="flash.status || flash.error || invite_url || verification_url"
+        <div v-if="invite_url || verification_url"
              class="l-container l-stack">
-            <Alert v-if="flash.status" variant="success" :message="flash.status" />
-            <Alert v-if="flash.error" variant="danger" :message="flash.error" />
 
             <!-- Shown as well as sent. MAIL_MAILER is log, so a link that is
                  only emailed reaches nobody; these stay useful once a mailer

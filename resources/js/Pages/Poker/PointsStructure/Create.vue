@@ -1,13 +1,11 @@
 <script setup lang="ts">
 import { computed, nextTick } from 'vue';
-import { useForm, usePage } from '@inertiajs/vue3';
+import { useForm } from '@inertiajs/vue3';
 import AppLayout from '../../../Layouts/AppLayout.vue';
 import PageHeader from '../../../Components/PageHeader.vue';
 import Card from '../../../Components/Card.vue';
-import Alert from '../../../Components/Alert.vue';
 import Field from '../../../Components/Field.vue';
 import Btn from '../../../Components/Btn.vue';
-import type { PageProps } from '../../../types/inertia';
 
 interface Props {
     /** The place this entry will take, as an ordinal: "3rd". */
@@ -15,14 +13,6 @@ interface Props {
 }
 
 defineProps<Props>();
-
-// computed, not a plain const: usePage().props.flash read once at setup is
-// the flash that ARRIVED WITH THIS COMPONENT. Inertia reuses a component when
-// a visit renders the same page, so every redirect back to the page you are on
-// -- a delete returning to its listing, this form returning to itself -- left
-// the old value in place and showed nothing. Measured here: the save worked,
-// the place advanced, and the confirmation never appeared.
-const flash = computed(() => usePage<PageProps>().props.flash);
 
 const form = useForm({
     points: null as number | string | null,
@@ -73,7 +63,6 @@ const submit = (): void => {
             <!-- The form comes back to itself after every save, so this is the only
                  place the confirmation can land. Without it a successful entry and
                  a form that did nothing look identical. -->
-            <Alert v-if="flash.status" variant="success" :message="flash.status" />
 
             <Card>
                 <form class="l-stack" @submit.prevent="submit">

@@ -4,7 +4,6 @@ import { router, usePage } from '@inertiajs/vue3';
 import AppLayout from '../../../Layouts/AppLayout.vue';
 import PageHeader from '../../../Components/PageHeader.vue';
 import Card from '../../../Components/Card.vue';
-import Alert from '../../../Components/Alert.vue';
 import Badge from '../../../Components/Badge.vue';
 import Btn from '../../../Components/Btn.vue';
 import Rank from '../../../Components/Rank.vue';
@@ -56,7 +55,6 @@ interface Props {
 
 const props = defineProps<Props>();
 
-const flash = computed(() => usePage<PageProps>().props.flash);
 const { ask } = useConfirm();
 
 const base = `/poker/tournaments/${props.tournament.id}`;
@@ -120,9 +118,21 @@ watch(
 const registerDialog = ref<InstanceType<typeof RegisterDialog> | null>(null);
 
 /*
- * Suppressed while the dialog is open: it sits in the top layer with a
- * backdrop over the page, so these would be announcing to an administrator who
- * cannot see them. The dialog carries its own copy of both.
+ * Read for the DIALOG, which carries its own copy of the error. The shell
+ * draws the flash for every other page and for this one too -- until the
+ * dialog opens.
+ *
+ * computed, not a plain const: Inertia reuses a component when a visit renders
+ * the same page, and registering a player lands back here, so a value read
+ * once at setup would be the flash from before the registration.
+ */
+const flash = computed(() => usePage<PageProps>().props.flash);
+
+/*
+ * While this is true the shell holds its flash back. The dialog sits in the
+ * top layer with a backdrop over the page and makes the rest of it inert, so a
+ * banner announced behind it is announced to an administrator who can neither
+ * see nor reach it -- and the dialog is already showing them the same words.
  */
 const dialogOpen = ref(false);
 
@@ -138,7 +148,7 @@ const publishFromOffer = (): void => {
 </script>
 
 <template>
-    <AppLayout>
+    <AppLayout :show-flash="! dialogOpen">
         <template #header>
             <PageHeader eyebrow="League" :title="tournament.name">
                 <template v-if="can_manage" #actions>
@@ -170,9 +180,6 @@ const publishFromOffer = (): void => {
         </template>
 
         <div class="l-container l-stack">
-            <Alert v-if="flash.status && ! dialogOpen" variant="success" :message="flash.status" />
-            <Alert v-if="flash.error && ! dialogOpen" variant="danger" :message="flash.error" />
-
             <!-- The same card the events and home pages draw, so the three
                  cannot drift. No Details button -- this IS the details page --
                  and no map: the venue name is in the card and the address is

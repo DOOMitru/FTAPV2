@@ -84,26 +84,77 @@ class DashboardGutterTest extends TestCase
 
         // Both halves of the rule, each where it now lives.
         //
-        // The layout must bring NO container of its own -- .l-container sets
-        // padding-inline, so two of them applied the gutter twice: 32px a side
-        // on a phone, where the content had least room to give.
-        // Comments stripped first. The layout EXPLAINS at length why it has no
-        // container, so the words are in the file while the class is not --
-        // the same trap ComponentParityTest hit reading class names out of
-        // prose.
+        // Comments stripped first. The layout EXPLAINS at length what it does
+        // with containers, so the words are in the file whatever the markup
+        // does -- the same trap ComponentParityTest hit reading class names
+        // out of prose.
         $layout = (string) preg_replace(
             '/<!--.*?-->/s',
             ' ',
             (string) file_get_contents(resource_path('js/Layouts/AppLayout.vue'))
         );
 
-        $this->assertStringNotContainsString('l-container', $layout,
-            'The layout must not wrap the slot in a container; every page brings its own.');
+        /*
+         * "No .l-container anywhere in the layout" was the rule until the
+         * shell took ownership of the flash, which needs one to line up with
+         * the page beneath it. That was always a stand-in for the real rule:
+         * the SLOT must not sit inside a container. .l-container sets
+         * padding-inline, and a page's own container nested inside the
+         * layout's applied the gutter twice -- 32px a side on a phone, where
+         * the content had least room to give.
+         *
+         * So the check is structural now. The flash band is the page's
+         * SIBLING: it opens and closes before the slot, which leaves the
+         * gutter applied exactly once on both.
+         */
+        $this->assertTrue($this->slotIsADirectChildOfMain($layout),
+            'The layout wraps the slot in a container; every page brings its own, and two apply the gutter twice.');
+
+        // And it brings exactly the one, so a second cannot creep in unnoticed.
+        $this->assertSame(1, substr_count($layout, 'class="l-container'),
+            'The layout has grown a second container.');
 
         // And the page must bring exactly one.
         $page = file_get_contents(resource_path('js/Pages/Users/Index.vue'));
 
         $this->assertSame(1, substr_count($page, 'class="l-container'),
             'A page brings one container, not none and not two.');
+    }
+
+    /**
+     * Is <slot /> a direct child of <main>, or is something wrapping it?
+     *
+     * Walks the tags between the two and counts depth. A tag ending in "/>" is
+     * self-closing and opens nothing -- which covers both the Vue components
+     * in the flash band and the slot itself.
+     */
+    private function slotIsADirectChildOfMain(string $layout): bool
+    {
+        $from = strpos($layout, '<main');
+        $to = strpos($layout, '<slot />', $from === false ? 0 : $from);
+
+        if ($from === false || $to === false) {
+            return false;
+        }
+
+        preg_match_all(
+            '/<(\/?)([a-zA-Z][\w-]*)([^>]*)>/s',
+            substr($layout, $from, $to - $from),
+            $tags,
+            PREG_SET_ORDER
+        );
+
+        $depth = 0;
+
+        // Skipping <main> itself, so depth 0 means "inside main, nothing else".
+        foreach (array_slice($tags, 1) as $tag) {
+            if (str_ends_with(rtrim($tag[3]), '/')) {
+                continue;
+            }
+
+            $depth += $tag[1] === '/' ? -1 : 1;
+        }
+
+        return $depth === 0;
     }
 }

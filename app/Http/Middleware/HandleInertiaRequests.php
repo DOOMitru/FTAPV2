@@ -53,7 +53,7 @@ class HandleInertiaRequests extends Middleware
             ],
 
             /*
-             * Shared on every page, and always a SENTENCE.
+             * Shared on every page, always a SENTENCE, and drawn by AppLayout.
              *
              * Three controllers used to flash sentinels here -- ProfileController
              * 'profile-updated', Auth\PasswordController 'password-updated',
@@ -66,6 +66,10 @@ class HandleInertiaRequests extends Middleware
              * only told one form on the profile page that it had saved, and
              * useForm's recentlySuccessful tells it that itself. The third
              * flashes the sentence, because it has to reach two screens.
+             *
+             * So the shell draws this, and the eleven pages that each kept
+             * their own copy -- three of which had quietly stopped -- no
+             * longer have anything to forget.
              *
              * Closures, so the session is read when the response is built
              * rather than when the middleware is constructed.

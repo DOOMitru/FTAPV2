@@ -673,8 +673,10 @@ class AdminRegisterDialogTest extends TestCase
 
         // The suppression keys off the dialog being OPEN rather than off
         // success, and a player never opens one.
-        $this->assertStringContainsString(
-            'v-if="flash.status && ! dialogOpen"', $this->page()
-        );
+        //
+        // The shell draws the flash now, so the page asks it not to rather
+        // than gating an alert of its own. FlashMessageParityTest holds the
+        // layout's half; this holds that the condition is still the dialog.
+        $this->assertStringContainsString(':show-flash="! dialogOpen"', $this->page());
     }
 }

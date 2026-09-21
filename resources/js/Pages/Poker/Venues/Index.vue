@@ -1,15 +1,13 @@
 <script setup lang="ts">
-import { computed } from 'vue';
-import { Link, usePage } from '@inertiajs/vue3';
+import { Link } from '@inertiajs/vue3';
 import AppLayout from '../../../Layouts/AppLayout.vue';
 import PageHeader from '../../../Components/PageHeader.vue';
 import Card from '../../../Components/Card.vue';
 import Table from '../../../Components/Table.vue';
 import Btn from '../../../Components/Btn.vue';
-import Alert from '../../../Components/Alert.vue';
 import EmptyState from '../../../Components/EmptyState.vue';
 import Pagination from '../../../Components/Pagination.vue';
-import type { PageProps, Paginated } from '../../../types/inertia';
+import type { Paginated } from '../../../types/inertia';
 
 interface Venue {
     id: string;
@@ -29,16 +27,6 @@ interface Props {
 }
 
 const props = defineProps<Props>();
-
-// "Venue X created." on the way back from the form. Shared by the middleware,
-// so the page declares no prop for it -- which is also why it was missed
-// here: nothing in the props said a message was arriving.
-// computed, not a plain const: usePage().props.flash read once at setup is
-// the flash that ARRIVED WITH THIS COMPONENT. Inertia reuses a component when
-// a visit renders the same page, so every redirect back to the page you are on
-// -- a delete returning to its listing, a form returning to itself -- left the
-// old value in place and showed nothing.
-const flash = computed(() => usePage<PageProps>().props.flash);
 </script>
 
 <template>
@@ -52,8 +40,6 @@ const flash = computed(() => usePage<PageProps>().props.flash);
         </template>
 
         <div class="l-container l-stack">
-            <Alert v-if="flash.status" variant="success" :message="flash.status" />
-
             <Card flush>
                 <!--
                     No `cards` prop, and the wrapper class is venues-table.

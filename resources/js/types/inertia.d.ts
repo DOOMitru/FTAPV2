@@ -135,12 +135,12 @@ export interface PageProps {
     auth: { user: AuthUser | null };
 
     /**
-     * Shared on every page; each page that wants it draws it.
+     * Shared on every page and drawn by AppLayout.
      *
      * Always a sentence, never a sentinel. Three controllers used to flash
      * strings a page matched on rather than displayed, which is why nothing
-     * rendered this generically; they no longer do, so a component may print
-     * flash.status as it stands.
+     * could render this generically; they no longer do, so the shell shows it
+     * and a page inside the shell need not mention it at all.
      */
     flash: { status: string | null; error: string | null };
 

@@ -2,7 +2,6 @@
 import { router, useForm, usePage } from '@inertiajs/vue3';
 import Field from '../../../Components/Field.vue';
 import Btn from '../../../Components/Btn.vue';
-import Alert from '../../../Components/Alert.vue';
 import InputError from '../../../Components/InputError.vue';
 import type { PageProps } from '../../../types/inertia';
 
@@ -14,7 +13,6 @@ interface Props {
         email: string;
         needs_email_verification: boolean;
     };
-    status: string | null;
 }
 
 const props = defineProps<Props>();
@@ -72,13 +70,6 @@ const resendVerification = (): void => { router.post('/email/verification-notifi
                         Click here to re-send the verification email.
                     </button>
                 </p>
-
-                <!--
-                    The flash is the sentence now, so this draws it rather than
-                    matching a sentinel and keeping a copy of the wording. The
-                    only thing that flashes to this page is the resend above.
-                -->
-                <Alert v-if="status" variant="success" :message="status" />
             </div>
 
             <div v-if="page.props.auth.user?.is_admin">

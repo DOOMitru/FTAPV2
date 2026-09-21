@@ -1,16 +1,14 @@
 <script setup lang="ts">
 import { computed, nextTick, ref } from 'vue';
-import { useForm, usePage } from '@inertiajs/vue3';
+import { useForm } from '@inertiajs/vue3';
 import AppLayout from '../../../Layouts/AppLayout.vue';
 import PageHeader from '../../../Components/PageHeader.vue';
 import Card from '../../../Components/Card.vue';
-import Alert from '../../../Components/Alert.vue';
 import Field from '../../../Components/Field.vue';
 import InputError from '../../../Components/InputError.vue';
 import EmptyState from '../../../Components/EmptyState.vue';
 import Monogram from '../../../Components/Monogram.vue';
 import Btn from '../../../Components/Btn.vue';
-import type { PageProps } from '../../../types/inertia';
 
 interface Player {
     id: string;
@@ -35,8 +33,6 @@ interface Props {
 }
 
 const props = defineProps<Props>();
-
-const flash = computed(() => usePage<PageProps>().props.flash);
 
 const form = useForm({
     venue_id: props.venue_id ?? '',
@@ -123,7 +119,6 @@ const backHref = computed(() =>
         <div class="l-container l-stack">
             <!-- The form comes back to itself after every save, so this is the
                  only place the confirmation can land. -->
-            <Alert v-if="flash.status" variant="success" :message="flash.status" />
 
             <Card>
                 <form class="l-stack" @submit.prevent="submit">

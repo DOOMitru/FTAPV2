@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue';
-import { router, usePage } from '@inertiajs/vue3';
+import { ref } from 'vue';
+import { router } from '@inertiajs/vue3';
 import AppLayout from '../../Layouts/AppLayout.vue';
 import PageHeader from '../../Components/PageHeader.vue';
 import Card from '../../Components/Card.vue';
@@ -14,7 +14,7 @@ import PlayerLink from '../../Components/PlayerLink.vue';
 import EmptyState from '../../Components/EmptyState.vue';
 import Pagination from '../../Components/Pagination.vue';
 import { useConfirm } from '../../composables/useConfirm';
-import type { Paginated, PageProps } from '../../types/inertia';
+import type { Paginated } from '../../types/inertia';
 
 interface Candidate {
     id: string;
@@ -49,12 +49,7 @@ interface Props {
 }
 
 const props = defineProps<Props>();
-// computed, not a plain const: usePage().props.flash read once at setup is
-// the flash that ARRIVED WITH THIS COMPONENT. Inertia reuses a component when
-// a visit renders the same page, so every redirect back to the page you are on
-// -- a delete returning to its listing, a form returning to itself -- left the
-// old value in place and showed nothing.
-const flash = computed(() => usePage<PageProps>().props.flash);
+
 const { ask } = useConfirm();
 
 const term = ref(props.search);
@@ -103,8 +98,6 @@ const destroy = async (player: Player): Promise<void> => {
         </template>
 
         <div class="l-container l-stack">
-            <Alert v-if="flash.status" variant="success" :message="flash.status" />
-
             <!--
                 Shown as well as emailed. MAIL_MAILER is log, so a link that is
                 only sent reaches nobody; this keeps Register Player from
