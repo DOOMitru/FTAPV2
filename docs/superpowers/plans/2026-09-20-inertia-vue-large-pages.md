@@ -186,7 +186,7 @@ to the same class hooks.
 
 ---
 
-## Task 2: `/seasons/{season}`
+## Task 2: `/seasons/{season}` — DONE
 
 **Files:**
 - Create: `resources/js/Pages/Poker/Seasons/Show.vue`
@@ -285,13 +285,13 @@ true when ANY of the three is set, so a partly decided season reaches the
 table, and `number_format(null)` renders `0` — a target nobody chose and
 everybody has met. The Blade guards each figure separately; keep that.
 
-- [ ] **Step 1: Change the controller** to `Inertia::render('Poker/Seasons/Show')`,
+- [x] **Step 1: Change the controller** to `Inertia::render('Poker/Seasons/Show')`,
       mapping every row through the props above. Leave the query work exactly
       as it is: the `$entered` flip, the grouped venue-points query, the
       `rankings()` tie-break and the `(int)` cast on the SUM all have comments
       recording the bug each one fixed.
 
-- [ ] **Step 2: Write the page.** Class hooks to keep: `season-show__order`,
+- [x] **Step 2: Write the page.** Class hooks to keep: `season-show__order`,
       `season-show__order-option`, `season-show__order-option--current`,
       `season-show__standings`, `season-show__standings-card`,
       `season-show__self-row`, `season-show__rank`, `season-show__player`,
@@ -305,7 +305,7 @@ everybody has met. The Blade guards each figure separately; keep that.
       **`data-label` on the three stat cells feeds a `::after` in the phone
       layout** — "12 played", not "played 12". Keep the attributes.
 
-- [ ] **Step 3: Register and delete the Blade view**
+- [x] **Step 3: Register and delete the Blade view**
 
 ```php
         'Poker/Seasons/Show' => ['seasons.show', 'season'],
@@ -314,7 +314,7 @@ everybody has met. The Blade guards each figure separately; keep that.
 `seasons.show` is the PUBLIC-prefixed name for this admin-loaded page; check
 `php artisan route:list --path=seasons` before assuming otherwise.
 
-- [ ] **Step 4: Type-check, build, full suite; port what breaks**
+- [x] **Step 4: Type-check, build, full suite; port what breaks**
 
 Fifteen files. Work by kind, as Plan 5's dashboard task did: figures become
 prop equalities, markup questions read the page file, and anything asserting
@@ -325,11 +325,11 @@ stronger.
 owner's rule. Every assertion there must end up asserting absence from the
 props, never absence from the markup.
 
-- [ ] **Step 5: Prove each ported assertion fails**, and specifically mutate
+- [x] **Step 5: Prove each ported assertion fails**, and specifically mutate
       the privacy rule: make `$readsVenuePoints` return true and watch
       `VenuePointsPrivacyTest` fail.
 
-- [ ] **Step 6: Verify in a browser at 1440, 960 and 375**
+- [x] **Step 6: Verify in a browser at 1440, 960 and 375**
 
 - both orders, via the links, with the address changing and surviving a reload
 - as a player: **no Venue points column at all**
@@ -339,7 +339,7 @@ props, never absence from the markup.
 - a partly decided season: "Not set" for the undecided ones, never `0`
 - the meters scale against the leader in whichever figure is shown
 
-- [ ] **Step 7: Commit (hand-off)**
+- [x] **Step 7: Commit (hand-off)**
 
 ---
 

@@ -80,12 +80,14 @@ class EmphasisTest extends TestCase
             'end_date' => now()->addMonth(),
         ]);
 
-        $html = $this->actingAs($this->admin())
-            ->get(route('seasons.show', PokerSeason::firstOrFail()))->assertOk()->getContent();
+        // Still text with markers round it, in the prop the dialog is given:
+        // the bolding happens in the browser, out of text nodes, which is what
+        // keeps a season called '<script>' a season called '<script>'.
+        $confirm = $this->actingAs($this->admin())
+            ->get(route('seasons.show', PokerSeason::firstOrFail()))->assertOk()
+            ->viewData('page')['props']['season']['delete_confirm'];
 
-        // In the attribute it is still text with markers round it: confirm.ts
-        // does the bolding in the browser, out of text nodes.
-        $this->assertStringContainsString(EMPH.'Autumn 2026'.EMPH, $html);
+        $this->assertStringContainsString(EMPH.'Autumn 2026'.EMPH, $confirm);
     }
 
     public function test_a_venue_name_is_bolded_in_its_delete_confirmation(): void

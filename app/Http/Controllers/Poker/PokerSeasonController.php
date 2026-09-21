@@ -4,12 +4,12 @@ namespace App\Http\Controllers\Poker;
 
 use App\Http\Controllers\Controller;
 use App\Models\PokerSeason;
+use App\Models\PokerTournament;
 use App\Support\Paginate;
 use App\Models\PokerTournamentResult;
 use App\Models\VenuePoints;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\View\View;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -113,7 +113,7 @@ class PokerSeasonController extends Controller
      */
     public const ORDERS = ['points', 'rank'];
 
-    public function show(PokerSeason $season, Request $request): View
+    public function show(PokerSeason $season, Request $request): Response
     {
         // Anything unrecognised falls back to the season total rather than
         // erroring: this arrives from a query string, where a stale link or a
@@ -265,16 +265,155 @@ class PokerSeasonController extends Controller
             ->sortByDesc('count')
             ->values();
 
-        return view('poker.seasons.show', compact(
-            'season', 
-            'totalTournaments', 
-            'totalPoints', 
-            'uniquePlayersCount', 
-            'leaderboard',
-            'leaderValue',
-            'order',
-            'venueStats'
-        ));
+        $isAdmin = (bool) auth()->user()->is_admin;
+        $viewerId = auth()->id();
+        $venueMax = (int) ($venueStats->max('count') ?? 0);
+
+        return Inertia::render('Poker/Seasons/Show', [
+            'season' => [
+                'id' => $season->id,
+                'name' => $season->name,
+                'delete_confirm' => __('Delete :name? This cannot be undone.', [
+                    'name' => emph($season->name),
+                ]),
+            ],
+
+            'can_manage' => $isAdmin,
+
+            'tournaments_label' => number_format($totalTournaments),
+            'points_label' => number_format($totalPoints),
+            'players_label' => number_format($uniquePlayersCount),
+
+            // Null when nothing is decided, so the panel can say so. Each
+            // figure is guarded on its own inside it: hasThresholds() is true
+            // when ANY one is set, and number_format(null) renders 0 -- a
+            // target nobody chose and everybody has already met.
+            'finale' => $season->hasThresholds()
+                ? [
+                    'wins_label' => $season->finale_wins_required !== null
+                        ? (string) $season->finale_wins_required
+                        : __('Not set'),
+                    'points_label' => $season->finale_points_required !== null
+                        ? number_format($season->finale_points_required)
+                        : __('Not set'),
+                    'venue_points_label' => $season->finale_venue_points_required !== null
+                        ? number_format($season->finale_venue_points_required)
+                        : __('Not set'),
+                ]
+                : null,
+
+            'order' => $order,
+
+            // Links, not a control that needs scripting: the order is part of
+            // the address, so it survives a reload and can be sent to
+            // somebody.
+            'order_options' => collect(['points' => __('Points'), 'rank' => __('Rank')])
+                ->map(fn (string $label, string $value) => [
+                    'value' => $value,
+                    'label' => $label,
+                    'href' => route('seasons.show', ['season' => $season, 'order' => $value]),
+                    'current' => $order === $value,
+                ])->values()->all(),
+
+            'figure_heading' => $order === 'rank' ? __('Per event') : __('Points'),
+
+            // Whether a COLUMN is drawn. What may be read is decided above, in
+            // $readsVenuePoints, and a figure that is not in the array cannot
+            // leak from it -- this flag only stops an empty column being drawn
+            // for a reader who would see nothing in it.
+            'shows_venue_points' => $isAdmin,
+
+            'standings' => $leaderboard->map(function (array $row, int $index) use ($order, $leaderValue, $season, $viewerId) {
+                $rank = $index + 1;
+                $ratio = number_format($row['ratio'] ?? 0, 1);
+
+                // Standings name a player by nickname when they have one,
+                // otherwise by their full name -- deliberately NOT
+                // display_name, which falls back to the first name alone and
+                // would drop surnames here. player_name is the full name
+                // snapshotted onto the result, and is the only name available
+                // when a result has no linked account.
+                $nickname = $row['user']?->nickname;
+                $shownName = filled($nickname) ? $nickname : $row['player_name'];
+
+                return [
+                    // Registrations and results are both nullable on user_id,
+                    // so a row can have no account at all. The name is the
+                    // fallback key, and a v-for with a duplicate key reorders
+                    // rows silently.
+                    'key' => $row['user']?->id ?? 'name:'.$row['player_name'],
+
+                    // The viewer's own row. A result can carry no linked
+                    // account, so both sides must have one before the ids are
+                    // compared -- without that guard every accountless result
+                    // would be marked "you", for everyone.
+                    'is_self' => $row['user'] !== null && $row['user']->id === $viewerId,
+
+                    'rank' => $rank,
+
+                    // In rank order the position IS the figure, so the badge
+                    // says so and carries the average behind it.
+                    'rank_label' => $order === 'rank' ? '#'.$rank : null,
+                    'rank_title' => $order === 'rank'
+                        ? __(':points points per event', ['points' => $ratio])
+                        : null,
+
+                    'shown_name' => $shownName,
+                    'full_name' => filled($nickname) ? $row['player_name'] : null,
+                    'player_id' => $row['user']?->id,
+                    'initials' => initials($row['player_name']),
+
+                    'meter_value' => $order === 'rank' ? (float) ($row['ratio'] ?? 0) : (int) $row['points'],
+                    'meter_max' => $leaderValue,
+
+                    // The meter's accessible name, read aloud rather than
+                    // seen: "PTS for Wanda Reeve" is worse to hear than
+                    // "Points for Wanda Reeve", which is why this is the whole
+                    // word.
+                    'meter_label' => $order === 'rank'
+                        ? __('Rank #:rank, :points points per event, for :name', [
+                            'rank' => $rank, 'points' => $ratio, 'name' => $shownName,
+                        ])
+                        : __('Points for :name', ['name' => $shownName]),
+
+                    // One decimal in rank mode, matching the dashboard: these
+                    // averages run to hundreds, and a whole number hides the
+                    // difference between two players a tenth apart -- which is
+                    // exactly the difference the order is drawn on.
+                    'meter_value_label' => $order === 'rank' ? $ratio : number_format($row['points']),
+
+                    'played_label' => (string) $row['played'],
+                    'wins_label' => (string) $row['wins'],
+                    'venue_points_label' => $row['venue_points'] === null
+                        ? null
+                        : (string) $row['venue_points'],
+
+                    // Three states, not two. An empty cell reads as "blank" to
+                    // a screen reader, which does not say whether the row
+                    // failed or the column is not in use.
+                    'finale_state' => match (true) {
+                        ! $season->hasThresholds() => 'none',
+                        $row['qualified'] => 'qualified',
+                        default => 'not-qualified',
+                    },
+                ];
+            })->values()->all(),
+
+            'venues' => $venueStats->map(fn (array $venue) => [
+                'name' => $venue['name'],
+                'count' => $venue['count'],
+                'count_label' => number_format($venue['count']),
+                'max' => $venueMax,
+                'label' => __('Tournaments at :venue', ['venue' => $venue['name']]),
+            ])->values()->all(),
+
+            'tournaments' => $season->tournaments->map(fn (PokerTournament $tournament) => [
+                'id' => $tournament->id,
+                'name' => $tournament->name,
+                'date_label' => $tournament->start_time?->format('d M Y'),
+                'href' => route('tournaments.show', $tournament),
+            ])->values()->all(),
+        ]);
     }
 
     /**

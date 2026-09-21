@@ -295,40 +295,52 @@ class VenuePointsPrivacyTest extends TestCase
 
     public function test_the_standings_withhold_the_figure_from_the_data_not_just_the_template(): void
     {
-        // Gating the column in Blade stops it being rendered today. Leaving the
-        // figure in the view data is what lets the next column, partial or
-        // debug dump render it tomorrow.
-        $rows = collect($this->actingAs($this->snooper)
-            ->get(route('seasons.show', $this->season))->assertOk()->viewData('leaderboard'));
+        // Gating the column stops it being rendered today. Leaving the figure
+        // in what the page is SENT is what lets the next column, partial or
+        // debug dump render it tomorrow -- and on an Inertia page the props
+        // are shipped to the browser as JSON, so "in the data" now means "in
+        // the document, readable by anyone who opens it".
+        $rows = $this->standingsFor($this->snooper);
 
-        $mine = $rows->firstWhere('user.id', $this->snooper->id);
-        $theirs = $rows->firstWhere('user.id', $this->owner->id);
+        $mine = $rows->firstWhere('player_id', $this->snooper->id);
+        $theirs = $rows->firstWhere('player_id', $this->owner->id);
 
         $this->assertNotNull($theirs);
-        $this->assertNull($theirs['venue_points'], "Another player's tally reached the view.");
-        $this->assertSame(64, $mine['venue_points'], 'The viewer should still get their own.');
+        $this->assertNull($theirs['venue_points_label'], "Another player's tally reached the page.");
+        $this->assertSame('64', $mine['venue_points_label'], 'The viewer should still get their own.');
     }
 
     public function test_an_admin_gets_every_figure_in_the_data(): void
     {
-        $rows = collect($this->actingAs($this->admin)
-            ->get(route('seasons.show', $this->season))->assertOk()->viewData('leaderboard'));
+        $rows = $this->standingsFor($this->admin);
 
-        $this->assertSame(self::TALLY, $rows->firstWhere('user.id', $this->owner->id)['venue_points']);
-        $this->assertSame(64, $rows->firstWhere('user.id', $this->snooper->id)['venue_points']);
+        $this->assertSame(
+            (string) self::TALLY,
+            $rows->firstWhere('player_id', $this->owner->id)['venue_points_label']
+        );
+        $this->assertSame('64', $rows->firstWhere('player_id', $this->snooper->id)['venue_points_label']);
     }
 
     public function test_the_verdict_survives_even_where_the_figure_does_not(): void
     {
         // Qualification is computed from the tally, and stays public: the
         // thresholds it is measured against are printed above the table.
-        $rows = collect($this->actingAs($this->snooper)
-            ->get(route('seasons.show', $this->season))->assertOk()->viewData('leaderboard'));
+        $theirs = $this->standingsFor($this->snooper)->firstWhere('player_id', $this->owner->id);
 
-        $theirs = $rows->firstWhere('user.id', $this->owner->id);
+        $this->assertSame('qualified', $theirs['finale_state'], 'The owner meets all three thresholds.');
+        $this->assertNull($theirs['venue_points_label']);
+    }
 
-        $this->assertTrue($theirs['qualified'], 'The owner meets all three thresholds.');
-        $this->assertNull($theirs['venue_points']);
+    /**
+     * The standings one viewer is sent.
+     *
+     * @return \Illuminate\Support\Collection<int, array<string, mixed>>
+     */
+    private function standingsFor(User $viewer): \Illuminate\Support\Collection
+    {
+        return collect($this->actingAs($viewer)
+            ->get(route('seasons.show', $this->season))->assertOk()
+            ->viewData('page')['props']['standings']);
     }
 
     /**

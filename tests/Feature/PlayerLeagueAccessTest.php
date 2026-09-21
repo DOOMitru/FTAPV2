@@ -191,7 +191,7 @@ class PlayerLeagueAccessTest extends TestCase
             ->assertInertia(fn (Assert $page) => $page->where('can_create', true));
 
         $this->actingAs($admin)->get(route('seasons.show', PokerSeason::firstOrFail()))->assertOk()
-            ->assertSee('Delete season');
+            ->assertInertia(fn (Assert $page) => $page->where('can_manage', true));
 
         $this->actingAs($admin)->get(route('poker.tournaments.index'))->assertOk()
             ->assertInertia(fn (Assert $page) => $page->where('can_create', true));

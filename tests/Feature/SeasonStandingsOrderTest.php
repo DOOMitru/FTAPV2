@@ -126,17 +126,39 @@ class SeasonStandingsOrderTest extends TestCase
         return User::factory()->create(['is_admin' => true, 'approval_status' => 'approved']);
     }
 
+    /**
+     * The standings the page is sent.
+     *
+     * The page is Vue, so the row map the view used to be handed is a prop and
+     * every figure in it is a finished label. The ORDER is what most of this
+     * file is about, and a list of props preserves it exactly.
+     *
+     * @return \Illuminate\Support\Collection<int, array<string, mixed>>
+     */
+    private function rows($response): \Illuminate\Support\Collection
+    {
+        return collect($response->viewData('page')['props']['standings']);
+    }
+
     /** @return array<int, string> the player names, in the order the table lists them */
     private function names($response): array
     {
-        return collect($response->viewData('leaderboard'))->pluck('player_name')->all();
+        // shown_name is what the table prints: the nickname where there is
+        // one, the full name otherwise. These players have none.
+        return $this->rows($response)->pluck('shown_name')->all();
+    }
+
+    /** The page's own markup, for the questions that are about the template. */
+    private function page(): string
+    {
+        return (string) file_get_contents(resource_path('js/Pages/Poker/Seasons/Show.vue'));
     }
 
     public function test_the_default_is_the_season_total(): void
     {
         $response = $this->standings();
 
-        $this->assertSame('points', $response->viewData('order'));
+        $this->assertSame('points', $response->viewData('page')['props']['order']);
         $this->assertSame(
             ['Grinder Player', 'Sharp Player', 'Middling Player', 'Oneshot Player'],
             $this->names($response)
@@ -148,7 +170,7 @@ class SeasonStandingsOrderTest extends TestCase
         // Every position moves, so no partial ordering can pass by accident.
         $response = $this->standings('rank');
 
-        $this->assertSame('rank', $response->viewData('order'));
+        $this->assertSame('rank', $response->viewData('page')['props']['order']);
         $this->assertSame(
             ['Sharp Player', 'Grinder Player', 'Oneshot Player', 'Middling Player'],
             $this->names($response)
@@ -162,26 +184,37 @@ class SeasonStandingsOrderTest extends TestCase
         // division written here is a second definition waiting to drift.
         $expected = $this->season->rankings()->pluck('user_id')->all();
 
-        $actual = collect($this->standings('rank')->viewData('leaderboard'))
-            ->pluck('user.id')->all();
+        $actual = $this->rows($this->standings('rank'))->pluck('player_id')->all();
 
         $this->assertSame($expected, $actual);
     }
 
     public function test_the_ratio_matches_the_dashboards_figure(): void
     {
-        $rows = collect($this->standings('rank')->viewData('leaderboard'))->keyBy('player_name');
+        // The raw figures come from rankings(), which is the one definition
+        // the dashboard and the landing page read too. The props carry them
+        // rounded to one decimal, and the division is what is under test here
+        // rather than the rounding.
+        $this->standings('rank');
 
-        $this->assertEqualsWithDelta(500.0, $rows['Sharp Player']['ratio'], 0.001);
-        $this->assertEqualsWithDelta(1220 / 3, $rows['Grinder Player']['ratio'], 0.001);
-        $this->assertSame(3, $rows['Grinder Player']['events']);
+        $rankings = $this->season->rankings()->keyBy('user_id');
+        $id = fn (string $name) => $this->players[$name]->id;
+
+        $this->assertEqualsWithDelta(500.0, $rankings[$id('Sharp')]['ratio'], 0.001);
+        $this->assertEqualsWithDelta(1220 / 3, $rankings[$id('Grinder')]['ratio'], 0.001);
+        $this->assertSame(3, $rankings[$id('Grinder')]['events']);
 
         // The divisor is ENTRIES, not finishes. Middling entered three nights
         // and finished two, so 580/3 and not 580/2 -- dividing by the results
         // already in hand would read 290.0 and put them two places higher.
-        $this->assertSame(3, $rows['Middling Player']['events']);
-        $this->assertSame(2, $rows['Middling Player']['played']);
-        $this->assertEqualsWithDelta(580 / 3, $rows['Middling Player']['ratio'], 0.001);
+        $this->assertSame(3, $rankings[$id('Middling')]['events']);
+        $this->assertEqualsWithDelta(580 / 3, $rankings[$id('Middling')]['ratio'], 0.001);
+
+        // And the table says the same, to the decimal it shows.
+        $rows = $this->rows($this->standings('rank'))->keyBy('shown_name');
+
+        $this->assertSame('2', $rows['Middling Player']['played_label']);
+        $this->assertSame('193.3', $rows['Middling Player']['meter_value_label']);
     }
 
     public function test_a_tie_on_the_average_is_broken_by_the_total(): void
@@ -247,60 +280,54 @@ class SeasonStandingsOrderTest extends TestCase
         foreach (['', 'wins', 'points; DROP TABLE', '1'] as $garbage) {
             $response = $this->standings($garbage);
 
-            $this->assertSame('points', $response->viewData('order'));
+            $this->assertSame('points', $response->viewData('page')['props']['order']);
             $this->assertSame('Grinder Player', $this->names($response)[0]);
         }
     }
 
     public function test_the_column_header_names_the_figure_on_show(): void
     {
-        $this->standings()->assertSee('>Points</th>', false);
-        $this->standings('rank')->assertSee('>Per event</th>', false);
-        $this->standings('rank')->assertDontSee('>Points</th>', false);
+        $heading = fn (?string $order) => $this->standings($order)
+            ->viewData('page')['props']['figure_heading'];
+
+        $this->assertSame('Points', $heading(null));
+        $this->assertSame('Per event', $heading('rank'));
+
+        // Drawn from that prop rather than from a second condition in the
+        // template, which is what would let the two disagree.
+        $this->assertStringContainsString('{{ figure_heading }}', $this->page());
     }
 
     /**
-     * The meter value cells, in table order, as [text, title].
+     * What each meter reads, in table order.
      *
-     * @return array<int, array{0: string, 1: ?string}>
+     * These were parsed out of the rendered table -- the standings' meters
+     * only, because the Venues panel draws meters of its own. The props carry
+     * the standings alone, so there is nothing to cut.
+     *
+     * @return array<int, string>
      */
-    private function meterValues(string $html): array
+    private function meterValues($response): array
     {
-        preg_match_all(
-            '/<span class="meter__value"(?<attrs>[^>]*)>(?<text>.*?)<\/span>/s',
-            $html, $matches, PREG_SET_ORDER
-        );
-
-        return array_map(function (array $m) {
-            preg_match('/title="(?<title>[^"]*)"/', $m['attrs'], $t);
-
-            return [trim($m['text']), $t['title'] ?? null];
-        }, $matches);
+        return $this->rows($response)->pluck('meter_value_label')->all();
     }
 
     /**
-     * The rank badges, in table order, as [text, title].
+     * What each rank badge reads, in table order, as [label, title].
      *
      * @return array<int, array{0: string, 1: ?string}>
      */
-    private function badges(string $html): array
+    private function badges($response): array
     {
-        preg_match_all(
-            '/<span (?<attrs>[^>]*class="rank[^"]*"[^>]*)>(?<text>.*?)<\/span>/s',
-            $html, $matches, PREG_SET_ORDER
-        );
-
-        return array_map(function (array $m) {
-            preg_match('/title="(?<title>[^"]*)"/', $m['attrs'], $t);
-
-            return [trim($m['text']), $t['title'] ?? null];
-        }, $matches);
+        return $this->rows($response)
+            ->map(fn (array $row) => [$row['rank_label'] ?? (string) $row['rank'], $row['rank_title']])
+            ->all();
     }
 
     public function test_rank_order_puts_the_position_in_the_badge(): void
     {
         // "#2" is the thing a reader is looking for; 406.7 is the working out.
-        $badges = $this->badges($this->standings('rank')->getContent());
+        $badges = $this->badges($this->standings('rank'));
 
         $this->assertSame(
             ['#1', '#2', '#3', '#4'],
@@ -314,18 +341,10 @@ class SeasonStandingsOrderTest extends TestCase
         // Hovering the position gives the figure behind it, to one decimal:
         // 406.7 and 406.6 are different positions in this table; 407 and 407
         // are not. The dashboard prints the same figure the same way.
-        $badges = $this->badges($this->standings('rank')->getContent());
+        $badges = $this->badges($this->standings('rank'));
 
         $this->assertSame('500.0 points per event', $badges[0][1]);
         $this->assertSame('406.7 points per event', $badges[1][1]);
-    }
-
-    /** The standings table alone: the Venues panel draws meters of its own. */
-    private function table(string $html): string
-    {
-        $start = strpos($html, 'season-show__standings');
-
-        return substr($html, $start, strpos($html, '</table>', $start) - $start);
     }
 
     public function test_the_position_is_not_printed_twice_on_a_row(): void
@@ -333,14 +352,17 @@ class SeasonStandingsOrderTest extends TestCase
         // The badge carries the position. The meter beside it carries the
         // average -- never the position again, which would say nothing twice
         // and cost the bar the width to say it in.
-        $table = $this->table($this->standings('rank')->getContent());
-
         $this->assertSame(
             ['500.0', '406.7', '400.0', '193.3'],
-            array_column($this->meterValues($table), 0)
+            $this->meterValues($this->standings('rank'))
         );
 
-        $this->assertSame(4, substr_count($table, 'meter__track'), 'The bars are still drawn.');
+        // The badge carries the position and the meter carries the average, so
+        // the two cells never print the same thing.
+        $this->assertSame(
+            ['#1', '#2', '#3', '#4'],
+            array_column($this->badges($this->standings('rank')), 0)
+        );
     }
 
     public function test_the_average_is_readable_without_hovering(): void
@@ -348,10 +370,8 @@ class SeasonStandingsOrderTest extends TestCase
         // A touch device fires no hover, so the badge's tooltip is unreachable
         // there -- and a phone is most of this league. The figure is therefore
         // rendered beside the bar and hidden only where the tooltip works.
-        $table = $this->table($this->standings('rank')->getContent());
-
-        $this->assertStringContainsString('season-show__ratio', $table);
-        $this->assertSame('406.7', $this->meterValues($table)[1][0]);
+        $this->assertStringContainsString('season-show__ratio', $this->page());
+        $this->assertSame('406.7', $this->meterValues($this->standings('rank'))[1]);
 
         $css = file_get_contents(resource_path('css/4-pages/_season-show.css'));
 
@@ -387,24 +407,24 @@ class SeasonStandingsOrderTest extends TestCase
         // A title attribute is not reachable by keyboard and is announced
         // inconsistently, so the figure is in the meter's accessible name as
         // well. The tooltip is the sighted-pointer copy of it, not the only one.
-        $this->standings('rank')->assertSee(
-            'aria-label="Rank #2, 406.7 points per event, for Grinder Player"',
-            false
+        $this->assertSame(
+            'Rank #2, 406.7 points per event, for Grinder Player',
+            $this->rows($this->standings('rank'))[1]['meter_label']
         );
+
+        // And the meter is given it as its accessible name.
+        $this->assertStringContainsString(':label="row.meter_label"', $this->page());
     }
 
     public function test_points_order_still_shows_the_total_and_a_plain_badge(): void
     {
-        $html = $this->standings()->getContent();
+        $response = $this->standings();
 
-        $this->assertSame(
-            ['1,220', '1,000', '580', '400'],
-            array_column($this->meterValues($html), 0)
-        );
+        $this->assertSame(['1,220', '1,000', '580', '400'], $this->meterValues($response));
 
         // No hash and nothing to reveal on hover: in this order the badge is a
         // row number beside the figure, not the figure itself.
-        $badges = $this->badges($html);
+        $badges = $this->badges($response);
 
         $this->assertSame(['1', '2', '3', '4'], array_column($badges, 0));
         $this->assertSame([null, null, null, null], array_column($badges, 1));
@@ -416,14 +436,16 @@ class SeasonStandingsOrderTest extends TestCase
         // nothing -- 500 out of 1220 -- and the table would look broken in
         // exactly the mode this feature adds.
         foreach (['points', 'rank'] as $order) {
-            $html = $this->standings($order === 'points' ? null : $order)->getContent();
+            $rows = $this->rows($this->standings($order === 'points' ? null : $order));
 
-            $first = strpos($html, 'season-show__meter-cell');
-            $this->assertNotFalse($first);
-
-            $this->assertStringContainsString(
-                '--meter-fill: 100%',
-                substr($html, $first, 600),
+            // The bar's length is value over max, and Meter does that division.
+            // What matters here is that the max is the leader's figure IN THIS
+            // ORDER: measuring a ratio against a points total would draw every
+            // bar at nothing -- 500 out of 1220 -- and the table would look
+            // broken in exactly the mode this feature adds.
+            $this->assertSame(
+                $rows[0]['meter_value'],
+                $rows[0]['meter_max'],
                 "The leading row's bar should be full in {$order} order."
             );
         }
@@ -431,19 +453,30 @@ class SeasonStandingsOrderTest extends TestCase
 
     public function test_the_control_marks_the_current_order_and_offers_the_other(): void
     {
-        $html = $this->standings('rank')->getContent();
-
-        $this->assertStringContainsString('season-show__order-option--current', $html);
-        $this->assertMatchesRegularExpression(
-            '/order=rank"\s+class="season-show__order-option season-show__order-option--current"/',
-            $html,
-            'The current option is the one marked.'
+        $options = collect(
+            $this->standings('rank')->viewData('page')['props']['order_options']
         );
-        $this->assertStringContainsString('order=points', $html, 'The other order stays reachable.');
-        // Counted as whole class attributes. \bseason-show__order-option\b also
-        // matches inside season-show__order-option--current, so a word-boundary
-        // count reports three options where the control has two.
-        $this->assertSame(2, preg_match_all('/class="season-show__order-option[^"]*"/', $html));
+
+        // Two options, one marked, and the other still reachable by its own
+        // address -- the order is part of the URL so it survives a reload.
+        $this->assertCount(2, $options);
+
+        $current = $options->firstWhere('current', true);
+
+        $this->assertNotNull($current);
+        $this->assertSame('rank', $current['value']);
+        $this->assertStringContainsString('order=rank', $current['href']);
+
+        $other = $options->firstWhere('current', false);
+
+        $this->assertSame('points', $other['value']);
+        $this->assertStringContainsString('order=points', $other['href']);
+
+        // And the marker class is applied from that flag.
+        $this->assertStringContainsString(
+            "'season-show__order-option--current': option.current",
+            $this->page()
+        );
     }
 
     public function test_venue_points_stay_private_in_either_order(): void
@@ -451,12 +484,11 @@ class SeasonStandingsOrderTest extends TestCase
         // The row map was rewritten to carry the ratio; the rule it already
         // enforced has to survive that.
         foreach ([null, 'rank'] as $order) {
-            $rows = collect($this->standings($order, $this->players['Oneshot'])
-                ->viewData('leaderboard'));
+            $rows = $this->rows($this->standings($order, $this->players['Oneshot']));
 
             $this->assertNull(
-                $rows->firstWhere('player_name', 'Grinder Player')['venue_points'],
-                "Another player's tally reached the view in ".($order ?? 'points').' order.'
+                $rows->firstWhere('shown_name', 'Grinder Player')['venue_points_label'],
+                "Another player's tally reached the page in ".($order ?? 'points').' order.'
             );
         }
     }

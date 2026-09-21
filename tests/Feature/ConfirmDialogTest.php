@@ -36,11 +36,28 @@ class ConfirmDialogTest extends TestCase
 
         // The season's own page: deleting one is offered where it is read,
         // not from the listing, which now carries no controls at all.
-        $html = $this->actingAs($this->admin())->get(route('seasons.show', PokerSeason::firstOrFail()))
-            ->assertOk()->getContent();
+        //
+        // That page is Vue, so the question and the thing that asks it are
+        // both components. data-confirm was the Blade half's way of getting a
+        // message from a form to confirm.ts; the Vue half passes it to ask()
+        // directly, and AppLayout mounts the dialog that shows it.
+        $props = $this->actingAs($this->admin())->get(route('seasons.show', PokerSeason::firstOrFail()))
+            ->assertOk()->viewData('page')['props'];
 
-        $this->assertStringContainsString('data-confirm=', $html, 'Expected a form that asks first.');
-        $this->assertStringContainsString('data-confirm-dialog', $html, 'The form asks, but nothing on the page can ask it.');
+        $this->assertNotEmpty($props['season']['delete_confirm'],
+            'Expected an action that asks first.');
+
+        $this->assertStringContainsString(
+            'ask(props.season.delete_confirm)',
+            (string) file_get_contents(resource_path('js/Pages/Poker/Seasons/Show.vue')),
+            'The message exists, but nothing on the page asks it.'
+        );
+
+        $this->assertStringContainsString(
+            '<ConfirmDialog',
+            (string) file_get_contents(resource_path('js/Layouts/AppLayout.vue')),
+            'The page asks, but the shell mounts nothing that can answer.'
+        );
     }
 
     public function test_the_public_shell_carries_it_too(): void
@@ -102,19 +119,16 @@ class ConfirmDialogTest extends TestCase
             'end_date' => now()->addMonth(),
         ]);
 
-        // The season's own page: deleting one is offered where it is read,
-        // not from the listing, which now carries no controls at all.
-        $html = $this->actingAs($this->admin())->get(route('seasons.show', PokerSeason::firstOrFail()))
-            ->assertOk()->getContent();
+        // The season's own page. The message is a PROP now rather than an
+        // attribute, which is the same guarantee in a stronger form: it
+        // crosses as JSON, never as markup, so there is no attribute for it to
+        // break out of and no parser between here and the dialog.
+        $response = $this->actingAs($this->admin())->get(route('seasons.show', PokerSeason::firstOrFail()))
+            ->assertOk();
 
-        $dom = new \DOMDocument();
-        @$dom->loadHTML('<?xml encoding="UTF-8">'.$html);
+        $html = $response->getContent();
 
-        $messages = [];
-
-        foreach ((new \DOMXPath($dom))->query('//form[@data-confirm]') as $form) {
-            $messages[] = $form->getAttribute('data-confirm');
-        }
+        $messages = [$response->viewData('page')['props']['season']['delete_confirm']];
 
         // Marked, and marked around the WHOLE name: emph() wraps it, and a
         // name full of quotes and slashes is exactly the input that would come

@@ -38,14 +38,25 @@ class CrudMessageNamesTest extends TestCase
      *
      * The rule is about text a reader is shown as a receipt -- a flash, a
      * confirmation -- where the name is what tells them which record they just
-     * acted on. A label on an embedded frame is not that, and an emph marker
-     * in an attribute is a stray U+2063 a screen reader reads out.
+     * acted on.
+     *
+     * All four are accessible names: an iframe's title, and the three labels
+     * the season page gives its meters. They are read aloud or shown in a
+     * tooltip rather than displayed as a sentence, and an emph marker in one
+     * is a stray U+2063 a screen reader announces as a character.
+     *
+     * If this list reaches a length nobody wants to read, the rule to replace
+     * it with is structural rather than textual: a __() assigned to a prop key
+     * ending in _label or _title is a name, not a receipt.
      *
      * Pinned by the test below so the list cannot grow quietly: an exemption
      * that is easy to add is a rule that stops meaning anything.
      */
     private const NOT_A_MESSAGE = [
         'Map of :venue',
+        'Points for :name',
+        'points per event, for :name',
+        'Tournaments at :venue',
     ];
 
     /** @return array<int, string> every controller file, keyed by nothing */
@@ -157,11 +168,16 @@ class CrudMessageNamesTest extends TestCase
         )));
     }
 
-    public function test_the_exemption_covers_only_the_map_label(): void
+    public function test_the_exemption_covers_only_accessible_names(): void
     {
         // The same pinning InlineStyleGuardTest gives its one exception.
         // Widening this should be a deliberate edit to a test rather than a
         // line in a diff nobody reads.
-        $this->assertSame(['Map of :venue'], self::NOT_A_MESSAGE);
+        $this->assertSame([
+            'Map of :venue',
+            'Points for :name',
+            'points per event, for :name',
+            'Tournaments at :venue',
+        ], self::NOT_A_MESSAGE);
     }
 }

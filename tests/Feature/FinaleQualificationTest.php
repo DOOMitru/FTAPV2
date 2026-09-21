@@ -311,18 +311,21 @@ class FinaleQualificationTest extends TestCase
 
         $row = $this->leaderboardRowFor($season, $player);
 
-        $this->assertSame(30, $row['venue_points'], 'Only the in-season row counts.');
+        $this->assertSame('30', $row['venue_points_label'], 'Only the in-season row counts.');
     }
 
     public function test_a_player_with_no_venue_points_scores_zero_not_null(): void
     {
-        // The row is fed straight into unmetBy(), which is typed int.
+        // Zero, not null. Null on this field means WITHHELD -- the viewer may
+        // not read the tally -- and an admin reading a player who has earned
+        // nothing must be able to tell the two apart. The figure behind it is
+        // fed to unmetBy(), which is typed int.
         $season = $this->season(['finale_venue_points_required' => 10]);
         $player = User::factory()->create();
 
         $this->resultFor($season, $player, place: 1, points: 500);
 
-        $this->assertSame(0, $this->leaderboardRowFor($season, $player)['venue_points']);
+        $this->assertSame('0', $this->leaderboardRowFor($season, $player)['venue_points_label']);
     }
 
     public function test_the_leaderboard_carries_the_verdict(): void
@@ -343,25 +346,42 @@ class FinaleQualificationTest extends TestCase
         $this->resultFor($season, $shortOnWins, place: 4, points: 500);
         $this->venuePointsFor($shortOnWins, 20, '-3 days');
 
-        $this->assertTrue($this->leaderboardRowFor($season, $qualifier)['qualified']);
-        $this->assertSame([], $this->leaderboardRowFor($season, $qualifier)['unmet']);
+        // The verdict, as the standings carry it. `unmet` never leaves the
+        // controller now -- the column stopped naming what a player was short
+        // on when the thresholds moved into a panel above the table -- so what
+        // reaches the page is the verdict alone. unmetBy() itself is covered
+        // directly above.
+        $this->assertSame('qualified', $this->leaderboardRowFor($season, $qualifier)['finale_state']);
+        $this->assertSame('not-qualified', $this->leaderboardRowFor($season, $shortOnWins)['finale_state']);
 
-        $short = $this->leaderboardRowFor($season, $shortOnWins);
-        $this->assertFalse($short['qualified']);
-        $this->assertSame(['wins'], $short['unmet']);
+        $this->assertSame(['wins'], $season->unmetBy(points: 500, wins: 0, venuePoints: 20));
     }
 
     private function leaderboardRowFor(PokerSeason $season, User $user): array
     {
-        $response = $this->actingAs($this->admin())->get(route('seasons.show', $season));
-        $response->assertOk();
-
-        $row = collect($response->viewData('leaderboard'))
-            ->first(fn (array $r) => $r['user']?->id === $user->id);
+        $row = collect($this->propsFor($season)['standings'])
+            ->firstWhere('player_id', $user->id);
 
         $this->assertNotNull($row, 'The player should appear in the standings.');
 
         return $row;
+    }
+
+    /**
+     * What the season page is sent.
+     *
+     * @return array<string, mixed>
+     */
+    private function propsFor(PokerSeason $season): array
+    {
+        return $this->actingAs($this->admin())->get(route('seasons.show', $season))
+            ->assertOk()->viewData('page')['props'];
+    }
+
+    /** The page's own markup, for the questions that are about the template. */
+    private function page(): string
+    {
+        return (string) file_get_contents(resource_path('js/Pages/Poker/Seasons/Show.vue'));
     }
 
     public function test_the_page_states_the_targets(): void
@@ -372,20 +392,28 @@ class FinaleQualificationTest extends TestCase
             'finale_venue_points_required' => 50,
         ]);
 
-        $this->actingAs($this->admin())->get(route('seasons.show', $season))
-            ->assertOk()
-            ->assertSee('Finale Qualification')
-            ->assertSee('300');
+        $finale = $this->propsFor($season)['finale'];
+
+        $this->assertSame('300', $finale['points_label']);
+        $this->assertSame('2', $finale['wins_label']);
+        $this->assertSame('50', $finale['venue_points_label']);
+
+        $this->assertStringContainsString('title="Finale Qualification"', $this->page());
     }
 
     public function test_a_season_without_thresholds_says_so(): void
     {
         // Explicitly, rather than by rendering nothing: a reader cannot tell an
         // absent panel from a rendering failure.
-        $this->actingAs($this->admin())->get(route('seasons.show', $this->season()))
-            ->assertOk()
-            ->assertSee('have not been set', false)
-            ->assertDontSee('Qualified');
+        $this->assertNull($this->propsFor($this->season())['finale']);
+
+        // Null is what the empty state is drawn from, and it says so in words
+        // rather than by drawing nothing.
+        $this->assertMatchesRegularExpression(
+            '/<EmptyState v-else title="No thresholds yet">/',
+            $this->page()
+        );
+        $this->assertStringContainsString('have not been set', $this->page());
     }
 
     public function test_a_partially_set_season_shows_only_the_numbers_it_has(): void
@@ -395,10 +423,11 @@ class FinaleQualificationTest extends TestCase
         // chose and that everybody has already met.
         $season = $this->season(['finale_points_required' => 300]);
 
-        $this->actingAs($this->admin())->get(route('seasons.show', $season))
-            ->assertOk()
-            ->assertSee('300')
-            ->assertSee('Not set');
+        $finale = $this->propsFor($season)['finale'];
+
+        $this->assertSame('300', $finale['points_label']);
+        $this->assertSame('Not set', $finale['wins_label']);
+        $this->assertSame('Not set', $finale['venue_points_label']);
     }
 
     public function test_the_standings_leave_a_short_player_unmarked(): void
@@ -410,13 +439,15 @@ class FinaleQualificationTest extends TestCase
         $player = User::factory()->create();
         $this->resultFor($season, $player, place: 2, points: 100);
 
-        $this->actingAs($this->admin())->get(route('seasons.show', $season))
-            ->assertOk()
-            ->assertDontSee('season-show__qualified', false)
-            ->assertDontSee('Needs')
-            // Not silent, though: an empty cell reads as "blank", which does
-            // not distinguish a failing row from a column that is not in use.
-            ->assertSee('Not qualified');
+        $this->assertSame('not-qualified', $this->leaderboardRowFor($season, $player)['finale_state']);
+
+        // Not silent, though: an empty cell reads as "blank", which does not
+        // distinguish a failing row from a column that is not in use. The
+        // page says so for a screen reader and draws no mark.
+        $page = $this->page();
+
+        $this->assertStringContainsString('<span v-else class="u-visually-hidden">Not qualified</span>', $page);
+        $this->assertStringNotContainsString('Needs', $page);
     }
 
     public function test_a_qualifying_player_is_marked_qualified(): void
@@ -425,13 +456,15 @@ class FinaleQualificationTest extends TestCase
         $player = User::factory()->create();
         $this->resultFor($season, $player, place: 1, points: 500);
 
-        $this->actingAs($this->admin())->get(route('seasons.show', $season))
-            ->assertOk()
-            // The mark itself, not just the word: the word is in its title and
-            // its visually-hidden label, so asserting only that would pass on a
-            // cell that rendered no mark at all.
-            ->assertSee('season-show__qualified', false)
-            ->assertSee('Qualified');
+        $this->assertSame('qualified', $this->leaderboardRowFor($season, $player)['finale_state']);
+
+        // The mark itself, not just the word: the word is in its title and its
+        // visually-hidden label, so asserting only that would pass on a cell
+        // that drew no mark at all.
+        $this->assertMatchesRegularExpression(
+            '/finale_state === \'qualified\'"\s*class="season-show__qualified" title="Qualified"/s',
+            preg_replace('/\s+/', ' ', $this->page())
+        );
     }
 
     public function test_the_standings_show_venue_points(): void
@@ -441,9 +474,7 @@ class FinaleQualificationTest extends TestCase
         $this->resultFor($season, $player, place: 1, points: 100);
         $this->venuePointsFor($player, 42, '-3 days');
 
-        $this->actingAs($this->admin())->get(route('seasons.show', $season))
-            ->assertOk()
-            ->assertSee('42');
+        $this->assertSame('42', $this->leaderboardRowFor($season, $player)['venue_points_label']);
     }
 
     public function test_the_public_pages_describe_the_rule_the_app_enforces(): void

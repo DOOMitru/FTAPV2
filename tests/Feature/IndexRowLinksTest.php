@@ -149,20 +149,29 @@ class IndexRowLinksTest extends TestCase
             // passed on a page that had no Delete button at all.
             [$edit, $destroy] = $controls;
 
-            // The venue page is Vue and builds both from the id: there is no
-            // URL in the response to find, and the two controls are a link and
-            // a router.delete() rather than a link and a form.
-            if (str_contains($page, '/poker/venues/')) {
-                $vue = (string) file_get_contents(resource_path('js/Pages/Poker/Venues/Show.vue'));
+            // A converted page builds both from the id: there is no URL in
+            // the response to find, and the two controls are a link and a
+            // router.delete() rather than a link and a form.
+            $converted = [
+                '/poker/venues/' => ['js/Pages/Poker/Venues/Show.vue', 'venue', 'poker/venues'],
+                '/seasons/' => ['js/Pages/Poker/Seasons/Show.vue', 'season', 'poker/seasons'],
+            ];
+
+            foreach ($converted as $marker => [$vuePath, $prop, $prefix]) {
+                if (! str_contains($page, $marker)) {
+                    continue;
+                }
+
+                $vue = (string) file_get_contents(resource_path($vuePath));
 
                 $this->assertStringContainsString(
-                    ':href="`/poker/venues/${venue.id}/edit`"', $vue, $page.' is missing Edit.'
+                    ':href="`/'.$prefix.'/${'.$prop.'.id}/edit`"', $vue, $page.' is missing Edit.'
                 );
                 $this->assertStringContainsString(
-                    'router.delete(`/poker/venues/${props.venue.id}`)', $vue, $page.' is missing Delete.'
+                    'router.delete(`/'.$prefix.'/${props.'.$prop.'.id}`)', $vue, $page.' is missing Delete.'
                 );
 
-                continue;
+                continue 2;
             }
 
             $this->assertStringContainsString('href="'.$edit.'"', $html, $page.' is missing Edit.');

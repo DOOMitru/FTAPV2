@@ -70,6 +70,7 @@ class InertiaPropContractTest extends TestCase
         'Poker/Venues/Show' => ['poker.venues.show', 'venue'],
         'Auth/ConfirmPassword' => ['password.confirm', null],
         'Auth/VerifyEmail' => ['verification.notice', null, 'unverified'],
+        'Poker/Seasons/Show' => ['seasons.show', 'season'],
     ];
 
     /**

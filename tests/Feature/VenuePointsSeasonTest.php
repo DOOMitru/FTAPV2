@@ -122,14 +122,17 @@ class VenuePointsSeasonTest extends TestCase
         // by date, this figure would drop to zero.
         $season->update(['start_date' => '2026-09-01', 'end_date' => '2026-12-31']);
 
-        $this->actingAs($this->admin())
+        // Read from the standings the page is sent. The figure is a LABEL
+        // there, because the column is display-ready -- and it is present at
+        // all only because an admin is asking, which is the venue-points rule.
+        $standings = $this->actingAs($this->admin())
             ->get(route('seasons.show', $season))
-            ->assertOk()
-            ->assertViewHas('leaderboard', function ($leaderboard) use ($player) {
-                $entry = collect($leaderboard)->firstWhere('user.id', $player->id);
+            ->assertOk()->viewData('page')['props']['standings'];
 
-                return $entry !== null && $entry['venue_points'] === 5;
-            });
+        $row = collect($standings)->firstWhere('player_id', $player->id);
+
+        $this->assertNotNull($row, 'The player is missing from the standings.');
+        $this->assertSame('5', $row['venue_points_label']);
 
         $this->assertSame($season->id, VenuePoints::firstOrFail()->season_id);
     }

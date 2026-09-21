@@ -49,9 +49,17 @@ class SeasonStandingsLayoutTest extends TestCase
             ])->save();
         }
 
-        return $this->actingAs($this->admin())
-            ->get(route('seasons.show', $season))
-            ->assertOk()->getContent();
+        // The page still has to load for an administrator -- a layout on a
+        // page that 500s is not a layout anybody sees -- but what it draws is
+        // in the component, because the server sends props and a shell.
+        //
+        // The thresholds above matter to the markup either way: with none set
+        // the finale panel draws an empty state instead of its three figures,
+        // and a count over one group would pass whatever the other did. The
+        // page is fetched with them so both branches exist in the props.
+        $this->actingAs($this->admin())->get(route('seasons.show', $season))->assertOk();
+
+        return (string) file_get_contents(resource_path('js/Pages/Poker/Seasons/Show.vue'));
     }
 
     public function test_the_table_carries_the_hook_the_mobile_layout_is_scoped_to(): void
@@ -94,9 +102,14 @@ class SeasonStandingsLayoutTest extends TestCase
         // desktop reads exactly as it did.
         $html = $this->standings();
 
-        foreach (['Rank', 'Player', 'Points', 'Played', 'Wins', 'Venue points', 'Finale'] as $header) {
+        foreach (['Rank', 'Player', 'Played', 'Wins', 'Venue points', 'Finale'] as $header) {
             $this->assertStringContainsString('>'.$header.'</th>', $html);
         }
+
+        // The figure column is the one header that is not a literal: it reads
+        // "Points" or "Per event" depending on the order, so the template
+        // draws it from a prop and SeasonStandingsOrderTest checks the words.
+        $this->assertStringContainsString('>{{ figure_heading }}</th>', $html);
     }
 
     public function test_the_name_is_a_block_beside_the_initials(): void
@@ -113,7 +126,7 @@ class SeasonStandingsLayoutTest extends TestCase
         // A <td> set to display:flex stops being a table-cell and leaves its
         // column's alignment, so the row is an element INSIDE the cell.
         $this->assertMatchesRegularExpression(
-            '/<td class="season-show__player">\s*(?:\{\{--.*?--\}\}\s*)?<span class="season-show__player-row">/s',
+            '/<td class="season-show__player">\s*(?:<!--.*?-->\s*)?<span class="season-show__player-row">/s',
             $html,
             'The flex row belongs inside the cell, not on it.'
         );
@@ -208,25 +221,33 @@ class SeasonStandingsLayoutTest extends TestCase
         // numbers would hide exactly that.
         $html = $this->standings(withThresholds: true);
 
-        $this->assertStringContainsString(
-            '<span class="stat__label">Tournament Wins</span><span class="stat__value">1</span>',
-            preg_replace('/>\s+</', '><', $html)
-        );
-
-        $this->assertStringContainsString(
-            '<span class="stat__label">Season points</span><span class="stat__value">500</span>',
-            preg_replace('/>\s+</', '><', $html)
-        );
-
-        $this->assertStringContainsString(
-            '<span class="stat__label">Venue points</span><span class="stat__value">50</span>',
-            preg_replace('/>\s+</', '><', $html)
-        );
+        // Each label beside the figure it draws. Stat renders the pair, so
+        // what can go wrong here is a label moving without its value -- which
+        // is why the three figures differ.
+        foreach ([
+            'Tournament Wins' => 'finale.wins_label',
+            'Season points' => 'finale.points_label',
+            'Venue points' => 'finale.venue_points_label',
+        ] as $label => $value) {
+            $this->assertStringContainsString(
+                '<Stat label="'.$label.'" :value="'.$value.'" />',
+                $html,
+                "The panel does not draw {$value} beside \"{$label}\"."
+            );
+        }
 
         // And in that order down the panel.
         $panel = substr($html, (int) strpos($html, 'Finale Qualification'));
 
         $this->assertLessThan(strpos($panel, 'Season points'), strpos($panel, 'Tournament Wins'));
         $this->assertLessThan(strpos($panel, 'Venue points'), strpos($panel, 'Season points'));
+
+        // The figures themselves are the controller's, and differ so that a
+        // reorder cannot pass by coincidence.
+        $finale = $this->actingAs($this->admin())
+            ->get(route('seasons.show', PokerSeason::firstOrFail()))->assertOk()
+            ->viewData('page')['props']['finale'];
+
+        $this->assertSame(['1', '500', '50'], array_values($finale));
     }
 }

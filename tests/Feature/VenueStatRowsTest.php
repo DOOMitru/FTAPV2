@@ -113,7 +113,7 @@ class VenueStatRowsTest extends TestCase
         // until one of them is edited.
         foreach ([
             'js/Pages/Poker/Venues/Show.vue',
-            'views/poker/seasons/show.blade.php',
+            'js/Pages/Poker/Seasons/Show.vue',
         ] as $template) {
             $this->assertStringContainsString(
                 'stat-rows', (string) file_get_contents(resource_path($template)),

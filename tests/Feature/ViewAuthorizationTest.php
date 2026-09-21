@@ -125,10 +125,19 @@ class ViewAuthorizationTest extends TestCase
             'is_current' => true,
         ]);
 
-        $response = $this->actingAs($admin)->get(route('seasons.show', $season));
+        // can_manage is what the page draws Edit and Delete from, and the
+        // href is built from the season's id. Asserting the flag says the same
+        // thing the URL search did, without depending on markup the server no
+        // longer sends.
+        $props = $this->actingAs($admin)->get(route('seasons.show', $season))
+            ->assertOk()->viewData('page')['props'];
 
-        $response->assertOk();
-        $response->assertSee(route('poker.seasons.edit', $season), false);
+        $this->assertTrue($props['can_manage']);
+
+        $this->assertStringContainsString(
+            ':href="`/poker/seasons/${season.id}/edit`"',
+            (string) file_get_contents(resource_path('js/Pages/Poker/Seasons/Show.vue'))
+        );
     }
 
     public function test_register_control_offered_when_play_has_not_started()

@@ -77,11 +77,23 @@ class SeasonStandingsScopeTest extends TestCase
         return User::factory()->create(['is_admin' => true, 'approval_status' => 'approved']);
     }
 
-    /** @return \Illuminate\Support\Collection<int, array<string, mixed>> */
+    /**
+     * The standings the page is sent.
+     *
+     * Who is IN this table is what this file is about, and the props are the
+     * list -- the page draws exactly what it is given.
+     *
+     * Rows are read by shown_name, which is what the table prints: the
+     * nickname where there is one, the full name otherwise. These fixtures
+     * have none, so it is the full name throughout.
+     *
+     * @return \Illuminate\Support\Collection<int, array<string, mixed>>
+     */
     private function standings(PokerSeason $season)
     {
         return collect($this->actingAs($this->admin())
-            ->get(route('seasons.show', $season))->assertOk()->viewData('leaderboard'));
+            ->get(route('seasons.show', $season))->assertOk()
+            ->viewData('page')['props']['standings']);
     }
 
     public function test_a_player_who_entered_is_in_the_standings(): void
@@ -93,7 +105,7 @@ class SeasonStandingsScopeTest extends TestCase
         $this->enter($night, $player);
         $this->score($night, $player, 1, 100);
 
-        $this->assertSame(['Entered Player'], $this->standings($season)->pluck('player_name')->all());
+        $this->assertSame(['Entered Player'], $this->standings($season)->pluck('shown_name')->all());
     }
 
     public function test_a_scorer_who_never_entered_is_left_out(): void
@@ -109,7 +121,7 @@ class SeasonStandingsScopeTest extends TestCase
 
         $this->score($night, $this->player('Unentered'), 1, 100);
 
-        $names = $this->standings($season)->pluck('player_name');
+        $names = $this->standings($season)->pluck('shown_name');
 
         $this->assertContains('Entered Player', $names);
         $this->assertNotContains('Unentered Player', $names);
@@ -128,7 +140,7 @@ class SeasonStandingsScopeTest extends TestCase
 
         $this->score($night, null, 1, 100, name: 'Nobody At All');
 
-        $this->assertNotContains('Nobody At All', $this->standings($season)->pluck('player_name'));
+        $this->assertNotContains('Nobody At All', $this->standings($season)->pluck('shown_name'));
     }
 
     public function test_entering_another_season_does_not_let_you_in(): void
@@ -148,7 +160,7 @@ class SeasonStandingsScopeTest extends TestCase
         $this->enter($this->night($other, 'Old Night'), $player);
         $this->score($night, $player, 1, 100);
 
-        $this->assertNotContains('Elsewhere Player', $this->standings($season)->pluck('player_name'));
+        $this->assertNotContains('Elsewhere Player', $this->standings($season)->pluck('shown_name'));
     }
 
     public function test_entering_without_scoring_does_not_invent_a_row(): void
@@ -168,7 +180,7 @@ class SeasonStandingsScopeTest extends TestCase
 
         $this->score($night, $scored, 1, 100);
 
-        $this->assertSame(['Scored Player'], $this->standings($season)->pluck('player_name')->all());
+        $this->assertSame(['Scored Player'], $this->standings($season)->pluck('shown_name')->all());
     }
 
     public function test_the_players_tile_counts_the_same_people(): void
@@ -187,7 +199,11 @@ class SeasonStandingsScopeTest extends TestCase
         $response = $this->actingAs($this->admin())
             ->get(route('seasons.show', $season))->assertOk();
 
-        $this->assertSame(1, $response->viewData('uniquePlayersCount'));
-        $this->assertCount(1, $response->viewData('leaderboard'));
+        $props = $response->viewData('page')['props'];
+
+        // The tile and the table are counted from the same list, so they
+        // cannot disagree about who played.
+        $this->assertSame('1', $props['players_label']);
+        $this->assertCount(1, $props['standings']);
     }
 }
