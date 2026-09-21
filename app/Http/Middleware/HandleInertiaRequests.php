@@ -60,14 +60,14 @@ class HandleInertiaRequests extends Middleware
              * Auth\EmailVerificationNotificationController flashes
              * 'verification-link-sent'. Views MATCH those strings to decide
              * whether to show an inline saved indicator; they never display
-             * them. Eight other views render their own session('status') as
-             * real copy.
+             * them.
              *
              * So a layout-level flash block would show a reader the literal
-             * text 'profile-updated', and would double up the eight that
-             * render their own. Pages opt in instead, exactly as the Blade
-             * views do today -- the same decision, for the same reason, as
-             * the note in layouts/app.blade.php.
+             * text 'profile-updated'. Pages opt in instead. Those three
+             * controllers are now the ONLY thing standing between here and
+             * AppLayout owning the flash: the views that used to render their
+             * own session('status') beside it are all public pages now, and
+             * the public shell is a different layout.
              *
              * Closures, so the session is read when the response is built
              * rather than when the middleware is constructed.
@@ -80,22 +80,22 @@ class HandleInertiaRequests extends Middleware
             /*
              * The shell's notification badge and panel.
              *
-             * Shared rather than per-page, for the reason
-             * AppServiceProvider::composeNotifications() gives about the View
-             * Composer this replaces: thirty-odd controllers should not each
-             * remember to supply layout data, and the one that forgot would
-             * render a page with no badge and no list, with nothing to say so.
+             * Shared rather than per-page: this is layout data, and thirty-odd
+             * controllers should not each remember to supply it -- the one
+             * that forgot would render a page with no badge and no list, and
+             * nothing would say so. A View Composer bound to the Blade
+             * navigation did this before the conversion; both are gone.
              *
              * Guests get the empty shape rather than a query. This middleware
              * runs on the whole web group, so without the null check every
              * public page would ask the database about notifications for
-             * nobody -- the same point the composer makes when it says
-             * layouts/public "must not pay for a query it has no user for".
+             * nobody -- and layouts/public has no signed-in user to draw a
+             * bell for.
              */
             'notifications' => [
                 'unread_count' => fn () => $user?->unreadNotifications()->count() ?? 0,
 
-                // Capped at ten, as the composer caps it. The panel scrolls;
+                // Capped at ten. The panel scrolls, and
                 // three seasons of history should not be serialised into every
                 // page the player loads.
                 'recent' => fn () => $user === null ? [] : $user->notifications()

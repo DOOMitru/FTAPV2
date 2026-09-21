@@ -7,8 +7,10 @@ use Tests\TestCase;
 /**
  * A Blade component and its Vue twin must agree about class hooks.
  *
- * Eleven components are used by both the public Blade pages and the converted
- * Vue pages, so each exists twice for the length of the conversion. Two
+ * Seventeen components are used by both the public Blade pages and the Vue
+ * pages, so each exists twice -- permanently, not for the length of the
+ * conversion: the public half stays Blade because Inertia SSR needs a
+ * persistent Node process that DreamHost shared hosting cannot run. Two
  * definitions of one thing is the defect this project keeps meeting --
  * PokerSeason::current(), VenuePoints::readableBy() and initials() all exist
  * because a second definition drifted or was about to.
@@ -145,9 +147,9 @@ class ComponentParityTest extends TestCase
      * Does this Blade component render $attributes below its outermost element?
      *
      * Null when it renders them nowhere. Only `->merge([...])` and a bare
-     * `{{ $attributes }}` count as rendering: modal.blade.php asks
-     * `$attributes->has('focusable')` inside an echo, which produces a
-     * fragment of JavaScript and no attributes at all.
+     * `{{ $attributes }}` count as rendering. An echo that merely INTERROGATES
+     * the bag -- `$attributes->has('focusable')`, say -- produces whatever the
+     * expression evaluates to and no attributes at all, so it must not count.
      *
      * "Outermost" rather than "the root", because a Blade component may open
      * with an @if and have two candidate roots -- btn renders an <a> or a

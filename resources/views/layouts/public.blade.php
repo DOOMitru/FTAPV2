@@ -68,7 +68,7 @@
 
                         {{-- Mobile: log out alone on the left where a destructive action is
                              hard to hit by accident; theme and Dashboard group on the right,
-                             matching layouts/navigation.blade.php exactly. --}}
+                             matching the authenticated shell's Navigation.vue exactly. --}}
                         <div class="topbar__actions-mobile">
                             <form method="POST" action="{{ route('logout') }}">
                                 @csrf

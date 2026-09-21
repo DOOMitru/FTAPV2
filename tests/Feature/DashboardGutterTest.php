@@ -10,38 +10,51 @@ use Tests\TestCase;
 /**
  * The dashboard's horizontal gutter.
  *
- * layouts/app.blade.php used to wrap its slot in an .l-container. Thirty-two of
- * the thirty-three views that use it supply their own, so that outer one was
- * nested inside them -- and .l-container sets padding-inline, so the gutter was
- * applied twice: 32px a side on a phone, where the content has least to give.
+ * The app layout used to wrap its slot in an .l-container. Nearly every page
+ * that uses it supplies its own, so that outer one was nested inside them --
+ * and .l-container sets padding-inline, so the gutter was applied twice: 32px
+ * a side on a phone, where the content has least to give.
  *
- * The layout's was removed, which is only safe while every view brings one.
+ * The layout's was removed, which is only safe while every page brings one.
  * That is what the first test here holds; the widths themselves are a media
  * query and this project has no browser-based tests.
+ *
+ * Both tests read the Vue layout and the Vue pages. The Blade shell they were
+ * written against is deleted -- and the version of this file that scanned for
+ * `<x-app-layout` survived that deletion by matching nothing at all, which is
+ * indistinguishable from a pass.
  */
 class DashboardGutterTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_every_dashboard_view_supplies_its_own_container(): void
+    public function test_every_page_using_the_layout_supplies_its_own_container(): void
     {
         $offenders = [];
-        $root = resource_path('views').DIRECTORY_SEPARATOR;
+        $root = resource_path('js').DIRECTORY_SEPARATOR;
+        $found = 0;
 
-        foreach (Finder::create()->files()->in(resource_path('views'))->name('*.blade.php') as $file) {
-            $content = file_get_contents($file->getRealPath());
+        foreach (Finder::create()->files()->in(resource_path('js/Pages'))->name('*.vue') as $file) {
+            $content = (string) file_get_contents($file->getRealPath());
 
-            if (! str_contains($content, '<x-app-layout')) {
+            if (! str_contains($content, 'AppLayout')) {
                 continue;
             }
+
+            $found++;
 
             if (! str_contains($content, 'class="l-container')) {
                 $offenders[] = str_replace($root, '', $file->getRealPath());
             }
         }
 
+        // The scan finding nothing looks exactly like every page passing. This
+        // is the check the Blade version of this test did not have, and the
+        // reason it kept reporting a gutter rule it had stopped enforcing.
+        $this->assertGreaterThan(0, $found, 'No page was scanned; the layout name or the path is wrong.');
+
         $this->assertSame([], $offenders, implode("\n  ", array_merge(
-            ['The app layout no longer adds one, so a view without its own has no gutter at all:'],
+            ['The layout adds no container, so a page without its own has no gutter at all:'],
             $offenders,
         )));
     }
@@ -53,9 +66,9 @@ class DashboardGutterTest extends TestCase
         // this counts only what is inside <main>.
         //
         // Nor is it "main is followed by a container" -- now that the layout's
-        // wrapper is gone the view's own container IS main's first child, which
-        // is the correct state. Both of those were written and both were wrong;
-        // two containers inside main is the actual fault.
+        // wrapper is gone the page's own container IS main's first child,
+        // which is the correct state. Both of those were written and both were
+        // wrong; two containers inside main is the actual fault.
         $admin = User::factory()->create(['is_admin' => true]);
 
         $this->actingAs($admin)->get(route('users.index'))->assertOk();

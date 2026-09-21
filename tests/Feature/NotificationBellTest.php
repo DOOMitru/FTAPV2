@@ -45,8 +45,9 @@ class NotificationBellTest extends TestCase
      * panel are drawn after mount from this shared prop rather than written
      * into the response. Which is the better thing to assert: the old version
      * had to cut the HTML around 'nav-link__badge' and read the digits out of
-     * it, and its own comment records that assertViewHas could not be used
-     * because the data was bound by a composer to an @included view.
+     * it, because the data reached the page through a View Composer bound to
+     * an @included Blade view, where assertViewHas cannot see it. Both the
+     * composer and that view are deleted; the middleware shares this instead.
      *
      * @return array{unread_count: int, recent: list<array<string, mixed>>}
      */
@@ -64,10 +65,10 @@ class NotificationBellTest extends TestCase
 
     public function test_the_badge_counts_unread_only(): void
     {
-        // Asserted on the rendered badge rather than on view data.
-        // assertViewHas inspects the RESPONSE'S root view, and this data is
-        // bound by a composer to layouts.navigation, which is @included -- so
-        // a view-data assertion here reads null no matter what is on the page.
+        // Asserted on the shared prop the page is handed. assertViewHas
+        // inspects the RESPONSE'S root view, which for an Inertia response
+        // holds the page object rather than the props -- so a view-data
+        // assertion here reads null no matter what the page was sent.
         $user = $this->player();
         $this->notify($user);
         $this->notify($user);

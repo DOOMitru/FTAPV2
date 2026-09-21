@@ -16,8 +16,8 @@ use Tests\TestCase;
  * sentinel strings -- 'profile-updated', 'password-updated',
  * 'verification-link-sent' -- that views match on rather than display, so a
  * layout printing flash generically would show a reader 'profile-updated'.
- * The same reasoning is recorded in layouts/app.blade.php, which is where this
- * decision was first made and why it is inherited rather than re-argued.
+ * Those three controllers are the whole of what keeps the flash out of
+ * AppLayout; the Blade views that also argued for it are deleted.
  */
 class InertiaSharedPropsTest extends TestCase
 {
