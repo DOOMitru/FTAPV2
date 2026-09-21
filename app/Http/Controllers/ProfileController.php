@@ -59,7 +59,20 @@ class ProfileController extends Controller
 
         $request->user()->save();
 
-        return Redirect::route('profile.edit')->with('status', 'profile-updated');
+        /*
+         * No flash.
+         *
+         * This used to set the sentinel 'profile-updated' -- a string the form
+         * MATCHED on to show "Saved." beside its button, never a sentence
+         * anybody read. useForm's recentlySuccessful says the same thing
+         * directly and per-form, for the same two seconds, so the page-wide
+         * value is not needed and nothing else on the page can trip over it.
+         *
+         * A banner as well would say a second time what the indicator beside
+         * the button already said, about the one of three forms on this screen
+         * that the banner could not identify.
+         */
+        return Redirect::route('profile.edit');
     }
 
     /**

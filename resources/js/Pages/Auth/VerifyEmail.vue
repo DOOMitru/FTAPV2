@@ -1,21 +1,27 @@
 <script setup lang="ts">
-import { router } from '@inertiajs/vue3';
+import { computed } from 'vue';
+import { router, usePage } from '@inertiajs/vue3';
 import GuestLayout from '../../Layouts/GuestLayout.vue';
 import Alert from '../../Components/Alert.vue';
 import Btn from '../../Components/Btn.vue';
+import type { PageProps } from '../../types/inertia';
 
-interface Props {
-    /**
-     * A boolean, not the session value.
-     *
-     * session('status') holds the sentinel 'verification-link-sent' here, so
-     * passing it to an alert would print that word on the screen. The sentence
-     * below is the message; the session value only says whether to show it.
-     */
-    link_sent: boolean;
-}
-
-defineProps<Props>();
+/*
+ * The flash, drawn as written.
+ *
+ * This page used to be handed a link_sent boolean and keep the sentence
+ * itself, because session('status') held the sentinel 'verification-link-sent'
+ * and printing it would have shown a reader that word. The controller flashes
+ * the sentence now, so there is nothing to translate here.
+ *
+ * This shell is GuestLayout, which owns no flash -- AppLayout does, and this
+ * screen is deliberately outside it. So the alert stays on the page.
+ *
+ * computed, not a plain const: Inertia reuses a component when a visit renders
+ * the same page, and resending lands back here, so a value read once at setup
+ * would be the flash from BEFORE the resend.
+ */
+const flash = computed(() => usePage<PageProps>().props.flash);
 
 const resend = (): void => { router.post('/email/verification-notification'); };
 const logout = (): void => { router.post('/logout'); };
@@ -31,8 +37,7 @@ const logout = (): void => { router.post('/logout'); };
 
         <!-- Was text-green-600 with no dark variant. Alert carries its own role
              and token colours, and reads on both grounds. -->
-        <Alert v-if="link_sent" variant="success"
-               message="A new verification link has been sent to the email address you provided during registration." />
+        <Alert v-if="flash.status" variant="success" :message="flash.status" />
 
         <div class="l-cluster l-cluster--between">
             <Btn variant="primary" type="button" @click="resend">Resend Verification Email</Btn>

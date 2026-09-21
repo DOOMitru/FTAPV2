@@ -24,6 +24,9 @@ class PasswordController extends Controller
             'password' => Hash::make($validated['password']),
         ]);
 
-        return back()->with('status', 'password-updated');
+        // No flash, for the reason ProfileController::update() gives: the
+        // 'password-updated' sentinel only told this form it had saved, and
+        // useForm's recentlySuccessful tells it that itself.
+        return back();
     }
 }

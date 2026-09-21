@@ -22,9 +22,10 @@ interface Props {
 
 const props = defineProps<Props>();
 
-// Flash is shared but never rendered by the layout: these are SENTINELS, not
-// copy. 'profile-updated' and 'password-updated' say which form saved, and the
-// partials match on them exactly as the Blade partials do.
+// The only thing that flashes to this page is the resend-verification link,
+// and it flashes a sentence. Saving a form no longer flashes at all -- each
+// form's "Saved." comes from its own useForm.
+//
 // computed, not a plain const: usePage().props.flash read once at setup is
 // the flash that ARRIVED WITH THIS COMPONENT. Inertia reuses a component when
 // a visit renders the same page, so every redirect back to the page you are on
@@ -47,7 +48,7 @@ const flash = computed(() => usePage<PageProps>().props.flash);
 
         <div class="l-container l-stack">
             <Card><UpdateProfileInformationForm :user="props.user" :status="flash.status" /></Card>
-            <Card><UpdatePasswordForm :status="flash.status" /></Card>
+            <Card><UpdatePasswordForm /></Card>
             <Card><DeleteUserForm /></Card>
         </div>
     </AppLayout>

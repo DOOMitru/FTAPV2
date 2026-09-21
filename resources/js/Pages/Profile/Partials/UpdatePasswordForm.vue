@@ -1,14 +1,7 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue';
 import { useForm } from '@inertiajs/vue3';
 import Field from '../../../Components/Field.vue';
 import Btn from '../../../Components/Btn.vue';
-
-interface Props {
-    status: string | null;
-}
-
-const props = defineProps<Props>();
 
 const form = useForm({
     current_password: '',
@@ -34,16 +27,15 @@ const submit = (): void => {
     });
 };
 
-const saved = ref(false);
-
-watch(() => props.status, (status) => {
-    if (status !== 'password-updated') {
-        return;
-    }
-
-    saved.value = true;
-    setTimeout(() => { saved.value = false; }, 2000);
-}, { immediate: true });
+/*
+ * "Saved." is this FORM's business, not the page's.
+ *
+ * It used to watch a page-wide flash for the sentinel 'password-updated',
+ * which is how one of three forms on this screen learned that it -- and not
+ * one of the other two -- had just saved. useForm already knows: it sets
+ * recentlySuccessful on success and clears it 2000ms later, the same window
+ * the hand-rolled setTimeout used.
+ */
 </script>
 
 <template>
@@ -76,7 +68,7 @@ watch(() => props.status, (status) => {
                 <Btn variant="primary">Save</Btn>
 
                 <Transition>
-                    <p v-if="saved" class="field__hint">Saved.</p>
+                    <p v-if="form.recentlySuccessful" class="field__hint">Saved.</p>
                 </Transition>
             </div>
         </form>

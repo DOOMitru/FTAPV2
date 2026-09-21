@@ -24,32 +24,54 @@ class EmailVerificationTest extends TestCase
         $response->assertStatus(200);
     }
 
-    public function test_resending_says_so_without_printing_the_sentinel(): void
+    public function test_resending_says_so_in_words_a_reader_can_read(): void
     {
-        // session('status') holds 'verification-link-sent' on this screen --
-        // a SENTINEL a page matches on, not a message. Handing it to an alert
-        // would print that word to the reader, which is why the page is sent a
-        // boolean and keeps the sentence itself.
+        // This flash used to be the sentinel 'verification-link-sent', which
+        // two screens matched on while each kept its own copy of the sentence.
+        // It is the sentence itself now, so what reaches the page is what the
+        // page shows -- and this asserts the words, not a flag.
         $user = User::factory()->unverified()->create();
 
         $this->actingAs($user)->post(route('verification.send'))
-            ->assertRedirect();
+            ->assertRedirect()
+            ->assertSessionHas('status', 'A new verification link has been sent to your email address.');
 
         $page = $this->actingAs($user)->get('/verify-email')->assertOk()->viewData('page');
 
-        $this->assertTrue($page['props']['link_sent']);
-        $this->assertNotContains('verification-link-sent', $page['props'],
-            'The sentinel reached the page as a value it could render.');
-
-        // The sentence is the component's, and the sentinel is nowhere in it.
-        $source = (string) file_get_contents(resource_path('js/Pages/Auth/VerifyEmail.vue'));
-
-        $this->assertStringContainsString(
-            'A new verification link has been sent to the email address you provided',
-            $source
+        $this->assertSame(
+            'A new verification link has been sent to your email address.',
+            $page['props']['flash']['status']
         );
 
-        $this->assertStringNotContainsString('{{ link_sent }}', $source);
+        // Nothing sentinel-shaped survives anywhere a reader could meet it.
+        $source = $this->verifyEmailMarkup();
+
+        $this->assertStringNotContainsString('verification-link-sent', $source);
+        $this->assertStringNotContainsString('link_sent', $source);
+
+        // And the page draws the flash rather than keeping a second copy of
+        // the wording, which is how the two screens used to disagree about it.
+        $this->assertStringContainsString(':message="flash.status"', $source);
+    }
+
+    /**
+     * The page with its prose removed.
+     *
+     * A comment naming the sentinel is not the sentinel, and this file's own
+     * comment explains at length which one it replaced -- so the first version
+     * of the assertion above failed against the explanation of why it passes.
+     * That trap has now caught this suite seven times; strip first, assert
+     * second.
+     */
+    private function verifyEmailMarkup(): string
+    {
+        $source = (string) file_get_contents(resource_path('js/Pages/Auth/VerifyEmail.vue'));
+
+        $source = (string) preg_replace('/<!--.*?-->/s', ' ', $source);
+        $source = (string) preg_replace('#/\*.*?\*/#s', ' ', $source);
+
+        // Anchored, so a protocol-relative URL keeps its slashes.
+        return (string) preg_replace('#^\s*//.*$#m', ' ', $source);
     }
 
     public function test_the_prompt_says_nothing_until_a_link_is_sent(): void
@@ -57,18 +79,15 @@ class EmailVerificationTest extends TestCase
         // The other half: an alert that is always there says nothing.
         $user = User::factory()->unverified()->create();
 
-        $this->assertFalse(
+        $this->assertNull(
             $this->actingAs($user)->get('/verify-email')->assertOk()
-                ->viewData('page')['props']['link_sent']
+                ->viewData('page')['props']['flash']['status']
         );
 
-        // And the alert is gated on that. Without this the prop could be
-        // correct while the page showed the confirmation to everybody, which
-        // is what removing the v-if does and what nothing here noticed.
-        $this->assertStringContainsString(
-            '<Alert v-if="link_sent"',
-            (string) file_get_contents(resource_path('js/Pages/Auth/VerifyEmail.vue'))
-        );
+        // And the alert is gated on it. Without this the flash could be empty
+        // while the page showed the confirmation to everybody, which is what
+        // removing the v-if does and what nothing here noticed.
+        $this->assertStringContainsString('<Alert v-if="flash.status"', $this->verifyEmailMarkup());
     }
 
     public function test_email_can_be_verified(): void

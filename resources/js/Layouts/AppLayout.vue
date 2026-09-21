@@ -9,12 +9,10 @@ import ConfirmDialog from '../Components/ConfirmDialog.vue';
         <Navigation />
 
         <!--
-            Flash is shared on every page but deliberately not rendered here.
-            Three controllers flash sentinel strings ('profile-updated',
-            'password-updated', 'verification-link-sent') that pages MATCH on
-            rather than display, and eight Blade views still render their own
-            session('status'). A block here would show a reader the sentinel and
-            double up the eight. The layout takes ownership once those convert.
+            Flash is shared on every page and still drawn by each page that
+            wants it. What kept it out of here was sentinel flashing -- strings
+            a page matched on rather than displayed -- and no controller does
+            that any more, so this layout can take ownership of it.
         -->
         <header v-if="$slots.header" class="shell__header">
             <div class="shell__header-inner"><slot name="header" /></div>

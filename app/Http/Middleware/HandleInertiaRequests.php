@@ -53,21 +53,19 @@ class HandleInertiaRequests extends Middleware
             ],
 
             /*
-             * Shared, but NOT rendered by the layout.
+             * Shared on every page, and always a SENTENCE.
              *
-             * ProfileController flashes the sentinel 'profile-updated',
-             * Auth\PasswordController flashes 'password-updated' and
-             * Auth\EmailVerificationNotificationController flashes
-             * 'verification-link-sent'. Views MATCH those strings to decide
-             * whether to show an inline saved indicator; they never display
-             * them.
+             * Three controllers used to flash sentinels here -- ProfileController
+             * 'profile-updated', Auth\PasswordController 'password-updated',
+             * Auth\EmailVerificationNotificationController
+             * 'verification-link-sent' -- which pages matched on rather than
+             * displayed. Anything rendering this generically would have shown a
+             * reader the word 'profile-updated'.
              *
-             * So a layout-level flash block would show a reader the literal
-             * text 'profile-updated'. Pages opt in instead. Those three
-             * controllers are now the ONLY thing standing between here and
-             * AppLayout owning the flash: the views that used to render their
-             * own session('status') beside it are all public pages now, and
-             * the public shell is a different layout.
+             * None of them does now. The first two flash nothing at all: each
+             * only told one form on the profile page that it had saved, and
+             * useForm's recentlySuccessful tells it that itself. The third
+             * flashes the sentence, because it has to reach two screens.
              *
              * Closures, so the session is read when the response is built
              * rather than when the middleware is constructed.

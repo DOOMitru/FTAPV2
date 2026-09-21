@@ -12,12 +12,10 @@ use Tests\TestCase;
 /**
  * What every Inertia page is handed, whatever it asks for.
  *
- * Flash is SHARED but not rendered by the layout. Three controllers flash
- * sentinel strings -- 'profile-updated', 'password-updated',
- * 'verification-link-sent' -- that views match on rather than display, so a
- * layout printing flash generically would show a reader 'profile-updated'.
- * Those three controllers are the whole of what keeps the flash out of
- * AppLayout; the Blade views that also argued for it are deleted.
+ * Flash is SHARED, and is always a sentence. Three controllers used to flash
+ * sentinels that views matched on rather than displayed -- 'profile-updated',
+ * 'password-updated', 'verification-link-sent' -- which is why nothing rendered
+ * it generically. None of them does now.
  */
 class InertiaSharedPropsTest extends TestCase
 {
@@ -67,16 +65,16 @@ class InertiaSharedPropsTest extends TestCase
         }
     }
 
-    public function test_a_sentinel_flash_reaches_the_page_unchanged(): void
+    public function test_a_flash_reaches_the_page_unchanged(): void
     {
-        // Not translated, not rendered -- handed over exactly as flashed, so
-        // the page can match on it the way the Blade partial does.
+        // Handed over exactly as flashed. The middleware neither formats it
+        // nor decides whether anyone will draw it.
         $user = User::factory()->create(['approval_status' => 'approved']);
 
         $this->actingAs($user)
-            ->withSession(['status' => 'profile-updated'])
+            ->withSession(['status' => 'Venue Casino Regina updated.'])
             ->get(route('profile.edit'))->assertOk()
-            ->assertInertia(fn (Assert $page) => $page->where('flash.status', 'profile-updated'));
+            ->assertInertia(fn (Assert $page) => $page->where('flash.status', 'Venue Casino Regina updated.'));
     }
 
     public function test_the_shell_is_given_the_display_name_rather_than_deriving_it(): void

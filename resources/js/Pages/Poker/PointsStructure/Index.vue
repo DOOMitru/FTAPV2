@@ -53,12 +53,8 @@ const remove = async (structure: Structure): Promise<void> => {
         </template>
 
         <div class="l-container l-stack">
-            <!--
-                Rendered here, not by the layout. Flash is shared on every page
-                but three controllers flash sentinel strings that pages match on
-                rather than display, so a layout-level block would show a reader
-                'profile-updated'. A page that wants its flash asks for it.
-            -->
+            <!-- Rendered here, not by the layout: a page that wants its flash
+                 asks for it. -->
             <Alert v-if="flash.status" variant="success" :message="flash.status" />
             <Alert v-if="flash.error" variant="danger" :message="flash.error" />
 

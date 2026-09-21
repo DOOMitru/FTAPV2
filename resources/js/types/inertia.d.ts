@@ -135,12 +135,12 @@ export interface PageProps {
     auth: { user: AuthUser | null };
 
     /**
-     * Shared on every page, rendered by none of them.
+     * Shared on every page; each page that wants it draws it.
      *
-     * Three controllers flash sentinel strings ('profile-updated',
-     * 'password-updated', 'verification-link-sent') that a page MATCHES on to
-     * decide whether to show an inline saved indicator. A component that
-     * printed flash.status would show a reader the sentinel itself.
+     * Always a sentence, never a sentinel. Three controllers used to flash
+     * strings a page matched on rather than displayed, which is why nothing
+     * rendered this generically; they no longer do, so a component may print
+     * flash.status as it stands.
      */
     flash: { status: string | null; error: string | null };
 

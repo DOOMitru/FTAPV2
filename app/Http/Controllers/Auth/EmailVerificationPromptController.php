@@ -17,11 +17,9 @@ class EmailVerificationPromptController extends Controller
     {
         return $request->user()->hasVerifiedEmail()
             ? redirect()->intended(route('dashboard', absolute: false))
-            : Inertia::render('Auth/VerifyEmail', [
-                // A BOOLEAN, not the session value. session('status') holds
-                // the sentinel 'verification-link-sent'; handing that to an
-                // alert would print the word on the screen.
-                'link_sent' => $request->session()->get('status') === 'verification-link-sent',
-            ]);
+            // No props. The page used to be sent a link_sent boolean because
+            // session('status') held a sentinel it could not print; the flash
+            // is the sentence now, and the page draws the shared value.
+            : Inertia::render('Auth/VerifyEmail');
     }
 }

@@ -37,7 +37,16 @@ class DashboardGutterTest extends TestCase
         foreach (Finder::create()->files()->in(resource_path('js/Pages'))->name('*.vue') as $file) {
             $content = (string) file_get_contents($file->getRealPath());
 
-            if (! str_contains($content, 'AppLayout')) {
+            /*
+             * The IMPORT, not the word.
+             *
+             * The first version of this matched any page whose source
+             * contained "AppLayout", and Auth/VerifyEmail.vue -- which uses
+             * GuestLayout -- was reported the moment a comment in it mentioned
+             * AppLayout by name to explain why. Prose about a thing is not the
+             * thing, which this suite has now learned seven times.
+             */
+            if (! str_contains($content, "import AppLayout from")) {
                 continue;
             }
 

@@ -100,6 +100,63 @@ class ProfileTest extends TestCase
         $this->assertNotNull($user->fresh());
     }
 
+    public function test_each_form_reports_its_own_save(): void
+    {
+        /*
+         * Three forms share this page, so "Saved." has to belong to one of
+         * them. It used to be driven by a page-wide flash -- ProfileController
+         * set 'profile-updated' and PasswordController 'password-updated',
+         * strings each partial matched on to recognise its own save. Neither
+         * controller flashes anything now; each form asks its own useForm,
+         * which sets recentlySuccessful on success and clears it 2000ms later.
+         *
+         * Nothing here can press a button, so this asserts the wiring at both
+         * ends: no status is flashed, and the indicator is bound to the form.
+         * That it actually appears and clears was checked in a browser.
+         */
+        $user = User::factory()->create();
+
+        $this->actingAs($user)->patch('/profile', [
+            'first_name' => 'Test', 'last_name' => 'User', 'email' => 'test@example.com',
+        ])->assertRedirect('/profile')->assertSessionMissing('status');
+
+        $this->actingAs($user)->put('/password', [
+            'current_password' => 'password',
+            'password' => 'a-longer-new-password',
+            'password_confirmation' => 'a-longer-new-password',
+        ])->assertSessionHasNoErrors()->assertSessionMissing('status');
+
+        foreach (['UpdateProfileInformationForm', 'UpdatePasswordForm'] as $partial) {
+            $source = $this->withoutProse(
+                resource_path("js/Pages/Profile/Partials/{$partial}.vue")
+            );
+
+            $this->assertStringContainsString('v-if="form.recentlySuccessful"', $source,
+                "{$partial} no longer reports its own save.");
+
+            // And neither partial has kept a sentinel to fall back on.
+            $this->assertStringNotContainsString('-updated', $source);
+        }
+    }
+
+    /**
+     * A file with its comments removed.
+     *
+     * Both partials EXPLAIN which sentinel they replaced, by name, so an
+     * assertion that the name is absent would otherwise fail against the
+     * explanation of why it passes.
+     */
+    private function withoutProse(string $path): string
+    {
+        $source = (string) file_get_contents($path);
+
+        $source = (string) preg_replace('/<!--.*?-->/s', ' ', $source);
+        $source = (string) preg_replace('#/\*.*?\*/#s', ' ', $source);
+
+        // Anchored, so a protocol-relative URL keeps its slashes.
+        return (string) preg_replace('#^\s*//.*$#m', ' ', $source);
+    }
+
     public function test_a_wrong_password_sends_the_delete_error_back_to_the_page(): void
     {
         // The dialog has to reopen so the person can try again -- otherwise a

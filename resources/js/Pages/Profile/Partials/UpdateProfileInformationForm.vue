@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue';
 import { router, useForm, usePage } from '@inertiajs/vue3';
 import Field from '../../../Components/Field.vue';
 import Btn from '../../../Components/Btn.vue';
@@ -33,20 +32,12 @@ const form = useForm({
 const submit = (): void => { form.patch('/profile', { preserveScroll: true }); };
 const resendVerification = (): void => { router.post('/email/verification-notification'); };
 
-// "Saved." shows for two seconds and goes, matching the Blade partial's
-// x-init timeout. A watch rather than a computed: the flash is the same string
-// on a second save, so the indicator has to be re-armed by the change, not by
-// the value.
-const saved = ref(false);
-
-watch(() => props.status, (status) => {
-    if (status !== 'profile-updated') {
-        return;
-    }
-
-    saved.value = true;
-    setTimeout(() => { saved.value = false; }, 2000);
-}, { immediate: true });
+/*
+ * "Saved." is this FORM's business -- see UpdatePasswordForm, which says the
+ * same thing at more length. useForm sets recentlySuccessful on success and
+ * clears it 2000ms later, which is the window the sentinel-watching timeout
+ * used to hold open by hand.
+ */
 </script>
 
 <template>
@@ -82,8 +73,12 @@ watch(() => props.status, (status) => {
                     </button>
                 </p>
 
-                <Alert v-if="status === 'verification-link-sent'" variant="success"
-                       message="A new verification link has been sent to your email address." />
+                <!--
+                    The flash is the sentence now, so this draws it rather than
+                    matching a sentinel and keeping a copy of the wording. The
+                    only thing that flashes to this page is the resend above.
+                -->
+                <Alert v-if="status" variant="success" :message="status" />
             </div>
 
             <div v-if="page.props.auth.user?.is_admin">
@@ -99,7 +94,7 @@ watch(() => props.status, (status) => {
                 <Btn variant="primary">Save</Btn>
 
                 <Transition>
-                    <p v-if="saved" class="field__hint">Saved.</p>
+                    <p v-if="form.recentlySuccessful" class="field__hint">Saved.</p>
                 </Transition>
             </div>
         </form>
