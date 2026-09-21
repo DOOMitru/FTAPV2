@@ -656,15 +656,6 @@ class PokerTournamentController extends Controller
     {
         $isAdmin = auth()->user()->is_admin;
 
-        // Registering somebody else means this came from the admin dialog, which
-        // is built to add several players in a row. Every exit below carries the
-        // flag so the dialog reopens on the way back -- including the refusals,
-        // where closing it would hide the list the administrator was working
-        // through behind the message explaining what went wrong.
-        $reopen = fn (RedirectResponse $back) => $isAdmin && $request->has('user_id')
-            ? $back->with('register_open', true)
-            : $back;
-
         // A published tournament is finished. Its players have been told where
         // they came, and a place is a position in a field -- so nothing may
         // change the field's size or any finish in it.
@@ -696,7 +687,7 @@ class PokerTournamentController extends Controller
             $errorMsg = ($targetUserId === auth()->id())
                 ? 'You are already registered for this tournament.'
                 : 'That user is already registered for this tournament.';
-            return $reopen(back()->with('error', $errorMsg));
+            return back()->with('error', $errorMsg);
         }
 
         $user = \App\Models\User::findOrFail($targetUserId);
@@ -710,9 +701,9 @@ class PokerTournamentController extends Controller
         // approval or by email verification, and an unexplained refusal turns
         // support into guesswork.
         if (! $user->isApproved()) {
-            return $reopen(back()->with('error', $targetUserId === auth()->id()
+            return back()->with('error', $targetUserId === auth()->id()
                 ? 'Your account is waiting for approval by a league administrator, so you cannot enter tournaments yet.'
-                : 'That account has not been approved by a league administrator yet.'));
+                : 'That account has not been approved by a league administrator yet.');
         }
 
         $tournament->registrants()->create([
@@ -735,7 +726,7 @@ class PokerTournamentController extends Controller
             $back->with('registered_name', trim($user->first_name.' '.$user->last_name));
         }
 
-        return $reopen($back);
+        return $back;
     }
 
     /**

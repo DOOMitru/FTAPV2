@@ -459,43 +459,46 @@ class AdminRegisterDialogTest extends TestCase
         $this->actingAs($this->admin())
             ->from(route('tournaments.show', $tournament))
             ->post(route('tournaments.register', $tournament), ['user_id' => $player->id])
-            ->assertSessionHas('register_open', true)
             ->assertSessionHas('error');
     }
 
-    public function test_a_player_registering_themselves_does_not_open_it(): void
+    public function test_nothing_flashes_a_flag_to_reopen_the_dialog(): void
     {
-        // Self-registration comes from the event card on the same page and from
-        // the public site. Neither has a dialog to reopen, and flashing the key
-        // would make a player's own registration pop one open for them.
-        $tournament = $this->tournament();
-        $player = User::factory()->create(['is_admin' => false, 'approval_status' => 'approved']);
-
-        $this->actingAs($player)
-            ->from(route('tournaments.show', $tournament))
-            ->post(route('tournaments.register', $tournament))
-            ->assertSessionMissing('register_open');
-    }
-
-    public function test_an_admin_registering_themselves_does_not_open_it_either(): void
-    {
-        // An admin clicking Register on the event card is registering
-        // themselves, which posts no user_id -- the flag keys off that, not off
-        // the role.
-        $tournament = $this->tournament();
-
-        $this->actingAs($this->admin())
-            ->from(route('tournaments.show', $tournament))
-            ->post(route('tournaments.register', $tournament))
-            ->assertSessionMissing('register_open');
+        // Three tests used to live here: a player registering themselves, an
+        // admin registering themselves, and an ordinary page load all had to
+        // NOT flash register_open, because each would have popped a dialog
+        // open at somebody who had not asked for one.
+        //
+        // The flag is gone. With a client-side visit the component is reused
+        // and the dialog is never closed, so nothing needs reopening -- and a
+        // key nothing reads is a key that drifts. What replaces those three is
+        // one assertion that it stayed gone: reintroducing it would mean the
+        // dialog had started closing again, which is a defect of its own.
+        $this->assertStringNotContainsString(
+            'register_open',
+            (string) file_get_contents(app_path('Http/Controllers/Poker/PokerTournamentController.php'))
+        );
     }
 
     public function test_an_ordinary_page_load_does_not_open_it(): void
     {
-        $this->assertStringNotContainsString(
-            'x-init="$el.showModal()"',
-            $this->show($this->tournament())->getContent()
+        // The dialog is mounted on every admin visit and opened only by the
+        // trigger. Nothing in the component opens it on mount -- showModal()
+        // is reachable from one place, the open() the page calls.
+        $this->show($this->tournament());
+
+        // Comments stripped first: this component explains what showModal()
+        // buys, and prose naming the call is not a call. The same trap
+        // ComponentParityTest and UnusedCssClassTest strip for.
+        $dialog = (string) preg_replace(
+            ['/<!--.*?-->/s', '#/\*.*?\*/#s', '/^\s*\/\/.*$/m'],
+            ' ',
+            $this->dialog()
         );
+
+        $this->assertSame(1, substr_count($dialog, 'showModal()'));
+        $this->assertStringContainsString('const open = (): void => {', $dialog);
+        $this->assertStringContainsString('@click="openRegister"', $this->page());
     }
 
     public function test_the_server_still_refuses_what_the_dialog_greys_out(): void

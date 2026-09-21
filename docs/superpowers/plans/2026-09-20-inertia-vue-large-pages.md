@@ -1,4 +1,4 @@
-# Inertia + Vue Conversion — Plan 6: The two large pages
+# Inertia + Vue Conversion — Plan 6: The two large pages — COMPLETE
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
@@ -527,7 +527,7 @@ definition. Do not compute letters in TypeScript.
 
 ---
 
-## Task 5: close out the conversion
+## Task 5: close out the conversion — DONE
 
 **Files:**
 - Modify: `tests/Feature/VenueStatRowsTest.php`,
@@ -553,20 +553,20 @@ Vue) with the season page; re-point the second.
   is a separate piece of work and should be written down as one, not started
   here.
 
-- [ ] **Step 1: Re-point `VenueStatRowsTest`** and run it.
+- [x] **Step 1: Re-point `VenueStatRowsTest`** and run it.
 
-- [ ] **Step 2: Amend spec §6** with what happened to the two guards, and §1
+- [x] **Step 2: Amend spec §6** with what happened to the two guards, and §1
       with the final route count.
 
-- [ ] **Step 3: Update `docs/RESUME-HERE.md`** — the suite figure, the
+- [x] **Step 3: Update `docs/RESUME-HERE.md`** — the suite figure, the
       conversion's state, and what remains Blade and why.
 
-- [ ] **Step 4: Full suite, build, and a browser sweep of every converted page**
+- [x] **Step 4: Full suite, build, and a browser sweep of every converted page**
 
 The sweep is worth its cost here: it is the last chance to catch a page that
 renders but no longer mounts.
 
-- [ ] **Step 5: Commit (hand-off)**
+- [x] **Step 5: Commit (hand-off)**
 
 ---
 

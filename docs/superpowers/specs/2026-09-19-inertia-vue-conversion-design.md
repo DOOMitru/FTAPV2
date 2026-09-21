@@ -39,6 +39,16 @@ a rewritten deploy pipeline, and an ongoing cost, in service of a preference.
 
 ## 1. The boundary
 
+**COMPLETE, 2026-09-20.** All 29 authenticated routes are Vue; the 18 public
+ones are Blade and are staying. What follows is the list as it was drawn, and
+it held: nothing moved across the line in either direction.
+
+One thing the list did not anticipate. `p-event` is rendered by two public
+pages AND by the tournament details page, so it became a TWELFTH twin
+alongside the eleven in §2 -- a component that exists twice for good rather
+than for the length of the conversion. `ComponentParityTest` discovers it by
+name like the others.
+
 Exact, because "the app behind login" is a vibe and this needs to be a list.
 
 **Becoming Vue pages (29):** `/dashboard`, `/profile`, `/players/{player}`,
@@ -60,7 +70,7 @@ it untouched means this project cannot break the one defence the public
 registration form has. Converting the auth screens later is a small, separate
 piece of work if it is ever wanted.
 
-## 2. Eleven components have to exist twice
+## 2. Eleven components have to exist twice -- twelve, as it turned out
 
 This is the real cost of the hybrid, and the part most likely to cause trouble
 later, so it is stated first among the consequences rather than buried.
@@ -222,17 +232,35 @@ Of 112 test files:
 - **34 never touch HTML** -- model, command and unit tests -- and do not change.
 - **16 scan `.blade.php` files directly** and are re-homed, as below.
 
-**Guards that retire (2).** `MarkupBalanceTest` -- Vue compiles its templates,
-so an unbalanced tag is a build failure and no longer needs a test.
-`AlpineAttributeGuardTest` -- it guards an Alpine expression against containing
-its own delimiter, and goes when Alpine goes. Both stay alive while any Blade
-page still needs them, and are deleted only when their last target converts.
+**Guards that retire (2) -- NEITHER DID, 2026-09-20.** `MarkupBalanceTest` and
+`AlpineAttributeGuardTest` were expected to go once their last target
+converted. Their last targets are `components/{modal,topbar,dropdown}.blade.php`
+and the public pages that render them, none of which convert under the boundary
+in §1 -- so both stay, and so does Alpine. The prediction was made before that
+boundary was drawn; this is what it looks like from the other side.
+
+The reasoning behind each is unchanged and still applies to the Blade half: Vue
+compiles its templates, so an unbalanced tag there is a build failure, and an
+Alpine expression can still be truncated by a quote inside its own attribute.
 
 **Guards that re-point at `.vue`, keeping `.blade.php` for the public side
 (12).** `UnusedCssClassTest`, `ModifierClassGuardTest`, `InlineStyleGuardTest`,
 `PlayerLinkCoverageTest`, `MonogramCoverageTest`, `MonogramTest`,
 `LinkedRowTest`, `DialogDisplayGuardTest`, `DashboardGutterTest`,
 `FormActionAlignmentTest`, `VenueStatRowsTest`, `ConvertedViewsTest`.
+
+**Done 2026-09-20, and earlier than this section imagined.** Seven of them
+sweep a directory and now read both halves through
+`Tests\Concerns\ScansTemplates`; the rest name screens, and an entry moved
+from `views/` to `js/Pages/` as each page converted. Doing it while pages were
+still converting mattered: a guard pointed at the shrinking half passes more
+easily every week, and these went un-re-pointed for three plans.
+
+Two faults surfaced from the move itself, neither predicted here. A class named
+in a COMMENT counted as used, so the dead-CSS guard went quiet about the class
+whose last real use had just been deleted. And `ComponentParityTest` read
+`route('tournaments.register')` as a class list, because it splits quoted
+strings on `.` and `register` is a declared class.
 
 `ConvertedViewsTest` deserves a note. It is the Tailwind ledger: a view not on
 its list must contain no Tailwind, and a view on the list must still contain

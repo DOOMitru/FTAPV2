@@ -5,37 +5,48 @@ poker nights in Regina.
 
 ## Where things stand
 
-Suite: **982 passed across 116 files**, on Laravel 13.32.0 and PHPUnit 12. `php artisan test` is the command, but
+Suite: **993 passed across 117 files**, on Laravel 13.32.0 and PHPUnit 12. `php artisan test` is the command, but
 see the segfault note below -- a full-suite run dies on this machine and has to
-be taken file by file, and `bin/suite.sh` is how that 982 was counted. Do not
+be taken file by file, and `bin/suite.sh` is how that 993 was counted. Do not
 count it by hand: the previous figure in this line went stale, and so did the
 loop that produced it.
 
-**The current work is the Inertia + Vue conversion, on a branch.** The view
-layer is moving from Blade + Alpine to Inertia with Vue 3 and TypeScript, for
-the 29 authenticated routes only -- the 18 public ones stay Blade, because
-Inertia SSR needs a persistent Node process and DreamHost shared hosting cannot
-run one, and because `/register` carries the reCAPTCHA gate that is verified
-end to end. Two Vite entries keep Vue out of the public pages' bundle.
+**The Inertia + Vue conversion is DONE, 2026-09-20.** The view layer behind
+login is Inertia with Vue 3 and TypeScript: 33 page components and 28 shared
+components under `resources/js`. All 29 authenticated routes converted; the 18
+public ones are Blade and are STAYING, because Inertia SSR needs a persistent
+Node process and DreamHost shared hosting cannot run one, and because
+`/register` carries the reCAPTCHA gate that is verified end to end. Two Vite
+entries keep Vue out of the public pages' bundle -- `app.ts` is ~48 kB and
+`inertia-app.ts` ~304 kB, and a single entry would have put the second on the
+landing page.
 
 Read `docs/superpowers/specs/2026-09-19-inertia-vue-conversion-design.md`
-first; the plans beside it are `-foundation`, `-components`, `-index-pages` and
-`-forms`, all four complete.
+first. Its §1 and §6 carry amendments recording where it was wrong. The six
+plans beside it -- `-foundation`, `-components`, `-index-pages`, `-forms`,
+`-detail-pages`, `-large-pages` -- are all complete and are worth reading in
+order if you need to know why a page is shaped the way it is.
 
-**Where the conversion stands: 20 routes of 29.** Done are `/profile`, the six
-index pages, all thirteen create and edit forms, and the venue-points player
-picker. Each converted page's Blade view is deleted with it, so
-`resources/views` now holds the public side, the layouts, the shared components
-and the six screens still to convert.
+**What still renders Blade**, and what each is: `home`, `events`, `about`,
+`contact`, four `rules/*` pages, and the four public auth screens. Plus the
+layouts, every `components/*.blade.php`, and the mail templates. Twelve of
+those components now exist TWICE -- a Blade half for the public pages and a Vue
+half for the app -- and `ComponentParityTest` discovers each pair by name and
+holds the two to the same class hooks. That is not temporary; it is the shape
+of the app now.
 
-**What is left, in two plans that are not yet written.** Plan 5 is the detail
-pages and two auth screens: `dashboard` (192 lines), `users/show` (178),
-`poker/venues/show` (174), `players/show` (73), `verify-email`,
-`confirm-password`. Plan 6 is the two large ones: `poker/seasons/show` (346,
-with the points/rank toggle and the venue points privacy rule) and
-`poker/tournaments/show` (499, plus porting `p-event` at 308). Then Alpine and
-`MarkupBalanceTest` and `AlpineAttributeGuardTest` go -- all three still have
-targets in `modal`, `topbar`, `dropdown` and `tournaments/show`.
+**Alpine stays too**, for `modal`, `topbar` and `dropdown`, which the public
+pages render. So do `MarkupBalanceTest` and `AlpineAttributeGuardTest`, which
+the spec predicted would retire. `confirm.ts` still serves the Blade half; the
+Vue half uses the `useConfirm` composable.
+
+**Two things the conversion left behind, both small, both optional.** The flash
+could move into `AppLayout` once the three controllers that flash SENTINEL
+strings are changed -- `profile-updated` and friends, which pages match on
+rather than display. And registering or unregistering from the dashboard shows
+no confirmation, and a refusal is equally silent: both end in
+`back()->with(...)` and neither that page nor the Blade one it replaced renders
+a flash.
 
 **The design-system work is finished and is no longer what this project is
 about.** Phases 0-5 moved all 86 views off Tailwind onto hand-built CSS
