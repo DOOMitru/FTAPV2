@@ -16,7 +16,6 @@ use Illuminate\Notifications\DatabaseNotification;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Number;
 use Illuminate\Support\Str;
-use Illuminate\View\View;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -153,7 +152,7 @@ class PokerTournamentController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(PokerTournament $tournament): View
+    public function show(PokerTournament $tournament): Response
     {
         $tournament->load([
             'venue',
@@ -309,6 +308,12 @@ class PokerTournamentController extends Controller
                     'nickname' => $user->nickname,
                     'email' => $user->email,
                     'played' => $user->tournament_registrations_count,
+
+                    // Pluralised in PHP, like everything else the page places.
+                    'played_label' => trans_choice(
+                        '{1}1 tournament|[2,*]:count tournaments',
+                        $user->tournament_registrations_count
+                    ),
                     'registered' => in_array($user->id, $entered, true),
                     'approved' => $user->isApproved(),
                     // One lowercase haystack per row, built here rather than in
@@ -321,18 +326,159 @@ class PokerTournamentController extends Controller
                 ->values();
         }
 
-        return view('poker.tournaments.show', compact(
-            'tournament',
-            'registrantsCount',
-            'isUserRegistered',
-            'isPast',
-            'registerCandidates',
-            'isComplete',
-            'nextPlace',
-            'nextPlacePoints',
-            'standings',
-            'standingsTitle'
-        ));
+        $user = auth()->user();
+        $isAdmin = (bool) $user->is_admin;
+
+        return Inertia::render('Poker/Tournaments/Show', [
+            // The card's own props, in the shape PEvent.vue declares. The
+            // details page turns the map off and the Details button with it:
+            // this IS the details page.
+            'tournament' => [
+                'id' => $tournament->id,
+                'name' => $tournament->name,
+                'description' => $tournament->description,
+                'season_label' => $tournament->season->name,
+                'month_label' => $tournament->start_time->format('M'),
+                'day_label' => $tournament->start_time->format('j'),
+                'weekday_label' => $tournament->start_time->format('D'),
+                'date_label' => $tournament->start_time->format('D, M j'),
+                'time_label' => $tournament->start_time->format('g:i A'),
+                'full_date_label' => $tournament->start_time->format('l j F Y, g:i A'),
+                'venue_label' => $tournament->venue->name ?? __('Location TBD'),
+
+                // No map on this page: it is reached from inside the dashboard
+                // by people who already know where the league plays, and a
+                // third of the card spent on one pushes the panels this page
+                // exists for below the fold.
+                'map_src' => null,
+                'map_title' => __('Map of :venue', ['venue' => $tournament->venue->name ?? '']),
+                'address' => null,
+
+                'href' => route('tournaments.show', $tournament),
+                'season_href' => route('seasons.show', $tournament->season),
+
+                // poker.venues.show is inside the admin-only prefix; offering
+                // it to a player is offering a 403.
+                'venue_href' => $isAdmin && $tournament->venue
+                    ? route('poker.venues.show', $tournament->venue)
+                    : null,
+
+                'is_registered' => $isUserRegistered,
+
+                // The controller's own rules, restated once. A player's window
+                // closes when the cards go in the air; an administrator
+                // registers from the room until the results are published.
+                'can_register' => ! $isUserRegistered
+                    && $user->isApproved()
+                    && ($isAdmin || ! $tournament->hasStarted()),
+
+                // Asymmetric with the above, deliberately: joining a field of
+                // ten makes it a field of eleven, while leaving a settled one
+                // makes every recorded place describe a tournament that never
+                // happened.
+                'can_unregister' => $isUserRegistered && ! $tournament->hasRecordedResults(),
+                'awaiting_approval' => ! $isUserRegistered && ! $user->isApproved(),
+                'unregister_confirm' => __('Unregister from :tournament? You can enter again any time before results are recorded.', [
+                    'tournament' => emph($tournament->name),
+                ]),
+
+                'is_published' => $tournament->isPublished(),
+                'publish_confirm' => __('Publish results for :tournament? Every player who scored points will be notified, and the tournament will be locked.', [
+                    'tournament' => emph($tournament->name),
+                ]),
+                'unpublish_confirm' => __('Unpublish :tournament? The notifications sent to players will be withdrawn.', [
+                    'tournament' => emph($tournament->name),
+                ]),
+                'delete_confirm' => __('Delete :name? Its registrations and every recorded finish go with it. This cannot be undone.', [
+                    'name' => emph($tournament->name),
+                ]),
+            ],
+
+            'can_manage' => $isAdmin,
+
+            // Offered only when it can act, so it is never a click that fails
+            // -- the controller refuses an incomplete field too.
+            'can_publish' => ! $tournament->isPublished() && $isComplete,
+
+            'standings_title' => $standingsTitle,
+            'registrants_label' => number_format($registrantsCount),
+
+            'standings' => $standings->map(function (array $row) use ($tournament, $isAdmin, $nextPlace, $nextPlacePoints) {
+                $result = $row['result'];
+
+                return [
+                    // A row comes from a registrant OR from a result with no
+                    // registration behind it -- the results screen makes those
+                    // -- so neither id is on every row. A v-for with a
+                    // duplicate or missing key reorders rows silently.
+                    'key' => $row['registrant'] ? 'r'.$row['registrant']->id : 'x'.$result->id,
+
+                    'name' => $row['name'],
+                    'nickname' => $row['nickname'],
+                    'player_id' => $row['user']?->id,
+                    'initials' => initials($row['name']),
+
+                    'place' => $result?->place,
+                    'points_label' => $result ? number_format($result->points).' '.__('pts') : null,
+
+                    // No timing gate. This once required registration closed,
+                    // on the reasoning that a late entry would change how many
+                    // places there are -- but the shift hook handles exactly
+                    // that.
+                    'can_eliminate' => $isAdmin && ! $result,
+                    'user_id' => $row['registrant']?->user_id,
+
+                    // The confirmation names the place and the points because
+                    // neither is chosen here -- they fall out of how many
+                    // players are still in, and an administrator should see
+                    // what they are about to award before they award it.
+                    'eliminate_confirm' => __('Eliminate :name? They finish in :place place and are awarded :points points. This records a tournament result.', [
+                        'name' => emph($row['name']),
+                        'place' => Number::ordinal($nextPlace),
+                        'points' => number_format($nextPlacePoints),
+                    ]),
+
+                    // ! $result is load-bearing rather than decoration:
+                    // without it an eliminated player gets their points badge
+                    // AND a remove button the controller then refuses. The
+                    // registrant check stays because the route needs one, and
+                    // a row built from a result alone has none.
+                    'can_remove' => $isAdmin && ! $result && ! $tournament->isPublished() && $row['registrant'],
+                    'registrant_id' => $row['registrant']?->id,
+                    'remove_confirm' => __('Remove :name from :tournament? Any finishes already recorded move up a place and are repriced. An administrator can enter them again until the results are published.', [
+                        'name' => emph($row['name']),
+                        'tournament' => emph($tournament->name),
+                    ]),
+                ];
+            })->values()->all(),
+
+            // Asked the moment the field is settled, and flashed: it appears
+            // once, right after the last elimination, and never again on a
+            // reload.
+            'offer_publish' => (bool) session('offer_publish'),
+            'offer_publish_message' => __('That is the whole field for :tournament. Publish the results now?', [
+                'tournament' => $tournament->name,
+            ]),
+
+            // Publishing is the only thing that locks the field now, so that
+            // is what the note says. It read "Results recorded, entries
+            // locked", which was true when the first elimination closed
+            // removal for the whole field and is false now.
+            'field_locked_note' => $isAdmin && $tournament->isPublished() && $registrantsCount > 0
+                ? __('Results published · field locked')
+                : null,
+
+            // Everyone, not everyone available. The dialog shows a player who
+            // cannot be picked, named and inert, because absence is ambiguous:
+            // an administrator looking for somebody who is not in the list
+            // cannot tell whether they are already entered or simply not
+            // approved, and the first is the common case.
+            'register_candidates' => $registerCandidates->all(),
+
+            // Said inside the dialog, where the administrator is looking: the
+            // page-level alert is behind the backdrop while it is open.
+            'registered_name' => session('registered_name'),
+        ]);
     }
 
     /**

@@ -227,10 +227,21 @@ class MonogramTest extends TestCase
     {
         [$tournament, $player] = $this->tournamentWithAPlayer();
 
-        $html = $this->actingAs(User::factory()->create(['is_admin' => true, 'approval_status' => 'approved']))
-            ->get(route('tournaments.show', $tournament))->assertOk()->getContent();
+        $props = $this->actingAs(User::factory()->create(['is_admin' => true, 'approval_status' => 'approved']))
+            ->get(route('tournaments.show', $tournament))->assertOk()
+            ->viewData('page')['props'];
 
-        $this->assertStringContainsString('>MI<', $html, 'The registered-players row lost its monogram.');
+        // The letters come from initials(), in PHP -- the one definition this
+        // whole file exists to keep.
+        $this->assertSame('MI', $props['standings'][0]['initials'],
+            'The registered-players row lost its monogram.');
+
+        $this->assertStringContainsString(
+            '<Monogram v-else :initials="row.initials" decorative />',
+            (string) file_get_contents(resource_path('js/Pages/Poker/Tournaments/Show.vue')),
+            'The row no longer draws the component.'
+        );
+
         $this->assertNotNull($player);
     }
 

@@ -157,17 +157,42 @@ class EventCardTest extends TestCase
             ->assertDontSee('>Register<', false);
     }
 
+    /**
+     * The card's props on the DETAILS page, which is Vue.
+     *
+     * The events and home pages still render the Blade twin and are still
+     * asserted against their HTML -- that is the point of the pair, and
+     * ComponentParityTest holds the two to the same class hooks.
+     *
+     * @return array<string, mixed>
+     */
+    private function cardOn(PokerTournament $tournament, User $viewer): array
+    {
+        return $this->actingAs($viewer)
+            ->get(route('tournaments.show', $tournament->fresh()))->assertOk()
+            ->viewData('page')['props']['tournament'];
+    }
+
+    /** The Vue card's own markup. */
+    private function cardSource(): string
+    {
+        return (string) file_get_contents(resource_path('js/Components/PEvent.vue'));
+    }
+
     public function test_a_registered_player_can_unregister_from_the_details_page(): void
     {
         $tournament = $this->tournament();
         $player = User::factory()->create();
         $this->register($tournament, $player);
 
-        $this->actingAs($player)
-            ->get(route('tournaments.show', $tournament))
-            ->assertOk()
-            ->assertSee('Unregister')
-            ->assertSee(route('tournaments.unregister', $tournament), false);
+        $card = $this->cardOn($tournament, $player);
+
+        $this->assertTrue($card['is_registered']);
+        $this->assertTrue($card['can_unregister']);
+
+        // And the control calls the path the route list gives it, which is not
+        // /register under another verb.
+        $this->assertStringContainsString('/unregister`', $this->cardSource());
     }
 
     public function test_unregister_is_not_offered_once_a_finish_is_recorded(): void
@@ -181,17 +206,19 @@ class EventCardTest extends TestCase
         $this->register($tournament, $player);
         $this->recordAFinish($tournament, $player);
 
-        $this->actingAs($player)
-            ->get(route('tournaments.show', $tournament))
-            ->assertOk()
-            ->assertSee('Registered')
-            ->assertDontSee('Unregister')
-            // The row is still drawn, because the badge is in it now -- but
-            // with no button group inside. The details page always passes the
-            // slot and fills it only when unregistering is possible, so the
-            // card has to test the slot's CONTENT: isset() alone would render
-            // an empty group and a gap beside the badge.
-            ->assertDontSee('p-event__actions-end', false);
+        $card = $this->cardOn($tournament, $player);
+
+        $this->assertTrue($card['is_registered']);
+        $this->assertFalse($card['can_unregister']);
+
+        // The row is still drawn, because the badge is in it -- but with no
+        // button group inside. Unconditional, that group rendered an empty div
+        // and a gap beside the badge, so it is drawn only when it holds
+        // something.
+        $this->assertStringContainsString(
+            'v-if="details || tournament.can_register || tournament.can_unregister"',
+            $this->cardSource()
+        );
     }
 
     public function test_an_unapproved_player_is_told_why_there_is_no_register_button(): void
@@ -199,11 +226,11 @@ class EventCardTest extends TestCase
         $tournament = $this->tournament();
         $pending = User::factory()->create(['approval_status' => 'pending']);
 
-        $this->actingAs($pending)
-            ->get(route('tournaments.show', $tournament))
-            ->assertOk()
-            ->assertSee('Awaiting approval')
-            ->assertDontSee('>Register<', false);
+        $card = $this->cardOn($tournament, $pending);
+
+        $this->assertTrue($card['awaiting_approval']);
+        $this->assertFalse($card['can_register'],
+            'A button the controller refuses is a click that cannot work.');
     }
 
     public function test_a_signed_in_player_gets_the_season_standings_button(): void
@@ -378,19 +405,23 @@ class EventCardTest extends TestCase
         $player = User::factory()->create();
         $this->register($tournament, $player);
 
-        $html = $this->actingAs($player)->get(route('tournaments.show', $tournament))
-            ->assertOk()->getContent();
-
-        $this->assertStringContainsString('p-event__actions', $html);
-
-        $row = substr($html, strpos($html, 'p-event__actions'));
-        $this->assertStringContainsString('Unregister', $row);
+        $card = $this->cardOn($tournament, $player);
 
         // Never both: someone registered cannot also be offered Register.
-        $this->assertStringNotContainsString('>Register<', $row);
+        $this->assertTrue($card['can_unregister']);
+        $this->assertFalse($card['can_register']);
 
-        // And no longer a menu item.
-        $this->assertStringNotContainsString('class="dropdown__item">Unregister', $html);
+        $source = $this->cardSource();
+        $row = substr($source, (int) strpos($source, 'p-event__actions'));
+
+        $this->assertStringContainsString('>Unregister</Btn>', $row);
+
+        // And no longer a menu item: the two entries in the kebab are Season
+        // Standings and the venue report.
+        $menu = substr($source, (int) strpos($source, 'p-event__menu'));
+        $menu = substr($menu, 0, (int) strpos($menu, '</Dropdown>'));
+
+        $this->assertStringNotContainsString('Unregister', $menu);
     }
 
     public function test_the_details_page_draws_no_map(): void
@@ -439,8 +470,10 @@ class EventCardTest extends TestCase
         // because a stylesheet cannot move one between two others.
         $tournament = $this->tournament();
 
-        $html = $this->actingAs(User::factory()->create())
-            ->get(route('tournaments.show', $tournament))->assertOk()->getContent();
+        $this->actingAs(User::factory()->create())
+            ->get(route('tournaments.show', $tournament))->assertOk();
+
+        $html = $this->cardSource();
 
         $venue = strpos($html, 'p-event__venue');
         $date = strpos($html, 'p-event__date');
@@ -458,19 +491,19 @@ class EventCardTest extends TestCase
         // screen reader reads, and it says the whole thing.
         $tournament = $this->tournament();
 
-        $html = $this->actingAs(User::factory()->create())
-            ->get(route('tournaments.show', $tournament))->assertOk()->getContent();
+        $card = $this->cardOn($tournament, User::factory()->create());
 
         $this->assertMatchesRegularExpression(
             '/<p class="p-event__date" aria-hidden="true">/',
-            $html,
+            $this->cardSource(),
             'The date line stands in for the leaf and must be hidden like it.'
         );
 
-        // The line a screen reader actually reads, unchanged.
-        $this->assertStringContainsString(
+        // The line a screen reader actually reads, unchanged -- and built in
+        // PHP, where every other date on the page is built.
+        $this->assertSame(
             $tournament->start_time->format('l j F Y, g:i A'),
-            $html
+            $card['full_date_label']
         );
     }
 
@@ -481,10 +514,9 @@ class EventCardTest extends TestCase
         // breakpoint, which nobody would see on the width they work at.
         $tournament = $this->tournament();
 
-        $html = $this->actingAs(User::factory()->create())
-            ->get(route('tournaments.show', $tournament))->assertOk()->getContent();
+        $card = $this->cardOn($tournament, User::factory()->create());
 
-        $this->assertStringContainsString($tournament->start_time->format('D, M j'), $html);
-        $this->assertStringContainsString('>'.$tournament->start_time->format('j').'<', $html);
+        $this->assertSame($tournament->start_time->format('D, M j'), $card['date_label']);
+        $this->assertSame($tournament->start_time->format('j'), $card['day_label']);
     }
 }

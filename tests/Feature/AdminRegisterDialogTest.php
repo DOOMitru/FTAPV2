@@ -87,7 +87,21 @@ class AdminRegisterDialogTest extends TestCase
      */
     private function candidates(\Illuminate\Testing\TestResponse $response): array
     {
-        return collect($response->viewData('registerCandidates'))->all();
+        return collect($response->viewData('page')['props']['register_candidates'])->all();
+    }
+
+    /** The dialog component's own markup. */
+    private function dialog(): string
+    {
+        return (string) file_get_contents(
+            resource_path('js/Pages/Poker/Tournaments/Partials/RegisterDialog.vue')
+        );
+    }
+
+    /** The page that mounts it. */
+    private function page(): string
+    {
+        return (string) file_get_contents(resource_path('js/Pages/Poker/Tournaments/Show.vue'));
     }
 
     private function show(PokerTournament $tournament, ?User $as = null): \Illuminate\Testing\TestResponse
@@ -98,10 +112,15 @@ class AdminRegisterDialogTest extends TestCase
 
     public function test_an_admin_is_offered_the_dialog_and_its_trigger(): void
     {
-        $html = $this->show($this->tournament())->getContent();
+        $props = $this->show($this->tournament())->viewData('page')['props'];
 
-        $this->assertStringContainsString('Register players', $html);
-        $this->assertStringContainsString('registerDialog', $html);
+        $this->assertTrue($props['can_manage']);
+        $this->assertFalse($props['tournament']['is_published']);
+
+        $page = $this->page();
+
+        $this->assertStringContainsString('<span class="tshow__register-label">Register players</span>', $page);
+        $this->assertStringContainsString('ref="registerDialog"', $page);
     }
 
     public function test_a_player_gets_neither(): void
@@ -109,12 +128,18 @@ class AdminRegisterDialogTest extends TestCase
         $tournament = $this->tournament();
         User::factory()->create(['first_name' => 'Some', 'last_name' => 'Body', 'approval_status' => 'approved']);
 
-        $html = $this->show($tournament, User::factory()->create([
+        $props = $this->show($tournament, User::factory()->create([
             'is_admin' => false, 'approval_status' => 'approved',
-        ]))->getContent();
+        ]))->viewData('page')['props'];
 
-        $this->assertStringNotContainsString('registerDialog', $html);
-        $this->assertStringNotContainsString('picker__btn', $html);
+        // Neither the trigger nor the list: the dialog is drawn behind
+        // can_manage, and the candidates are not even built for a player.
+        $this->assertFalse($props['can_manage']);
+        $this->assertSame([], $props['register_candidates']);
+
+        $this->assertStringContainsString(
+            'v-if="can_manage && ! tournament.is_published"', $this->page()
+        );
     }
 
     public function test_a_published_tournament_offers_no_way_in(): void
@@ -124,10 +149,15 @@ class AdminRegisterDialogTest extends TestCase
         $tournament = $this->tournament();
         $tournament->forceFill(['published_at' => now()])->save();
 
-        $html = $this->show($tournament)->getContent();
+        // register() refuses a published tournament, and both the trigger and
+        // the dialog hang off the same condition.
+        $this->assertTrue($this->show($tournament)->viewData('page')['props']['tournament']['is_published']);
 
-        $this->assertStringNotContainsString('registerDialog', $html);
-        $this->assertStringNotContainsString('Register players', $html);
+        $this->assertSame(
+            2,
+            substr_count($this->page(), 'can_manage && ! tournament.is_published'),
+            'The trigger and the dialog must be gated together.'
+        );
     }
 
     public function test_candidates_are_ordered_by_tournaments_entered(): void
@@ -224,10 +254,19 @@ class AdminRegisterDialogTest extends TestCase
             'first_name' => 'Already', 'last_name' => 'In', 'approval_status' => 'approved',
         ]));
 
-        $html = $this->show($tournament)->getContent();
+        $candidate = collect($this->candidates($this->show($tournament)))
+            ->firstWhere('name', 'Already In');
 
-        $this->assertStringContainsString('Already registered for this tournament', $html);
-        $this->assertStringContainsString('picker__btn--inert', $html);
+        $this->assertTrue($candidate['registered']);
+
+        // Named, so the administrator can see why they are not on offer, and
+        // inert, because register() refuses them. Absence would leave "already
+        // entered" and "not approved" looking identical.
+        $dialog = $this->dialog();
+
+        $this->assertStringContainsString('Already registered for this tournament', $dialog);
+        $this->assertStringContainsString('v-if="player.registered"', $dialog);
+        $this->assertStringContainsString('picker__btn--inert', $dialog);
     }
 
     public function test_an_unapproved_player_is_listed_and_flagged(): void
@@ -256,10 +295,20 @@ class AdminRegisterDialogTest extends TestCase
             'first_name' => 'Pending', 'last_name' => 'Person', 'approval_status' => 'pending',
         ]);
 
-        $html = $this->show($tournament)->getContent();
+        $candidate = collect($this->candidates($this->show($tournament)))
+            ->firstWhere('name', 'Pending Person');
 
-        $this->assertStringContainsString('Waiting for approval', $html);
-        $this->assertStringContainsString('approve the account first', $html);
+        $this->assertFalse($candidate['approved']);
+        $this->assertFalse($candidate['registered']);
+
+        // A different gate from "already in", and a different remedy: this
+        // administrator can approve the account, and telling them which gate
+        // is shut is the whole point of listing a player they cannot pick.
+        $dialog = $this->dialog();
+
+        $this->assertStringContainsString('Waiting for approval', $dialog);
+        $this->assertStringContainsString('approve the account first', $dialog);
+        $this->assertStringContainsString('v-else-if="! player.approved"', $dialog);
     }
 
     public function test_the_server_still_refuses_an_unapproved_player(): void
@@ -311,10 +360,15 @@ class AdminRegisterDialogTest extends TestCase
 
     public function test_the_dialog_says_that_only_ten_are_shown(): void
     {
-        $html = $this->show($this->tournament())->getContent();
+        $this->show($this->tournament());
 
-        $this->assertStringContainsString('Showing the ten who have entered the most tournaments', $html);
-        $this->assertStringContainsString('matches.length > 10', $html);
+        $dialog = $this->dialog();
+
+        $this->assertStringContainsString('Showing the ten who have entered the most tournaments', $dialog);
+
+        // Only when the cap actually hides somebody. A standing note that ten
+        // are shown, on a list of four, is noise.
+        $this->assertStringContainsString('v-if="matches.length > 10"', $dialog);
     }
 
     public function test_a_row_does_not_ask_for_confirmation(): void
@@ -339,10 +393,11 @@ class AdminRegisterDialogTest extends TestCase
 
     public function test_the_payload_actually_reaches_the_page(): void
     {
-        // The tests above read view data, which would keep passing if the
-        // dialog stopped rendering it. Js::from writes every quote as \u0022
-        // so the JSON survives an HTML attribute, so this looks for the id
-        // rather than for readable JSON.
+        // The tests above read the props, which would keep passing if the page
+        // stopped handing them to the dialog. The payload used to be written
+        // into an x-data attribute with Js::from; it is a prop now, and what
+        // matters is the same thing -- that it reaches the component that
+        // draws the list.
         $tournament = $this->tournament();
         $player = User::factory()->create([
             'first_name' => 'Ann', 'last_name' => 'Regular', 'approval_status' => 'approved',
@@ -350,15 +405,21 @@ class AdminRegisterDialogTest extends TestCase
 
         $html = $this->show($tournament)->getContent();
 
-        $this->assertStringContainsString('JSON.parse', $html);
+        // In the document, as the page payload.
         $this->assertStringContainsString($player->id, $html);
+
+        $this->assertStringContainsString(':candidates="register_candidates"', $this->page());
     }
 
     public function test_registering_from_the_dialog_leaves_it_open(): void
     {
-        // The whole point of the move. Each row posts a normal form and the
-        // page reloads, so "stays open" is a server fact: register() flashes
-        // register_open and the dialog reopens itself on the way back.
+        // The whole point of the control, and it changed hands in the
+        // conversion. Each row used to post a form and reload the page, so
+        // "stays open" was a SERVER fact: register() flashed register_open and
+        // the dialog reopened itself on the way back. The visit is client-side
+        // now and the component is reused, so the dialog is never closed --
+        // nothing has to reopen it, and the list and its flags come back
+        // correct because the props do.
         $tournament = $this->tournament();
         $player = User::factory()->create([
             'first_name' => 'Ann', 'last_name' => 'Regular', 'approval_status' => 'approved',
@@ -368,18 +429,21 @@ class AdminRegisterDialogTest extends TestCase
             ->from(route('tournaments.show', $tournament))
             ->post(route('tournaments.register', $tournament), ['user_id' => $player->id]);
 
-        $response->assertRedirect(route('tournaments.show', $tournament))
-            ->assertSessionHas('register_open', true);
+        $response->assertRedirect(route('tournaments.show', $tournament));
 
         $this->assertDatabaseHas('tournament_registrants', [
             'tournament_id' => $tournament->id, 'user_id' => $player->id,
         ]);
 
-        // And the page it lands on opens it.
-        $this->assertStringContainsString(
-            'x-init="$el.showModal()"',
-            $this->followRedirects($response)->getContent()
-        );
+        // preserveState is what keeps it open: without it Inertia rebuilds the
+        // component and the dialog closes with it.
+        $this->assertStringContainsString('preserveState: true', $this->dialog());
+
+        // And the row that was picked comes back inert.
+        $after = collect($this->candidates($this->show($tournament)))
+            ->firstWhere('name', 'Ann Regular');
+
+        $this->assertTrue($after['registered']);
     }
 
     public function test_a_refusal_leaves_the_dialog_open_too(): void
@@ -467,9 +531,16 @@ class AdminRegisterDialogTest extends TestCase
             'first_name' => 'Already', 'last_name' => 'In', 'approval_status' => 'approved',
         ]));
 
-        $html = $this->show($tournament)->getContent();
+        $this->show($tournament);
 
-        $this->assertStringContainsString('filter(p => ! p.registered && p.approved)', $html);
+        // The filter is the component's, and its two modes are why: with no
+        // term the unpickable are left out, because the list is capped at ten
+        // and the regulars on top are the very people most likely to be
+        // entered already.
+        $this->assertStringContainsString(
+            'props.candidates.filter((p) => ! p.registered && p.approved)',
+            $this->dialog()
+        );
     }
 
     public function test_a_search_still_reaches_players_already_registered(): void
@@ -505,10 +576,15 @@ class AdminRegisterDialogTest extends TestCase
 
         $response->assertSessionHas('registered_name', 'Wanda Reeve');
 
-        $html = $this->followRedirects($response)->getContent();
+        $this->assertSame(
+            'Wanda Reeve',
+            $this->followRedirects($response)->viewData('page')['props']['registered_name']
+        );
 
-        $this->assertStringContainsString('register__flash--done', $html);
-        $this->assertStringContainsString('has been registered.', $html);
+        $dialog = $this->dialog();
+
+        $this->assertStringContainsString('register__flash--done', $dialog);
+        $this->assertStringContainsString('has been registered.', $dialog);
     }
 
     public function test_the_name_is_set_apart_from_the_sentence(): void
@@ -521,16 +597,18 @@ class AdminRegisterDialogTest extends TestCase
             'first_name' => 'Wanda', 'last_name' => 'Reeve', 'approval_status' => 'approved',
         ]);
 
-        $html = $this->followRedirects(
+        $props = $this->followRedirects(
             $this->actingAs($this->admin())
                 ->from(route('tournaments.show', $tournament))
                 ->post(route('tournaments.register', $tournament), ['user_id' => $player->id])
-        )->getContent();
+        )->viewData('page')['props'];
+
+        $this->assertSame('Wanda Reeve', $props['registered_name']);
 
         $this->assertMatchesRegularExpression(
-            '/<span class="register__flash-name">\s*Wanda Reeve\s*<\/span>/',
-            $html,
-            'The name must be marked up separately so it can be highlighted.'
+            '/<span class="register__flash-name">\{\{ registeredName \}\}<\/span>/',
+            $this->dialog(),
+            'The name must be its own element so it can be highlighted.'
         );
     }
 
@@ -540,13 +618,20 @@ class AdminRegisterDialogTest extends TestCase
         $player = User::factory()->create(['approval_status' => 'approved']);
         $this->enter($tournament, $player);
 
-        $html = $this->followRedirects(
+        $props = $this->followRedirects(
             $this->actingAs($this->admin())
                 ->from(route('tournaments.show', $tournament))
                 ->post(route('tournaments.register', $tournament), ['user_id' => $player->id])
-        )->getContent();
+        )->viewData('page')['props'];
 
-        $this->assertStringContainsString('register__flash--error', $html);
+        // The refusal reaches the page, and the dialog draws its own copy --
+        // the page-level alert is behind the backdrop while it is open.
+        $this->assertNotNull($props['flash']['error']);
+
+        $dialog = $this->dialog();
+
+        $this->assertStringContainsString('register__flash--error', $dialog);
+        $this->assertStringContainsString('v-if="error"', $dialog);
     }
 
     public function test_the_page_alert_is_not_also_drawn_behind_the_backdrop(): void
@@ -572,13 +657,21 @@ class AdminRegisterDialogTest extends TestCase
         $tournament = $this->tournament();
         $player = User::factory()->create(['is_admin' => false, 'approval_status' => 'approved']);
 
-        $html = $this->followRedirects(
+        $props = $this->followRedirects(
             $this->actingAs($player)
                 ->from(route('tournaments.show', $tournament))
                 ->post(route('tournaments.register', $tournament))
-        )->getContent();
+        )->viewData('page')['props'];
 
-        $this->assertStringContainsString('alert--success', $html);
-        $this->assertStringNotContainsString('register__flash--done', $html);
+        // A player has no dialog and must still be told what happened.
+        $this->assertNotNull($props['flash']['status']);
+        $this->assertFalse($props['can_manage']);
+        $this->assertNull($props['registered_name']);
+
+        // The suppression keys off the dialog being OPEN rather than off
+        // success, and a player never opens one.
+        $this->assertStringContainsString(
+            'v-if="flash.status && ! dialogOpen"', $this->page()
+        );
     }
 }

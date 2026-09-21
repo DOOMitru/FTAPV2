@@ -114,8 +114,12 @@ class TournamentShowQueryShapeTest extends TestCase
         $log = DB::getQueryLog();
         DB::disableQueryLog();
 
-        $this->assertTrue($response->viewData('isComplete'),
-            'The view is handed the answer; without it the template asks the model.');
+        // The page is handed the answer rather than asking for it. isComplete
+        // is not a prop of its own -- can_publish is what the page does with
+        // it -- and on a fully scored, unpublished tournament that is true
+        // exactly when isComplete() is.
+        $this->assertTrue($response->viewData('page')['props']['can_publish'],
+            'The page is handed the answer; without it the template asks the model.');
 
         // The second half of isComplete(): a distinct count of scored players.
         // It is the half with a shape nothing else on the page shares.

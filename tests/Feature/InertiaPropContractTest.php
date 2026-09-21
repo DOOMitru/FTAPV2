@@ -71,6 +71,7 @@ class InertiaPropContractTest extends TestCase
         'Auth/ConfirmPassword' => ['password.confirm', null],
         'Auth/VerifyEmail' => ['verification.notice', null, 'unverified'],
         'Poker/Seasons/Show' => ['seasons.show', 'season'],
+        'Poker/Tournaments/Show' => ['tournaments.show', 'tournament'],
     ];
 
     /**

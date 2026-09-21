@@ -258,20 +258,29 @@ class PublishResultsTest extends TestCase
         $this->enter($tournament, $player);
         $admin = $this->admin();
 
+        $props = fn () => $this->actingAs($admin)
+            ->get(route('tournaments.show', $tournament->fresh()))->assertOk()
+            ->viewData('page')['props'];
+
         // Incomplete: no button, because it would be a click that fails.
-        $this->actingAs($admin)->get(route('tournaments.show', $tournament))->assertOk()
-            ->assertDontSee('>Publish results<', false);
+        $this->assertFalse($props()['can_publish']);
 
         $this->score($tournament, $player, 1, 100);
 
-        $this->actingAs($admin)->get(route('tournaments.show', $tournament->fresh()))->assertOk()
-            ->assertSee('>Publish results<', false);
+        $this->assertTrue($props()['can_publish']);
 
         $this->actingAs($admin)->post(route('poker.tournaments.publish', $tournament->fresh()));
 
-        $this->actingAs($admin)->get(route('tournaments.show', $tournament->fresh()))->assertOk()
-            ->assertDontSee('>Publish results<', false)
-            ->assertSee('>Unpublish<', false);
+        $after = $props();
+
+        $this->assertFalse($after['can_publish']);
+        $this->assertTrue($after['tournament']['is_published']);
+
+        // Each button is drawn from the flag that says it can act.
+        $page = (string) file_get_contents(resource_path('js/Pages/Poker/Tournaments/Show.vue'));
+
+        $this->assertStringContainsString('v-if="can_publish"', $page);
+        $this->assertStringContainsString('v-if="tournament.is_published"', $page);
     }
 
     public function test_edit_steps_down_while_publish_is_offered(): void
@@ -283,14 +292,23 @@ class PublishResultsTest extends TestCase
         $this->enter($tournament, $player);
         $admin = $this->admin();
 
+        $canPublish = fn () => $this->actingAs($admin)
+            ->get(route('tournaments.show', $tournament->fresh()))->assertOk()
+            ->viewData('page')['props']['can_publish'];
+
         // Not yet publishable: Edit is the page's action, and stays primary.
-        $this->actingAs($admin)->get(route('tournaments.show', $tournament))->assertOk()
-            ->assertSee('href="'.route('poker.tournaments.edit', $tournament).'" class="btn btn--primary"', false);
+        $this->assertFalse($canPublish());
 
         $this->score($tournament, $player, 1, 100);
 
-        $this->actingAs($admin)->get(route('tournaments.show', $tournament->fresh()))->assertOk()
-            ->assertSee('href="'.route('poker.tournaments.edit', $tournament).'" class="btn btn--ghost"', false);
+        $this->assertTrue($canPublish());
+
+        // Edit's variant is that flag, inverted, in one expression -- so the
+        // two cannot both be primary.
+        $this->assertStringContainsString(
+            ':variant="can_publish ? \'ghost\' : \'primary\'"',
+            (string) file_get_contents(resource_path('js/Pages/Poker/Tournaments/Show.vue'))
+        );
     }
 
     public function test_a_player_is_not_offered_either_control(): void

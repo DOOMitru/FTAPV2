@@ -93,10 +93,15 @@ class ViewAuthorizationTest extends TestCase
             'season_id' => $season->id,
         ]);
 
-        $response = $this->actingAs($admin)->get(route('tournaments.show', $tournament));
+        $props = $this->actingAs($admin)->get(route('tournaments.show', $tournament))
+            ->assertOk()->viewData('page')['props'];
 
-        $response->assertOk();
-        $response->assertSee(route('poker.tournaments.edit', $tournament), false);
+        $this->assertTrue($props['can_manage']);
+
+        $this->assertStringContainsString(
+            ':href="`/poker/tournaments/${tournament.id}/edit`"',
+            (string) file_get_contents(resource_path('js/Pages/Poker/Tournaments/Show.vue'))
+        );
     }
 
     public function test_non_admin_does_not_see_season_edit_link_on_season_show()
@@ -161,10 +166,12 @@ class ViewAuthorizationTest extends TestCase
             'season_id' => $season->id,
         ]);
 
-        $response = $this->actingAs($user)->get(route('tournaments.show', $tournament));
-
-        $response->assertOk();
-        $response->assertSee(route('tournaments.register', $tournament), false);
+        // can_register is the card's own flag, and it restates the
+        // controller's rule: a player may enter until play begins.
+        $this->assertTrue(
+            $this->actingAs($user)->get(route('tournaments.show', $tournament))
+                ->assertOk()->viewData('page')['props']['tournament']['can_register']
+        );
     }
 
     public function test_register_control_shown_when_registration_still_open()
@@ -184,9 +191,11 @@ class ViewAuthorizationTest extends TestCase
             'season_id' => $season->id,
         ]);
 
-        $response = $this->actingAs($user)->get(route('tournaments.show', $tournament));
-
-        $response->assertOk();
-        $response->assertSee(route('tournaments.register', $tournament), false);
+        // can_register is the card's own flag, and it restates the
+        // controller's rule: a player may enter until play begins.
+        $this->assertTrue(
+            $this->actingAs($user)->get(route('tournaments.show', $tournament))
+                ->assertOk()->viewData('page')['props']['tournament']['can_register']
+        );
     }
 }

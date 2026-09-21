@@ -35,7 +35,7 @@ class MonogramCoverageTest extends TestCase
      */
     private const LISTS = [
         'js/Pages/Poker/Seasons/Show.vue' => 'the season standings',
-        'views/poker/tournaments/show.blade.php' => 'the registered players panel',
+        'js/Pages/Poker/Tournaments/Show.vue' => 'the registered players panel',
         'js/Pages/Poker/VenuePoints/Create.vue' => 'the venue points player picker',
         'views/rules/points-structure.blade.php' => 'Current Season Leaders',
         'views/home.blade.php' => 'the landing page leader cards',

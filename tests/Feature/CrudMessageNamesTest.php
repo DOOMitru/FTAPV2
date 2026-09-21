@@ -40,8 +40,11 @@ class CrudMessageNamesTest extends TestCase
      * confirmation -- where the name is what tells them which record they just
      * acted on.
      *
-     * All four are accessible names: an iframe's title, and the three labels
-     * the season page gives its meters. They are read aloud or shown in a
+     * Four are accessible names: an iframe's title, and the three labels the
+     * season page gives its meters. The fifth is the publish offer's own
+     * question, which the dialog sets in its heading -- the name is the
+     * subject of a sentence there rather than a receipt for something done,
+     * and the Blade it replaces did not mark it either. They are read aloud or shown in a
      * tooltip rather than displayed as a sentence, and an emph marker in one
      * is a stray U+2063 a screen reader announces as a character.
      *
@@ -57,6 +60,7 @@ class CrudMessageNamesTest extends TestCase
         'Points for :name',
         'points per event, for :name',
         'Tournaments at :venue',
+        'That is the whole field for :tournament',
     ];
 
     /** @return array<int, string> every controller file, keyed by nothing */
@@ -178,6 +182,7 @@ class CrudMessageNamesTest extends TestCase
             'Points for :name',
             'points per event, for :name',
             'Tournaments at :venue',
+            'That is the whole field for :tournament',
         ], self::NOT_A_MESSAGE);
     }
 }

@@ -203,15 +203,22 @@ class EmptyStateSmokeTest extends TestCase
         );
 
         foreach ([$futureTournament, $pastTournament] as $tournament) {
-            $this->actingAs($admin)->get('tournaments/'.$tournament->id)
-                ->assertSee('No players registered yet.')
-                // Nothing has been played, so the panel does not claim to be
-                // standings of anything. isComplete() is false on an empty
-                // field, which is what keeps "Final" off an untouched past
-                // tournament.
-                ->assertSee('Registered Players')
-                ->assertDontSee('Final Standings');
+            $props = $this->actingAs($admin)->get('tournaments/'.$tournament->id)
+                ->assertOk()->viewData('page')['props'];
+
+            $this->assertSame([], $props['standings']);
+
+            // Nothing has been played, so the panel does not claim to be
+            // standings of anything. isComplete() is false on an empty field,
+            // which is what keeps "Final" off an untouched past tournament.
+            $this->assertSame('Registered Players', $props['standings_title']);
         }
+
+        // And an empty list says so rather than drawing nothing.
+        $this->assertStringContainsString(
+            'title="No players registered yet."',
+            (string) file_get_contents(resource_path('js/Pages/Poker/Tournaments/Show.vue'))
+        );
     }
 
     /**

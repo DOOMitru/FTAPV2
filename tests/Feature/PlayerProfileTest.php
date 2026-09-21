@@ -303,34 +303,44 @@ class PlayerProfileTest extends TestCase
             'player_name' => 'Departed Player', 'place' => 2, 'points' => 360,
         ]);
 
-        $html = $this->actingAs($this->other)
-            ->get(route('tournaments.show', $this->tournament))->assertOk()->getContent();
+        // The row still exists and still carries the name; what it does not
+        // carry is a player id, which is what PlayerLink decides on. A null
+        // there is the difference between a name and a link to a 404.
+        $row = collect($this->standingsOn($this->tournament))
+            ->firstWhere('name', 'Departed Player');
 
-        $this->assertStringContainsString('Departed Player', $html, 'The name still shows.');
-
-        // The name renders, but not inside an anchor.
-        preg_match_all('/<a[^>]*players\/[^>]*>(.*?)<\/a>/s', $html, $links);
-
-        $this->assertNotContains(
-            'Departed Player',
-            array_map(fn ($t) => trim(strip_tags($t)), $links[1]),
-            'A name with no account behind it was linked.'
-        );
+        $this->assertNotNull($row, 'The name still shows.');
+        $this->assertNull($row['player_id'], 'A name with no account behind it was linked.');
     }
 
     public function test_a_name_with_an_account_is_a_link(): void
     {
         // The positive control: without it the test above is satisfied by a
         // page that links nobody at all.
-        $html = $this->actingAs($this->other)
-            ->get(route('tournaments.show', $this->tournament))->assertOk()->getContent();
+        $row = collect($this->standingsOn($this->tournament))
+            ->firstWhere('name', 'Wanda Reeve');
 
-        preg_match_all('/<a[^>]*players\/[^>]*>(.*?)<\/a>/s', $html, $links);
+        $this->assertNotNull($row);
+        $this->assertSame($this->player->id, $row['player_id']);
 
-        $this->assertContains(
-            'Wanda Reeve',
-            array_map(fn ($t) => trim(strip_tags($t)), $links[1])
+        // And the component is what turns that id into a link, in the one
+        // place that knows a name with no account renders as plain text.
+        $this->assertStringContainsString(
+            '<PlayerLink :player-id="row.player_id">',
+            (string) file_get_contents(resource_path('js/Pages/Poker/Tournaments/Show.vue'))
         );
+    }
+
+    /**
+     * The standings the tournament page is sent.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    private function standingsOn(PokerTournament $tournament): array
+    {
+        return $this->actingAs($this->other)
+            ->get(route('tournaments.show', $tournament))->assertOk()
+            ->viewData('page')['props']['standings'];
     }
 
     public function test_the_admin_players_list_links_both_its_tables(): void

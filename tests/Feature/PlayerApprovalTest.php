@@ -198,14 +198,21 @@ class PlayerApprovalTest extends TestCase
 
         $response = $this->actingAs($admin)->get(route('tournaments.show', $tournament))->assertOk();
 
-        $rows = collect($response->viewData('registerCandidates'))->keyBy('id');
+        $rows = collect($response->viewData('page')['props']['register_candidates'])->keyBy('id');
 
         // Both listed, told apart by the flag rather than by absence.
         $this->assertTrue($rows->has($pending->id), 'An unapproved player must still be listed.');
         $this->assertFalse($rows[$pending->id]['approved']);
         $this->assertTrue($rows[$approved->id]['approved']);
 
-        $response->assertSee('Waiting for approval');
+        // And the dialog says which gate is shut, because that is a thing this
+        // administrator can act on.
+        $this->assertStringContainsString(
+            'Waiting for approval',
+            (string) file_get_contents(
+                resource_path('js/Pages/Poker/Tournaments/Partials/RegisterDialog.vue')
+            )
+        );
 
         // And the server still refuses them, which is the rule the flag mirrors.
         $this->actingAs($admin)

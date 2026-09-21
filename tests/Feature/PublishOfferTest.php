@@ -61,14 +61,19 @@ class PublishOfferTest extends TestCase
         $player = $this->player('Solo');
         $this->enter($tournament, $player);
 
-        $html = $this->followRedirects($this->eliminate($tournament, $player))->getContent();
+        $props = $this->followRedirects($this->eliminate($tournament, $player))
+            ->viewData('page')['props'];
 
-        $this->assertStringContainsString('publish-offer', $html);
-        $this->assertMatchesRegularExpression(
-            '/class="confirm publish-offer"\s*\n?\s*x-init="\$el\.showModal\(\)"/',
-            $html,
-            'The dialog must open itself on the request that flashed the offer.'
-        );
+        $this->assertTrue($props['offer_publish'],
+            'The offer must reach the page it lands on.');
+
+        // And the dialog opens itself from that flag. A watcher rather than
+        // markup, because the prop arrives with the visit rather than with a
+        // fresh document.
+        $page = $this->page();
+
+        $this->assertStringContainsString('class="confirm publish-offer"', $page);
+        $this->assertStringContainsString('el.showModal()', $page);
     }
 
     public function test_it_asks_once_and_not_again_on_a_reload(): void
@@ -82,13 +87,14 @@ class PublishOfferTest extends TestCase
 
         $this->followRedirects($this->eliminate($tournament, $player));
 
-        $html = $this->actingAs($this->admin())
-            ->get(route('tournaments.show', $tournament->fresh()))->assertOk()->getContent();
+        $props = $this->actingAs($this->admin())
+            ->get(route('tournaments.show', $tournament->fresh()))->assertOk()
+            ->viewData('page')['props'];
 
-        // The dialog is still in the document -- the field is still settled --
-        // but nothing opens it.
-        $this->assertStringContainsString('publish-offer', $html);
-        $this->assertStringNotContainsString('x-init="$el.showModal()"', $html);
+        // The dialog is still on the page -- the field is still settled -- but
+        // nothing opens it.
+        $this->assertTrue($props['can_publish']);
+        $this->assertFalse($props['offer_publish']);
     }
 
     public function test_the_dialog_publishes_without_asking_a_second_time(): void
@@ -99,13 +105,24 @@ class PublishOfferTest extends TestCase
         $player = $this->player('Solo');
         $this->enter($tournament, $player);
 
-        $html = $this->followRedirects($this->eliminate($tournament, $player))->getContent();
+        $this->followRedirects($this->eliminate($tournament, $player));
 
-        $at = strpos($html, 'publish-offer');
-        $dialog = substr($html, $at, (int) strpos($html, '</dialog>', $at) - $at);
+        $page = $this->page();
 
-        $this->assertStringContainsString(route('poker.tournaments.publish', $tournament), $dialog);
-        $this->assertStringNotContainsString('data-confirm', $dialog);
+        $at = (int) strpos($page, 'publish-offer');
+        $dialog = substr($page, $at, (int) strpos($page, '</dialog>', $at) - $at);
+
+        // Its button publishes directly. Routing it through ask() would put a
+        // dialog on top of a dialog to repeat the question just asked.
+        $this->assertStringContainsString('@click="publishFromOffer"', $dialog);
+        $this->assertStringNotContainsString('ask(', $dialog);
+
+        // The handler closes the dialog and posts. [^;] would stop at the
+        // close() call's own semicolon, which is between the two.
+        $this->assertMatchesRegularExpression(
+            '/const publishFromOffer.*?router\.post\(`\$\{base\}\/publish`\)/s',
+            $page
+        );
     }
 
     public function test_declining_records_nothing_and_leaves_the_field_settled(): void
@@ -176,8 +193,24 @@ class PublishOfferTest extends TestCase
         $player = $this->player('Solo');
         $this->enter($tournament, $player);
 
-        $this->followRedirects($this->eliminate($tournament, $player))
-            ->assertSee('That is the whole field for Autumn Showdown. Publish the results now?')
-            ->assertSee('Every player who scored points is notified, and the tournament is locked.');
+        $props = $this->followRedirects($this->eliminate($tournament, $player))
+            ->viewData('page')['props'];
+
+        $this->assertSame(
+            'That is the whole field for Autumn Showdown. Publish the results now?',
+            $props['offer_publish_message']
+        );
+
+        // Before the button, not after it.
+        $this->assertStringContainsString(
+            'Every player who scored points is notified, and the tournament is locked.',
+            $this->page()
+        );
+    }
+
+    /** The page's own markup. */
+    private function page(): string
+    {
+        return (string) file_get_contents(resource_path('js/Pages/Poker/Tournaments/Show.vue'));
     }
 }

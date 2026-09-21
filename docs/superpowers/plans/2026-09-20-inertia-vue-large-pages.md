@@ -343,7 +343,7 @@ props, never absence from the markup.
 
 ---
 
-## Task 3: `/tournaments/{tournament}` — everything but the register dialog
+## Task 3: `/tournaments/{tournament}` — everything but the register dialog — DONE, merged with Task 4
 
 **Files:**
 - Create: `resources/js/Pages/Poker/Tournaments/Show.vue`
@@ -355,8 +355,12 @@ props, never absence from the markup.
   `DeleteConfirmationTest`, `TournamentArchiveTest`,
   `TournamentShowQueryShapeTest`, `PlayerApprovalTest`
 
-**Do NOT delete the Blade view in this task.** The register dialog is still in
-it. Task 4 deletes it.
+**The split did not hold, and the two tasks were done as one.** Deleting the
+Blade view was supposed to wait for Task 4 — but the moment the controller
+renders Inertia, the Blade view is unreachable and the dialog is gone from the
+page whether the file exists or not. `AdminRegisterDialogTest`'s twenty tests
+fail from that instant, so stopping here would have meant handing off a red
+suite. The dialog was built in the same pass and both were committed together.
 
 **Props:** the tournament card's shape from Task 1, plus:
 
@@ -424,21 +428,21 @@ would be announcing to somebody who cannot see them. That condition survives
 into Task 4; in this task, render the alerts unconditionally and add the
 suppression when the dialog exists.
 
-- [ ] **Step 1: Change the controller.** Keep `$isComplete` as a value — the
+- [x] **Step 1: Change the controller.** Keep `$isComplete` as a value — the
       comment records it being asked four times and costing two queries each.
       `TournamentShowQueryShapeTest` compares query counts between field sizes
       and will catch an N+1 introduced while mapping rows.
 
-- [ ] **Step 2: Write the page**, rendering `<PEvent>` from Task 1 with
+- [x] **Step 2: Write the page**, rendering `<PEvent>` from Task 1 with
       `:details="false" :map="false"`.
 
-- [ ] **Step 3: Register the page** as `'Poker/Tournaments/Show' => ['tournaments.show', 'tournament']`.
+- [x] **Step 3: Register the page** as `'Poker/Tournaments/Show' => ['tournaments.show', 'tournament']`.
 
-- [ ] **Step 4: Type-check, build, full suite; port what breaks**
+- [x] **Step 4: Type-check, build, full suite; port what breaks**
 
-- [ ] **Step 5: Prove each ported assertion fails**
+- [x] **Step 5: Prove each ported assertion fails**
 
-- [ ] **Step 6: Verify in a browser at 1440, 960 and 375**
+- [x] **Step 6: Verify in a browser at 1440, 960 and 375**
 
 - eliminate a player: the confirmation names the place and the points, the row
   gains a place glyph and a points badge, and loses its controls
@@ -447,11 +451,11 @@ suppression when the dialog exists.
 - remove a still-in player: the confirmation explains what moves
 - as a player: no admin controls at all
 
-- [ ] **Step 7: Commit (hand-off)**
+- [x] **Step 7: Commit (hand-off)**
 
 ---
 
-## Task 4: the register dialog
+## Task 4: the register dialog — DONE, done with Task 3
 
 **Files:**
 - Create: `resources/js/Pages/Poker/Tournaments/Partials/RegisterDialog.vue`
@@ -496,19 +500,19 @@ dialog is verified, rather than as part of this one.
 `initials()` the component calls. `MonogramTest` holds that there is one
 definition. Do not compute letters in TypeScript.
 
-- [ ] **Step 1: Write the dialog component**
+- [x] **Step 1: Write the dialog component**
 
-- [ ] **Step 2: Render it from `Show.vue`**, and add the two alert
+- [x] **Step 2: Render it from `Show.vue`**, and add the two alert
       suppressions Task 3 deferred: while the dialog is open, the page-level
       status and error alerts are not drawn.
 
-- [ ] **Step 3: Delete `poker/tournaments/show.blade.php`**
+- [x] **Step 3: Delete `poker/tournaments/show.blade.php`**
 
-- [ ] **Step 4: Type-check, build, full suite; port what breaks**
+- [x] **Step 4: Type-check, build, full suite; port what breaks**
 
-- [ ] **Step 5: Prove each ported assertion fails**
+- [x] **Step 5: Prove each ported assertion fails**
 
-- [ ] **Step 6: Verify in a browser at 1440 and 375**
+- [x] **Step 6: Verify in a browser at 1440 and 375**
 
 - the dialog opens from the card header's + button, traps focus, closes on
   Escape
@@ -519,7 +523,7 @@ definition. Do not compute letters in TypeScript.
   and the row that was picked becomes inert
 - the note appears only when the cap actually hides somebody
 
-- [ ] **Step 7: Commit (hand-off)**
+- [x] **Step 7: Commit (hand-off)**
 
 ---
 

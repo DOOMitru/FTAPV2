@@ -155,6 +155,7 @@ class IndexRowLinksTest extends TestCase
             $converted = [
                 '/poker/venues/' => ['js/Pages/Poker/Venues/Show.vue', 'venue', 'poker/venues'],
                 '/seasons/' => ['js/Pages/Poker/Seasons/Show.vue', 'season', 'poker/seasons'],
+                '/tournaments/' => ['js/Pages/Poker/Tournaments/Show.vue', 'tournament', 'poker/tournaments'],
             ];
 
             foreach ($converted as $marker => [$vuePath, $prop, $prefix]) {
@@ -167,8 +168,17 @@ class IndexRowLinksTest extends TestCase
                 $this->assertStringContainsString(
                     ':href="`/'.$prefix.'/${'.$prop.'.id}/edit`"', $vue, $page.' is missing Edit.'
                 );
-                $this->assertStringContainsString(
-                    'router.delete(`/'.$prefix.'/${props.'.$prop.'.id}`)', $vue, $page.' is missing Delete.'
+                // The tournament page builds every one of its five action
+                // URLs from one `base` const, so its delete reads as
+                // router.delete(base) rather than repeating the path.
+                $deletes = [
+                    'router.delete(`/'.$prefix.'/${props.'.$prop.'.id}`)',
+                    'const base = `/'.$prefix.'/${props.'.$prop.'.id}`',
+                ];
+
+                $this->assertTrue(
+                    (bool) array_filter($deletes, fn (string $d) => str_contains($vue, $d)),
+                    $page.' is missing Delete.'
                 );
 
                 continue 2;

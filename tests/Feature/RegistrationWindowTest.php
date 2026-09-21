@@ -106,13 +106,15 @@ class RegistrationWindowTest extends TestCase
         $tournament = $this->tournament();
         $player = $this->player();
 
+        $offered = fn () => $this->actingAs($player)
+            ->get(route('tournaments.show', $tournament->fresh()))->assertOk()
+            ->viewData('page')['props']['tournament']['can_register'];
+
         $tournament->forceFill(['start_time' => now()->addHour()])->save();
-        $this->actingAs($player)->get(route('tournaments.show', $tournament))
-            ->assertOk()->assertSee('>Register<', false);
+        $this->assertTrue($offered());
 
         $tournament->forceFill(['start_time' => now()->subMinute()])->save();
-        $this->actingAs($player)->get(route('tournaments.show', $tournament->fresh()))
-            ->assertOk()->assertDontSee('>Register<', false);
+        $this->assertFalse($offered(), 'A button the controller refuses is a click that cannot work.');
     }
 
     // ---- the administrator's window ----------------------------------------

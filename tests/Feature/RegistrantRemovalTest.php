@@ -60,6 +60,24 @@ class RegistrantRemovalTest extends TestCase
         ]);
     }
 
+    /**
+     * The standings the tournament page is sent.
+     *
+     * @return \Illuminate\Support\Collection<int, array<string, mixed>>
+     */
+    private function rowsOn(PokerTournament $tournament, ?User $viewer = null): \Illuminate\Support\Collection
+    {
+        return collect($this->propsOn($tournament, $viewer)['standings']);
+    }
+
+    /** @return array<string, mixed> */
+    private function propsOn(PokerTournament $tournament, ?User $viewer = null): array
+    {
+        return $this->actingAs($viewer ?? $this->admin())
+            ->get(route('tournaments.show', $tournament->fresh()))->assertOk()
+            ->viewData('page')['props'];
+    }
+
     public function test_an_admin_is_offered_the_control_on_the_tournament_page(): void
     {
         // The page an administrator is on when they notice a wrong entry, and
@@ -70,13 +88,21 @@ class RegistrantRemovalTest extends TestCase
         $player = User::factory()->create(['first_name' => 'Wanda', 'last_name' => 'Reeve']);
         $this->register($tournament, $player);
 
-        $html = $this->withoutEmphasis(
-            $this->actingAs($this->admin())->get(route('tournaments.show', $tournament))
-                ->assertOk()->getContent()
+        $row = $this->rowsOn($tournament)->firstWhere('name', 'Wanda Reeve');
+
+        $this->assertTrue($row['can_remove']);
+
+        // The confirmation names both, and names what moves: a removal
+        // repositions every finish already recorded.
+        $this->assertStringStartsWith(
+            'Remove Wanda Reeve from '.$tournament->name.'?',
+            $this->withoutEmphasis($row['remove_confirm'])
         );
 
-        $this->assertStringContainsString('title="Remove from tournament"', $html);
-        $this->assertStringContainsString('Remove Wanda Reeve from '.$tournament->name.'?', $html);
+        $this->assertStringContainsString(
+            'label="Remove from tournament"',
+            (string) file_get_contents(resource_path('js/Pages/Poker/Tournaments/Show.vue'))
+        );
     }
 
     public function test_the_control_survives_play_starting(): void
@@ -87,8 +113,8 @@ class RegistrantRemovalTest extends TestCase
         $tournament = $this->tournament(startsIn: '-1 hour');
         $this->register($tournament, User::factory()->create());
 
-        $this->actingAs($this->admin())->get(route('tournaments.show', $tournament))->assertOk()
-            ->assertSee('title="Remove from tournament"', false);
+        $this->assertTrue($this->rowsOn($tournament)[0]['can_remove'],
+            'Nothing about the hour removes the control -- only a recorded finish does.');
     }
 
     public function test_the_control_leaves_only_the_row_of_the_player_who_finished(): void
@@ -106,17 +132,21 @@ class RegistrantRemovalTest extends TestCase
 
         $this->recordAFinish($tournament, $out, 2);
 
-        $html = $this->actingAs($this->admin())
-            ->get(route('tournaments.show', $tournament))->assertOk()->getContent();
+        // Per row, and each row names its own registrant: the control is
+        // built from registrant_id, so a row with a finish cannot borrow
+        // another's.
+        $rows = $this->rowsOn($tournament)->keyBy('name');
 
-        // Asserted on the destroy URLs, which name a registrant each, rather
-        // than on the label -- x-action renders it more than once per control,
-        // so counting the words counts the wrong thing.
-        $outRow = $tournament->registrants()->where('user_id', $out->id)->firstOrFail();
-        $inRow = $tournament->registrants()->where('user_id', $in->id)->firstOrFail();
+        $inRow = $rows->first(fn (array $r) => $r['can_remove']);
 
-        $this->assertStringContainsString(route('poker.registrants.destroy', $inRow), $html);
-        $this->assertStringNotContainsString(route('poker.registrants.destroy', $outRow), $html);
+        $this->assertNotNull($inRow);
+        $this->assertSame(
+            $tournament->registrants()->where('user_id', $in->id)->value('id'),
+            $inRow['registrant_id']
+        );
+
+        $this->assertCount(1, $this->rowsOn($tournament)->where('can_remove', true),
+            'The control left a row it should have stayed on, or stayed on one it should have left.');
     }
 
     public function test_publishing_takes_the_control_off_every_row(): void
@@ -142,13 +172,14 @@ class RegistrantRemovalTest extends TestCase
 
         $admin = $this->admin();
 
-        $this->actingAs($admin)->get(route('tournaments.show', $tournament))->assertOk()
-            ->assertDontSee('field locked');
+        $this->assertNull($this->propsOn($tournament, $admin)['field_locked_note']);
 
         $tournament->forceFill(['published_at' => now()])->save();
 
-        $this->actingAs($admin)->get(route('tournaments.show', $tournament->fresh()))->assertOk()
-            ->assertSee('Results published · field locked', false);
+        $this->assertSame(
+            'Results published · field locked',
+            $this->propsOn($tournament, $admin)['field_locked_note']
+        );
     }
 
     public function test_the_explanation_is_not_shown_to_a_player(): void
@@ -201,16 +232,18 @@ class RegistrantRemovalTest extends TestCase
         $player = User::factory()->create(['approval_status' => 'approved']);
         $this->register($tournament, $player);
 
-        $this->actingAs($player)->get(route('tournaments.show', $tournament))->assertOk()
-            ->assertSee('>Unregister<', false);
+        $card = fn () => $this->propsOn($tournament, $player)['tournament'];
+
+        $this->assertTrue($card()['can_unregister']);
 
         $this->recordAFinish($tournament, $player, 1);
 
-        $this->actingAs($player)->get(route('tournaments.show', $tournament))->assertOk()
-            ->assertDontSee('>Unregister<', false)
-            // Still registered, and still told so. The withdrawal is gone, not
-            // the fact that they are in the tournament.
-            ->assertSee('Registered');
+        // Still registered, and still told so. The withdrawal is gone, not the
+        // fact that they are in the tournament.
+        $after = $card();
+
+        $this->assertFalse($after['can_unregister']);
+        $this->assertTrue($after['is_registered']);
     }
 
     public function test_the_home_and_events_cards_agree_with_the_tournament_page(): void
