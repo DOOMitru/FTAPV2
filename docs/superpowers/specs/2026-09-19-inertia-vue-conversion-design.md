@@ -70,7 +70,15 @@ it untouched means this project cannot break the one defence the public
 registration form has. Converting the auth screens later is a small, separate
 piece of work if it is ever wanted.
 
-## 2. Eleven components have to exist twice -- twelve, as it turned out
+## 2. Eleven components have to exist twice -- seventeen, as it turned out
+
+**AMENDED, 2026-09-20.** Eleven was the prediction, twelve was the count when
+`p-event` joined them, and seventeen is the number after the dead Blade
+dashboard shell was deleted -- not because more were duplicated, but because
+deleting the eight components nothing called any more left only the genuinely
+shared ones behind, and the guard then counted what was actually there.
+`ComponentParityTest` DISCOVERS the pairs, so no list needed correcting; the
+number in this heading is the only thing that ever went stale.
 
 This is the real cost of the hybrid, and the part most likely to cause trouble
 later, so it is stated first among the consequences rather than buried.
@@ -103,6 +111,14 @@ which is what makes this acceptable rather than reckless.
 
 **Middleware.** `HandleInertiaRequests` shares the authenticated user, flash
 messages and validation errors on every Inertia response.
+
+**AMENDED, 2026-09-20.** The spec left open who RENDERS the shared flash, and
+for the length of the conversion each page did. `AppLayout` owns it now. What
+had prevented that was three controllers flashing sentinel strings -- values a
+page matched on rather than displayed -- and none of them does any more: two
+flash nothing (`useForm`'s `recentlySuccessful` tells a form it saved, which is
+all the sentinel ever said) and the third flashes the sentence. A page may opt
+out with `:show-flash`, which exactly one does.
 
 **Layouts.** `AppLayout.vue` is a persistent layout carrying the navigation,
 topbar and notifications; it does not remount between page visits, so the nav

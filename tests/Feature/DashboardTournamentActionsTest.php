@@ -143,6 +143,72 @@ class DashboardTournamentActionsTest extends TestCase
         $this->assertSame(0, $tournament->registrants()->count());
     }
 
+    public function test_the_dashboard_says_what_happened(): void
+    {
+        /*
+         * Registering and unregistering from here used to be silent, and so
+         * did being turned away: both end in back()->with(...), and neither
+         * this page nor the Blade one it replaced drew a flash. You pressed
+         * Register and the row changed, which is a lot to infer.
+         *
+         * The shell draws it now. Three links in that chain, and this holds
+         * the one nothing else does -- that the message reaches THIS page.
+         * The controller's half is asserted above and in
+         * test_an_unapproved_registration_is_refused_by_the_controller; the
+         * shell's is FlashMessageParityTest::test_the_shell_shows_the_flash.
+         */
+        $tournament = $this->tournament();
+        $player = $this->player();
+
+        $props = $this->followRedirects(
+            $this->actingAs($player)
+                ->from(route('dashboard'))
+                ->post(route('tournaments.register', $tournament))
+        )->assertOk()->viewData('page')['props'];
+
+        $this->assertNotNull($props['flash']['status'],
+            'Registering from the dashboard says nothing.');
+
+        /*
+         * A refusal has to arrive too, not just a success -- being turned away
+         * silently is the worse of the two. This is the race the refusal
+         * exists for: the dashboard was drawn while the tournament was still
+         * ahead, and play began before the click.
+         *
+         * The clock closes REGISTERING, not withdrawing. Unregistering after
+         * the start is deliberately allowed, for a player who changed their
+         * mind on the day, so pointing this at unregister only proved that --
+         * it came back with a status, and an assertion for an error read null.
+         */
+        $tournament->forceFill(['start_time' => now()->subHour()])->save();
+        $latecomer = $this->player();
+
+        $props = $this->followRedirects(
+            $this->actingAs($latecomer)
+                ->from(route('dashboard'))
+                ->post(route('tournaments.register', $tournament))
+        )->assertOk()->viewData('page')['props'];
+
+        $this->assertNotNull($props['flash']['error'],
+            'Being turned away at the dashboard says nothing.');
+        $this->assertNull($props['flash']['status'],
+            'A refusal arrived alongside a confirmation.');
+
+        // And this page is inside the shell that draws them. The import, not
+        // the word: prose naming AppLayout is not AppLayout.
+        $this->assertStringContainsString(
+            'import AppLayout from',
+            (string) file_get_contents(resource_path('js/Pages/Dashboard.vue'))
+        );
+
+        // Without a showFlash override -- one page holds the shell's flash
+        // back, and it is not this one.
+        $this->assertStringNotContainsString(
+            'show-flash',
+            (string) file_get_contents(resource_path('js/Pages/Dashboard.vue'))
+        );
+    }
+
     public function test_the_way_out_closes_when_a_finish_is_recorded(): void
     {
         // The controller refuses a withdrawal then, so past that point the badge

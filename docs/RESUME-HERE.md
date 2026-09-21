@@ -5,9 +5,9 @@ poker nights in Regina.
 
 ## Where things stand
 
-Suite: **993 passed across 117 files**, on Laravel 13.32.0 and PHPUnit 12. `php artisan test` is the command, but
+Suite: **997 passed across 117 files**, on Laravel 13.32.0 and PHPUnit 12. `php artisan test` is the command, but
 see the segfault note below -- a full-suite run dies on this machine and has to
-be taken file by file, and `bin/suite.sh` is how that 993 was counted. Do not
+be taken file by file, and `bin/suite.sh` is how that 997 was counted. Do not
 count it by hand: the previous figure in this line went stale, and so did the
 loop that produced it.
 
@@ -28,25 +28,41 @@ plans beside it -- `-foundation`, `-components`, `-index-pages`, `-forms`,
 order if you need to know why a page is shaped the way it is.
 
 **What still renders Blade**, and what each is: `home`, `events`, `about`,
-`contact`, four `rules/*` pages, and the four public auth screens. Plus the
-layouts, every `components/*.blade.php`, and the mail templates. Twelve of
-those components now exist TWICE -- a Blade half for the public pages and a Vue
-half for the app -- and `ComponentParityTest` discovers each pair by name and
-holds the two to the same class hooks. That is not temporary; it is the shape
-of the app now.
+`contact`, four `rules/*` pages, and the four public auth screens. Plus
+`layouts/public`, `layouts/guest`, the 27 `components/*.blade.php` that survive,
+and the mail templates. Seventeen of those components exist TWICE -- a Blade
+half for the public pages and a Vue half for the app -- and
+`ComponentParityTest` discovers each pair by name and holds the two to the same
+class hooks. That is not temporary; it is the shape of the app now.
 
-**Alpine stays too**, for `modal`, `topbar` and `dropdown`, which the public
-pages render. So do `MarkupBalanceTest` and `AlpineAttributeGuardTest`, which
-the spec predicted would retire. `confirm.ts` still serves the Blade half; the
-Vue half uses the `useConfirm` composable.
+**The Blade dashboard shell is gone, 2026-09-20.** `layouts/app`,
+`layouts/navigation`, `App\View\Components\AppLayout` and the View Composer that
+fed the navigation are deleted, along with eight components nothing called any
+more: `input-error`, `meter`, `page-header`, `season-panel`, `stat`,
+`notification-card`, `action` and `modal`. `UnusedCssClassTest` stayed green
+through it, which is `ComponentParityTest` paying for itself -- every class the
+dead half used, its Vue twin already used, so nothing was orphaned.
 
-**Two things the conversion left behind, both small, both optional.** The flash
-could move into `AppLayout` once the three controllers that flash SENTINEL
-strings are changed -- `profile-updated` and friends, which pages match on
-rather than display. And registering or unregistering from the dashboard shows
-no confirmation, and a refusal is equally silent: both end in
-`back()->with(...)` and neither that page nor the Blade one it replaced renders
-a flash.
+**Alpine stays too**, for `topbar` and `dropdown`, which the public pages
+render. So do `MarkupBalanceTest` and `AlpineAttributeGuardTest`, which the spec
+predicted would retire. `confirm.ts` still serves the Blade half; the Vue half
+uses the `useConfirm` composable.
+
+**The flash lives in `AppLayout` now, 2026-09-20**, and the two loose ends the
+conversion left are both closed. No controller flashes a sentinel any more:
+`ProfileController` and `Auth\PasswordController` flash NOTHING -- each only
+ever told one of the three forms on the profile page that it had saved, and
+`useForm`'s `recentlySuccessful` says that per-form -- and
+`Auth\EmailVerificationNotificationController` flashes the sentence itself,
+because it has to reach two screens. Eleven pages lost their own copy of the
+alert. Registering and unregistering from the dashboard now say so, and so does
+a refusal; all of it was verified in a browser, since no server-side assertion
+can see a rendered banner.
+
+One page holds the shell's flash back: `Poker/Tournaments/Show` passes
+`:show-flash="! dialogOpen"`, because its register dialog is modal and a banner
+behind it is announced to somebody who can neither see nor reach it.
+`Auth/VerifyEmail` draws its own, because it wears `GuestLayout`.
 
 **The design-system work is finished and is no longer what this project is
 about.** Phases 0-5 moved all 86 views off Tailwind onto hand-built CSS
