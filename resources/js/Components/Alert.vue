@@ -22,5 +22,14 @@ withDefaults(defineProps<Props>(), { variant: 'info' });
 <template>
     <div class="alert" :class="`alert--${variant}`" :role="variant === 'danger' ? 'alert' : 'status'">
         <Emph :message="message" />
+
+        <!--
+            An optional trailing control, which only Toast uses: a dismiss
+            button has to sit INSIDE the alert to share its surface, and an
+            alert with no way out passes nothing here. The twin takes the same
+            thing as a named `control` slot -- Blade's default slot is already
+            the message.
+        -->
+        <slot />
     </div>
 </template>

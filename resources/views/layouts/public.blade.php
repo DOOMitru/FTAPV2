@@ -98,6 +98,21 @@
             {{-- One per page. Every form carrying data-confirm is asked about
                  here rather than through the browser's own dialog. --}}
             <x-confirm-dialog />
+
+            {{-- The shell owns the flash, the same decision AppLayout takes on
+                 the other half. Five views used to render their own -- events
+                 twice, contact, about, and the two auth screens through
+                 x-auth-session-status, which this replaces entirely.
+
+                 Danger first, so a refusal is the one nearest the eye if a
+                 request ever manages to send both. --}}
+            @if (session('error'))
+                <x-toast variant="danger">{{ session('error') }}</x-toast>
+            @endif
+
+            @if (session('status'))
+                <x-toast variant="success">{{ session('status') }}</x-toast>
+            @endif
         </div>
     </body>
 </html>

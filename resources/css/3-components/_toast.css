@@ -1,0 +1,109 @@
+/* The flash, pinned to the bottom of the viewport.
+ *
+ * A toast is AN ALERT IN A DIFFERENT PLACE. How a message looks -- the variant
+ * colours, the 3px leading border, the type size -- stays in _alert.css and is
+ * shared with the inline alerts that remain on the two user pages, where an
+ * invite link has to be read and copied rather than slid away. This file owns
+ * position and elevation, and nothing else. A toast that grew its own colours
+ * would be a second definition of the same three variants.
+ */
+.toast-host {
+    position: fixed;
+    inset-inline: var(--space-4);
+    inset-block-end: var(--space-4);
+
+    /* Above .dropdown at 50, below .modal at 100. A toast must never cover a
+       modal: the modal has a backdrop and makes the page inert, so a message
+       on top of one is a message to somebody who cannot act on it. The pages
+       that open one hold their toasts back instead -- see AppLayout's
+       showFlash. */
+    z-index: 75;
+
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+
+    /* The host spans the viewport so a toast can sit against either edge, and
+       would otherwise swallow every click in that band. Restored on the toasts
+       themselves, which are the only part that is actually there. */
+    pointer-events: none;
+}
+
+/* Full width on a phone, where 28rem is the whole screen anyway and a toast
+   hugging one edge just looks lost. Bottom-right above that, out of the way of
+   the content, which is left-aligned in its container. */
+@media (min-width: 48rem) {
+    .toast-host {
+        align-items: flex-end;
+    }
+}
+
+.toast {
+    pointer-events: auto;
+
+    /* The same min() shape .confirm uses: wide enough to read a sentence,
+       never wider than a phone with the page gutter left either side. */
+    width: min(28rem, 100%);
+
+    /* .alert aligns to flex-start, for a message that wraps to several lines
+       beside nothing. This one has a dismiss control to sit level with. */
+    align-items: center;
+
+    /* An inline alert sits on the page's own ground and needs no elevation.
+       This one floats over content. The dashboard is otherwise
+       borders-not-shadows, and a thing in front of the page is the exception
+       that rule names -- so it borrows the shadow the dialogs use rather than
+       inventing one. */
+    box-shadow: var(--shadow-overlay);
+
+    animation: toast-in 160ms ease-out;
+}
+
+/* The global prefers-reduced-motion block in _tokens.css collapses every
+   animation to 0.01ms, so there is no media query here to forget to update. */
+@keyframes toast-in {
+    from {
+        opacity: 0;
+        transform: translateY(var(--space-3));
+    }
+
+    to {
+        opacity: 1;
+        transform: none;
+    }
+}
+
+/* Pushed to the far end by margin rather than by a spacer, so the message
+   keeps the full width when it wraps. */
+.toast__dismiss {
+    flex: 0 0 auto;
+    margin-inline-start: auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.75rem;
+    height: 1.75rem;
+    padding: 0;
+    border: 0;
+    border-radius: var(--radius-sm);
+    background: none;
+    color: var(--c-text-muted);
+    cursor: pointer;
+}
+
+.toast__dismiss svg {
+    width: 1rem;
+    height: 1rem;
+}
+
+.toast__dismiss:hover {
+    color: var(--c-text);
+    background-color: var(--c-surface-raised);
+}
+
+.toast__dismiss:focus-visible {
+    /* The same ring .btn uses -- one focus treatment for the app, not one
+       per component. */
+    outline: 2px solid var(--c-primary);
+    outline-offset: 2px;
+}

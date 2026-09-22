@@ -106,12 +106,58 @@ class FlashMessageParityTest extends TestCase
          */
         $layout = (string) file_get_contents(resource_path('js/Layouts/AppLayout.vue'));
 
+        $this->assertStringContainsString('<FlashToasts', $layout,
+            'The shell no longer draws the flash, and every page it wraps is excused on the assumption that it does.');
+
+        // Where it is actually drawn. The shell hangs the component; the
+        // component decides which key is which variant, and does it once for
+        // both shells rather than twice.
+        $toasts = (string) file_get_contents(resource_path('js/Components/FlashToasts.vue'));
+
         foreach (['status' => 'success', 'error' => 'danger'] as $key => $variant) {
             $this->assertStringContainsString(
-                '<Alert v-if="flash.'.$key.'" variant="'.$variant.'" :message="flash.'.$key.'" />',
-                $layout,
-                "The shell no longer shows flash.{$key}, and every page it wraps is excused on the assumption that it does."
+                'v-if="flash.'.$key.'"',
+                $toasts,
+                "Nothing shows flash.{$key} any more."
             );
+            $this->assertStringContainsString(
+                'variant="'.$variant.'" :message="flash.'.$key.'"',
+                $toasts,
+                "flash.{$key} is no longer drawn as {$variant}."
+            );
+        }
+
+        // And the guest shell draws it too: the verification prompt flashes and
+        // does not wear AppLayout.
+        $this->assertStringContainsString(
+            '<FlashToasts',
+            (string) file_get_contents(resource_path('js/Layouts/GuestLayout.vue')),
+            'The guest shell shows no flash, so the verification prompt says nothing.'
+        );
+    }
+
+    public function test_a_repeat_flash_re_arms_the_toast(): void
+    {
+        /*
+         * A toast dismisses itself, so a second identical message has to
+         * remount it. The points-structure form adds a place and returns to
+         * itself; saving the same figure twice flashes the same sentence, and
+         * keying a toast on its own text would show it once.
+         *
+         * Inertia replaces page.props wholesale per visit, so the flash OBJECT
+         * is new even when the string is not -- which is why the sequence is
+         * bumped from a shallow watch and used as :key. Asserted on the
+         * mechanism because no server-side assertion can watch a component
+         * fail to remount; the behaviour itself was measured in a browser.
+         */
+        $toasts = (string) file_get_contents(resource_path('js/Components/FlashToasts.vue'));
+
+        $this->assertStringContainsString('watch(flash, () => { seq.value++; });', $toasts,
+            'Nothing bumps the sequence, so a repeated message never re-arms its toast.');
+
+        foreach (['status', 'error'] as $key) {
+            $this->assertStringContainsString(':key="`'.$key.'-${seq}`"', $toasts,
+                "The {$key} toast is not keyed on the sequence, so a repeat will not remount it.");
         }
     }
 
@@ -133,8 +179,13 @@ class FlashMessageParityTest extends TestCase
 
         $this->assertStringContainsString('showFlash: true', $layout,
             'The shell must show the flash unless a page says otherwise.');
-        $this->assertStringContainsString('props.showFlash &&', $layout,
-            'The shell takes a showFlash prop and ignores it.');
+        $this->assertStringContainsString(':show="props.showFlash"', $layout,
+            'The shell takes a showFlash prop and never passes it on.');
+
+        // And the component it passes to honours it.
+        $this->assertStringContainsString('v-if="props.show"',
+            (string) file_get_contents(resource_path('js/Components/FlashToasts.vue')),
+            'The toasts ignore the shell asking them to stay down.');
 
         $this->assertStringContainsString(':show-flash="! dialogOpen"', $page,
             'The tournament page no longer holds the flash back while its dialog is open.');

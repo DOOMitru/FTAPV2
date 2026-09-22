@@ -1,28 +1,17 @@
 <script setup lang="ts">
-import { computed } from 'vue';
-import { router, usePage } from '@inertiajs/vue3';
+import { router } from '@inertiajs/vue3';
 import GuestLayout from '../../Layouts/GuestLayout.vue';
-import Alert from '../../Components/Alert.vue';
 import Btn from '../../Components/Btn.vue';
-import type { PageProps } from '../../types/inertia';
 
 /*
- * The flash, drawn as written.
+ * No flash here.
  *
  * This page used to be handed a link_sent boolean and keep the sentence
  * itself, because session('status') held the sentinel 'verification-link-sent'
  * and printing it would have shown a reader that word. The controller flashes
- * the sentence now, so there is nothing to translate here.
- *
- * This shell is GuestLayout, which owns no flash -- AppLayout does, and this
- * screen is deliberately outside it. So the alert stays on the page.
- *
- * computed, not a plain const: Inertia reuses a component when a visit renders
- * the same page, and resending lands back here, so a value read once at setup
- * would be the flash from BEFORE the resend.
+ * the sentence now, and GuestLayout toasts it -- so there is nothing for this
+ * page to read or to word.
  */
-const flash = computed(() => usePage<PageProps>().props.flash);
-
 const resend = (): void => { router.post('/email/verification-notification'); };
 const logout = (): void => { router.post('/logout'); };
 </script>
@@ -34,10 +23,6 @@ const logout = (): void => { router.post('/logout'); };
             by clicking on the link we just emailed to you? If you didn't receive the email, we
             will gladly send you another.
         </p>
-
-        <!-- Was text-green-600 with no dark variant. Alert carries its own role
-             and token colours, and reads on both grounds. -->
-        <Alert v-if="flash.status" variant="success" :message="flash.status" />
 
         <div class="l-cluster l-cluster--between">
             <Btn variant="primary" type="button" @click="resend">Resend Verification Email</Btn>

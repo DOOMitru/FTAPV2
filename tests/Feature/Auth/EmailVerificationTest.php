@@ -49,9 +49,17 @@ class EmailVerificationTest extends TestCase
         $this->assertStringNotContainsString('verification-link-sent', $source);
         $this->assertStringNotContainsString('link_sent', $source);
 
-        // And the page draws the flash rather than keeping a second copy of
-        // the wording, which is how the two screens used to disagree about it.
-        $this->assertStringContainsString(':message="flash.status"', $source);
+        // And the page keeps no second copy of the wording, which is how the
+        // two screens used to disagree about it. It draws nothing at all now:
+        // GuestLayout toasts the flash, as AppLayout does on the other half.
+        $this->assertStringNotContainsString('Alert', $source,
+            'The prompt draws its own alert again; the shell is what shows the flash.');
+
+        $this->assertStringContainsString(
+            '<FlashToasts',
+            (string) file_get_contents(resource_path('js/Layouts/GuestLayout.vue')),
+            'The shell this page wears shows no flash.'
+        );
     }
 
     /**
@@ -84,10 +92,14 @@ class EmailVerificationTest extends TestCase
                 ->viewData('page')['props']['flash']['status']
         );
 
-        // And the alert is gated on it. Without this the flash could be empty
+        // And the toast is gated on it. Without this the flash could be empty
         // while the page showed the confirmation to everybody, which is what
-        // removing the v-if does and what nothing here noticed.
-        $this->assertStringContainsString('<Alert v-if="flash.status"', $this->verifyEmailMarkup());
+        // removing the v-if does and what nothing here noticed. The gate moved
+        // to the shared component with the alert itself.
+        $this->assertStringContainsString(
+            'v-if="flash.status"',
+            (string) file_get_contents(resource_path('js/Components/FlashToasts.vue'))
+        );
     }
 
     public function test_email_can_be_verified(): void

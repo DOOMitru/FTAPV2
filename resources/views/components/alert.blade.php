@@ -13,4 +13,10 @@
 --}}
 <div {{ $attributes->merge(['class' => 'alert alert--'.$variant]) }} role="{{ $variant === 'danger' ? 'alert' : 'status' }}">
     {{ emph_split($slot->toHtml()) }}
+
+    {{-- An optional trailing control, which only x-toast passes: a dismiss
+         button has to sit INSIDE the alert to share its surface. NAMED,
+         because the default slot here is the message -- and not run through
+         emph_split, because it is markup rather than a sentence. --}}
+    {{ $control ?? '' }}
 </div>

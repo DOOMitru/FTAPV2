@@ -26,14 +26,6 @@
     padding-block: var(--space-4) var(--space-6);
 }
 
-/* The shell's flash, above the page's own content.
-   It is a sibling of the page's .l-container rather than its parent, so the
-   gutter is applied once; this only has to hold the two apart, and it uses the
-   same step .l-stack puts between a page's own blocks. */
-.shell__flash {
-    margin-block-end: var(--space-5);
-}
-
 /* Tighter gutters on a phone.
  *
  * Scoped under .shell, which only the dashboard layout wears -- the public

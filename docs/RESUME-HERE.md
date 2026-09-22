@@ -5,9 +5,9 @@ poker nights in Regina.
 
 ## Where things stand
 
-Suite: **997 passed across 117 files**, on Laravel 13.32.0 and PHPUnit 12. `php artisan test` is the command, but
+Suite: **1006 passed across 118 files**, on Laravel 13.32.0 and PHPUnit 12. `php artisan test` is the command, but
 see the segfault note below -- a full-suite run dies on this machine and has to
-be taken file by file, and `bin/suite.sh` is how that 997 was counted. Do not
+be taken file by file, and `bin/suite.sh` is how that 1006 was counted. Do not
 count it by hand: the previous figure in this line went stale, and so did the
 loop that produced it.
 
@@ -30,7 +30,7 @@ order if you need to know why a page is shaped the way it is.
 **What still renders Blade**, and what each is: `home`, `events`, `about`,
 `contact`, four `rules/*` pages, and the four public auth screens. Plus
 `layouts/public`, `layouts/guest`, the 27 `components/*.blade.php` that survive,
-and the mail templates. Seventeen of those components exist TWICE -- a Blade
+and the mail templates. Eighteen of those components exist TWICE -- a Blade
 half for the public pages and a Vue half for the app -- and
 `ComponentParityTest` discovers each pair by name and holds the two to the same
 class hooks. That is not temporary; it is the shape of the app now.
@@ -48,8 +48,22 @@ render. So do `MarkupBalanceTest` and `AlpineAttributeGuardTest`, which the spec
 predicted would retire. `confirm.ts` still serves the Blade half; the Vue half
 uses the `useConfirm` composable.
 
-**The flash lives in `AppLayout` now, 2026-09-20**, and the two loose ends the
-conversion left are both closed. No controller flashes a sentinel any more:
+**The flash is a toast, 2026-09-21.** Both shells own it -- `AppLayout` and
+`GuestLayout` hang `FlashToasts.vue`, and `layouts/public.blade.php` renders
+`<x-toast>` server-side -- so no page draws a flash of its own on either half.
+A toast is AN ALERT IN A DIFFERENT PLACE: `_alert.css` still owns the variant
+colours, the live-region role and the emphasis markers, and `_toast.css` owns
+only position and elevation. `Toast.vue` and `toast.blade.php` are the
+eighteenth duplicated pair. Success dismisses itself after 5s; a danger toast
+waits to be read, because a refusal is the message a timer is most likely to
+take away. `x-auth-session-status` had no caller left and is deleted.
+
+Two alerts stay inline, deliberately: `Users/Index` and `Users/Show` print an
+invite or verification URL beside theirs, and a toast that slides away takes
+the link with it.
+
+**The flash moved into `AppLayout` first, 2026-09-20**, and the two loose ends
+the conversion left are both closed. No controller flashes a sentinel any more:
 `ProfileController` and `Auth\PasswordController` flash NOTHING -- each only
 ever told one of the three forms on the profile page that it had saved, and
 `useForm`'s `recentlySuccessful` says that per-form -- and

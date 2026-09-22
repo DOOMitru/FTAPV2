@@ -84,10 +84,6 @@
                     <p>{{ __("Send us an inquiry below and we'll get in touch to finalize your sponsorship.") }}</p>
                 </div>
 
-                @if (session('status'))
-                    <x-alert variant="success">{{ session('status') }}</x-alert>
-                @endif
-
                 <form action="{{ route('contact.store') }}" method="POST" class="l-stack">
                     @csrf
                     <input type="hidden" name="topic" value="sponsorship">

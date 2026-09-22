@@ -103,16 +103,18 @@ class DashboardGutterTest extends TestCase
          * layout's applied the gutter twice -- 32px a side on a phone, where
          * the content had least room to give.
          *
-         * So the check is structural now. The flash band is the page's
-         * SIBLING: it opens and closes before the slot, which leaves the
-         * gutter applied exactly once on both.
+         * So the check is structural, and it survived the flash moving twice:
+         * into a container inside <main> as the page's sibling, and out again
+         * when the flash became a toast fixed to the viewport, which needs no
+         * container at all. Either arrangement satisfies the real rule, which
+         * is why the rule is the thing asserted.
          */
         $this->assertTrue($this->slotIsADirectChildOfMain($layout),
             'The layout wraps the slot in a container; every page brings its own, and two apply the gutter twice.');
 
-        // And it brings exactly the one, so a second cannot creep in unnoticed.
-        $this->assertSame(1, substr_count($layout, 'class="l-container'),
-            'The layout has grown a second container.');
+        // And it brings none of its own, so one cannot creep back in unnoticed.
+        $this->assertSame(0, substr_count($layout, 'class="l-container'),
+            'The layout has grown a container.');
 
         // And the page must bring exactly one.
         $page = file_get_contents(resource_path('js/Pages/Users/Index.vue'));

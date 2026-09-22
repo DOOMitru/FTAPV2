@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import Brand from '../Components/Brand.vue';
+import FlashToasts from '../Components/FlashToasts.vue';
 </script>
 
 <template>
@@ -19,5 +20,12 @@ import Brand from '../Components/Brand.vue';
             <div class="guest__brand"><Brand /></div>
             <slot />
         </div>
+
+        <!--
+            The verification prompt flashes, and this shell is not AppLayout, so
+            it needs its own. The component is shared; what differs is only
+            which shell it hangs in.
+        -->
+        <FlashToasts />
     </div>
 </template>
