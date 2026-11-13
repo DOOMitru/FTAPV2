@@ -28,6 +28,10 @@ interface StandingsRow {
     can_eliminate: boolean;
     user_id: string | null;
     eliminate_confirm: string;
+    /** True on exactly one row: the finish handed out most recently. */
+    can_undo: boolean;
+    /** Null while the player is still in. */
+    undo_confirm: string | null;
     can_remove: boolean;
     registrant_id: string | null;
     remove_confirm: string;
@@ -84,6 +88,25 @@ const destroy = async (): Promise<void> => {
 const eliminate = async (row: StandingsRow): Promise<void> => {
     if (await ask(row.eliminate_confirm)) {
         router.post(`${base}/eliminate`, { user_id: row.user_id }, { preserveScroll: true });
+    }
+};
+
+/*
+ * Taking back the last knockout.
+ *
+ * Danger, not primary, the way eliminating is: this throws a recorded finish
+ * away, and the administrator should read it before it goes.
+ *
+ * The row names itself in the request. The server refuses if that player is no
+ * longer the most recent elimination, which is what stops a page left open
+ * while the night moved on from deleting a finish nobody was looking at.
+ */
+const undo = async (row: StandingsRow): Promise<void> => {
+    if (row.undo_confirm && await ask(row.undo_confirm)) {
+        router.delete(`${base}/eliminate`, {
+            data: { user_id: row.user_id },
+            preserveScroll: true,
+        });
     }
 };
 
@@ -242,6 +265,16 @@ const publishFromOffer = (): void => {
                     </div>
 
                     <div class="entry__actions">
+                        <!-- Its own condition rather than a branch of the chain
+                             below: an undoable row shows this AND its points
+                             badge, the button first so the points stay at the
+                             row's edge, aligned with every other row's. Only
+                             one row in the tournament ever carries it -- the
+                             finish handed out most recently -- so there is
+                             never a choice of which to press. -->
+                        <Btn v-if="row.can_undo" variant="ghost" size="sm" type="button"
+                             @click="undo(row)">Undo</Btn>
+
                         <!-- Points only. The place is the glyph at the head of
                              the row, and printing it again here is the one
                              duplication the merge was supposed to remove. -->

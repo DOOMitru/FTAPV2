@@ -191,6 +191,11 @@ class PokerTournamentController extends Controller
         $nextPlace = $registrantsCount - $resultsCount;
         $nextPlacePoints = $pointsStructure->firstWhere('place', $nextPlace)?->points ?? 0;
 
+        // The one finish that can be taken back: the lowest place on record,
+        // which is the one eliminate() handed out last. Asked once here rather
+        // than per row, the way $nextPlace is.
+        $undoable = $tournament->lastEliminated();
+
         // One row per player, whether they are still in, already out, or hold a
         // result with no registration behind them at all.
         //
@@ -403,7 +408,7 @@ class PokerTournamentController extends Controller
             'standings_title' => $standingsTitle,
             'registrants_label' => number_format($registrantsCount),
 
-            'standings' => $standings->map(function (array $row) use ($tournament, $isAdmin, $nextPlace, $nextPlacePoints) {
+            'standings' => $standings->map(function (array $row) use ($tournament, $isAdmin, $nextPlace, $nextPlacePoints, $undoable) {
                 $result = $row['result'];
 
                 return [
@@ -426,6 +431,37 @@ class PokerTournamentController extends Controller
                     // places there are -- but the shift hook handles exactly
                     // that.
                     'can_eliminate' => $isAdmin && ! $result,
+
+                    /*
+                     * Exactly one row ever carries this, and only while the
+                     * results are open.
+                     *
+                     * user_id must be there: results outlive the accounts
+                     * behind them -- nullOnDelete leaves the snapshotted name
+                     * and nothing else -- and the route addresses a player by
+                     * user_id. Such a finish cannot be undone, so it must not
+                     * offer a button that would only be refused.
+                     */
+                    'can_undo' => $isAdmin
+                        && ! $tournament->isPublished()
+                        && $result
+                        && $result->user_id !== null
+                        && $undoable
+                        && $result->is($undoable),
+
+                    // Null on every other row. The place and the points come
+                    // from the finish being given up rather than from the
+                    // structure, because that is what was actually awarded --
+                    // a structure edited since would otherwise quote a figure
+                    // nobody holds.
+                    'undo_confirm' => $result ? __(
+                        'Put :name back in? They give up :place place and :points points, and the place goes back on offer.',
+                        [
+                            'name' => emph($row['name']),
+                            'place' => Number::ordinal($result->place),
+                            'points' => number_format($result->points),
+                        ]
+                    ) : null,
                     'user_id' => $row['registrant']?->user_id,
 
                     // The confirmation names the place and the points because
@@ -650,6 +686,60 @@ class PokerTournamentController extends Controller
         }
 
         return $back;
+    }
+
+    /**
+     * Put the most recently eliminated player back in the field.
+     *
+     * One row deleted and nothing else. The lowest place on record is the one
+     * just handed out, so removing it leaves every other finish exactly where
+     * it is and returns `registrants - results` to what it was -- which means
+     * the next eliminate() offers that same place at that same price. There is
+     * no repricing here, and no second arithmetic beside eliminate()'s.
+     */
+    public function uneliminate(PokerTournament $tournament, Request $request): RedirectResponse
+    {
+        $validated = $request->validate(['user_id' => ['required', 'string']]);
+
+        // Published is final, and this is the seventh call site of the one
+        // sentence that says so.
+        if ($refusal = $tournament->publishedRefusal()) {
+            return back()->with('error', $refusal);
+        }
+
+        $last = $tournament->lastEliminated();
+
+        if (! $last) {
+            return back()->with('error', __('Nobody has been eliminated from :tournament yet.', [
+                'tournament' => emph($tournament->name),
+            ]));
+        }
+
+        // The administrator names the player they believe is last, and this
+        // refuses if that is not who it is. Without it, two administrators on
+        // two phones -- or one page left open while the night moved on -- means
+        // deleting a finish nobody was looking at. eliminate() learned the same
+        // lesson from its unique constraint.
+        if ($last->user_id !== $validated['user_id']) {
+            return back()->with('error', __(
+                ':name was not the last player eliminated. Undo the most recent finish first.',
+                ['name' => emph($last->player_name)]
+            ));
+        }
+
+        $place = $last->place;
+        $points = $last->points;
+
+        $last->delete();
+
+        return back()->with('status', __(
+            ':name is back in, and :place place is on offer again. :points points go with it.',
+            [
+                'name' => emph($last->player_name),
+                'place' => Number::ordinal($place),
+                'points' => number_format($points),
+            ]
+        ));
     }
 
     public function register(PokerTournament $tournament, Request $request): RedirectResponse

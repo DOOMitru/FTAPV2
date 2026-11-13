@@ -5,7 +5,7 @@ poker nights in Regina.
 
 ## Where things stand
 
-Suite: **1007 passed across 118 files**, on Laravel 13.32.0 and PHPUnit 12,
+Suite: **1022 passed across 119 files**, on Laravel 13.32.0 and PHPUnit 12,
 counted 2026-11-13. `php artisan test` is the command, but see the segfault note
 below -- a full-suite run dies on this machine and has to be taken file by file,
 which is what `bin/suite.sh` does.
@@ -1115,6 +1115,19 @@ Plan: `docs/superpowers/plans/2026-09-06-player-notifications.md`.
 - **Public form actions share `.p-form-actions`** -- full width on a phone,
   label-width and flush right above 40rem. `btn--block` survives on the sign-in
   button alone, where a full-width primary in a 38rem column is right.
+- **An administrator can undo the last elimination, and only the last** (2026-11-13).
+  `DELETE poker/tournaments/{tournament}/eliminate`, the same URI-pair shape as
+  publish/unpublish. The most recent elimination is the result holding the
+  **lowest place**, not the newest row: places are handed out from the bottom up,
+  and a late registration shifts and reprices every recorded place without
+  touching a timestamp. `PokerTournament::lastEliminated()` is the one way to
+  ask. The request names the player the page believes is last, and the server
+  refuses if that is not who it is, so two administrators, or one stale page,
+  cannot delete a finish nobody was looking at. A result with no `user_id` is
+  never offered undo, because the route cannot address it. Undo stops at
+  publish, through `publishedRefusal()`. Nothing is repriced: deleting the lowest
+  place returns `registrants - results` to what it was, so the next
+  `eliminate()` hands out the same place at the same price.
 
 ## Four defects found in the plan itself during Phase 0
 
