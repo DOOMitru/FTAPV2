@@ -5,7 +5,7 @@ poker nights in Regina.
 
 ## Where things stand
 
-Suite: **1022 passed across 119 files**, on Laravel 13.32.0 and PHPUnit 12,
+Suite: **1022 passed across 119 files**, on Laravel 13.42.0 and PHPUnit 12,
 counted 2026-11-13. `php artisan test` is the command, but see the segfault note
 below -- a full-suite run dies on this machine and has to be taken file by file,
 which is what `bin/suite.sh` does.
@@ -298,6 +298,24 @@ The severity tiering is done in the script rather than by
 passed. Do not simplify it back to the flag without checking the flag has
 started working. Verified both ways: the lock from before the update fails it,
 naming 13; the lock after it passes.
+
+**It caught the same drift again, 2026-11-13** -- eight weeks after the last
+update, seven blocking advisories: a high in `league/commonmark` and six of
+unknown severity across `symfony/http-foundation`, `http-kernel` and `routing`.
+The next deploy would have been refused. `composer update` inside the existing
+constraints cleared them all (Laravel 13.32.0 → 13.42.0, 61 packages; note
+`brick/math` 0.19 → 1.0.0 arrived transitively and nothing noticed), and
+`npm update` moved the front end within its ranges. **Update monthly rather
+than when the audit forces it.**
+
+**`vue-tsc` is pinned exactly at `3.3.11`.** 3.3.14 reports seven false
+`Property 'value' does not exist on type 'InertiaForm<…>'` errors in
+`Sponsors/Partials/SponsorForm.vue` and nowhere else, on code that is unchanged
+and clean under 3.3.11 -- bisected to vue-tsc alone, not Vue or Inertia. Not
+the native `<select v-model>`, the `v-if`, the file input's event or its `id`;
+the cause was not found. It is a check-only dev tool, so the pin ships nothing.
+To lift it: `npm install -D vue-tsc@latest`, run `npm run typecheck`, and drop
+the pin if SponsorForm is clean.
 Nothing else is known-broken. There are no TODO, FIXME or HACK markers anywhere
 in `app/`, `routes/` or `resources/` -- re-checked 2026-09-17. Three checks gate
 a release: `bin/audit.sh` before the suite, and `mail:check` and
