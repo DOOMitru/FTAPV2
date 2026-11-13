@@ -1,15 +1,21 @@
 # Resume here
 
-**Last worked: 2026-09-20.** First to Act Poker — a league app for free-to-play
+**Last worked: 2026-11-13.** First to Act Poker — a league app for free-to-play
 poker nights in Regina.
 
 ## Where things stand
 
-Suite: **1006 passed across 118 files**, on Laravel 13.32.0 and PHPUnit 12. `php artisan test` is the command, but
-see the segfault note below -- a full-suite run dies on this machine and has to
-be taken file by file, and `bin/suite.sh` is how that 1006 was counted. Do not
-count it by hand: the previous figure in this line went stale, and so did the
-loop that produced it.
+Suite: **1007 passed across 118 files**, on Laravel 13.32.0 and PHPUnit 12,
+counted 2026-11-13. `php artisan test` is the command, but see the segfault note
+below -- a full-suite run dies on this machine and has to be taken file by file,
+which is what `bin/suite.sh` does.
+
+**The script reports FILES, not tests** -- `ran 118 of 118 files, 0 failing`.
+The test figure above is the sum of each file's `Tests:` line over the same
+`find tests -name '*Test.php' | sort` list the script derives, with the same one
+retry on a crash. This line used to claim `bin/suite.sh` produced it, which it
+never did. Do not count it by hand: the previous figure went stale, and so did
+the loop that produced it.
 
 **`bin/sweep.sh` is the other half, added 2026-09-21.** It visits every GET
 route in a real browser as admin, player and guest -- 141 pages -- and asks what
@@ -18,6 +24,10 @@ are there nested anchors or duplicate ids, does the page scroll sideways, is the
 shell's furniture there. It builds its own SQLite database, serves the app
 against it on its own port, and signs in through the real login form, so nothing
 in the working tree is touched. Run it before deploying; it is not in CI.
+
+**It has been run against a committed tree once, 2026-11-13: 141 pages across
+three roles, 47 routes each, no findings.** That is the baseline -- a finding
+on a later run is a change you made, not the harness warming up.
 
 It replaces `~/ftap-shots/sweep.py`, which patched three layout files and
 appended temporary routes to `routes/web.php`. That broke when
@@ -356,7 +366,7 @@ been running fine for weeks:
   took an hour to clear. Every ssh call in the workflow names its key and only
   its key.
 
-## PHP 8.5.4 segfaults on a full-suite run (2026-09-08, unresolved)
+## PHP 8.5.4 segfaults on a suite run (2026-09-08, unresolved)
 
 `./vendor/bin/phpunit` with no arguments dies with **exit 139, SIGSEGV**, most
 runs, at a different point each time -- sometimes 24 tests in, sometimes 567 of
@@ -368,6 +378,19 @@ runs, at a different point each time -- sometimes 24 tests in, sometimes 567 of
   row on its own.
 - Not memory (55GB free), not disk, not opcache (off for CLI), not JIT
   (disabled), and **not PCRE JIT** -- `-d pcre.jit=0` still segfaults.
+
+**It reaches SINGLE-FILE runs too, 2026-11-13**, which this section used to say
+was the safe ground. `bin/suite.sh` reported two of 118 files crashed;
+`PointsStructureAdminTest` on its own died at **exit 139** partway through its
+dots and then passed three times in a row, and `AdminRegisterDialogTest` passed
+first try. The script already retries a crashed file once, and both retries hit
+it. So `ran N of N, 0 failing` is not guaranteed on this machine: a `FAIL` with
+**no summary line (crashed)** is a file to run by hand before believing it, and
+only a real summary line naming a failure is a real failure.
+
+A second full pass an hour later crashed nothing at all -- 118 of 118, 1007
+tests, no retries needed. That is the shape of it: intermittent, and capable of
+sitting out an entire run.
 
 **Work around it with `bin/suite.sh`**, which runs one file at a time:
 
