@@ -103,8 +103,9 @@ behind it is announced to somebody who can neither see nor reach it.
 
 **The design-system work is finished and is no longer what this project is
 about.** Phases 0-5 moved all 86 views off Tailwind onto hand-built CSS
-(`docs/PHASE-5-EXIT-AUDIT.md`); the red-and-black refresh then moved the app onto
-the logo's palette (`docs/RED-BLACK-EXIT-AUDIT.md`). Colour is enforced rather
+and the red-and-black refresh then moved the app onto the logo's palette; what
+still binds from both is under **Carried over from the phase audits** below.
+Colour is enforced rather
 than asserted: `TokenContrastTest` parses the real token file and fails the suite
 on any pair below AA. Everything since has been features and defect work on top
 of that foundation.
@@ -242,8 +243,10 @@ conversion** below; what follows immediately is only what is still open.
    was never public. The four `<select>` forms are the only sites left, and an
    `<option>` cannot hold markup, so they are not deferred -- they are out of
    reach. Recorded in the test rather than here.
-6. `docs/` holds six audit documents from finished phases. Their open-items
-   sections are largely resolved; treat this file as the index, not them.
+6. ~~`docs/` holds six audit documents from finished phases.~~ **DONE,
+   2026-11-13.** Every open item in them was resolved; what still binds was
+   moved under **Carried over from the phase audits**, and the files were
+   deleted. This file is the one index.
 
 7. ~~Upgrade to Laravel 13.~~ **DONE, 2026-09-19.** On 13.32.0. It was three
    constraints in the end, not the five this entry predicted:
@@ -511,8 +514,18 @@ it is a deliberate edit rather than a line in a diff nobody reads.
 The Blade-artifact detector was proven to fire by injecting a literal `@if` into a view
 and confirming the sweeps failed. It is not an assumption.
 
-Five more guards were added as the conversion went on; all eight are listed in
-`docs/PHASE-5-EXIT-AUDIT.md`.
+More were added as the conversion went on, and they are why it cannot quietly
+regress:
+
+| Test | What it guards |
+|---|---|
+| `ConvertedViewsTest` | Tailwind returning to any view. Its allowlist is empty. |
+| `ModifierClassGuardTest` | A layout modifier used without its base class, which silently does nothing. |
+| `PublicRegisterTest` | Gradient and elevation tokens outside the public register, and raw `box-shadow` in the app shell. |
+| `InlineStyleGuardTest` | Inline CSS: `style` attributes and `<style>` blocks. |
+| `TokenContrastTest` | Parses the real token file and asserts every text pair meets AA, plus hairline floors. Proven to bite by substituting the logo red `#EF4537` into the light theme, which failed exactly the two pairs it should. |
+
+**A guard nobody has watched fail is an assumption.**
 
 ## Deferred minor findings from Phase 0 — CLEARED, 2026-09-13
 
@@ -1128,6 +1141,63 @@ Plan: `docs/superpowers/plans/2026-09-06-player-notifications.md`.
   publish, through `publishedRefusal()`. Nothing is repriced: deleting the lowest
   place returns `registrants - results` to what it was, so the next
   `eliminate()` hands out the same place at the same price.
+
+### Carried over from the phase audits (2026-11-13)
+
+Six exit audits used to sit in `docs/` -- Phase 0, Phase 1, Phase 5, red and
+black, player approval, sponsor management. Every open item in them had since
+been resolved, so they were deleted; git history holds them. What follows is
+what in them still binds. Their other decisions were superseded -- notably
+"rejection keeps the account", reversed for pending accounts on 2026-09-15.
+
+**Colour and motif**
+
+- **A filled red button always means "go."** Destructive controls rest neutral
+  and commit to red on hover -- `.btn--danger` and `.link--danger` alike.
+- **Red is the brand; green is "open"; medals are discs.** `--c-open` carries
+  state so the brand colour does not have to. Gold, silver and bronze, not a
+  podium painted one colour.
+- **Motif must do a job.** Suits mark hero eyebrows and watermark hero bands.
+  They do not appear beside table rows: there is no tournament-type column, so
+  one there would imply a category that does not exist.
+- **Claim nothing the page cannot show.** No registration window or location is
+  stated anywhere the data does not back it.
+
+**Invitations**
+
+- **The invite is a password-reset link**, not a new mechanism. The framework
+  already issues signed, expiring, single-use tokens.
+- **The invite action is offered unconditionally.** Whether an account has ever
+  set a password is not knowable: every account has a hash, and the random one a
+  new player starts with is indistinguishable from a chosen one.
+
+**Sponsors**
+
+- **`tier` is a string, not `is_premium`.** A boolean cannot grow a third tier.
+- **`Sponsor::ordered()` is the only expression of display order.** The admin
+  list and the home page's wall both call it, so what an administrator arranges
+  is what the page renders; `sort_order` exists so moving a sponsor does not
+  mean deleting it and re-uploading the logo.
+- **The old logo is deleted after the replacement is stored.** The other order
+  leaves a sponsor with no logo if the upload fails.
+- **`object-fit: contain`, never `cover`.** Do not crop a paying sponsor's mark.
+- **The logo plate is a fixed white, not themed.** A dark transparent logo on a
+  dark surface is an empty rectangle -- the one case where the theme must not win.
+- **The card is a link only when there is a website**, and **`alt` carries the
+  sponsor name**, because the logo is the content, not decoration.
+- **SVG uploads are accepted** because only administrators upload. If that ever
+  changes, drop the format or serve uploads from another domain; the reason is
+  recorded in `SponsorController`.
+
+**Two lessons the conversion kept teaching**
+
+- **Computed-style checks pass while a page looks wrong.** Removing Tailwind
+  reverted `box-sizing` to `content-box` across the whole app and 108 tests
+  stayed green. Look at the page; the suite tells you it responded, not that it
+  works.
+- **A value escaped for HTML is not escaped for JavaScript.** Both stored-XSS
+  defects found during the conversion were a player-supplied name crossing from
+  an HTML context into a JS one, where Blade's escaping no longer applies.
 
 ## Four defects found in the plan itself during Phase 0
 
