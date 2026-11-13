@@ -3,9 +3,12 @@
  *
  * The markup is rendered by layouts/public.blade.php, not by this file -- the
  * same arrangement confirm.ts has with confirm-dialog.blade.php. emph_split
- * runs in PHP where it already does, the live-region role is in the response
- * rather than assigned after mount, and the message is on the page with
+ * runs in PHP where it already does, and the message is on the page with
  * JavaScript switched off. All this adds is the timer and the way out.
+ *
+ * It removes the TOAST and leaves its live region standing, because the region
+ * has to still be there when the next message arrives -- one created together
+ * with its content is unreliably announced.
  *
  * The Vue half does the same job in Toast.vue. The two are not shared because
  * there is nothing to share: one is a component with a lifecycle and the other
@@ -16,10 +19,10 @@
 const DISMISS_AFTER_MS = 5000;
 
 export function initToast(): void {
-    document.querySelectorAll<HTMLElement>('[data-toast]').forEach((host) => {
-        const dismiss = (): void => host.remove();
+    document.querySelectorAll<HTMLElement>('[data-toast]').forEach((toast) => {
+        const dismiss = (): void => toast.remove();
 
-        host.querySelector<HTMLButtonElement>('[data-toast-dismiss]')
+        toast.querySelector<HTMLButtonElement>('[data-toast-dismiss]')
             ?.addEventListener('click', dismiss);
 
         /*
@@ -31,7 +34,7 @@ export function initToast(): void {
          * site is a registration turned away, which is the message somebody is
          * most likely to have looked away from.
          */
-        if (host.querySelector('[data-toast-persist]') === null) {
+        if (! toast.hasAttribute('data-toast-persist')) {
             window.setTimeout(dismiss, DISMISS_AFTER_MS);
         }
     });

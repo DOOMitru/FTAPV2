@@ -97,7 +97,7 @@ class EmailVerificationTest extends TestCase
         // removing the v-if does and what nothing here noticed. The gate moved
         // to the shared component with the alert itself.
         $this->assertStringContainsString(
-            'v-if="flash.status"',
+            'v-if="props.show && flash.status"',
             (string) file_get_contents(resource_path('js/Components/FlashToasts.vue'))
         );
     }

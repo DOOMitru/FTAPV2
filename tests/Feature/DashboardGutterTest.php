@@ -127,8 +127,13 @@ class DashboardGutterTest extends TestCase
      * Is <slot /> a direct child of <main>, or is something wrapping it?
      *
      * Walks the tags between the two and counts depth. A tag ending in "/>" is
-     * self-closing and opens nothing -- which covers both the Vue components
-     * in the flash band and the slot itself.
+     * self-closing and opens nothing, which covers the slot itself.
+     *
+     * Nothing sits between them at all now that the flash is a toast fixed to
+     * the viewport. It did when the flash was a band inside <main>, and this
+     * survived that arrangement arriving and leaving without being rewritten,
+     * which is the argument for asking about structure rather than searching
+     * for a string.
      */
     private function slotIsADirectChildOfMain(string $layout): bool
     {

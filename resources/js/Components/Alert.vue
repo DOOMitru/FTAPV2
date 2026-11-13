@@ -14,13 +14,24 @@ interface Props {
      * it -- the guarantee is the same, expressed in the direction Vue works.
      */
     message: string;
+    /**
+     * Whether this alert announces itself.
+     *
+     * True for an alert sitting in the page, which is its own live region.
+     * FALSE inside a toast: the toast is inserted into a region that was
+     * already in the document, because a live region created together with its
+     * message is unreliably announced -- and two nested regions risk saying
+     * the same sentence twice.
+     */
+    live?: boolean;
 }
 
-withDefaults(defineProps<Props>(), { variant: 'info' });
+withDefaults(defineProps<Props>(), { variant: 'info', live: true });
 </script>
 
 <template>
-    <div class="alert" :class="`alert--${variant}`" :role="variant === 'danger' ? 'alert' : 'status'">
+    <div class="alert" :class="`alert--${variant}`"
+         :role="live ? (variant === 'danger' ? 'alert' : 'status') : undefined">
         <Emph :message="message" />
 
         <!--

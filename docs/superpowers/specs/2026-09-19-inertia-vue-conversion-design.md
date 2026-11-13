@@ -70,7 +70,7 @@ it untouched means this project cannot break the one defence the public
 registration form has. Converting the auth screens later is a small, separate
 piece of work if it is ever wanted.
 
-## 2. Eleven components have to exist twice -- seventeen, as it turned out
+## 2. Eleven components have to exist twice -- eighteen, as it turned out
 
 **AMENDED, 2026-09-20.** Eleven was the prediction, twelve was the count when
 `p-event` joined them, and seventeen is the number after the dead Blade
@@ -78,7 +78,10 @@ dashboard shell was deleted -- not because more were duplicated, but because
 deleting the eight components nothing called any more left only the genuinely
 shared ones behind, and the guard then counted what was actually there.
 `ComponentParityTest` DISCOVERS the pairs, so no list needed correcting; the
-number in this heading is the only thing that ever went stale.
+number in this heading is the only thing that ever went stale -- and it went
+stale again on 2026-09-21, when `toast` became the eighteenth. Eleven was never
+going to be the number; that a guard which discovers its own subjects never
+needed touching is the part worth keeping.
 
 This is the real cost of the hybrid, and the part most likely to cause trouble
 later, so it is stated first among the consequences rather than buried.
@@ -120,10 +123,18 @@ flash nothing (`useForm`'s `recentlySuccessful` tells a form it saved, which is
 all the sentinel ever said) and the third flashes the sentence. A page may opt
 out with `:show-flash`, which exactly one does.
 
+**AMENDED AGAIN, 2026-09-21.** The flash is a toast at the bottom of the
+viewport, and `layouts/public.blade.php` is no longer "untouched": it renders
+the same thing server-side for the public half, so neither half has a page that
+draws its own. Each shell keeps two live regions permanently in the document --
+one polite, one assertive -- and only the message is inserted, because a region
+created together with its content is unreliably announced.
+
 **Layouts.** `AppLayout.vue` is a persistent layout carrying the navigation,
 topbar and notifications; it does not remount between page visits, so the nav
-state survives navigation. `layouts/public.blade.php` is untouched and keeps
-serving the Blade side. A visitor crossing the boundary -- signing in, or
+state survives navigation. `layouts/public.blade.php` keeps serving the Blade
+side -- untouched at the time of writing, though see the 2026-09-21 amendment
+above. A visitor crossing the boundary -- signing in, or
 following a link from `/events` to a tournament -- gets one ordinary full page
 load. That is correct behaviour, not a defect to engineer around.
 

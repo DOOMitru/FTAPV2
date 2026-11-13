@@ -47,22 +47,28 @@ onBeforeUnmount(() => {
 <template>
     <!--
         A toast is an alert in a different place, so <Alert> stays in charge of
-        the variant colours, the role and the emphasis markers. This adds the
-        elevation and the way out. The twin is toast.blade.php; the two agree
-        about class hooks, and ComponentParityTest says so.
-    -->
-    <div v-if="shown" class="toast-host">
-        <Alert class="toast" :variant="variant" :message="message">
-            <button type="button" class="toast__dismiss" @click="shown = false">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                     stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                    <path d="M18 6L6 18M6 6l12 12"/>
-                </svg>
+        the variant colours and the emphasis markers. This adds the elevation
+        and the way out. The twin is toast.blade.php; the two agree about class
+        hooks, and ComponentParityTest says so.
 
-                <!-- From content rather than aria-label, so it is translated
-                     with the rest of the page -- as Action.vue does. -->
-                <span class="u-visually-hidden">Dismiss</span>
-            </button>
-        </Alert>
-    </div>
+        :live="false" -- the alert announces nothing itself. It is inserted into
+        one of the two live regions FlashToasts keeps permanently in the
+        document, because a region created together with its message is
+        unreliably announced.
+
+        No positioning here either: the host and the regions belong to the
+        shell, which is what makes them permanent.
+    -->
+    <Alert v-if="shown" class="toast" :variant="variant" :message="message" :live="false">
+        <button type="button" class="toast__dismiss" @click="shown = false">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                 stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M18 6L6 18M6 6l12 12"/>
+            </svg>
+
+            <!-- From content rather than aria-label, so it is translated with
+                 the rest of the page -- as Action.vue does. -->
+            <span class="u-visually-hidden">Dismiss</span>
+        </button>
+    </Alert>
 </template>

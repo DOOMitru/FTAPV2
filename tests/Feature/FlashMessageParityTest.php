@@ -116,9 +116,9 @@ class FlashMessageParityTest extends TestCase
 
         foreach (['status' => 'success', 'error' => 'danger'] as $key => $variant) {
             $this->assertStringContainsString(
-                'v-if="flash.'.$key.'"',
+                'v-if="props.show && flash.'.$key.'"',
                 $toasts,
-                "Nothing shows flash.{$key} any more."
+                "Nothing shows flash.{$key} any more, or it stopped honouring showFlash."
             );
             $this->assertStringContainsString(
                 'variant="'.$variant.'" :message="flash.'.$key.'"',
@@ -182,10 +182,19 @@ class FlashMessageParityTest extends TestCase
         $this->assertStringContainsString(':show="props.showFlash"', $layout,
             'The shell takes a showFlash prop and never passes it on.');
 
-        // And the component it passes to honours it.
-        $this->assertStringContainsString('v-if="props.show"',
-            (string) file_get_contents(resource_path('js/Components/FlashToasts.vue')),
+        /*
+         * And the component it passes to honours it -- on each TOAST, not on
+         * the host. The live regions have to stay in the document even while a
+         * page is holding its flash back, because a region created together
+         * with its message is unreliably announced; gating the host would take
+         * them away and put the problem back.
+         */
+        $toasts = (string) file_get_contents(resource_path('js/Components/FlashToasts.vue'));
+
+        $this->assertSame(2, substr_count($toasts, 'v-if="props.show && flash.'),
             'The toasts ignore the shell asking them to stay down.');
+        $this->assertStringNotContainsString('<div v-if="props.show" class="toast-host"', $toasts,
+            'The host is gated, which takes the live regions out of the document with it.');
 
         $this->assertStringContainsString(':show-flash="! dialogOpen"', $page,
             'The tournament page no longer holds the flash back while its dialog is open.');

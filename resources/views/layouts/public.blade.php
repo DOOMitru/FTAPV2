@@ -102,17 +102,31 @@
             {{-- The shell owns the flash, the same decision AppLayout takes on
                  the other half. Five views used to render their own -- events
                  twice, contact, about, and the two auth screens through
-                 x-auth-session-status, which this replaces entirely.
+                 x-auth-session-status, which this replaced entirely.
 
-                 Danger first, so a refusal is the one nearest the eye if a
-                 request ever manages to send both. --}}
-            @if (session('error'))
-                <x-toast variant="danger">{{ session('error') }}</x-toast>
-            @endif
+                 Both regions are ALWAYS rendered and are usually empty, which
+                 is the point: a live region has to be in the document before
+                 its message arrives, and one created with its content is
+                 unreliably announced. Only the toast is conditional. Two of
+                 them because politeness belongs to the region -- a
+                 confirmation waits for a pause and a refusal interrupts -- and
+                 the alert inside each carries no role of its own.
 
-            @if (session('status'))
-                <x-toast variant="success">{{ session('status') }}</x-toast>
-            @endif
+                 Assertive first, so a refusal is also the one nearest the eye
+                 if a request ever manages to send both. --}}
+            <div class="toast-host">
+                <div class="toast-live" role="alert" aria-live="assertive">
+                    @if (session('error'))
+                        <x-toast variant="danger">{{ session('error') }}</x-toast>
+                    @endif
+                </div>
+
+                <div class="toast-live" role="status" aria-live="polite">
+                    @if (session('status'))
+                        <x-toast variant="success">{{ session('status') }}</x-toast>
+                    @endif
+                </div>
+            </div>
         </div>
     </body>
 </html>

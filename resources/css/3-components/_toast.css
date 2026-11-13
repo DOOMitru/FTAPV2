@@ -21,12 +21,34 @@
 
     display: flex;
     flex-direction: column;
-    gap: var(--space-3);
 
     /* The host spans the viewport so a toast can sit against either edge, and
        would otherwise swallow every click in that band. Restored on the toasts
        themselves, which are the only part that is actually there. */
     pointer-events: none;
+}
+
+/* The two live regions: PERMANENT, and empty most of the time.
+ *
+ * A region has to be in the document BEFORE its message arrives -- a live
+ * region created together with its content is unreliably announced, and
+ * several screen readers say nothing at all. So these two are always here and
+ * the toast is inserted into one of them, which is the opposite of how the
+ * first version worked.
+ *
+ * Two of them because politeness is a property of the region, not the message:
+ * a confirmation waits for a pause and a refusal interrupts, and one region
+ * cannot be both. The alert inside carries no role of its own -- see the
+ * `live` prop on Alert -- because the region is already the announcement and
+ * two nested ones risk saying it twice.
+ *
+ * They hold the width, so the toast can simply fill its region. An empty one
+ * is zero-height and contributes nothing: the gap that would have sat between
+ * them lives on .toast instead, so a single toast is not pushed off the bottom
+ * edge by an empty sibling.
+ */
+.toast-live {
+    width: min(28rem, 100%);
 }
 
 /* Full width on a phone, where 28rem is the whole screen anyway and a toast
@@ -41,9 +63,16 @@
 .toast {
     pointer-events: auto;
 
-    /* The same min() shape .confirm uses: wide enough to read a sentence,
-       never wider than a phone with the page gutter left either side. */
-    width: min(28rem, 100%);
+    /* The region holds the width -- the same min() shape .confirm uses: wide
+       enough to read a sentence, never wider than a phone with the page gutter
+       left either side. */
+    width: 100%;
+
+    /* The gap, carried by the toast rather than by the host, because the host's
+       other child is an empty live region that must not be spaced away from
+       anything. Above every toast, so one sits level with the bottom inset and
+       two are held apart. */
+    margin-block-start: var(--space-3);
 
     /* .alert aligns to flex-start, for a message that wraps to several lines
        beside nothing. This one has a dismiss control to sit level with. */

@@ -11,6 +11,19 @@ be taken file by file, and `bin/suite.sh` is how that 1006 was counted. Do not
 count it by hand: the previous figure in this line went stale, and so did the
 loop that produced it.
 
+**`bin/sweep.sh` is the other half, added 2026-09-21.** It visits every GET
+route in a real browser as admin, player and guest -- 141 pages -- and asks what
+no server-side assertion can: did the Inertia page mount, did anything throw,
+are there nested anchors or duplicate ids, does the page scroll sideways, is the
+shell's furniture there. It builds its own SQLite database, serves the app
+against it on its own port, and signs in through the real login form, so nothing
+in the working tree is touched. Run it before deploying; it is not in CI.
+
+It replaces `~/ftap-shots/sweep.py`, which patched three layout files and
+appended temporary routes to `routes/web.php`. That broke when
+`layouts/app.blade.php` was deleted, and it is how probe instrumentation once
+reached a commit.
+
 **The Inertia + Vue conversion is DONE, 2026-09-20.** The view layer behind
 login is Inertia with Vue 3 and TypeScript: 33 page components and 28 shared
 components under `resources/js`. All 29 authenticated routes converted; the 18
@@ -424,10 +437,13 @@ the dump uses the clamped viewport too.
 - **No inline CSS, anywhere.** The only permitted `style` attribute is one setting only
   custom properties (`style="--meter-fill: 86%"`). Enforced by `InlineStyleGuardTest`,
   which also rejects `<style>` blocks. There is likewise no inline JavaScript left.
-- **The app has no browser-based tests** — the owner declined Laravel Dusk. Alpine
-  dropdowns, the modal focus trap, the theme toggle and responsive breakpoints are verified
-  by hand. Headless Chromium was used throughout for screenshots and computed-style
-  measurement, but it cannot drive Alpine's `x-show`.
+- **The app has no browser-based tests IN THE SUITE** — the owner declined Laravel Dusk,
+  and `bin/sweep.sh` is a pre-deploy pass rather than a test: it is not in `phpunit.xml`
+  and not in CI. Alpine dropdowns, the modal focus trap and the theme toggle are still
+  verified by hand. Headless Chromium over CDP is what the sweep drives, and what to
+  reach for when a behaviour is invisible to PHPUnit — a toast's five-second timer, a
+  form's "Saved." indicator, whether a component remounts. Several defects this year were
+  found that way and by nothing else.
 - **Screenshots of dumped HTML render in the WRONG FONT unless you fix the font URLs.**
   The faces are self-hosted at the root-relative `/fonts/archivo.woff2`, which a
   `file://` page resolves to a path that does not exist — so the page silently falls back

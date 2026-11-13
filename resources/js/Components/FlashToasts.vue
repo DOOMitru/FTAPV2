@@ -50,10 +50,32 @@ watch(flash, () => { seq.value++; });
 </script>
 
 <template>
-    <template v-if="props.show">
-        <!-- Danger first, so a refusal is the one nearest the eye if an action
-             ever manages to send both. -->
-        <Toast v-if="flash.error" :key="`error-${seq}`" variant="danger" :message="flash.error" />
-        <Toast v-if="flash.status" :key="`status-${seq}`" variant="success" :message="flash.status" />
-    </template>
+    <!--
+        The host and both regions are ALWAYS RENDERED, and are usually empty.
+        That is the point: a live region has to be in the document before its
+        message arrives, and one created together with its content is
+        unreliably announced -- several screen readers say nothing at all. Only
+        the toast is inserted.
+
+        Two regions, because politeness belongs to the region rather than the
+        message: a confirmation waits for a pause, a refusal interrupts, and
+        one region cannot be both. The alerts inside carry no role of their own
+        -- see Toast, which passes :live="false".
+
+        v-if on the TOASTS rather than on the host, so a page holding its flash
+        back still leaves the regions in place for the next one.
+    -->
+    <div class="toast-host">
+        <!-- Assertive first, so a refusal is also the one nearest the eye if an
+             action ever manages to send both. -->
+        <div class="toast-live" role="alert" aria-live="assertive">
+            <Toast v-if="props.show && flash.error" :key="`error-${seq}`"
+                   variant="danger" :message="flash.error" />
+        </div>
+
+        <div class="toast-live" role="status" aria-live="polite">
+            <Toast v-if="props.show && flash.status" :key="`status-${seq}`"
+                   variant="success" :message="flash.status" />
+        </div>
+    </div>
 </template>

@@ -1,4 +1,4 @@
-@props(['variant' => 'info'])
+@props(['variant' => 'info', 'live' => true])
 
 {{--
     The slot arrives ESCAPED -- every caller writes {{ session('status') }} --
@@ -11,7 +11,15 @@
     `<x-alert variant="success">{{ session('status') }}</x-alert>`, and a rule
     that has to be remembered at each of them is a rule that will be missed.
 --}}
-<div {{ $attributes->merge(['class' => 'alert alert--'.$variant]) }} role="{{ $variant === 'danger' ? 'alert' : 'status' }}">
+{{-- The role goes through the bag so that a null drops it entirely: an alert
+     inside a toast carries none, because the toast is inserted into a live
+     region that was already in the document. A region created together with
+     its message is unreliably announced, and two nested ones risk saying the
+     sentence twice. --}}
+<div {{ $attributes->merge([
+    'class' => 'alert alert--'.$variant,
+    'role' => $live ? ($variant === 'danger' ? 'alert' : 'status') : null,
+]) }}>
     {{ emph_split($slot->toHtml()) }}
 
     {{-- An optional trailing control, which only x-toast passes: a dismiss

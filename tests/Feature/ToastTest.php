@@ -38,21 +38,80 @@ class ToastTest extends TestCase
         return (string) file_get_contents(resource_path('js/Components/'.$file));
     }
 
-    public function test_a_toast_is_announced_as_a_live_region(): void
+    public function test_the_live_regions_are_in_the_document_before_any_message(): void
     {
-        // Inherited from the alert rather than restated, which is the whole
-        // point of nesting one: a message that slides in after the page has
-        // settled is announced only if it is in a live region, and getting
-        // that right twice is getting it wrong once.
-        $this->assertStringContainsString('role="status"', $this->render('success'));
-        $this->assertStringContainsString('role="alert"', $this->render('danger'));
+        /*
+         * The rule a toast is most likely to get wrong.
+         *
+         * A live region must already be in the document when its content
+         * changes. A region created TOGETHER with its message is unreliably
+         * announced -- several screen readers say nothing at all -- which is
+         * exactly what the first version of this did: nothing existed until a
+         * flash arrived, and then the region and the sentence appeared at once.
+         *
+         * So both regions are permanent and only the toast is conditional.
+         * Asserted on a page with NO flash, which is the state that used to
+         * render nothing.
+         */
+        $this->get(route('home'))->assertOk()
+            ->assertSee('aria-live="assertive"', false)
+            ->assertSee('aria-live="polite"', false)
+            ->assertDontSee('class="alert', false);
 
-        // The Vue half inherits it the same way, from the same component.
-        $this->assertStringContainsString('<Alert', $this->vue('Toast.vue'));
-        $this->assertStringContainsString(
-            "variant === 'danger' ? 'alert' : 'status'",
-            $this->vue('Alert.vue')
-        );
+        // Two of them, because politeness belongs to the region: a
+        // confirmation waits for a pause and a refusal interrupts, and one
+        // region cannot be both.
+        $layout = (string) file_get_contents(resource_path('views/layouts/public.blade.php'));
+        $toasts = (string) file_get_contents(resource_path('js/Components/FlashToasts.vue'));
+
+        foreach ([$layout, $toasts] as $shell) {
+            $this->assertStringContainsString('role="alert" aria-live="assertive"', $shell);
+            $this->assertStringContainsString('role="status" aria-live="polite"', $shell);
+        }
+
+        // And the toast inside claims no region of its own: two nested ones
+        // risk saying the sentence twice.
+        $this->assertStringNotContainsString('role=', $this->render('success'));
+        $this->assertStringNotContainsString('role=', $this->render('danger'));
+        $this->assertStringContainsString(':live="false"', $this->vue('Toast.vue'));
+
+        // An alert in the PAGE is still its own region -- the two on the user
+        // pages, which stay inline because a link has to be copied from them.
+        $this->assertStringContainsString('role="status"',
+            Blade::render('<x-alert variant="success">Saved.</x-alert>'));
+    }
+
+    public function test_nothing_gates_the_live_regions(): void
+    {
+        /*
+         * The regions must be UNCONDITIONAL.
+         *
+         * A live region created together with its message is unreliably
+         * announced, so gating the host -- on the flash, on showFlash, on
+         * anything -- puts back the defect the permanent regions exist to
+         * remove. And it does it invisibly: the toast still appears and still
+         * looks right, and only a screen reader notices.
+         *
+         * The Blade half is already caught by the test above, which asks a
+         * page with NO flash and would find no aria-live at all. The Vue half
+         * cannot be rendered here, so its opening tags are read -- and checked
+         * for ANY directive rather than for one spelling of one, which is how
+         * `v-if="props.show && (flash.status || flash.error)"` slipped past
+         * the first version of this guard while a v-if on the host was exactly
+         * what it meant to reject.
+         */
+        $toasts = (string) file_get_contents(resource_path('js/Components/FlashToasts.vue'));
+
+        preg_match_all('/<div[^>]*class="(toast-host|toast-live)"[^>]*>/', $toasts, $tags, PREG_SET_ORDER);
+
+        $this->assertCount(3, $tags,
+            'Expected the host and its two regions; the class names or the structure changed.');
+
+        foreach ($tags as [$tag, $class]) {
+            $this->assertDoesNotMatchRegularExpression('/\sv-(if|else-if|else|show)\b/', $tag,
+                ".{$class} is conditional, so the region is created with its message rather than "
+                .'waiting in the document for it. Gate the toast inside instead.');
+        }
     }
 
     public function test_a_toast_carries_the_alert_variant_it_was_given(): void
@@ -108,7 +167,11 @@ class ToastTest extends TestCase
         // stylesheet calls a colour is not JavaScript's business.
         $script = (string) file_get_contents(resource_path('js/toast.ts'));
 
-        $this->assertStringContainsString("querySelector('[data-toast-persist]') === null", $script);
+        $this->assertStringContainsString("! toast.hasAttribute('data-toast-persist')", $script);
+
+        // And it removes the TOAST, leaving the region standing for the next
+        // message -- which is the whole reason the region is permanent.
+        $this->assertStringContainsString('const dismiss = (): void => toast.remove();', $script);
 
         // Both halves wait the same five seconds. Two figures that must agree
         // and are written twice is how they stop agreeing, so each is asserted
