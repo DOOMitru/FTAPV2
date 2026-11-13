@@ -44,7 +44,7 @@
 - Produces: `PokerTournament::lastEliminated(): ?PokerTournamentResult` — the result in this tournament holding the lowest `place`, or null when there are none. Task 2 uses it to decide `can_undo`.
 - Produces: route name `poker.tournaments.uneliminate`, `DELETE poker/tournaments/{tournament}/eliminate`, body `user_id`.
 
-- [ ] **Step 1: Write the failing tests** in `tests/Feature/UndoEliminationTest.php`
+- [x] **Step 1: Write the failing tests** in `tests/Feature/UndoEliminationTest.php`
 
 Use the `BuildsTournaments` trait and `RefreshDatabase`, following `EliminatePlayerTest`'s helpers (`admin()`, `tournament()`, `field()`, `eliminate()`). Add a private `undo(PokerTournament $t, User $player, ?User $actor = null)` posting `$this->delete(route('poker.tournaments.uneliminate', $t), ['user_id' => $player->id])`.
 
@@ -88,29 +88,29 @@ public function test_a_late_registration_does_not_confuse_which_finish_is_last()
 // -- place, not created_at, decides which row is the most recent
 ```
 
-- [ ] **Step 2: Run them and watch them fail**
+- [x] **Step 2: Run them and watch them fail**
 
 Run: `./vendor/bin/phpunit tests/Feature/UndoEliminationTest.php`
 Expected: FAIL — route `poker.tournaments.uneliminate` not defined.
 
-- [ ] **Step 3: Add `lastEliminated(): ?PokerTournamentResult` to `PokerTournament`**
+- [x] **Step 3: Add `lastEliminated(): ?PokerTournamentResult` to `PokerTournament`**
 
 Returns `$this->results()->orderBy('place')->first()`. Document why place and not `created_at`: a late registration shifts every recorded place, and place is the authority on order.
 
-- [ ] **Step 4: Add the route** in the admin group, directly under `tournaments.eliminate`
+- [x] **Step 4: Add the route** in the admin group, directly under `tournaments.eliminate`
 
 `Route::delete('tournaments/{tournament}/eliminate', [PokerTournamentController::class, 'uneliminate'])->name('tournaments.uneliminate');` — the same URI-pair shape `publish`/`unpublish` uses, with a comment saying why it is a DELETE on the same URI.
 
-- [ ] **Step 5: Implement `uneliminate(PokerTournament $tournament, Request $request): RedirectResponse`**
+- [x] **Step 5: Implement `uneliminate(PokerTournament $tournament, Request $request): RedirectResponse`**
 
 Validate `user_id` as `['required', 'string']`, as `eliminate()` does. Then, in order: `publishedRefusal()`; `lastEliminated()` null → refuse; that row's `user_id` not matching the request → refuse. Otherwise capture `place` and `points` from the row, delete it, and flash a success naming the player and the freed place. Each refusal returns `back()->with('error', ...)`; the success returns `back()->with('status', ...)`. Copy in the voice of `eliminate()`'s sentences — the player through `emph()`, the place through `Number::ordinal()`.
 
-- [ ] **Step 6: Run the tests**
+- [x] **Step 6: Run the tests**
 
 Run: `./vendor/bin/phpunit tests/Feature/UndoEliminationTest.php`
 Expected: PASS.
 
-- [ ] **Step 7: Hand-off checkpoint**
+- [x] **Step 7: Hand-off checkpoint**
 
 Do not commit. Report the files touched and suggest a message, e.g. `feat(tournaments): undo the last elimination`, with a body saying why place and not timestamp identifies it.
 
@@ -127,7 +127,7 @@ Do not commit. Report the files touched and suggest a message, e.g. `feat(tourna
 - Consumes: `PokerTournament::lastEliminated()` from Task 1; route `poker.tournaments.uneliminate`.
 - Produces: row fields `can_undo: boolean` and `undo_confirm: string`, read by `Show.vue`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```php
 public function test_only_the_last_eliminated_row_offers_undo(): void
@@ -151,29 +151,29 @@ public function test_the_confirmation_names_the_place_and_points_being_given_up(
 
 Read props with Inertia's test assertions, as the existing Show-page tests do.
 
-- [ ] **Step 2: Run them and watch them fail**
+- [x] **Step 2: Run them and watch them fail**
 
 Run: `./vendor/bin/phpunit tests/Feature/UndoEliminationTest.php`
 Expected: FAIL — `can_undo` missing from the row.
 
-- [ ] **Step 3: Add `can_undo` and `undo_confirm` to the standings row**
+- [x] **Step 3: Add `can_undo` and `undo_confirm` to the standings row**
 
 Compute the undoable result once outside the map (`$tournament->lastEliminated()`), as `$nextPlace` and `$nextPlacePoints` already are, and close over it. `can_undo` is `$isAdmin && ! $tournament->isPublished() && $result && $result->user_id !== null && $result->is($undoable)`. `undo_confirm` names the player, the place given up and the points given up — the mirror of `eliminate_confirm` at `:435`.
 
-- [ ] **Step 4: Add the button and its handler to `Show.vue`**
+- [x] **Step 4: Add the button and its handler to `Show.vue`**
 
 An `undo(row)` beside `eliminate(row)`, asking through `useConfirm` with `row.undo_confirm` and issuing `router.delete(\`${base}/eliminate\`, { data: { user_id: row.user_id }, preserveScroll: true })`. In the template, a `Btn` with `variant="ghost" size="sm"` after the points `Badge`, shown on `row.can_undo` only — its own condition, not a branch of the `v-else-if` chain, because an undoable row shows its badge *and* its button. Comment why only one row ever has it.
 
-- [ ] **Step 5: Run the tests**
+- [x] **Step 5: Run the tests**
 
 Run: `./vendor/bin/phpunit tests/Feature/UndoEliminationTest.php`
 Expected: PASS.
 
-- [ ] **Step 6: See it in a browser**
+- [x] **Step 6: See it in a browser**
 
 Run: `out=$(bin/sweep.sh); status=$?` — the baseline is `141 pages ... no findings`. A mounted page and sound markup is all the sweep can tell you; press Undo by hand on a seeded tournament to see the toast and the row returning to the field.
 
-- [ ] **Step 7: Hand-off checkpoint**
+- [x] **Step 7: Hand-off checkpoint**
 
 Do not commit. Suggest a message, e.g. `feat(tournaments): offer undo on the last eliminated row`.
 
@@ -184,19 +184,19 @@ Do not commit. Suggest a message, e.g. `feat(tournaments): offer undo on the las
 **Files:**
 - Modify: `docs/RESUME-HERE.md` — a dated entry under **Decisions taken since the conversion that still bind** (`:567`)
 
-- [ ] **Step 1: Write the entry**
+- [x] **Step 1: Write the entry**
 
 Dated 2026-11-13, in the voice of the entries around it: what the feature is, that the most recent elimination is the lowest place and not the newest row, that undo is refused for anything else so a stale page cannot delete a finish nobody saw, that it stops at publish, and that no repricing is involved because the freed place is the next one handed out.
 
-- [ ] **Step 2: Run the whole suite**
+- [x] **Step 2: Run the whole suite**
 
 Run: `out=$(bin/suite.sh); status=$?; printf '%s\n' "$out" | tail -5`
 Expected: `ran 119 of 119 files, 0 failing`. A `FAIL` with *no summary line (crashed)* is the local segfault — re-run that file alone before believing it.
 
-- [ ] **Step 3: Refresh the suite figure**
+- [x] **Step 3: Refresh the suite figure**
 
 The count in `docs/RESUME-HERE.md:8` is the sum of each file's `Tests:` line, not something `bin/suite.sh` prints. Re-sum it over the same `find tests -name '*Test.php' | sort` list and update the figure and its date.
 
-- [ ] **Step 4: Hand-off checkpoint**
+- [x] **Step 4: Hand-off checkpoint**
 
 Do not commit. Suggest a message, e.g. `docs: record the undo-elimination decision`.
