@@ -216,6 +216,29 @@ jobs:
           printf '%s\n' "$KEY" > ~/.ssh/id_deploy
           chmod 600 ~/.ssh/id_deploy
 
+          # ONE connection for the whole deploy. Every step below used to open
+          # its own -- check, mkdir, down, rsync, migrate, up: six logins from
+          # one address inside a minute -- and on 2026-11-14 DreamHost
+          # throttled the fifth ("Connection timed out during banner
+          # exchange") and refused the sixth outright, which left the site in
+          # maintenance mode with the step meant to lift it unable to connect.
+          #
+          # With a master connection the first ssh logs in and every later ssh
+          # and rsync rides inside it, so the server sees one login. It also
+          # means "Bring the site back up" reuses a connection that is already
+          # open, so it still works when the server has started refusing new
+          # ones. The master is a background process, which survives between
+          # steps of a job and dies with the runner.
+          cat > ~/.ssh/config <<'CONF'
+          Host *
+            ControlMaster auto
+            ControlPath ~/.ssh/cm-%C
+            ControlPersist 15m
+            ServerAliveInterval 15
+            ServerAliveCountMax 4
+          CONF
+          chmod 600 ~/.ssh/config
+
           # ssh-keyscan is the first thing here that touches the network, and
           # under `bash -e` its failure was reported against the script's first
           # line -- a bare `mkdir` exiting 1, which reads as nonsense. Say what
