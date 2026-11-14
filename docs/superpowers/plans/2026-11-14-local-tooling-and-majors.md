@@ -115,6 +115,9 @@ suite and sweep.
       API option removed) touch none of it. Gates clean.
 - [ ] `@types/node` 26 only if Node itself is on 26. **Skipped 2026-11-14:**
       Node is 24.19. Note `^25` is already a major ahead of the runtime.
+      **Corrected 2026-11-14:** set to `^24` (24.19.2) to match the runtime,
+      and the app's `php` floor raised `^8.3` → `^8.4`, since PHPUnit 13
+      requires 8.4.1 and the old floor was no longer true. Gates clean.
 
 ### Task 5: Lift the `vue-tsc` pin (whenever a release newer than 3.3.14 is out)
 
