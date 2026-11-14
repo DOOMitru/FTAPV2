@@ -416,7 +416,10 @@ been running fine for weeks:
   (`ControlMaster`/`ControlPersist`, written to `~/.ssh/config` in `Open an
   SSH connection`) and every later ssh and rsync rides inside it -- so the
   server sees one login, and the always() step reuses an open connection
-  rather than needing a new one. **If a deploy ever leaves the site down,
+  rather than needing a new one. The first deploy with it, 2026-11-14, went
+  through clean and the live pages serve the new build's hashes -- which
+  proves the master works, not yet that it survives a throttle, since none
+  happened. **If a deploy ever leaves the site down,
   re-run the failed jobs**: every step is idempotent, and a re-run gets a
   fresh runner address.
 
