@@ -5,8 +5,8 @@ poker nights in Regina.
 
 ## Where things stand
 
-Suite: **1022 passed across 119 files**, on Laravel 13.42.0 and PHPUnit 12,
-counted 2026-11-13. `php artisan test` is the command, but see the segfault note
+Suite: **1022 passed across 119 files**, on Laravel 13.42.0 and PHPUnit 13.4.7,
+counted 2026-11-14. `php artisan test` is the command, but see the segfault note
 below -- a full-suite run dies on this machine and has to be taken file by file,
 which is what `bin/suite.sh` does.
 

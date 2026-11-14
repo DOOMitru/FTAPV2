@@ -72,12 +72,20 @@ run ever shows several.
 The most code-facing major. Last major (11→12) broke exactly one thing: a data
 provider passing more arguments than its test accepted.
 
-- [ ] Read the PHPUnit 13 release notes for removals and new strictness.
-- [ ] Check what `laravel/laravel` v13's own `require-dev` asks for -- the last
-      upgrade guessed versions and was wrong twice.
-- [ ] Bump the constraint, `composer update phpunit/phpunit -W`, run the suite,
+- [x] Read the PHPUnit 13 release notes for removals and new strictness.
+      (Only `ChangeLog-13.4.md` ships in the package; nothing in it touches
+      this suite.)
+- [x] Check what `laravel/laravel` v13's own `require-dev` asks for -- the last
+      upgrade guessed versions and was wrong twice. (The skeleton, v13.11.0,
+      still asks for `^12.5.12`; the FRAMEWORK allows `^13.0.3` and collision
+      8.9.6 allows `<14`, so nothing blocks it.)
+- [x] Bump the constraint, `composer update phpunit/phpunit -W`, run the suite,
       fix what breaks, update the suite figure in `RESUME-HERE.md`.
-- [ ] Hand-off checkpoint.
+      **Done 2026-11-14: `^13.4`, installed 13.4.7. Nothing broke** -- 1022
+      passed, no deprecations, warnings or notices; `php artisan test`,
+      `bin/suite.sh` (119 of 119), typecheck and one sweep all clean, every
+      run pinned off cores 10-11.
+- [x] Hand-off checkpoint.
 
 ### Task 4: Front-end majors, one per checkpoint
 
