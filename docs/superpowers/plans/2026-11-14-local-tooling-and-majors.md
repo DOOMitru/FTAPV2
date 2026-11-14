@@ -92,7 +92,10 @@ provider passing more arguments than its test accepted.
 Each: read its migration guide, bump, `npm install`, then typecheck, build,
 suite and sweep.
 
-- [ ] Vite 8 together with `laravel-vite-plugin` 3 (they move as a pair).
+- [x] Vite 8 together with `laravel-vite-plugin` 3 (they move as a pair).
+      **Done 2026-11-14:** vite 8.3.8, laravel-vite-plugin 3.2.1,
+      @vitejs/plugin-vue 6.0.11; no config change. Typecheck, suite 119/119
+      and sweep clean, pinned. CSS diffed against Vite 7 -- see RESUME-HERE.
 - [ ] TypeScript 7 -- check `vue-tsc` supports it first.
 - [ ] `postcss-import` 17.
 - [ ] `concurrently` 10.

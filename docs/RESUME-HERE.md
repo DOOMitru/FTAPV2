@@ -40,9 +40,9 @@ components under `resources/js`. All 29 authenticated routes converted; the 18
 public ones are Blade and are STAYING, because Inertia SSR needs a persistent
 Node process and DreamHost shared hosting cannot run one, and because
 `/register` carries the reCAPTCHA gate that is verified end to end. Two Vite
-entries keep Vue out of the public pages' bundle -- `app.ts` is ~48 kB and
-`inertia-app.ts` ~304 kB, and a single entry would have put the second on the
-landing page.
+entries keep Vue out of the public pages' bundle -- `app.ts` is ~57 kB and
+`inertia-app.ts` ~310 kB (Vite 8, 2026-11-14), and a single entry would have
+put the second on the landing page.
 
 Read `docs/superpowers/specs/2026-09-19-inertia-vue-conversion-design.md`
 first. Its §1 and §6 carry amendments recording where it was wrong. The six
@@ -307,6 +307,19 @@ constraints cleared them all (Laravel 13.32.0 → 13.42.0, 61 packages; note
 `brick/math` 0.19 → 1.0.0 arrived transitively and nothing noticed), and
 `npm update` moved the front end within its ranges. **Update monthly rather
 than when the audit forces it.**
+
+**Vite 8 minifies CSS with Lightning CSS, 2026-11-14** (with
+`laravel-vite-plugin` 3; neither needed a config change). The built CSS was
+compared against Vite 7's rule by rule: same selectors, custom properties and
+declarations, with four rewrites. Three are equivalent -- `:is()` merging,
+`inset-inline` shorthand, the `-moz-user-select` prefix dropped -- and the
+`--lightningcss-light/-dark` variables it adds beside every `color-scheme`
+are inert here, since nothing uses `light-dark()`; the theme toggle's three
+blocks are intact. **The fourth moves the browser floor: media queries are
+emitted in range syntax, `(width<=48rem)`**, which Safari/iOS before 16.4
+ignores -- every responsive rule would vanish there, not degrade. The app
+already needed iOS 15.4 for `:has()`. To restore the old syntax, set
+`build.cssTarget` below `safari16.4`; decided against for now.
 
 **`vue-tsc` is pinned exactly at `3.3.11`.** 3.3.14 reports seven false
 `Property 'value' does not exist on type 'InertiaForm<…>'` errors in
