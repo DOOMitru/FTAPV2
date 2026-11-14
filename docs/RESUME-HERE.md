@@ -413,6 +413,49 @@ A second full pass an hour later crashed nothing at all -- 118 of 118, 1007
 tests, no retries needed. That is the shape of it: intermittent, and capable of
 sitting out an entire run.
 
+**It reaches the browser sweep as well, 2026-11-13.** `bin/sweep.sh` looked
+flaky -- failing on a first run and passing on the next. Ten instrumented runs
+failed three times, every one `Segmentation fault` in `php artisan tinker`
+while seeding; the old script ignored tinker's exit status, so a crash printed
+"Seeding failed:" over an empty log. The sweep now retries a database step
+that dies of a signal (exit 128+), up to three times and from an empty
+database each time, and fails at once on an ordinary error. Ten runs after:
+one recovered from two crashes in a row and swept clean.
+
+One rarer failure remains unexplained: **"Server never came up"**, once in
+twenty runs, with an empty `serve.log`. Probably the same crash taking down
+`artisan serve` as it starts, but not shown. Re-running gets past it. To chase
+it, make that message report whether the server process is alive and its exit
+status before guessing.
+
+**It is very probably the CPU, not PHP, 2026-11-14.** PHP is now 8.5.12
+(sury PPA, built 2026-11-11). Three bare full `./vendor/bin/phpunit` runs passed
+clean (1022 tests, ~9.5s each) where most bare runs used to crash -- but ten
+`bin/sweep.sh` runs still failed twice, and the two crashes are the evidence:
+
+- Run 7: **`vite build` -- Node, not PHP -- died of SIGSEGV.** Two unrelated
+  runtimes crashing points below both of them.
+- Run 9: **`php artisan serve` died of SIGSEGV as it started**, which is what
+  "Server never came up" was. The kernel log shows the instruction pointer
+  equal to the fault address, on the stack -- execution jumped somewhere
+  nonsensical.
+- **The crashes cluster on one physical core.** Of 30 kernel segfault lines in
+  30 days, 26 are on CPU 10 (core 20, hyperthread pair 10-11), 4 on CPU 8.
+  Software bugs do not care which core they run on.
+- The machine is an **Intel Core i9-14900K**, the generation with the known
+  Vmin-shift degradation. Microcode is already 0x133 (post-fix), but that fix
+  stops the damage; it does not undo damage already done. `coredumpctl` also
+  holds crashes from systemd, kmod, apparmor_parser and plasmashell.
+
+**Pinned off cores 10-11, the sweep went 10 of 10 clean**
+(`taskset -c 0-9,12-31 bin/sweep.sh`, 2026-11-14) -- no crash lines, no core
+dumps, nothing in the kernel log, against 8 of 10 unpinned an hour earlier.
+Suggestive rather than proof: at the unpinned rate a clean ten happens by
+chance about one time in nine. Still to do: check the BIOS for Intel's default power profile;
+and if confirmed, Intel's warranty covers this. **Keep `bin/suite.sh`'s
+per-file workaround and the sweep's retry** until the hardware question is
+settled -- a faster PHP made the bare suite pass, but did not fix the machine.
+
 **Work around it with `bin/suite.sh`**, which runs one file at a time:
 
 ```bash

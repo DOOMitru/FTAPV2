@@ -87,15 +87,44 @@ npm run build >"$WORK/build.log" 2>&1 || { echo "Build failed:"; tail -20 "$WORK
 echo "==> Seeding a scratch database"
 export DB_CONNECTION=sqlite
 export DB_DATABASE="$WORK/sweep.sqlite"
-: >"$DB_DATABASE"
 
-php artisan migrate --force >"$WORK/migrate.log" 2>&1 \
-    || { echo "Migrate failed:"; tail -20 "$WORK/migrate.log"; exit 1; }
+# Empty database, migrate, seed -- as one unit, so it can be run again whole.
+#
+# Returns the exit status of whichever step stopped it. tinker's own status is
+# what matters here: the old script ignored it and judged the seed by its
+# output alone, so a crash reported itself as "Seeding failed:" over an EMPTY
+# log, which looked like a broken seed script rather than a dead process.
+prepare_database() {
+    : >"$DB_DATABASE"
 
-# tinker prints its own noise around the script's output, so the plan is cut
-# out by its braces rather than taken as the whole of stdout.
-php artisan tinker --execute="require base_path('bin/sweep-seed.php');" >"$WORK/seed.out" 2>&1
-sed -n '/^{/,/^}/p' "$WORK/seed.out" >"$WORK/plan.json"
+    php artisan migrate --force >"$WORK/migrate.log" 2>&1 || return $?
+
+    # tinker prints its own noise around the script's output, so the plan is
+    # cut out by its braces rather than taken as the whole of stdout.
+    php artisan tinker --execute="require base_path('bin/sweep-seed.php');" >"$WORK/seed.out" 2>&1 || return $?
+    sed -n '/^{/,/^}/p' "$WORK/seed.out" >"$WORK/plan.json"
+}
+
+# PHP 8.5.4 crashes on this machine intermittently -- see "PHP 8.5.4 segfaults"
+# in docs/RESUME-HERE.md. It is not the sweep's code: ten runs on 2026-11-13
+# failed three times, every one a segfault in tinker while seeding, and seven
+# swept clean. So a step killed by a SIGNAL (exit 128+, 139 for a segfault) is
+# run again, from an empty database because a crash can land mid-seed. An
+# ordinary failure is not retried -- running a broken seed again only repeats
+# it.
+for attempt in 1 2 3; do
+    prepare_database
+    status=$?
+
+    [ "$status" -lt 128 ] && break
+    echo "    PHP crashed (exit $status) preparing the database, attempt $attempt of 3"
+done
+
+[ "$status" -lt 128 ] || { echo "PHP crashed on all three attempts. Not the sweep -- run it again."; exit 1; }
+# -n 20, not -20: uutils tail (Ubuntu's coreutils) refuses the old shorthand
+# once it is given two files, and the 2>/dev/null that covers a seed.out not
+# yet written would hide that refusal -- printing nothing under the heading.
+[ "$status" -eq 0 ] || { echo "Preparing the database failed:"; tail -n 20 "$WORK/migrate.log" "$WORK/seed.out" 2>/dev/null; exit 1; }
 
 grep -q '"urls"' "$WORK/plan.json" || {
     echo "Seeding failed:"; tail -30 "$WORK/seed.out"; exit 1;
