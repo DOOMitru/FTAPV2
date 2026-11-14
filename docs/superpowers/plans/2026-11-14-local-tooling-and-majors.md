@@ -108,8 +108,13 @@ suite and sweep.
       exact pin was not a decision -- Phase 1 promoted the copy Tailwind had
       installed transitively. Built CSS byte-identical (same hash); typecheck,
       suite 119/119 and sweep clean.
-- [ ] `concurrently` 10.
-- [ ] `@types/node` 26 only if Node itself is on 26.
+- [x] `concurrently` 10. **Done 2026-11-14:** ^10.0.7. Used only by
+      `composer dev`; its `-c` hex colours, `--names` and `--kill-others`
+      were exercised directly and behave as before. The 10.0 breaks (Node
+      22+, ESM-only, auto colours, `--name-separator` and the `killOthers`
+      API option removed) touch none of it. Gates clean.
+- [ ] `@types/node` 26 only if Node itself is on 26. **Skipped 2026-11-14:**
+      Node is 24.19. Note `^25` is already a major ahead of the runtime.
 
 ### Task 5: Lift the `vue-tsc` pin (whenever a release newer than 3.3.14 is out)
 
