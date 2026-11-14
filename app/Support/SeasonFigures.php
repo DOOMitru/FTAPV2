@@ -10,10 +10,10 @@ use App\Models\VenuePoints;
  * One season's figures for one player, as the props SeasonPanel.vue declares.
  *
  * The panel is drawn by the dashboard and by a player's profile, about
- * different people. Everything here is a decision rather than a number -- one
- * decimal place, thousands separators, two pluralisations, and the dash an
- * unranked player gets -- and spec §5a puts those in PHP. Built once, because
- * two copies of this would be free to disagree about what "8.4" means.
+ * different people. Everything here is a decision rather than a number --
+ * thousands separators, two pluralisations, and the dash an unranked player
+ * gets -- and spec §5a puts those in PHP. Built once, because two copies of
+ * this would be free to disagree about what "#2" means.
  */
 class SeasonFigures
 {
@@ -59,13 +59,15 @@ class SeasonFigures
         $mayReadVenuePoints = VenuePoints::readableBy($viewer, $subjectId);
 
         return [
+            // The PLACE on PokerSeason::rankings(), so two players sharing
+            // second both read #2. The dash is for somebody with no points this
+            // season, who is not on the board at all.
             'rank_label' => $figures['rank'] ? '#'.$figures['rank'] : '—',
 
-            // Null rather than "0.0 pts per event": there is no average of no
-            // events, and a zero reads as a bad one.
-            'per_event_label' => $figures['perEvent'] === null
-                ? null
-                : number_format($figures['perEvent'], 1).' '.__('pts per event'),
+            // What the panel draws its unranked branch from. A flag rather than
+            // a label tested for null: the panel used to key that branch on
+            // the per-event label, and the branch outlived the label.
+            'is_ranked' => $figures['rank'] !== null,
 
             'totals_label' => trans_choice(
                 '{1}:points pts over 1 event|[2,*]:points pts over :events events',

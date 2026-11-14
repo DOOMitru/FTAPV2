@@ -99,7 +99,7 @@ class HomePageTest extends TestCase
         $season = $this->season();
         $this->resultFor($season, 'Vernice Hintz', place: 1, points: 100);
 
-        $this->get('/')->assertOk()->assertDontSee('Most Points');
+        $this->get('/')->assertOk()->assertDontSee('Season Rank');
     }
 
     public function test_standings_are_shown_to_a_signed_in_player(): void
@@ -109,7 +109,7 @@ class HomePageTest extends TestCase
         $this->resultFor($season, 'Autumn Nikolaus', place: 2, points: 60);
 
         $this->actingAs(User::factory()->create())->get('/')->assertOk()
-            ->assertSee('Most Points')
+            ->assertSee('Season Rank')
             ->assertSee('Vernice Hintz')
             ->assertSee('Autumn Nikolaus');
     }
@@ -169,6 +169,16 @@ class HomePageTest extends TestCase
         ]);
 
         $this->players[$name] ??= User::factory()->create()->id;
+
+        // Entered, then scored -- the order the app records them in. A result
+        // with no entry behind it is unranked, and with nobody ranked the
+        // standings grid is not drawn at all.
+        \App\Models\PokerTournamentRegistrant::create([
+            'tournament_id' => $tournament->id,
+            'user_id' => $this->players[$name],
+            'player_name' => $name,
+            'registered_at' => now(),
+        ]);
 
         PokerTournamentResult::create([
             'tournament_id' => $tournament->id,

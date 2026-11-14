@@ -20,10 +20,10 @@ use Tests\TestCase;
  * them, so "how am I doing" means "this season", and a career total answers a
  * question nobody on this page is asking.
  *
- * Season Rank is points per EVENT ENTERED, not points. A player who turns up to
- * half the nights and scores the same as somebody who turned up to all of them
- * is not behind them. That makes the rank a division, and a division has two
- * ways to be wrong: these tests pin both sides of it.
+ * Season Rank is the player's place on PokerSeason::rankings() -- season
+ * points, venue points breaking a tie (owner's rule, 2026-11-14). The rule
+ * itself is pinned in SeasonRankingsTest; these tests check the panel reads
+ * it, from the dashboard.
  */
 class SeasonPanelTest extends TestCase
 {
@@ -187,10 +187,12 @@ class SeasonPanelTest extends TestCase
         $this->assertSame(40, $this->figures($player)['venuePoints']);
     }
 
-    public function test_rank_is_points_per_event_not_points(): void
+    public function test_rank_is_by_points(): void
     {
-        // The reason the rank is a ratio. The grinder scores more in total; the
-        // sharp scores more per night and ranks above them.
+        // The rule since 2026-11-14: season points, not points per night. The
+        // grinder turns up four times and outscores the sharp, who turned up
+        // once and won -- and the grinder ranks first, which the old average
+        // put the other way round.
         $season = $this->season();
         $grinder = $this->player('Grinder');
         $sharp = $this->player('Sharp');
@@ -210,34 +212,32 @@ class SeasonPanelTest extends TestCase
         $this->enter($nights[1], $sharp);
 
         foreach (range(1, 4) as $i) {
-            $this->score($nights[$i], $grinder, 5, 50);  // 200 over 4 = 50.0
+            $this->score($nights[$i], $grinder, 5, 50);  // 200 in total
         }
 
-        $this->score($nights[1], $sharp, 1, 100);        // 100 over 1 = 100.0
+        $this->score($nights[1], $sharp, 1, 100);        // 100 in total
 
-        $this->assertSame(200, $this->figures($grinder)['points']);
-        $this->assertSame(100, $this->figures($sharp)['points']);
-
-        $this->assertSame(1, $this->figures($sharp)['rank'], 'The higher average ranks first.');
-        $this->assertSame(2, $this->figures($grinder)['rank']);
+        $this->assertSame(1, $this->figures($grinder)['rank'], 'More points ranks first.');
+        $this->assertSame(2, $this->figures($sharp)['rank']);
     }
 
     public function test_a_player_who_has_not_entered_is_not_ranked(): void
     {
-        // No denominator, so no ratio. Zero would put them level with somebody
-        // who entered and scored nothing, which is a different thing.
         $this->season();
         $player = $this->player();
 
         $figures = $this->figures($player);
 
         $this->assertNull($figures['rank']);
-        $this->assertNull($figures['perEvent']);
         $this->assertSame(0, $figures['events']);
+        $this->assertArrayNotHasKey('perEvent', $figures, 'The average is gone, not zeroed.');
     }
 
-    public function test_entering_without_scoring_is_ranked_last_rather_than_unranked(): void
+    public function test_entering_without_scoring_is_not_ranked(): void
     {
+        // Only players on at least one point are on the board, so a blank
+        // night leaves you off it -- and out of the count everyone else is
+        // ranked against.
         $season = $this->season();
         $scorer = $this->player('Scorer');
         $blank = $this->player('Blank');
@@ -250,27 +250,26 @@ class SeasonPanelTest extends TestCase
 
         $this->score($t, $scorer, 1, 100);
 
-        $this->assertSame(2, $this->figures($blank)['rank']);
-        $this->assertSame(0.0, $this->figures($blank)['perEvent']);
+        $this->assertNull($this->figures($blank)['rank']);
+        $this->assertSame(1, $this->figures($scorer)['ranked']);
     }
 
-    public function test_a_tie_on_the_average_is_broken_by_total_points(): void
+    public function test_a_tie_on_points_is_broken_by_venue_points(): void
     {
-        // Same ratio, different volume. Without a tie-break the order is
-        // whatever the database returned, which changes between drivers.
         $season = $this->season();
         $more = $this->player('More');
         $less = $this->player('Less');
 
-        foreach (range(1, 2) as $i) {
-            $t = $this->tournament($season, 'Night '.$i);
-            $this->enter($t, $more);
-            $this->score($t, $more, 1, 100);            // 200 over 2 = 100.0
+        foreach ([$more, $less] as $p) {
+            $t = $this->tournament($season, $p->first_name);
+            $this->enter($t, $p);
+            $this->score($t, $p, 1, 100);
         }
 
-        $single = $this->tournament($season, 'Single');
-        $this->enter($single, $less);
-        $this->score($single, $less, 1, 100);            // 100 over 1 = 100.0
+        VenuePoints::create([
+            'venue_id' => Venue::first()->id, 'user_id' => $more->id, 'user_name' => 'More Reeve',
+            'event_date' => now()->subWeek(), 'amount' => 6, 'season_id' => $season->id,
+        ]);
 
         $this->assertSame(1, $this->figures($more)['rank']);
         $this->assertSame(2, $this->figures($less)['rank']);
@@ -301,21 +300,24 @@ class SeasonPanelTest extends TestCase
         );
     }
 
-    public function test_a_player_yet_to_enter_is_told_how_to_be_ranked(): void
+    public function test_a_player_yet_to_score_is_told_how_to_be_ranked(): void
     {
         $this->season();
 
         $props = $this->props($this->player());
 
-        // Null is what "not entered yet" is made of, and `self` is what picks
-        // the sentence addressed to the reader rather than about them.
-        $this->assertNull($props['season']['per_event_label']);
+        // is_ranked is what the unranked branch is drawn from, and `self` is
+        // what picks the sentence addressed to the reader rather than about
+        // them.
+        $this->assertFalse($props['season']['is_ranked']);
         $this->assertTrue($props['self']);
 
         $panel = (string) file_get_contents(resource_path('js/Components/SeasonPanel.vue'));
 
-        $this->assertStringContainsString('Not entered yet', $panel);
-        $this->assertStringContainsString('Enter a tournament to be ranked.', $panel);
+        $this->assertStringContainsString('No points yet', $panel);
+        $this->assertStringContainsString('Score points to be ranked.', $panel);
+        $this->assertStringNotContainsString('per_event_label', $panel, 'The average is gone.');
+        $this->assertStringNotContainsString('Enter a tournament to be ranked.', $panel);
     }
 
     public function test_the_career_figures_are_gone_from_the_page(): void

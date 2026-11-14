@@ -13,7 +13,7 @@ section -- so **pin heavy local runs off cores 10-11**
 
 ## Where things stand
 
-Suite: **1022 passed across 119 files**, on Laravel 13.42.0 and PHPUnit 13.4.7,
+Suite: **1031 passed across 120 files**, on Laravel 13.42.0 and PHPUnit 13.4.7,
 counted 2026-11-14. `php artisan test` is the command, but see the segfault note
 below -- a full-suite run dies on this machine and has to be taken file by file,
 which is what `bin/suite.sh` does.
@@ -742,16 +742,43 @@ target, not anybody's tally -- which is shown to everyone, guests included.
   party and as a guest, so a page added later is covered without being named.
   It carries positive controls too: a bug that hides venue points from
   *everybody*, owner included, cannot pass as compliance.
+- **A second exception, stated by the owner 2026-11-14: ORDER, never
+  figures.** Season rank breaks a tie on points with venue points, so the order
+  of a standings list and a shared place may reflect two players' tallies.
+  `PokerSeason::rankings()` places each row by venue points and then drops the
+  figure, so nothing that reads the board can print it.
+  `test_ranking_reveals_order_not_figures` holds both halves, and was
+  mutation-checked: sending every tally to everyone fails it.
 
-### The season standings read two ways (2026-09-13)
+### Season rank is season points (2026-11-14)
 
-- **A Points/Rank toggle**, because the two answer different questions: who has
-  scored most this season, and who is playing best per night. Rank is the
-  dashboard's own calculation, so a player sees the same figure in both places
-  or the app is arguing with itself.
-- **The rank number is the medal badge** -- `#1` inside it -- and the
-  points-per-event figure it replaced is still reachable. It was hover-only
-  first, which on a phone is no affordance at all.
+Spec: `docs/superpowers/specs/2026-11-14-points-rank-design.md`.
+
+- **The rule:** ranked once you have entered and scored at least one point
+  this season; points highest first; a tie on points goes to more venue
+  points (by `season_id`); a tie on both shares the place, 1, 2, 2, 4. Tied
+  players are listed by recorded name, so every page lists a tie the same way.
+- **One board:** `PokerSeason::rankings()`, read by the dashboard and profile
+  panel, the season page and the landing page's card. None of them sorts on
+  its own.
+- **It replaced points per tournament entered**, and took with it the
+  season page's Points/Rank toggle (the two orders became one), the panel's
+  "pts per event" line, and the landing page's Most Points card (the same list
+  as Season Rank). Players on 0 points are not listed on the season page.
+- **The landing card shows everyone placed 1-3**, so a tie at third shows
+  four rows rather than cutting one arbitrarily.
+- **Fixture trap, met four times in this change:** registering into a
+  tournament that already has results reprices them from the points
+  structure -- to 0 when a test has none -- and a 0-point player is now off
+  the board. A test that enters and scores players one at a time on one night
+  must either give each a night of their own or seed a structure.
+
+### The season standings read two ways (2026-09-13) -- SUPERSEDED 2026-11-14
+
+*The toggle and the per-event rank are gone; see the section above. What
+still binds from here is the self-row shade and the admin-only venue
+column.*
+
 - **The signed-in player's own row is washed.** The shade was set by
   measurement, not by eye: the first attempt was 1.13:1 against the ground
   where the house hover shade is 1.18:1, i.e. fainter than an accident. A test

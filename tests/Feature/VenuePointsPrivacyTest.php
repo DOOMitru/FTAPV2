@@ -23,6 +23,12 @@ use Tests\TestCase;
  * is a published target rather than anybody's tally -- it is printed on the
  * landing page for people who have not signed in at all.
  *
+ * And one stated exception to the rule itself, made by the owner on
+ * 2026-11-14 (docs/superpowers/specs/2026-11-14-points-rank-design.md): the
+ * season rank breaks a tie on points with venue points, so the ORDER of a
+ * standings list and a shared place may reflect two players' tallies. The
+ * FIGURES may not. test_ranking_reveals_order_not_figures holds both halves.
+ *
  * Checked by walking every registered GET route rather than by naming the
  * pages that show tallies today. A test that named them would go on passing
  * the day somebody adds a page it does not know about, which is exactly the
@@ -291,6 +297,53 @@ class VenuePointsPrivacyTest extends TestCase
         // The stated exception: a target, not a tally. It is on the landing
         // page, which a guest reaches without signing in.
         $this->get('/')->assertOk()->assertSee('Venue points');
+    }
+
+    public function test_ranking_reveals_order_not_figures(): void
+    {
+        // Two players level on points, separated only by venue points. The
+        // rank puts the higher tally first -- the owner's exception -- and no
+        // page a third party or a guest can reach prints either figure.
+        $night = PokerTournament::create([
+            'name' => 'Tie Night', 'start_time' => now()->subDays(2),
+            'venue_id' => Venue::first()->id, 'season_id' => $this->season->id,
+        ]);
+
+        $low = $this->enter($night, 'Lowly', 'Tally');
+        $high = $this->enter($night, 'Highly', 'Tally');
+        $this->score($night, $low, place: 1, points: 100);
+        $this->score($night, $high, place: 1, points: 100);
+
+        $tallies = [$low->id => 46283, $high->id => 73519];
+
+        foreach ($tallies as $id => $amount) {
+            VenuePoints::create([
+                'venue_id' => Venue::first()->id, 'user_id' => $id, 'user_name' => 'Tally',
+                'event_date' => now()->subDays(2)->toDateString(), 'amount' => $amount,
+                'season_id' => $this->season->id,
+            ]);
+        }
+
+        // The order: the higher tally first, one place apart.
+        $rows = $this->standingsFor($this->snooper);
+        $highRow = $rows->firstWhere('player_id', $high->id);
+        $lowRow = $rows->firstWhere('player_id', $low->id);
+
+        $this->assertSame($highRow['rank'] + 1, $lowRow['rank']);
+
+        // The figures: nowhere a snooper or a guest can look.
+        foreach ([$this->snooper, null] as $viewer) {
+            foreach ($this->walk($viewer) as $uri => $html) {
+                $body = $this->readable($html);
+
+                foreach ($tallies as $amount) {
+                    foreach ([(string) $amount, number_format($amount)] as $spelling) {
+                        $this->assertStringNotContainsString($spelling, $body,
+                            "{$uri} showed a tally it may only order by.");
+                    }
+                }
+            }
+        }
     }
 
     public function test_the_standings_withhold_the_figure_from_the_data_not_just_the_template(): void

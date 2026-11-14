@@ -102,26 +102,14 @@ class PokerSeasonController extends Controller
     }
 
     /**
-     * Display the specified resource.
-     */
-    /**
-     * The standings, ordered one of two ways.
+     * The season, with its standings in rank order.
      *
-     * 'points' is the season total. 'rank' is points per tournament entered --
-     * the figure the player's dashboard calls Season Rank -- which does not
-     * punish a player who missed half the nights for missing them.
+     * One order since 2026-11-14. There was a Points/Rank toggle, and once the
+     * owner made rank mean season points the two were the same order. A stale
+     * ?order= in a bookmark is simply ignored.
      */
-    public const ORDERS = ['points', 'rank'];
-
-    public function show(PokerSeason $season, Request $request): Response
+    public function show(PokerSeason $season): Response
     {
-        // Anything unrecognised falls back to the season total rather than
-        // erroring: this arrives from a query string, where a stale link or a
-        // typo is ordinary and a 500 is not.
-        $order = in_array($request->query('order'), self::ORDERS, true)
-            ? $request->query('order')
-            : 'points';
-
         $season->load([
             'tournaments.venue',
             'results.user',
@@ -215,37 +203,27 @@ class PokerSeasonController extends Controller
             })
             ->values();
 
-        // Points per entry, taken from PokerSeason::rankings() rather than
-        // divided here. The dashboard, the landing page's rank card and this
-        // table must agree to the decimal about what a player's rank is, and
-        // they agree by reading one method instead of three divisions.
+        // Order and place both come from PokerSeason::rankings(). The
+        // dashboard, the landing page's card and this table must agree about
+        // what a player's rank is, and they agree by reading one board -- not
+        // by three sorts that would have to break a tie the same way.
         //
-        // Loaded only for the order that needs it: it costs three queries, and
-        // the season total is the view most people open.
-        $rankings = $order === 'rank'
-            ? $season->rankings()->keyBy('user_id')
-            : collect();
+        // The board holds only players on at least one point, so a row it
+        // does not know is a player on nil, and is not listed (owner's
+        // decision, 2026-11-14). It also places rows by venue points without
+        // carrying the figure, so the order can reflect a tally this page may
+        // not print -- the one exception the owner made to that rule.
+        $board = $season->rankings()->values();
+        $position = $board->pluck('user_id')->flip();
+        $places = $board->pluck('place', 'user_id');
 
         $leaderboard = $leaderboard
-            ->map(fn (array $row) => [
-                ...$row,
-                'ratio' => $rankings[$row['user']?->id ?? '']['ratio'] ?? null,
-                'events' => $rankings[$row['user']?->id ?? '']['events'] ?? null,
-            ])
-            ->sortByDesc(fn (array $row) => $order === 'rank'
-                // The same tie-break rankings() uses, so two players on one
-                // average are ordered by who scored more rather than by
-                // whatever the database returned first.
-                ? [$row['ratio'] ?? -1, $row['points']]
-                : $row['points'])
+            ->filter(fn (array $row) => $position->has($row['user']?->id ?? ''))
+            ->sortBy(fn (array $row) => $position[$row['user']->id])
+            ->map(fn (array $row) => [...$row, 'place' => $places[$row['user']->id]])
             ->values();
 
-        // The meter measures each row against the leader in whichever figure
-        // is on show. Measuring a ratio against a points total would draw
-        // every bar at nothing.
-        $leaderValue = $order === 'rank'
-            ? (float) ($leaderboard->first()['ratio'] ?? 0)
-            : (int) ($leaderboard->first()['points'] ?? 0);
+        $leaderValue = (int) ($leaderboard->first()['points'] ?? 0);
 
         // Counted from the standings rather than from the results, so the tile
         // and the table cannot disagree about who played: both are now "people
@@ -302,30 +280,13 @@ class PokerSeasonController extends Controller
                 ]
                 : null,
 
-            'order' => $order,
-
-            // Links, not a control that needs scripting: the order is part of
-            // the address, so it survives a reload and can be sent to
-            // somebody.
-            'order_options' => collect(['points' => __('Points'), 'rank' => __('Rank')])
-                ->map(fn (string $label, string $value) => [
-                    'value' => $value,
-                    'label' => $label,
-                    'href' => route('seasons.show', ['season' => $season, 'order' => $value]),
-                    'current' => $order === $value,
-                ])->values()->all(),
-
-            'figure_heading' => $order === 'rank' ? __('Per event') : __('Points'),
-
             // Whether a COLUMN is drawn. What may be read is decided above, in
             // $readsVenuePoints, and a figure that is not in the array cannot
             // leak from it -- this flag only stops an empty column being drawn
             // for a reader who would see nothing in it.
             'shows_venue_points' => $isAdmin,
 
-            'standings' => $leaderboard->map(function (array $row, int $index) use ($order, $leaderValue, $season, $viewerId) {
-                $rank = $index + 1;
-                $ratio = number_format($row['ratio'] ?? 0, 1);
+            'standings' => $leaderboard->map(function (array $row) use ($leaderValue, $season, $viewerId) {
 
                 // Standings name a player by nickname when they have one,
                 // otherwise by their full name -- deliberately NOT
@@ -349,38 +310,24 @@ class PokerSeasonController extends Controller
                     // would be marked "you", for everyone.
                     'is_self' => $row['user'] !== null && $row['user']->id === $viewerId,
 
-                    'rank' => $rank,
-
-                    // In rank order the position IS the figure, so the badge
-                    // says so and carries the average behind it.
-                    'rank_label' => $order === 'rank' ? '#'.$rank : null,
-                    'rank_title' => $order === 'rank'
-                        ? __(':points points per event', ['points' => $ratio])
-                        : null,
+                    // The PLACE, shared on a tie: two rows can both read 3.
+                    'rank' => $row['place'],
 
                     'shown_name' => $shownName,
                     'full_name' => filled($nickname) ? $row['player_name'] : null,
                     'player_id' => $row['user']?->id,
                     'initials' => initials($row['player_name']),
 
-                    'meter_value' => $order === 'rank' ? (float) ($row['ratio'] ?? 0) : (int) $row['points'],
+                    'meter_value' => (int) $row['points'],
                     'meter_max' => $leaderValue,
 
                     // The meter's accessible name, read aloud rather than
                     // seen: "PTS for Wanda Reeve" is worse to hear than
                     // "Points for Wanda Reeve", which is why this is the whole
                     // word.
-                    'meter_label' => $order === 'rank'
-                        ? __('Rank #:rank, :points points per event, for :name', [
-                            'rank' => $rank, 'points' => $ratio, 'name' => $shownName,
-                        ])
-                        : __('Points for :name', ['name' => $shownName]),
+                    'meter_label' => __('Points for :name', ['name' => $shownName]),
 
-                    // One decimal in rank mode, matching the dashboard: these
-                    // averages run to hundreds, and a whole number hides the
-                    // difference between two players a tenth apart -- which is
-                    // exactly the difference the order is drawn on.
-                    'meter_value_label' => $order === 'rank' ? $ratio : number_format($row['points']),
+                    'meter_value_label' => number_format($row['points']),
 
                     'played_label' => (string) $row['played'],
                     'wins_label' => (string) $row['wins'],

@@ -16,10 +16,8 @@ import { useConfirm } from '../../../composables/useConfirm';
 interface SeasonRow {
     key: string;
     is_self: boolean;
+    /** The place on the season's board -- shared on a tie, so two rows can both be 3. */
     rank: number;
-    /** "#3" in rank order, null otherwise. */
-    rank_label: string | null;
-    rank_title: string | null;
     shown_name: string;
     /** Only when shown_name is a nickname; it becomes the link's title. */
     full_name: string | null;
@@ -44,9 +42,6 @@ interface Props {
     players_label: string;
     /** Null when no threshold is set at all. */
     finale: null | { wins_label: string; points_label: string; venue_points_label: string };
-    order: string;
-    order_options: Array<{ value: string; label: string; href: string; current: boolean }>;
-    figure_heading: string;
     shows_venue_points: boolean;
     standings: SeasonRow[];
     venues: Array<{ name: string; count: number; count_label: string; max: number; label: string }>;
@@ -119,27 +114,16 @@ const destroy = async (): Promise<void> => {
 
             <div class="l-sidebar">
                 <Card title="Standings" flush class="season-show__standings-card">
-                    <!-- Links, not a control that needs scripting: the order is
-                         part of the address, so it survives a reload and can be
-                         sent to somebody. role="group" rather than radios
-                         because each option navigates on activation -- there is
-                         nothing to submit and no pending state to hold. -->
-                    <template #actions>
-                        <div class="season-show__order" role="group" aria-label="Order the standings by">
-                            <Link v-for="option in order_options" :key="option.value"
-                                  :href="option.href"
-                                  class="season-show__order-option"
-                                  :class="{ 'season-show__order-option--current': option.current }"
-                                  :aria-current="option.current ? 'true' : undefined">{{ option.label }}</Link>
-                        </div>
-                    </template>
-
                     <!-- No action any more. It offered "Record a result", which
                          went to a form that no longer exists: a result is
                          recorded by eliminating a player on the tournament
                          being played. The sentence says where instead. -->
-                    <EmptyState v-if="standings.length === 0" title="No results yet">
-                        Standings appear once players are eliminated from a tournament in this season.
+                    <!-- True whether no tournament has been played or every
+                         finish so far is worth nothing: players on 0 points
+                         are not listed, so an empty table can sit beside a
+                         night that is plainly under way. -->
+                    <EmptyState v-if="standings.length === 0" title="Nobody has scored yet">
+                        Standings appear once a player scores points this season.
                     </EmptyState>
 
                     <!-- The mobile layout is CSS only: same markup, same cells,
@@ -151,7 +135,7 @@ const destroy = async (): Promise<void> => {
                         <template #head>
                             <th scope="col">Rank</th>
                             <th scope="col">Player</th>
-                            <th scope="col">{{ figure_heading }}</th>
+                            <th scope="col">Points</th>
                             <th scope="col" class="table__num">Played</th>
                             <th scope="col" class="table__num">Wins</th>
                             <th v-if="shows_venue_points" scope="col" class="table__num">Venue points</th>
@@ -161,8 +145,7 @@ const destroy = async (): Promise<void> => {
                         <tr v-for="row in standings" :key="row.key"
                             :class="{ 'season-show__self-row': row.is_self }">
                             <td class="season-show__rank">
-                                <Rank :place="row.rank" :label="row.rank_label"
-                                      :title="row.rank_title ?? undefined" />
+                                <Rank :place="row.rank" />
                             </td>
 
                             <td class="season-show__player">
@@ -197,18 +180,8 @@ const destroy = async (): Promise<void> => {
                             </td>
 
                             <td class="season-show__meter-cell">
-                                <!-- In rank order the badge to its left gives
-                                     the position, so this bar carries the
-                                     average instead: how far apart two
-                                     positions actually are. The figure is
-                                     rendered and then HIDDEN where a pointer
-                                     can hover the badge for it -- see
-                                     .season-show__ratio. It is in the
-                                     accessible name either way, because title
-                                     is not reachable by keyboard. -->
                                 <Meter :value="row.meter_value" :max="row.meter_max"
-                                       :label="row.meter_label" :value-label="row.meter_value_label"
-                                       :class="order === 'rank' ? 'season-show__ratio' : undefined" />
+                                       :label="row.meter_label" :value-label="row.meter_value_label" />
                             </td>
 
                             <!-- data-label feeds the mobile stat run through

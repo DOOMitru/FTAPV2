@@ -56,7 +56,6 @@ Route::get('/', function () {
     // PokerSeasonController@show groups them -- points summed, a win being
     // place 1 -- so the home page and the season page cannot disagree about
     // what either word means.
-    $topByPoints = collect();
     $topByWins = collect();
     $topByRank = collect();
 
@@ -74,18 +73,23 @@ Route::get('/', function () {
             ])
             ->values();
 
-        $topByPoints = $standings->sortByDesc('points')->take(3)->values();
-
         // Anyone on nil wins is not "leading on wins"; an empty list says that
         // honestly, where three names on zero would not.
         $topByWins = $standings->where('wins', '>', 0)->sortByDesc('wins')->take(3)->values();
 
         // The same board the dashboard puts a player's own rank against, so the
-        // two cannot disagree about what a rank is: points per tournament
-        // ENTERED, not points.
-        // rankings() carries user_id rather than the model, so the three that
-        // are actually shown are resolved here -- three finds, not eighty.
-        $ranked = $currentSeason->rankings()->take(3)->values();
+        // two cannot disagree about what a rank is. Since 2026-11-14 a rank is
+        // season points, so this card replaced Most Points -- they had become
+        // the same list.
+        //
+        // Everyone PLACED 1-3, not the first three rows: on a tie at third
+        // that is four players, and cutting one would rank them differently
+        // by omission.
+        //
+        // rankings() carries user_id rather than the model, so the few that
+        // are actually shown are resolved here -- a handful of finds, not
+        // eighty.
+        $ranked = $currentSeason->rankings()->where('place', '<=', 3)->values();
         $rankedUsers = User::whereIn('id', $ranked->pluck('user_id'))->get()->keyBy('id');
 
         $topByRank = $ranked->map(fn (array $row) => [
@@ -98,7 +102,7 @@ Route::get('/', function () {
     // administrator arranges is what this page renders.
     $sponsors = Sponsor::ordered()->get();
 
-    return view('home', compact('currentSeason', 'nextTournament', 'sponsors', 'topByRank', 'topByWins', 'topByPoints'));
+    return view('home', compact('currentSeason', 'nextTournament', 'sponsors', 'topByRank', 'topByWins'));
 })->name('home');
 
 Route::prefix('about')->name('about.')->group(function () {
