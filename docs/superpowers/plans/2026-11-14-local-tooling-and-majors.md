@@ -97,7 +97,17 @@ suite and sweep.
       @vitejs/plugin-vue 6.0.11; no config change. Typecheck, suite 119/119
       and sweep clean, pinned. CSS diffed against Vite 7 -- see RESUME-HERE.
 - [ ] TypeScript 7 -- check `vue-tsc` supports it first.
-- [ ] `postcss-import` 17.
+      **BLOCKED, checked 2026-11-14:** TS 7.0.2 is the native (Go) compiler;
+      its package exports no `lib/tsc` and no JS compiler API, and `vue-tsc`
+      loads `typescript/lib/tsc`. Its only TS 7 path is aliasing `typescript`
+      to `@typescript/typescript6`, which still checks with TS 6. Nothing else
+      here uses TypeScript -- Vite strips types itself -- so 7 buys nothing
+      until Volar moves to the native API. Re-check when vue-tsc says so.
+      TS 6.0.3 exists as the bridge release; not taken without the owner.
+- [x] `postcss-import` 17. **Done 2026-11-14:** 15.1.0 → ^17.0.1. The
+      exact pin was not a decision -- Phase 1 promoted the copy Tailwind had
+      installed transitively. Built CSS byte-identical (same hash); typecheck,
+      suite 119/119 and sweep clean.
 - [ ] `concurrently` 10.
 - [ ] `@types/node` 26 only if Node itself is on 26.
 
