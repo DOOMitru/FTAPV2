@@ -1,7 +1,15 @@
 # Resume here
 
-**Last worked: 2026-11-13.** First to Act Poker — a league app for free-to-play
+**Last worked: 2026-11-14.** First to Act Poker — a league app for free-to-play
 poker nights in Regina.
+
+**2026-11-14: the upgrade backlog is cleared.**
+`docs/superpowers/plans/2026-11-14-local-tooling-and-majors.md` is done except
+two items blocked upstream: TypeScript 7 (until `vue-tsc` runs on the native
+compiler) and lifting the `vue-tsc` pin (until a release after 3.3.14). The
+local "PHP segfault" is very probably a degraded CPU core -- see the segfault
+section -- so **pin heavy local runs off cores 10-11**
+(`taskset -c 0-9,12-31 …`) until the hardware is dealt with.
 
 ## Where things stand
 
