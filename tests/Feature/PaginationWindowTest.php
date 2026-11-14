@@ -135,12 +135,20 @@ class PaginationWindowTest extends TestCase
 
         $this->assertSame(61, User::count(), 'The page count below depends on this.');
 
-        $this->actingAs($admin)->get(route('users.index'))->assertOk()
-            ->assertSee('pager__list', false)
-            // On page 1 of 5 the window is 1, 2, 4, 5 -- so the last page is
-            // reachable and the middle one is not.
-            ->assertSee($this->linkTo(5), false)
-            ->assertDontSee($this->linkTo(3), false)
-            ->assertSee('pager__gap', false);
+        // The users list is an Inertia page now, so the window is produced by
+        // App\Support\Paginate and travels as props. Same window, same rule --
+        // first two, the page you are on, last two -- and this asserts the
+        // converted page still gets it.
+        $props = $this->actingAs($admin)->get(route('users.index'))
+            ->assertOk()->viewData('page')['props'];
+
+        $labels = collect($props['users']['links'])
+            ->whereIn('kind', ['page', 'gap'])
+            ->pluck('label')
+            ->all();
+
+        // On page 1 of 5 the window is 1, 2, 4, 5 -- so the last page is
+        // reachable, the middle one is not, and a gap marks where it was.
+        $this->assertSame(['1', '2', '…', '4', '5'], $labels);
     }
 }

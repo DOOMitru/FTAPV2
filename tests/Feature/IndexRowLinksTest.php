@@ -7,6 +7,7 @@ use App\Models\PokerTournament;
 use App\Models\User;
 use App\Models\Venue;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
 
 /**
@@ -53,6 +54,23 @@ class IndexRowLinksTest extends TestCase
         return [$season, $venue, $tournament];
     }
 
+    /**
+     * Listings still rendered by Blade, and the page that replaced one.
+     *
+     * The conversion to Inertia is incremental, so for a while this file
+     * checks the same rule two ways. A Blade listing puts its markup in the
+     * response; a converted one puts it in a .vue file and sends the props the
+     * row is built from. Both are the same claim -- the row is a link and it
+     * reaches the record -- asserted where the evidence now lives.
+     *
+     * @var array<string, string> route name => the .vue page, for converted listings
+     */
+    private const CONVERTED = [
+        'poker.seasons.index' => 'js/Pages/Poker/Seasons/Index.vue',
+        'poker.venues.index' => 'js/Pages/Poker/Venues/Index.vue',
+        'poker.tournaments.index' => 'js/Pages/Poker/Tournaments/Index.vue',
+    ];
+
     public function test_each_listing_makes_its_rows_links(): void
     {
         [$season, $venue, $tournament] = $this->seedLeague();
@@ -63,6 +81,27 @@ class IndexRowLinksTest extends TestCase
             'poker.venues.index' => route('poker.venues.show', $venue),
             'poker.tournaments.index' => route('tournaments.show', $tournament),
         ] as $listing => $destination) {
+            if (array_key_exists($listing, self::CONVERTED)) {
+                $page = file_get_contents(resource_path(self::CONVERTED[$listing]));
+
+                $this->assertStringContainsString('table__row--link', $page, $listing.' has no linked row.');
+                $this->assertStringContainsString('class="table__link"', $page, $listing.' has no stretched anchor.');
+
+                // The destination is built in the template from an id, so the
+                // check is that the id is sent at all -- without it the row
+                // has nowhere to point. The prop is named for its page.
+                $key = [
+                    'poker.seasons.index' => 'seasons',
+                    'poker.venues.index' => 'venues',
+                    'poker.tournaments.index' => 'tournaments',
+                ][$listing];
+
+                $this->actingAs($admin)->get(route($listing))->assertOk()
+                    ->assertInertia(fn (Assert $props) => $props->has($key.'.data.0.id'));
+
+                continue;
+            }
+
             $html = $this->actingAs($admin)->get(route($listing))->assertOk()->getContent();
 
             $this->assertStringContainsString('table__row--link', $html, $listing.' has no linked row.');
@@ -109,6 +148,41 @@ class IndexRowLinksTest extends TestCase
             // the destroy URL is satisfied by the Edit link, and this test
             // passed on a page that had no Delete button at all.
             [$edit, $destroy] = $controls;
+
+            // A converted page builds both from the id: there is no URL in
+            // the response to find, and the two controls are a link and a
+            // router.delete() rather than a link and a form.
+            $converted = [
+                '/poker/venues/' => ['js/Pages/Poker/Venues/Show.vue', 'venue', 'poker/venues'],
+                '/seasons/' => ['js/Pages/Poker/Seasons/Show.vue', 'season', 'poker/seasons'],
+                '/tournaments/' => ['js/Pages/Poker/Tournaments/Show.vue', 'tournament', 'poker/tournaments'],
+            ];
+
+            foreach ($converted as $marker => [$vuePath, $prop, $prefix]) {
+                if (! str_contains($page, $marker)) {
+                    continue;
+                }
+
+                $vue = (string) file_get_contents(resource_path($vuePath));
+
+                $this->assertStringContainsString(
+                    ':href="`/'.$prefix.'/${'.$prop.'.id}/edit`"', $vue, $page.' is missing Edit.'
+                );
+                // The tournament page builds every one of its five action
+                // URLs from one `base` const, so its delete reads as
+                // router.delete(base) rather than repeating the path.
+                $deletes = [
+                    'router.delete(`/'.$prefix.'/${props.'.$prop.'.id}`)',
+                    'const base = `/'.$prefix.'/${props.'.$prop.'.id}`',
+                ];
+
+                $this->assertTrue(
+                    (bool) array_filter($deletes, fn (string $d) => str_contains($vue, $d)),
+                    $page.' is missing Delete.'
+                );
+
+                continue 2;
+            }
 
             $this->assertStringContainsString('href="'.$edit.'"', $html, $page.' is missing Edit.');
             $this->assertStringContainsString('action="'.$destroy.'"', $html, $page.' is missing Delete.');

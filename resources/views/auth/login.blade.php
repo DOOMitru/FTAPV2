@@ -16,8 +16,6 @@
             <a class="link" href="{{ route('register') }}">{{ __('create a new account') }}</a>
         </p>
 
-        <x-auth-session-status :status="session('status')" />
-
         <form method="POST" action="{{ route('login') }}" class="l-stack">
             @csrf
 

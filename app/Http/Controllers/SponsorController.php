@@ -6,7 +6,8 @@ use App\Models\Sponsor;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\View\View;
+use Inertia\Inertia;
+use Inertia\Response;
 
 /**
  * Sponsors shown on the home page.
@@ -17,16 +18,34 @@ use Illuminate\View\View;
  */
 class SponsorController extends Controller
 {
-    public function index(): View
+    public function index(): \Inertia\Response
     {
         // ordered(), the same scope the home page uses, so an administrator
         // arranging the list sees the sequence the page will actually render.
-        return view('sponsors.index', ['sponsors' => Sponsor::ordered()->get()]);
+        //
+        // Not paginated, and no Paginate::props: this is a short, hand-kept
+        // list, and the home page renders all of it at once anyway.
+        return \Inertia\Inertia::render('Sponsors/Index', [
+            'sponsors' => Sponsor::ordered()->get()->map(fn (Sponsor $sponsor) => [
+                'id' => $sponsor->id,
+                'name' => $sponsor->name,
+                // The stored value, not a prettied host: this is the screen an
+                // administrator checks the setting on, so it shows what was
+                // actually saved.
+                'website_url' => $sponsor->website_url,
+                'logo_url' => $sponsor->logoUrl(),
+                'is_premium' => $sponsor->isPremium(),
+                'tier_label' => $sponsor->isPremium() ? __('Premium') : __('Regular'),
+                'delete_confirm' => __('Delete :name? Their uploaded logo is deleted too, and that cannot be undone.', [
+                    'name' => emph($sponsor->name),
+                ]),
+            ])->all(),
+        ]);
     }
 
-    public function create(): View
+    public function create(): Response
     {
-        return view('sponsors.create');
+        return Inertia::render('Sponsors/Create');
     }
 
     public function store(Request $request): RedirectResponse
@@ -43,9 +62,22 @@ class SponsorController extends Controller
         ]));
     }
 
-    public function edit(Sponsor $sponsor): View
+    public function edit(Sponsor $sponsor): Response
     {
-        return view('sponsors.edit', compact('sponsor'));
+        return Inertia::render('Sponsors/Edit', [
+            'sponsor' => [
+                'id' => $sponsor->id,
+                'name' => $sponsor->name,
+                'website_url' => $sponsor->website_url,
+                'tier' => $sponsor->tier,
+                'sort_order' => $sponsor->sort_order,
+
+                // The URL, not the path. logoUrl() is where this app turns one
+                // into the other, and a page rebuilding it from logo_path
+                // would be a second definition of the storage layout.
+                'logo_url' => $sponsor->logoUrl(),
+            ],
+        ]);
     }
 
     public function update(Request $request, Sponsor $sponsor): RedirectResponse

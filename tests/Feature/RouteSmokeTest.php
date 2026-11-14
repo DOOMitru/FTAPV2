@@ -2,16 +2,10 @@
 
 namespace Tests\Feature;
 
-use App\Models\PointsStructure;
-use App\Models\PokerSeason;
-use App\Models\PokerTournament;
-use App\Models\PokerTournamentRegistrant;
-use App\Models\PokerTournamentResult;
 use App\Models\User;
-use App\Models\Venue;
-use App\Models\VenuePoints;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Route;
+use Tests\Support\RouteFixtures;
 use Tests\TestCase;
 
 /**
@@ -70,74 +64,19 @@ class RouteSmokeTest extends TestCase
     {
         parent::setUp();
 
-        $this->admin = User::factory()->create(['is_admin' => true]);
-        $this->player = User::factory()->create(['is_admin' => false]);
-
-        $venue = Venue::create([
-            'name' => 'The Grand Card Room',
-            'address' => '100 Casino Blvd',
-            'description' => 'A premier poker venue.',
-        ]);
-
-        $season = PokerSeason::create([
-            'name' => 'Season 1',
-            'start_date' => now()->subMonth(),
-            'end_date' => now()->addMonth(),
-            'is_current' => true,
-        ]);
-
-        $tournament = PokerTournament::create([
-            'name' => 'Weekly Freezeout',
-            'start_time' => now()->addDays(7)->addMinutes(30),
-            'venue_id' => $venue->id,
-            'season_id' => $season->id,
-        ]);
-
-        $structure = PointsStructure::create(['place' => 1, 'points' => 100]);
-
-        $registrant = PokerTournamentRegistrant::create([
-            'tournament_id' => $tournament->id,
-            'user_id' => $this->admin->id,
-            'player_name' => 'Admin User',
-            'registered_at' => now(),
-        ]);
-
-        $result = PokerTournamentResult::create([
-            'tournament_id' => $tournament->id,
-            'user_id' => $this->admin->id,
-            'player_name' => 'Admin User',
-            'place' => 1,
-            'points' => 100,
-        ]);
-
-        $venuePoints = VenuePoints::create([
-            'venue_id' => $venue->id,
-            'user_id' => $this->admin->id,
-            'user_name' => 'Admin User',
-            'event_date' => now()->toDateString(),
-            'amount' => 50,
-        ]);
-
-        $sponsor = \App\Models\Sponsor::create([
-            'name' => 'Smoke Test Sponsor',
-            'logo_path' => 'sponsor-logos/smoke.png',
-        ]);
-
-        $this->bindings = [
-            'user' => $this->admin->id,
-            'player' => $this->admin->id,
-            'venue' => $venue->id,
-            'season' => $season->id,
-            'tournament' => $tournament->id,
-            'points_structure' => $structure->id,
-            'registrant' => $registrant->id,
-            'result' => $result->id,
-            'venue_point' => $venuePoints->id,
-            'sponsor' => $sponsor->id,
-            'token' => 'smoke-test-token',
-            'id' => $this->admin->id,
-            'hash' => sha1($this->admin->email),
-        ];
+        /*
+         * One record of each kind, and the parameter map, from
+         * Tests\Support\RouteFixtures.
+         *
+         * Shared with bin/sweep.sh, which needs exactly the same fixtures for
+         * a different question -- this asks whether a route responds, the
+         * sweep asks whether the page it returns is right in a browser. Two
+         * maps would be a second definition free to drift, and the unbound
+         * check below is what makes this one authoritative: a new {thing} in a
+         * URI fails the suite here rather than going quietly unvisited there.
+         */
+        ['admin' => $this->admin, 'player' => $this->player, 'bindings' => $this->bindings]
+            = RouteFixtures::seed();
     }
 
     public function test_every_get_route_responds_to_an_admin_without_a_server_error()

@@ -7,6 +7,7 @@ use App\Models\PokerTournament;
 use App\Models\User;
 use App\Models\Venue;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
 
 /**
@@ -58,12 +59,13 @@ class TournamentsIndexSeasonScopeTest extends TestCase
     }
 
     /** @return array<int, string> */
+    /** @return array<int, string> */
     private function listed(): array
     {
-        $paginator = $this->actingAs($this->admin())
-            ->get(route('poker.tournaments.index'))->assertOk()->viewData('tournaments');
+        $props = $this->actingAs($this->admin())
+            ->get(route('poker.tournaments.index'))->assertOk()->viewData('page')['props'];
 
-        return collect($paginator->items())->pluck('name')->all();
+        return collect($props['tournaments']['data'])->pluck('name')->all();
     }
 
     public function test_only_the_current_seasons_nights_are_listed(): void
@@ -114,14 +116,18 @@ class TournamentsIndexSeasonScopeTest extends TestCase
         $this->season('Season 8', false, '2025-01-01', '2025-12-31');
 
         $this->actingAs($this->admin())->get(route('poker.tournaments.index'))->assertOk()
-            ->assertSee('No season is running.')
-            ->assertSee('Mark a season as current');
+            // season_name null is what makes the page say "No season is
+            // running." rather than "No tournaments yet". The two messages
+            // live in the page file; the DECISION between them is the prop.
+            ->assertInertia(fn (Assert $page) => $page->where('season_name', null));
 
         $this->season('Season 9', true, '2026-01-01', '2026-12-31');
 
         $this->actingAs($this->admin())->get(route('poker.tournaments.index'))->assertOk()
-            ->assertSee('No tournaments in Season 9 yet.')
-            ->assertDontSee('No season is running.');
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('season_name', 'Season 9')
+                ->has('tournaments.data', 0)
+            );
     }
 
     public function test_the_page_names_the_season_it_is_showing(): void
@@ -135,7 +141,7 @@ class TournamentsIndexSeasonScopeTest extends TestCase
         // because a bare assertSee once passed on a page whose heading said
         // nothing -- the rows were answering for it.
         $this->actingAs($this->admin())->get(route('poker.tournaments.index'))->assertOk()
-            ->assertSee('<p class="u-eyebrow">Season 9</p>', false);
+            ->assertInertia(fn (Assert $page) => $page->where('season_name', 'Season 9'));
     }
 
     public function test_the_season_is_named_once_and_not_repeated_down_every_row(): void
@@ -148,13 +154,24 @@ class TournamentsIndexSeasonScopeTest extends TestCase
         $this->night('This year', $now, '2026-06-01 19:00:00');
         $this->night('Also this year', $now, '2026-07-01 19:00:00');
 
-        $html = $this->actingAs($this->admin())
-            ->get(route('poker.tournaments.index'))->assertOk()->getContent();
+        $props = $this->actingAs($this->admin())
+            ->get(route('poker.tournaments.index'))->assertOk()
+            ->viewData('page')['props'];
 
-        $this->assertSame(1, substr_count($html, 'Season 9'),
-            'The season should be named in the heading and nowhere else.');
-        $this->assertStringNotContainsString('tournaments-index__season', $html);
-        $this->assertSame(3, substr_count($html, '<th scope="col"'));
+        // Named once, in the prop the heading reads. Counting occurrences in
+        // rendered HTML was the old way of saying this; the prop says it
+        // directly -- the rows carry no season at all.
+        $this->assertSame('Season 9', $props['season_name']);
+
+        foreach ($props['tournaments']['data'] as $row) {
+            $this->assertArrayNotHasKey('season_name', $row,
+                'A row carries no season: every one of them would say the same thing.');
+        }
+
+        $page = file_get_contents(resource_path('js/Pages/Poker/Tournaments/Index.vue'));
+
+        $this->assertStringNotContainsString('tournaments-index__season', $page);
+        $this->assertSame(3, substr_count($page, '<th scope="col"'));
     }
 
     public function test_the_empty_state_still_spans_every_column(): void
@@ -165,7 +182,13 @@ class TournamentsIndexSeasonScopeTest extends TestCase
         $this->season('Season 9', true, '2026-01-01', '2026-12-31');
 
         $this->actingAs($this->admin())->get(route('poker.tournaments.index'))->assertOk()
-            ->assertSee('colspan="3"', false);
+            ->assertOk();
+
+        // The colspan lives in the page file now.
+        $this->assertStringContainsString(
+            'colspan="3"',
+            file_get_contents(resource_path('js/Pages/Poker/Tournaments/Index.vue'))
+        );
     }
 
     public function test_an_older_season_is_still_reachable_from_its_own_page(): void

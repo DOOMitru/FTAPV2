@@ -27,7 +27,32 @@ class ScheduleFormSeasonFieldTest extends TestCase
 {
     use RefreshDatabase;
 
-    private function form(bool $withSeason = true): string
+    /**
+     * The page component's own source.
+     *
+     * The form is Vue now, so the markup is here rather than in the response:
+     * the server sends props and an empty shell. Two of these assertions ask
+     * what shape the season is drawn in, and this is where that is written.
+     */
+    private function page(): string
+    {
+        $path = resource_path('js/Pages/Poker/Tournaments/Create.vue');
+
+        $this->assertFileExists($path);
+
+        return (string) file_get_contents($path);
+    }
+
+    /**
+     * What the controller sends the page.
+     *
+     * The value the season box shows is a prop now, which is a better thing to
+     * assert than the old "does this string appear anywhere in the HTML" --
+     * that passed if the name turned up in a nav link.
+     *
+     * @return array<string, mixed>
+     */
+    private function props(bool $withSeason = true): array
     {
         if ($withSeason) {
             PokerSeason::create([
@@ -41,15 +66,18 @@ class ScheduleFormSeasonFieldTest extends TestCase
         $admin = User::factory()->create(['is_admin' => true, 'approval_status' => 'approved']);
 
         return $this->actingAs($admin)
-            ->get(route('poker.tournaments.create'))->assertOk()->getContent();
+            ->get(route('poker.tournaments.create'))->assertOk()
+            ->viewData('page')['props'];
     }
 
     public function test_the_season_is_shaped_like_the_control_beside_it(): void
     {
-        $html = $this->form();
+        $this->assertStringContainsString(
+            'class="field__control field__control--static"',
+            $this->page()
+        );
 
-        $this->assertStringContainsString('class="field__control field__control--static"', $html);
-        $this->assertStringContainsString('Season 9', $html);
+        $this->assertSame('Season 9', $this->props()['season_label']);
     }
 
     public function test_it_no_longer_borrows_the_profile_pages_value_class(): void
@@ -57,7 +85,7 @@ class ScheduleFormSeasonFieldTest extends TestCase
         // .row__value is text-align: end. That is right for the definition
         // lists it was written for and wrong in a form column, which is the
         // misalignment this fixes.
-        $this->assertStringNotContainsString('row__value', $this->form());
+        $this->assertStringNotContainsString('row__value', $this->page());
     }
 
     public function test_the_static_field_reads_as_uneditable_without_being_disabled(): void
@@ -98,9 +126,14 @@ class ScheduleFormSeasonFieldTest extends TestCase
 
     public function test_with_no_current_season_it_says_so_in_the_same_box(): void
     {
-        $html = $this->form(withSeason: false);
+        // Same box, different words -- and the words are chosen in PHP, so
+        // that the one place deciding what the season field says is the place
+        // that knows whether there is a season (spec 5a).
+        $this->assertStringContainsString(
+            'class="field__control field__control--static"',
+            $this->page()
+        );
 
-        $this->assertStringContainsString('class="field__control field__control--static"', $html);
-        $this->assertStringContainsString('No active season', $html);
+        $this->assertSame('No active season', $this->props(withSeason: false)['season_label']);
     }
 }

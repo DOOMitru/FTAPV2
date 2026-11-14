@@ -159,35 +159,68 @@ class PointsStructureAdminTest extends TestCase
     {
         $this->ladder(100, 85, 75);
 
-        $html = $this->actingAs($this->admin())->get(route('poker.points-structure.index'))
-            ->assertOk()->getContent();
+        // can_delete per row, which is the decision itself.
+        //
+        // The assertion this replaces matched the delete form's action URL,
+        // and its comment records why it had to: a count of the row's id got
+        // it wrong, because the id appears twice on the deepest row -- once
+        // for edit and once for delete. There is no URL to match now, and
+        // nothing to miscount: the row either carries the permission or it
+        // does not.
+        $props = $this->actingAs($this->admin())->get(route('poker.points-structure.index'))
+            ->assertOk()->viewData('page')['props'];
 
-        // The delete form's action, not a count of the row's id -- the id
-        // appears twice on the deepest row, once for edit and once for delete,
-        // which is what a count-of-one assertion got wrong here.
-        $this->assertStringContainsString(
-            'action="'.route('poker.points-structure.destroy', PointsStructure::where('place', 3)->value('id')).'"',
-            $html,
-            'The deepest place must be offered a delete form.'
-        );
+        $byPlace = collect($props['structures']['data'])->keyBy('place');
+
+        $this->assertTrue($byPlace[3]['can_delete'],
+            'The deepest place must be offered a delete.');
 
         foreach ([1, 2] as $place) {
-            $id = PointsStructure::where('place', $place)->value('id');
-            $this->assertStringNotContainsString(
-                'action="'.route('poker.points-structure.destroy', $id).'"',
-                $html,
-                "Place {$place} must not be offered a delete form."
-            );
+            $this->assertFalse($byPlace[$place]['can_delete'],
+                "Place {$place} must not be offered a delete.");
         }
+
+        // And the sentence it would ask, formatted in PHP.
+        $this->assertSame('Remove 3rd place, worth 75 points?', $byPlace[3]['delete_confirm']);
     }
 
     public function test_the_create_form_shows_the_place_it_will_assign(): void
     {
         $this->ladder(100, 85);
 
-        $this->actingAs($this->admin())->get(route('poker.points-structure.create'))->assertOk()
-            ->assertSee('3rd')
-            ->assertDontSee('name="place"', false);
+        $props = $this->actingAs($this->admin())->get(route('poker.points-structure.create'))
+            ->assertOk()->viewData('page')['props'];
+
+        // The ordinal, ready to render. Which suffix a number takes is a
+        // language question and PHP answers it -- the same Number::ordinal()
+        // the flash message and the delete confirmation use.
+        $this->assertSame('3rd', $props['next_place_label']);
+
+        // And no input for it. The place is computed by store(); a posted one
+        // could collide with a row that exists or leave a gap.
+        $this->assertStringNotContainsString('name="place"', $this->createPage());
+    }
+
+    /**
+     * The create page's own source, comments stripped.
+     *
+     * Read rather than rendered: the form is Vue, so the server sends props
+     * and an empty shell. Comments go first because this page explains at
+     * length why there is no place input, and prose naming the thing it
+     * forbids would fail the assertion that forbids it -- the mistake three
+     * assertions in this suite have already made.
+     */
+    private function createPage(): string
+    {
+        $path = resource_path('js/Pages/Poker/PointsStructure/Create.vue');
+
+        $this->assertFileExists($path);
+
+        return (string) preg_replace(
+            '/<!--.*?-->|\/\*.*?\*\//s',
+            '',
+            (string) file_get_contents($path)
+        );
     }
 
     public function test_a_player_cannot_touch_the_structure(): void
@@ -213,9 +246,19 @@ class PointsStructureAdminTest extends TestCase
             ->post(route('poker.points-structure.store'), ['points' => 75])
             ->assertRedirect(route('poker.points-structure.create'));
 
-        $this->actingAs($admin)->get(route('poker.points-structure.create'))->assertOk()
-            ->assertSee('4th')
-            ->assertSee('autofocus', false);
+        $props = $this->actingAs($admin)->get(route('poker.points-structure.create'))
+            ->assertOk()->viewData('page')['props'];
+
+        $this->assertSame('4th', $props['next_place_label']);
+
+        // Focused on arrival. autofocus does that on a fresh page; the page
+        // that comes back from a save is the SAME component re-rendered, where
+        // the attribute has no effect at all -- so the component focuses the
+        // input itself, and this asks for both.
+        $page = $this->createPage();
+
+        $this->assertStringContainsString('autofocus', $page);
+        $this->assertStringContainsString("getElementById('points')", $page);
     }
 
     public function test_the_form_reports_what_it_just_saved(): void
@@ -234,9 +277,10 @@ class PointsStructureAdminTest extends TestCase
 
     public function test_the_form_offers_the_way_back_to_the_listing(): void
     {
-        $this->actingAs($this->admin())->get(route('poker.points-structure.create'))->assertOk()
-            ->assertSee(route('poker.points-structure.index'))
-            ->assertSee('>Back<', false);
+        $page = $this->createPage();
+
+        $this->assertStringContainsString('href="/poker/points-structure"', $page);
+        $this->assertStringContainsString('>Back<', $page);
     }
 
     public function test_entering_a_whole_ladder_in_one_sitting_walks_down(): void

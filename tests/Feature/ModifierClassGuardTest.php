@@ -2,7 +2,7 @@
 
 namespace Tests\Feature;
 
-use Symfony\Component\Finder\Finder;
+use Tests\Concerns\ScansTemplates;
 use Tests\TestCase;
 
 /**
@@ -18,15 +18,14 @@ use Tests\TestCase;
  */
 class ModifierClassGuardTest extends TestCase
 {
+    use ScansTemplates;
+
     public function test_every_layout_modifier_is_used_with_its_base_class(): void
     {
         $offenders = [];
-        $root = resource_path('views').DIRECTORY_SEPARATOR;
 
-        foreach (Finder::create()->files()->in(resource_path('views'))->name('*.blade.php') as $file) {
-            $relative = str_replace($root, '', $file->getRealPath());
-
-            foreach (file($file->getRealPath(), FILE_IGNORE_NEW_LINES) as $index => $line) {
+        foreach ($this->templates() as $relative => $source) {
+            foreach (explode("\n", $source) as $index => $line) {
                 foreach ($this->classAttributes($line) as $attribute) {
                     $classes = preg_split('/\s+/', $attribute, -1, PREG_SPLIT_NO_EMPTY);
 
@@ -66,7 +65,11 @@ class ModifierClassGuardTest extends TestCase
      */
     private function classAttributes(string $line): array
     {
-        preg_match_all('/class="([^"]*)"/', $line, $matches);
+        // `class="..."` only, never `:class="..."`. A bound class is an
+        // EXPRESSION, and reading it as a list of names credits the file with
+        // whatever the variable happens to be called -- the mistake
+        // ComponentParityTest made and had to undo.
+        preg_match_all('/(?<![:\w-])class="([^"]*)"/', $line, $matches);
 
         // Blade expressions inside a class attribute are left alone: their
         // value is not knowable statically.

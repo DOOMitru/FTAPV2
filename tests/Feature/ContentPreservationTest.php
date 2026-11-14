@@ -264,43 +264,54 @@ class ContentPreservationTest extends TestCase
         // checked as values. This fails if the controller ever counts the wrong
         // thing -- and counting the wrong thing is easy here, because events
         // come from one table and points from another.
-        $figures = $response->viewData('season');
+        $figures = $response->viewData('page')['props']['season'];
 
-        $this->assertSame(4, $figures['events']);
-        $this->assertSame(645, $figures['points']);
-        $this->assertSame(2, $figures['first']);
-        $this->assertSame(0, $figures['second']);
-        $this->assertSame(1, $figures['third']);
-        $this->assertSame(0, $figures['venuePoints']);
+        $this->assertSame('4', $figures['events_label']);
+        $this->assertSame('645', $figures['points_label']);
+        $this->assertSame('2', $figures['first']);
+        $this->assertSame('0', $figures['second']);
+        $this->assertSame('1', $figures['third']);
+        $this->assertSame('0', $figures['venue_points_label']);
 
         // Only ranked player in the season, so first by default -- but ranked
-        // at all is the point: a null here means the denominator was lost.
-        $this->assertSame(1, $figures['rank']);
-        $this->assertSame(161.25, $figures['perEvent']);
+        // at all is the point: a dash here means the denominator was lost.
+        $this->assertSame('#1', $figures['rank_label']);
 
-        // viewData above proves the CONTROLLER computes the right figures. It
-        // would still pass if a rewrite deleted the panel entirely, so it does
-        // not, on its own, protect displayed content.
-        //
-        // These close that gap. Tag-stripping removes the noise that made a
-        // bare assertSee('4') useless, and pairing each figure with its own
-        // label makes the match unique.
-        //
-        // If a later phase renames one of these labels, this assertion fails.
-        // That is intended: a label is user-facing copy, and changing it should
-        // be a deliberate decision recorded here, not a silent side effect of
-        // restyling.
-        $text = preg_replace('/\s+/', ' ', strip_tags($response->getContent()));
+        // 645 over 4 is 161.25, said to one decimal because that is what the
+        // panel shows -- the arithmetic is still being checked, in the form
+        // the reader actually gets.
+        $this->assertSame('161.3 pts per event', $figures['per_event_label']);
 
-        $this->assertStringContainsString('Season Points 645', $text);
-        $this->assertStringContainsString('Events Played 4', $text);
-        $this->assertStringContainsString('Venue Points 0', $text);
+        // The props above prove the CONTROLLER computes the right figures.
+        // That would still pass if a rewrite deleted the panel entirely, so it
+        // does not, on its own, protect displayed content.
+        //
+        // The panel is Vue, so the pairing of a label with its figure is in
+        // the component rather than in the response. Each label is checked
+        // against the prop rendered beside it: rename a label, or draw the
+        // wrong figure under it, and this fails.
+        //
+        // A renamed label failing here is intended. It is user-facing copy,
+        // and changing it should be a deliberate decision recorded in a test
+        // rather than a silent side effect of restyling.
+        $panel = (string) file_get_contents(resource_path('js/Components/SeasonPanel.vue'));
+
+        foreach ([
+            'Events Played' => 'events_label',
+            'Season Points' => 'points_label',
+            'Venue Points' => 'venue_points_label',
+        ] as $label => $key) {
+            $this->assertMatchesRegularExpression(
+                '/'.preg_quote($label, '/').'.{0,200}'.preg_quote($key, '/').'/s',
+                $panel,
+                "The panel does not draw {$key} under \"{$label}\"."
+            );
+        }
 
         // The rank, and the division it is made of -- the reason the panel
         // shows a ratio rather than a bare number.
-        $this->assertStringContainsString('#1', $text);
-        $this->assertStringContainsString('161.3 pts per event', $text);
-        $this->assertStringContainsString('645 pts over 4 events', $text);
+        $this->assertSame('645 pts over 4 events', $figures['totals_label']);
+        $this->assertSame('of 1 ranked player', $figures['ranked_label']);
     }
 
     // -----------------------------------------------------------------
@@ -630,47 +641,44 @@ class ContentPreservationTest extends TestCase
             'event_date' => now()->subWeeks(3),
         ]);
 
-        $response = $this->actingAs($admin)->get('/poker/venues/'.$venue->id);
-        $response->assertOk();
+        $props = $this->actingAs($admin)->get('/poker/venues/'.$venue->id)
+            ->assertOk()->viewData('page')['props'];
 
-        $response->assertSee('The Ironclad Room');
-        $response->assertSee('1820 Scarth St, Regina SK');
+        $this->assertSame('The Ironclad Room', $props['venue']['name']);
+        $this->assertSame('1820 Scarth St, Regina SK', $props['venue']['address']);
 
-        // Both leaderboard players, and their totals: 40 + 35 = 75 beats 50.
-        $response->assertSee('Perpetua Souza');
-        $response->assertSee('Baltazar Whitlock');
-        $response->assertSee('75');
-
-        // Ordering is the point of the leaderboard, so assert it rather than
-        // just membership.
-        $text = preg_replace('/\s+/', ' ', strip_tags($response->getContent()));
-        $this->assertLessThan(
-            strpos($text, 'Baltazar Whitlock'),
-            strpos($text, 'Perpetua Souza'),
-            'The venue leaderboard must order by total points, highest first.'
+        // Both leaderboard players, in order, with their totals: 40 + 35 = 75
+        // beats 50. Ordering is the point of a leaderboard, and comparing the
+        // list directly says it better than two strpos calls over stripped
+        // text -- which is how the old version had to ask.
+        $this->assertSame(
+            [['Perpetua Souza', '75'], ['Baltazar Whitlock', '50']],
+            collect($props['leaderboard'])->map(fn (array $row) => [$row['player_name'], $row['total_label']])->all()
         );
 
         // The total across the top: 125 venue points awarded here. The
         // tournament-points total that used to sit beside it was a league
         // figure rather than a venue one, and went with its tile.
-        $response->assertSee('125');
+        $this->assertSame('125', $props['venue_points_label']);
+        $this->assertSame('2', $props['tournaments_label']);
 
-        // Both tiles, by label. Matched as stat markup, because "Tournaments"
-        // on its own also appears in the Recent Tournaments heading.
-        //
-        // Two, not four: Point Earners and Tournament pts were removed by
-        // request. The leaderboard below IS the point earners, named and
+        // Two figures, not four: Point Earners and Tournament pts were removed
+        // by request. The leaderboard below IS the point earners, named and
         // counted, and tournament points were a league total that said nothing
         // about this venue.
-        foreach (['Tournaments', 'Venue points'] as $label) {
-            $response->assertSee('<span class="stat__label">'.$label.'</span>', false);
-        }
+        $page = (string) file_get_contents(resource_path('js/Pages/Poker/Venues/Show.vue'));
 
-        $response->assertDontSee('<span class="stat__label">Point Earners</span>', false);
-        $response->assertDontSee('<span class="stat__label">Tournament pts</span>', false);
+        $this->assertSame(2, substr_count($page, '<Stat label='),
+            'The venue draws a different number of figures than the two it should.');
+        $this->assertStringContainsString('<Stat label="Tournaments"', $page);
+        $this->assertStringContainsString('<Stat label="Venue points"', $page);
+        $this->assertStringNotContainsString('Point Earners', $page);
+        $this->assertStringNotContainsString('Tournament pts', $page);
 
-        // The side panel lists the tournaments held here.
-        $response->assertSee('Ironclad Opener');
-        $response->assertSee('Ironclad Closer');
+        // The side panel lists the tournaments held here, newest first.
+        $this->assertSame(
+            ['Ironclad Opener', 'Ironclad Closer'],
+            collect($props['tournaments'])->pluck('name')->all()
+        );
     }
 }

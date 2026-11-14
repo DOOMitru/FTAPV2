@@ -80,22 +80,29 @@ class EmphasisTest extends TestCase
             'end_date' => now()->addMonth(),
         ]);
 
-        $html = $this->actingAs($this->admin())
-            ->get(route('seasons.show', PokerSeason::firstOrFail()))->assertOk()->getContent();
+        // Still text with markers round it, in the prop the dialog is given:
+        // the bolding happens in the browser, out of text nodes, which is what
+        // keeps a season called '<script>' a season called '<script>'.
+        $confirm = $this->actingAs($this->admin())
+            ->get(route('seasons.show', PokerSeason::firstOrFail()))->assertOk()
+            ->viewData('page')['props']['season']['delete_confirm'];
 
-        // In the attribute it is still text with markers round it: confirm.ts
-        // does the bolding in the browser, out of text nodes.
-        $this->assertStringContainsString(EMPH.'Autumn 2026'.EMPH, $html);
+        $this->assertStringContainsString(EMPH.'Autumn 2026'.EMPH, $confirm);
     }
 
     public function test_a_venue_name_is_bolded_in_its_delete_confirmation(): void
     {
         Venue::create(['name' => 'Ace of Spades Lounge', 'address' => '1 Card Street']);
 
-        $html = $this->actingAs($this->admin())
-            ->get(route('poker.venues.show', Venue::firstOrFail()))->assertOk()->getContent();
+        // The marked sentence is a prop now. It still reaches the browser as
+        // a VALUE carrying markers rather than as markup -- which is the whole
+        // reason the markers exist, since a venue called '<img onerror=...>'
+        // would otherwise be markup by the time it reached the dialog.
+        $confirm = $this->actingAs($this->admin())
+            ->get(route('poker.venues.show', Venue::firstOrFail()))->assertOk()
+            ->viewData('page')['props']['venue']['delete_confirm'];
 
-        $this->assertStringContainsString(EMPH.'Ace of Spades Lounge'.EMPH, $html);
+        $this->assertStringContainsString(EMPH.'Ace of Spades Lounge'.EMPH, $confirm);
     }
 
     public function test_a_player_name_is_bolded_in_a_flash_message(): void
@@ -112,10 +119,18 @@ class EmphasisTest extends TestCase
 
         $this->assertStringContainsString(EMPH.'Ada Lovelace'.EMPH, (string) session('status'));
 
-        $this->assertStringContainsString(
-            '<strong class="emph">Ada Lovelace</strong>',
-            $this->followRedirects($response)->getContent()
-        );
+        // The markers reach the page as DATA and are turned into <strong> in
+        // the browser, so the rendered bold cannot be read off the response.
+        // Both halves are still checked: the flash arrives marked, and <Emph>
+        // is what renders a marked run -- the same rule confirm.ts applies for
+        // the Blade half, from the same definition in emph.ts.
+        $flash = $this->followRedirects($response)->viewData('page')['props']['flash']['status'];
+
+        $this->assertStringContainsString(EMPH.'Ada Lovelace'.EMPH, (string) $flash);
+
+        $emph = file_get_contents(resource_path('js/Components/Emph.vue'));
+
+        $this->assertStringContainsString('<strong v-if="part.marked" class="emph">', $emph);
     }
 
     public function test_a_name_with_markup_in_it_survives_a_real_flash_message(): void
@@ -126,14 +141,49 @@ class EmphasisTest extends TestCase
             'first_name' => '<b>Ada', 'last_name' => 'Lovelace</b>', 'approval_status' => 'pending',
         ]);
 
-        $html = $this->followRedirects(
+        $response = $this->followRedirects(
             $this->actingAs($this->admin())
                 ->from(route('users.index'))
                 ->patch(route('users.approve', $player))
-        )->getContent();
+        );
 
-        $this->assertStringContainsString('&lt;b&gt;Ada Lovelace&lt;/b&gt;', $html);
-        $this->assertStringNotContainsString('<b>Ada', $html);
+        $html = $response->getContent();
+
+        // The name stays DATA. It travels in the props as the string it is --
+        // angle brackets and all -- and reaches the document escaped, so
+        // nothing it contains becomes an element.
+        //
+        // Not asserted as a literal byte sequence: Inertia serialises the props
+        // as JSON, which escapes the closing tag's slash, so the page carries
+        // `&lt;\/b&gt;` rather than `&lt;/b&gt;`. Checking for the escaped
+        // opening tag and the absence of the raw one says the same thing
+        // without depending on JSON's escaping rules.
+        $flash = $response->viewData('page')['props']['flash']['status'];
+
+        $this->assertStringContainsString('<b>Ada Lovelace</b>', (string) $flash,
+            'The name must survive as data, exactly as it was typed.');
+
+        // The security claim, stated as the thing that must NOT happen. The
+        // positive form -- looking for the escaped bytes -- depends on how
+        // Inertia serialises its payload, which is its business and not this
+        // rule's.
+        $this->assertStringNotContainsString('<b>Ada', $html,
+            'The name reached the document as markup rather than as text.');
+
+        // And Vue interpolates rather than parsing: <Emph> renders text nodes,
+        // never v-html, which is the guarantee this test exists for.
+        //
+        // Comments stripped first. The component EXPLAINS that it never uses
+        // v-html, so the words are in the file while the directive is not --
+        // the third assertion in this conversion to trip on prose describing
+        // the very thing it forbids.
+        $emph = (string) preg_replace(
+            ['/<!--.*?-->/s', '/\/\*.*?\*\//s'],
+            ' ',
+            (string) file_get_contents(resource_path('js/Components/Emph.vue'))
+        );
+
+        $this->assertStringNotContainsString('v-html', $emph);
     }
 
     public function test_no_marker_reaches_a_reader_unrendered(): void

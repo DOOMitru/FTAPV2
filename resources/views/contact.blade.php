@@ -27,10 +27,6 @@
                 </div>
             </div>
 
-            @if (session('status'))
-                <x-alert variant="success">{{ session('status') }}</x-alert>
-            @endif
-
             <form action="{{ route('contact.store') }}" method="POST" class="l-stack">
                 @csrf
                 <x-honeypot />

@@ -160,9 +160,17 @@ class TournamentScheduleTest extends TestCase
         $soon = $this->makeTournament(startTime: now()->addHour());
         $started = $this->makeTournament(startTime: now()->subHours(2));
 
-        $this->actingAs($user)->get(route('dashboard'))->assertOk()
-            ->assertViewHas('upcomingTournaments', fn ($tournaments) => $tournaments->contains('id', $soon->id)
-                && ! $tournaments->contains('id', $started->id));
+        // The ids the page is sent. The dashboard is Vue, so the collection
+        // the view was handed is a prop, and each row is a set of labels
+        // rather than a model -- but the question is the same one: is this
+        // tournament inside the window.
+        $ids = collect(
+            $this->actingAs($user)->get(route('dashboard'))->assertOk()
+                ->viewData('page')['props']['upcoming']
+        )->pluck('id')->all();
+
+        $this->assertContains($soon->id, $ids);
+        $this->assertNotContains($started->id, $ids);
     }
 
     private function enter(PokerTournament $tournament, User $player): void

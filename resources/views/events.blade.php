@@ -5,14 +5,6 @@
         {{ __('Every league night, in one place. Each card carries its venue, its start time, and the deadline to register.') }}
     </x-p-hero>
 
-    @if (session('status'))
-        <x-alert variant="success">{{ session('status') }}</x-alert>
-    @endif
-
-    @if (session('error'))
-        <x-alert variant="danger">{{ session('error') }}</x-alert>
-    @endif
-
     <div class="l-stack">
         @forelse ($upcomingTournaments as $tournament)
             <x-p-event :tournament="$tournament" />

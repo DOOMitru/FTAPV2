@@ -74,9 +74,39 @@ class DeleteConfirmationTest extends TestCase
         // Emphasis markers stripped: this file is about what the sentences
         // SAY, and the markers are invisible, so a mismatch would print two
         // identical-looking strings.
-        $html = $this->withoutEmphasis(
-            $this->actingAs($this->admin())->get($url)->assertOk()->getContent()
-        );
+        $response = $this->actingAs($this->admin())->get($url)->assertOk();
+
+        /*
+         * Two places to look, because the conversion is incremental.
+         *
+         * A Blade page carries its sentences in data-confirm attributes, where
+         * confirm.ts reads them. A converted page carries them as props named
+         * *_confirm, which the Vue side hands to the dialog. Same sentences,
+         * asked the same way of the reader; only the carrier differs.
+         */
+        // Detected from the response, not with viewData('page'): that helper
+        // ASSERTS the key exists, so asking a Blade page whether it is an
+        // Inertia one fails the test rather than answering it.
+        if (str_contains((string) $response->getContent(), 'data-page=')) {
+            $page = $response->viewData('page');
+
+            $confirmations = [];
+
+            array_walk_recursive(
+                $page['props'],
+                function ($value, $key) use (&$confirmations) {
+                    if (is_string($value) && str_ends_with((string) $key, '_confirm')) {
+                        $confirmations[] = $this->withoutEmphasis($value);
+                    }
+                }
+            );
+
+            $this->assertNotEmpty($confirmations, "No confirmation prop on {$url}.");
+
+            return $confirmations;
+        }
+
+        $html = $this->withoutEmphasis($response->getContent());
 
         $dom = new \DOMDocument();
         @$dom->loadHTML('<?xml encoding="UTF-8">'.$html);

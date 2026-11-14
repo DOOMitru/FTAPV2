@@ -214,12 +214,13 @@ class EliminatePlayerTest extends TestCase
         $tournament = $this->tournament(startsIn: '+2 days');
         $this->field($tournament, 3);
 
-        $this->actingAs($this->admin())->get(route('tournaments.show', $tournament))->assertOk()
-            ->assertSee('>Eliminate<', false);
+        $offered = fn (User $viewer) => collect(
+            $this->actingAs($viewer)->get(route('tournaments.show', $tournament))->assertOk()
+                ->viewData('page')['props']['standings']
+        )->contains('can_eliminate', true);
 
-        $this->actingAs(User::factory()->create(['is_admin' => false]))
-            ->get(route('tournaments.show', $tournament))->assertOk()
-            ->assertDontSee('>Eliminate<', false);
+        $this->assertTrue($offered($this->admin()));
+        $this->assertFalse($offered(User::factory()->create(['is_admin' => false])));
     }
 
     public function test_an_eliminated_row_shows_its_finish_instead_of_the_button(): void

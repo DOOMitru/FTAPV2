@@ -95,38 +95,56 @@ class SeasonStandingsVenueColumnTest extends TestCase
      * that searched the whole document would pass while the column it means to
      * check was still there.
      */
-    private function standingsFor(User $viewer, PokerSeason $season): string
+    /**
+     * What the standings are sent for one viewer.
+     *
+     * The docblock above explains why the old version cut the table out of the
+     * page before searching it: "Venue points" is also a tile label on the
+     * venue pages and a threshold in the finale panel above this table, so a
+     * page-wide search would pass while the column it means to check was still
+     * there. There is nothing to cut now -- the column is a flag, and the
+     * figure is a field that is either present or absent.
+     *
+     * @return array{shows: bool, rows: array<int, array<string, mixed>>}
+     */
+    private function standingsFor(User $viewer, PokerSeason $season): array
     {
-        $html = $this->actingAs($viewer)
-            ->get(route('seasons.show', $season))->assertOk()->getContent();
+        $props = $this->actingAs($viewer)
+            ->get(route('seasons.show', $season))->assertOk()
+            ->viewData('page')['props'];
 
-        $start = strpos($html, 'season-show__standings');
-        $this->assertNotFalse($start, 'The standings table should be on the page.');
+        return ['shows' => $props['shows_venue_points'], 'rows' => $props['standings']];
+    }
 
-        $end = strpos($html, '</table>', $start);
-        $this->assertNotFalse($end);
-
-        return substr($html, $start, $end - $start);
+    /** The page's own markup, for the questions that are about the template. */
+    private function page(): string
+    {
+        return (string) file_get_contents(resource_path('js/Pages/Poker/Seasons/Show.vue'));
     }
 
     public function test_an_admin_reads_the_column(): void
     {
         [$season] = $this->seasonWithAFinisher();
 
-        $table = $this->standingsFor($this->player('Boss', ['is_admin' => true]), $season);
+        $seen = $this->standingsFor($this->player('Boss', ['is_admin' => true]), $season);
 
-        $this->assertStringContainsString('>Venue points</th>', $table);
-        $this->assertStringContainsString('season-show__stat--venue', $table);
-        $this->assertStringContainsString((string) self::VENUE_TALLY, $table);
+        $this->assertTrue($seen['shows']);
+        $this->assertSame((string) self::VENUE_TALLY, $seen['rows'][0]['venue_points_label']);
+
+        // The column, the cell and the phone label are all drawn from the one
+        // flag, so none of the three can be left behind when it is false.
+        $page = $this->page();
+
+        $this->assertSame(2, substr_count($page, 'v-if="shows_venue_points"'));
+        $this->assertStringContainsString('season-show__stat--venue', $page);
+        $this->assertStringContainsString('data-label="venue points"', $page);
     }
 
     public function test_a_player_does_not_read_the_header(): void
     {
         [$season, $finisher] = $this->seasonWithAFinisher();
 
-        $this->assertStringNotContainsString(
-            '>Venue points</th>', $this->standingsFor($finisher, $season)
-        );
+        $this->assertFalse($this->standingsFor($finisher, $season)['shows']);
     }
 
     public function test_a_player_does_not_read_the_figures(): void
@@ -135,21 +153,58 @@ class SeasonStandingsVenueColumnTest extends TestCase
         // leave a column of unlabelled numbers rather than no column at all.
         [$season, $finisher] = $this->seasonWithAFinisher();
 
-        $table = $this->standingsFor($finisher, $season);
+        // A second finisher, because the viewer reads their OWN tally by the
+        // rule -- what they must not read is somebody else's. The fixture's
+        // one row is the viewer's, so on its own it can only prove the column
+        // is undrawn, which is the assertion above.
+        $other = $this->player('Someone');
+        $night = PokerTournament::create([
+            'name' => 'Second Night', 'start_time' => now()->subDays(2),
+            'venue_id' => Venue::firstOrFail()->id, 'season_id' => $season->id,
+        ]);
 
-        $this->assertStringNotContainsString('season-show__stat--venue', $table);
-        $this->assertStringNotContainsString((string) self::VENUE_TALLY, $table);
+        PokerTournamentRegistrant::create([
+            'tournament_id' => $night->id, 'user_id' => $other->id,
+            'player_name' => 'Someone Player', 'registered_at' => now(),
+        ]);
+        PokerTournamentResult::create([
+            'tournament_id' => $night->id, 'user_id' => $other->id,
+            'player_name' => 'Someone Player', 'place' => 1, 'points' => 400,
+        ]);
+        VenuePoints::create([
+            'user_id' => $other->id, 'user_name' => 'Someone',
+            'venue_id' => Venue::firstOrFail()->id, 'amount' => self::VENUE_TALLY,
+            'event_date' => now()->subDays(2)->toDateString(), 'season_id' => $season->id,
+        ]);
+
+        $seen = $this->standingsFor($finisher, $season);
+
+        // No column for a player either way, and the other player's figure is
+        // absent from the DATA rather than merely undrawn -- it never reaches
+        // the browser, so no future column, dump or partial can show it.
+        $this->assertFalse($seen['shows']);
+
+        $theirs = collect($seen['rows'])->firstWhere('shown_name', 'Someone Player');
+
+        $this->assertNotNull($theirs);
+        $this->assertNull($theirs['venue_points_label'],
+            "Another player's tally reached the page.");
     }
 
     public function test_a_player_does_not_read_the_phone_label_either(): void
     {
         // On a phone the column header is clipped and ::after draws the label
         // from data-label instead. Gating only the <th> would hide the column
-        // on a desktop and leave it in place on the device most players use.
+        // on a desktop and leave it in place on the device most players use --
+        // so both are inside the same v-if, which the admin test counts.
         [$season, $finisher] = $this->seasonWithAFinisher();
 
-        $this->assertStringNotContainsString(
-            'data-label="venue points"', $this->standingsFor($finisher, $season)
+        $this->assertFalse($this->standingsFor($finisher, $season)['shows']);
+
+        $this->assertMatchesRegularExpression(
+            '/<td v-if="shows_venue_points"[^>]*data-label="venue points"/s',
+            preg_replace('/\s+/', ' ', $this->page()),
+            'The phone label is drawn outside the flag that hides the column.'
         );
     }
 
@@ -159,8 +214,11 @@ class SeasonStandingsVenueColumnTest extends TestCase
         // grid on a phone still has something to place in every area it names.
         [$season, $finisher] = $this->seasonWithAFinisher();
 
-        $table = $this->standingsFor($finisher, $season);
+        $seen = $this->standingsFor($finisher, $season);
+        $page = $this->page();
 
+        // Every other cell is unconditional in the template, so a player loses
+        // exactly the one column.
         foreach ([
             'season-show__rank',
             'season-show__player',
@@ -169,11 +227,13 @@ class SeasonStandingsVenueColumnTest extends TestCase
             'season-show__stat--won',
             'season-show__finale',
         ] as $hook) {
-            $this->assertStringContainsString($hook, $table, "A player lost {$hook}.");
+            $this->assertStringContainsString($hook, $page, "The table lost {$hook}.");
         }
 
-        foreach (['Rank', 'Player', 'Points', 'Played', 'Wins', 'Finale'] as $header) {
-            $this->assertStringContainsString('>'.$header.'</th>', $table);
+        // And the row still carries every other figure.
+        foreach (['rank', 'shown_name', 'meter_value_label', 'played_label', 'wins_label', 'finale_state'] as $field) {
+            $this->assertArrayHasKey($field, $seen['rows'][0]);
+            $this->assertNotNull($seen['rows'][0][$field], "A player lost {$field}.");
         }
     }
 
@@ -183,10 +243,23 @@ class SeasonStandingsVenueColumnTest extends TestCase
 
         $admin = $this->player('Boss', ['is_admin' => true]);
 
+        // Read as a THIRD party, so the row under comparison is nobody's own:
+        // a player reads their own tally by the rule, and the difference this
+        // test is about is the one the column makes.
+        $bystander = $this->player('Bystander');
+
+        $adminRow = $this->standingsFor($admin, $season)['rows'][0];
+        $playerRow = $this->standingsFor($bystander, $season)['rows'][0];
+
+        // One field differs, and it is the tally. Everything else a player is
+        // sent is what an administrator is sent.
         $this->assertSame(
-            preg_match_all('/<th\b/', $this->standingsFor($admin, $season)) - 1,
-            preg_match_all('/<th\b/', $this->standingsFor($finisher, $season)),
-            'A player should see the admin table minus one column, no more and no less.'
+            ['venue_points_label'],
+            array_keys(array_diff_assoc(
+                array_map(fn ($v) => is_scalar($v) || $v === null ? $v : json_encode($v), $adminRow),
+                array_map(fn ($v) => is_scalar($v) || $v === null ? $v : json_encode($v), $playerRow)
+            )),
+            'A player should see the admin row minus one figure, no more and no less.'
         );
     }
 
@@ -203,9 +276,14 @@ class SeasonStandingsVenueColumnTest extends TestCase
             'finale_venue_points_required' => 50,
         ])->save();
 
-        $table = $this->standingsFor($finisher, $season);
+        $seen = $this->standingsFor($finisher, $season);
 
-        $this->assertStringContainsString('season-show__qualified', $table);
-        $this->assertStringNotContainsString((string) self::VENUE_TALLY, $table);
+        // The verdict is derived from venue points and is still public: the
+        // thresholds are printed above the table for everyone, so it is not a
+        // leak -- and withholding it would empty a column for no stated reason.
+        $this->assertSame('qualified', $seen['rows'][0]['finale_state']);
+
+        // And the column itself is still not drawn for a player.
+        $this->assertFalse($seen['shows']);
     }
 }

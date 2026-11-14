@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\PointsStructure;
+use App\Models\PokerTournament;
 use App\Models\PokerTournamentResult;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -33,12 +34,36 @@ class MergedStandingsPanelTest extends TestCase
         ]);
     }
 
-    private function panel(string $html): string
+    /**
+     * The one list of players the page is sent.
+     *
+     * The old version cut the card out of the rendered document, and its own
+     * comment says why that was awkward: the register dialog carries every
+     * approved player in its payload, so a page-wide search finds names that
+     * are data rather than rows. The standings are their own prop now, and the
+     * dialog's candidates are another.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    private function rowsOn(PokerTournament $tournament, ?User $viewer = null): array
     {
-        $at = strpos($html, 'tshow__players');
-        $this->assertNotFalse($at, 'The standings card is not on the page.');
+        return $this->actingAs($viewer ?? $this->admin())
+            ->get(route('tournaments.show', $tournament->fresh()))->assertOk()
+            ->viewData('page')['props']['standings'];
+    }
 
-        return substr($html, $at, (int) (strpos($html, 'Admin: Register', $at) ?: strlen($html)) - $at);
+    /** Everything the page is sent. @return array<string, mixed> */
+    private function propsOn(PokerTournament $tournament, ?User $viewer = null): array
+    {
+        return $this->actingAs($viewer ?? $this->admin())
+            ->get(route('tournaments.show', $tournament->fresh()))->assertOk()
+            ->viewData('page')['props'];
+    }
+
+    /** The page's own markup. */
+    private function page(): string
+    {
+        return (string) file_get_contents(resource_path('js/Pages/Poker/Tournaments/Show.vue'));
     }
 
     public function test_there_is_only_one_list_of_players(): void
@@ -51,23 +76,15 @@ class MergedStandingsPanelTest extends TestCase
         $this->enter($tournament, $player);
         $this->score($tournament, $player, 1, 100);
 
-        $html = $this->actingAs($this->admin())
-            ->get(route('tournaments.show', $tournament->fresh()))->assertOk()->getContent();
-
-        // Counted as ROWS, not as occurrences of the name in the document. The
-        // register dialog carries every approved player in its x-data payload,
-        // so a page-wide substring count says two and means nothing -- one of
-        // them is data in an attribute, not a list the reader sees.
-        // The title holds an <a> now -- the name links to that player's figures
-        // -- so the capture spans elements and the tags come off afterwards.
-        // [^<]+ matched bare text and silently found none.
-        preg_match_all('/<div class="entry__title">(.*?)<\/div>/s', $html, $matches);
-        $rows = array_filter(
-            array_map(fn ($cell) => trim(strip_tags($cell)), $matches[1]),
-            fn ($n) => $n === 'Wanda Reeve'
+        $named = array_filter(
+            $this->rowsOn($tournament),
+            fn (array $row) => $row['name'] === 'Wanda Reeve'
         );
 
-        $this->assertCount(1, $rows, 'The player is listed twice.');
+        $this->assertCount(1, $named, 'The player is listed twice.');
+
+        // And there is one list drawing them, not two.
+        $this->assertSame(1, substr_count($this->page(), 'v-for="row in standings"'));
     }
 
     public function test_a_finisher_keeps_the_medal_from_the_standings_table(): void
@@ -77,11 +94,16 @@ class MergedStandingsPanelTest extends TestCase
         $this->enter($tournament, $player);
         $this->score($tournament, $player, 1, 100);
 
-        $panel = $this->panel($this->actingAs($this->admin())
-            ->get(route('tournaments.show', $tournament->fresh()))->assertOk()->getContent());
+        $row = $this->rowsOn($tournament)[0];
 
-        $this->assertStringContainsString('rank--1', $panel, 'The gold medal did not survive the merge.');
-        $this->assertStringContainsString('100', $panel, 'The points did not survive the merge.');
+        $this->assertSame(1, $row['place'], 'The place did not survive the merge.');
+        $this->assertSame('100 pts', $row['points_label'], 'The points did not survive the merge.');
+
+        // The medal is Rank's, keyed on the place -- gold means here what it
+        // means in the standings.
+        $this->assertStringContainsString(
+            '<Rank v-if="row.place !== null" :place="row.place" />', $this->page()
+        );
     }
 
     public function test_a_player_still_in_keeps_the_monogram(): void
@@ -89,11 +111,14 @@ class MergedStandingsPanelTest extends TestCase
         $tournament = $this->tournament();
         $this->enter($tournament, $this->player('Wanda', 'Reeve'));
 
-        $panel = $this->panel($this->actingAs($this->admin())
-            ->get(route('tournaments.show', $tournament->fresh()))->assertOk()->getContent());
+        $row = $this->rowsOn($tournament)[0];
 
-        $this->assertStringContainsString('monogram', $panel);
-        $this->assertStringContainsString('>WR<', $panel);
+        $this->assertNull($row['place'], 'A player still in has no place yet.');
+        $this->assertSame('WR', $row['initials']);
+
+        $this->assertStringContainsString(
+            '<Monogram v-else :initials="row.initials" decorative />', $this->page()
+        );
     }
 
     public function test_the_place_is_stated_once(): void
@@ -111,11 +136,15 @@ class MergedStandingsPanelTest extends TestCase
 
         $this->score($tournament, $players[2], 3, 75);
 
-        $panel = $this->panel($this->actingAs($this->admin())
-            ->get(route('tournaments.show', $tournament->fresh()))->assertOk()->getContent());
+        $row = collect($this->rowsOn($tournament))->firstWhere('name', 'C Three');
 
-        $this->assertStringContainsString('rank--3', $panel);
-        $this->assertStringNotContainsString('3rd', $panel, 'The place is printed twice in one row.');
+        $this->assertSame(3, $row['place']);
+
+        // Points alone in the badge: the row's leading glyph IS the place, and
+        // an ordinal here would be the old two-panel redundancy moved inside
+        // one row.
+        $this->assertSame('75 pts', $row['points_label']);
+        $this->assertStringNotContainsString('3rd', (string) $row['points_label']);
     }
 
     public function test_eliminate_is_still_offered_for_a_player_still_in(): void
@@ -123,8 +152,7 @@ class MergedStandingsPanelTest extends TestCase
         $tournament = $this->tournament();
         $this->enter($tournament, $this->player('Wanda', 'Reeve'));
 
-        $this->actingAs($this->admin())->get(route('tournaments.show', $tournament->fresh()))
-            ->assertOk()->assertSee('Eliminate');
+        $this->assertTrue($this->rowsOn($tournament)[0]['can_eliminate']);
     }
 
     public function test_eliminate_is_not_offered_to_someone_already_out(): void
@@ -134,8 +162,7 @@ class MergedStandingsPanelTest extends TestCase
         $this->enter($tournament, $player);
         $this->score($tournament, $player, 1, 100);
 
-        $this->actingAs($this->admin())->get(route('tournaments.show', $tournament->fresh()))
-            ->assertOk()->assertDontSee('Eliminate');
+        $this->assertFalse($this->rowsOn($tournament)[0]['can_eliminate']);
     }
 
     public function test_remove_survives_and_is_now_gated_per_player(): void
@@ -150,25 +177,26 @@ class MergedStandingsPanelTest extends TestCase
 
         $admin = $this->admin();
 
-        $this->actingAs($admin)->get(route('tournaments.show', $tournament->fresh()))
-            ->assertOk()->assertSee('Remove from tournament');
+        $wandasRow = fn () => collect($this->rowsOn($tournament, $admin))
+            ->firstWhere('name', 'Wanda Reeve');
+
+        $this->assertTrue($wandasRow()['can_remove']);
 
         // Another player finishes. Wanda is still in, so her row keeps it.
         $other = $this->player('Other', 'Player');
         $this->enter($tournament, $other);
         $this->score($tournament, $other, 2, 85);
 
-        $this->actingAs($admin)->get(route('tournaments.show', $tournament->fresh()))
-            ->assertOk()
-            ->assertSee('Remove from tournament')
-            ->assertDontSee('entries locked');
+        $this->assertTrue($wandasRow()['can_remove']);
+        $this->assertNull($this->propsOn($tournament, $admin)['field_locked_note']);
 
         $tournament->forceFill(['published_at' => now()])->save();
 
-        $this->actingAs($admin)->get(route('tournaments.show', $tournament->fresh()))
-            ->assertOk()
-            ->assertDontSee('Remove from tournament')
-            ->assertSee('Results published · field locked', false);
+        $this->assertFalse($wandasRow()['can_remove']);
+        $this->assertSame(
+            'Results published · field locked',
+            $this->propsOn($tournament, $admin)['field_locked_note']
+        );
     }
 
     public function test_an_eliminated_row_is_offered_no_remove_control(): void
@@ -204,11 +232,14 @@ class MergedStandingsPanelTest extends TestCase
             'points' => 187,
         ]);
 
-        $panel = $this->panel($this->actingAs($this->admin())
-            ->get(route('tournaments.show', $tournament->fresh()))->assertOk()->getContent());
+        $row = collect($this->rowsOn($tournament))->firstWhere('name', 'Unregistered Fernandez');
 
-        $this->assertStringContainsString('Unregistered Fernandez', $panel);
-        $this->assertStringContainsString('187', $panel);
+        $this->assertNotNull($row, 'A finish with no registration was dropped from the list.');
+        $this->assertSame('187 pts', $row['points_label']);
+
+        // Its key comes from the result rather than the registrant it has
+        // none of -- a v-for with a missing key reorders rows silently.
+        $this->assertStringStartsWith('x', $row['key']);
     }
 
     public function test_an_unregistered_finish_is_offered_no_remove_control(): void
@@ -232,8 +263,7 @@ class MergedStandingsPanelTest extends TestCase
             'place' => 4, 'points' => 187,
         ]);
 
-        $this->actingAs($this->admin())->get(route('tournaments.show', $tournament->fresh()))
-            ->assertOk()->assertDontSee('Remove from tournament');
+        $this->assertFalse($this->rowsOn($tournament)[0]['can_remove']);
     }
 
     public function test_the_heading_follows_what_is_in_the_list(): void
@@ -268,10 +298,12 @@ class MergedStandingsPanelTest extends TestCase
         $player = $this->player('Wanda', 'Reeve');
         $this->enter($tournament, $player);
 
-        $this->actingAs($player)->get(route('tournaments.show', $tournament->fresh()))->assertOk()
-            ->assertSee('Wanda Reeve')
-            ->assertDontSee('Eliminate')
-            ->assertDontSee('Remove from tournament');
+        $props = $this->propsOn($tournament, $player);
+
+        $this->assertFalse($props['can_manage']);
+        $this->assertSame('Wanda Reeve', $props['standings'][0]['name']);
+        $this->assertFalse($props['standings'][0]['can_eliminate']);
+        $this->assertFalse($props['standings'][0]['can_remove']);
     }
 
     public function test_the_page_no_longer_prints_the_points_table(): void
@@ -330,12 +362,11 @@ class MergedStandingsPanelTest extends TestCase
         // "REGISTER PLAYERS" at every width.
         $tournament = $this->tournament();
 
-        $html = $this->actingAs($this->admin())
-            ->get(route('tournaments.show', $tournament))->assertOk()->getContent();
+        $this->actingAs($this->admin())->get(route('tournaments.show', $tournament))->assertOk();
 
         $this->assertStringContainsString(
             '<span class="tshow__register-label">Register players</span>',
-            $html
+            $this->page()
         );
     }
 
@@ -346,19 +377,17 @@ class MergedStandingsPanelTest extends TestCase
         // nobody.
         $tournament = $this->tournament();
 
-        $response = $this->actingAs($this->admin())
-            ->get(route('tournaments.show', $tournament))->assertOk();
+        // The props themselves. InertiaPropContractTest holds the page and its
+        // controller to the same list; this asks the narrower question the
+        // tiles left behind.
+        $props = $this->propsOn($tournament);
 
-        // The data array itself: viewData() asserts the key is there, which is
-        // the opposite of the question.
-        $data = $response->original->getData();
+        $this->assertArrayNotHasKey('totalPoints', $props);
+        $this->assertArrayNotHasKey('resultsCount', $props);
 
-        $this->assertArrayNotHasKey('totalPoints', $data);
-        $this->assertArrayNotHasKey('resultsCount', $data);
-
-        // And the keys the page still needs are still there, so this is not
-        // passing because the view stopped receiving anything.
-        $this->assertArrayHasKey('standings', $data);
-        $this->assertArrayHasKey('registrantsCount', $data);
+        // And the props the page still needs are still there, so this is not
+        // passing because the page stopped receiving anything.
+        $this->assertArrayHasKey('standings', $props);
+        $this->assertArrayHasKey('registrants_label', $props);
     }
 }

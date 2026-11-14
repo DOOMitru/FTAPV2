@@ -53,13 +53,15 @@ class TournamentsIndexOrderTest extends TestCase
     /** @return array<int, string> the names, in the order the page lists them */
     private function listed(): array
     {
-        // ->items(), not the paginator itself: collect() on a paginator does
-        // not hand back the records, and plucking from it returns a column of
-        // nulls that no assertion can tell from an empty page.
-        $paginator = $this->actingAs($this->admin())
-            ->get(route('poker.tournaments.index'))->assertOk()->viewData('tournaments');
+        // The page's props, not a paginator object. The old version reached
+        // for ->items() because collect() on a paginator hands back nothing
+        // and plucking from it returns a column of nulls that no assertion can
+        // tell from an empty page. Props have the rows already.
+        $props = $this->actingAs($this->admin())
+            ->get(route('poker.tournaments.index'))->assertOk()
+            ->viewData('page')['props'];
 
-        return collect($paginator->items())->pluck('name')->all();
+        return collect($props['tournaments']['data'])->pluck('name')->all();
     }
 
     public function test_the_newest_night_leads(): void
@@ -102,11 +104,12 @@ class TournamentsIndexOrderTest extends TestCase
         // than columning them.
         $this->night('Opening Night', now()->toDateTimeString());
 
-        $html = $this->actingAs($this->admin())
-            ->get(route('poker.tournaments.index'))->assertOk()->getContent();
+        // The markup lives in the .vue file now; the CSS half below is
+        // unchanged, because the stylesheet is not being rewritten.
+        $page = file_get_contents(resource_path('js/Pages/Poker/Tournaments/Index.vue'));
 
-        $this->assertStringContainsString('<th scope="col" class="table__num">Start Time</th>', $html);
-        $this->assertStringContainsString('class="table__num tournaments-index__start"', $html);
+        $this->assertStringContainsString('<th scope="col" class="table__num">Start Time</th>', $page);
+        $this->assertStringContainsString('class="table__num tournaments-index__start"', $page);
 
         $css = file_get_contents(resource_path('css/3-components/_table.css'));
 
@@ -131,12 +134,13 @@ class TournamentsIndexOrderTest extends TestCase
             $this->night("Night {$i}", now()->subDays($i)->toDateTimeString());
         }
 
-        $paginator = $this->actingAs($this->admin())
-            ->get(route('poker.tournaments.index'))->assertOk()->viewData('tournaments');
+        $props = $this->actingAs($this->admin())
+            ->get(route('poker.tournaments.index'))->assertOk()
+            ->viewData('page')['props'];
 
-        $this->assertSame(100, $paginator->perPage());
-        $this->assertCount(100, $paginator->items());
-        $this->assertFalse($paginator->hasMorePages(), 'A hundred nights should be one page.');
+        $this->assertCount(100, $props['tournaments']['data']);
+        $this->assertNull($props['tournaments']['status_label'],
+            'A hundred nights should be one page, and one page has no status line.');
     }
 
     public function test_it_still_pages_beyond_a_hundred(): void
@@ -147,10 +151,12 @@ class TournamentsIndexOrderTest extends TestCase
             $this->night("Night {$i}", now()->subDays($i)->toDateTimeString());
         }
 
-        $paginator = $this->actingAs($this->admin())
-            ->get(route('poker.tournaments.index'))->assertOk()->viewData('tournaments');
+        $props = $this->actingAs($this->admin())
+            ->get(route('poker.tournaments.index'))->assertOk()
+            ->viewData('page')['props'];
 
-        $this->assertCount(100, $paginator->items());
-        $this->assertTrue($paginator->hasMorePages());
+        $this->assertCount(100, $props['tournaments']['data']);
+        $this->assertNotNull($props['tournaments']['status_label'],
+            'Beyond a hundred the list pages, and a paged list carries its status line.');
     }
 }

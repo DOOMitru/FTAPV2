@@ -7,7 +7,8 @@ use App\Models\PointsStructure;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Number;
-use Illuminate\View\View;
+use Inertia\Inertia;
+use Inertia\Response;
 
 /**
  * The points structure, kept as a ladder from first place down.
@@ -32,24 +33,48 @@ class PointsStructureController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index(): View
+    public function index(): \Inertia\Response
     {
-        $structures = PointsStructure::orderBy('place')->paginate(10);
-
         // Only the deepest place may be removed, and it may not be on the page
-        // being looked at -- so the view is told which one it is rather than
-        // guessing from the rows in front of it.
+        // being looked at -- so the decision is made here rather than guessed
+        // from the rows in front of the reader.
         $lastPlace = PointsStructure::max('place');
 
-        return view('poker.points-structure.index', compact('structures', 'lastPlace'));
+        return \Inertia\Inertia::render('Poker/PointsStructure/Index', [
+            'structures' => \App\Support\Paginate::props(
+                PointsStructure::orderBy('place')->paginate(10),
+                fn (PointsStructure $structure) => [
+                    'id' => $structure->id,
+                    // The number, because <Rank> medals the top three from it.
+                    'place' => $structure->place,
+                    'points_label' => number_format($structure->points),
+
+                    // The ladder shrinks from the bottom, so offering Delete on
+                    // a middle row would be offering a control the controller
+                    // refuses.
+                    'can_delete' => $structure->place === $lastPlace,
+
+                    'delete_confirm' => __('Remove :place place, worth :points points?', [
+                        'place' => \Illuminate\Support\Number::ordinal($structure->place),
+                        'points' => number_format($structure->points),
+                    ]),
+                ]
+            ),
+        ]);
     }
 
     /**
      * Show the form for creating a new resource.
      */
-    public function create(): View
+    public function create(): Response
     {
-        return view('poker.points-structure.create', ['nextPlace' => $this->nextPlace()]);
+        // The ordinal, not the number. Which suffix "3" takes is a language
+        // question, and Number::ordinal() is where this app answers it
+        // (spec 5a) -- the same call the flash message and the delete
+        // confirmation make.
+        return Inertia::render('Poker/PointsStructure/Create', [
+            'next_place_label' => Number::ordinal($this->nextPlace()),
+        ]);
     }
 
     /**
@@ -81,9 +106,15 @@ class PointsStructureController extends Controller
     /**
      * Show the form for editing the specified resource.
      */
-    public function edit(PointsStructure $points_structure): View
+    public function edit(PointsStructure $points_structure): Response
     {
-        return view('poker.points-structure.edit', compact('points_structure'));
+        return Inertia::render('Poker/PointsStructure/Edit', [
+            'structure' => [
+                'id' => $points_structure->id,
+                'place_label' => Number::ordinal($points_structure->place),
+                'points' => $points_structure->points,
+            ],
+        ]);
     }
 
     /**

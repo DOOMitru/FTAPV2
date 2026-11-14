@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use Symfony\Component\Finder\Finder;
+use Tests\Concerns\ScansTemplates;
 use Tests\TestCase;
 
 /**
@@ -26,17 +27,21 @@ use Tests\TestCase;
  */
 class DialogDisplayGuardTest extends TestCase
 {
-    /** Every class used on a <dialog> anywhere in the views. */
+    use ScansTemplates;
+
+    /** Every class used on a <dialog> anywhere in the templates. */
     private function dialogClasses(): array
     {
         $classes = [];
 
-        foreach (Finder::create()->files()->in(resource_path('views'))->name('*.blade.php') as $file) {
-            preg_match_all('/<dialog\b[^>]*\bclass="([^"]+)"/', $file->getContents(), $matches);
+        foreach ($this->templates() as $source) {
+            preg_match_all('/<dialog\b[^>]*\bclass="([^"]+)"/', $source, $matches);
 
             foreach ($matches[1] as $attribute) {
                 foreach (preg_split('/\s+/', $attribute, -1, PREG_SPLIT_NO_EMPTY) as $class) {
                     // Blade expressions inside the attribute are not classes.
+                    // A Vue :class binding is skipped earlier, by the pattern
+                    // asking for a literal class attribute.
                     if (! str_contains($class, '{')) {
                         $classes[$class] = true;
                     }
@@ -53,7 +58,7 @@ class DialogDisplayGuardTest extends TestCase
         // how a guard quietly stops guarding.
         $classes = $this->dialogClasses();
 
-        $this->assertNotEmpty($classes, 'No <dialog> found in any view.');
+        $this->assertNotEmpty($classes, 'No <dialog> found in any template.');
         $this->assertContains('register', $classes);
         $this->assertContains('confirm', $classes);
     }

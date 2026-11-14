@@ -66,15 +66,31 @@ class DashboardPanelsTest extends TestCase
             'is_current' => true,
         ]);
 
-        $this->actingAs(User::factory()->create(['is_admin' => false, 'approval_status' => 'approved']))
-            ->get(route('dashboard'))->assertOk()
-            ->assertDontSee('Active Season')
-            // The season IS the heading. "Current Season" was true of every
-            // season and so told you nothing about this one, and the name it
-            // displaced sat in a badge in the far corner.
-            ->assertDontSee('Current Season')
-            ->assertSee('Season 9')
-            ->assertSee('Full Season Stats');
+        $props = $this->actingAs(User::factory()->create(['is_admin' => false, 'approval_status' => 'approved']))
+            ->get(route('dashboard'))->assertOk()->viewData('page')['props'];
+
+        // The season IS the heading. "Current Season" is the wording for
+        // having none, and the name it displaced sat in a badge in the far
+        // corner.
+        $this->assertSame('Season 9', $props['season_name']);
+        $this->assertNotNull($props['season_href'], 'The link to the full stats went with the card.');
+
+        // Comments stripped first. This page explains what it replaced, and
+        // naming the old card in prose is not drawing it -- the same reason
+        // ComponentParityTest and UnusedCssClassTest strip them, and the fifth
+        // assertion in this suite to have been caught by its own explanation.
+        $withoutComments = fn (string $path) => (string) preg_replace(
+            ['/<!--.*?-->/s', '#/\*.*?\*/#s'],
+            ' ',
+            (string) file_get_contents(resource_path($path))
+        );
+
+        $page = $withoutComments('js/Pages/Dashboard.vue');
+        $panel = $withoutComments('js/Components/SeasonPanel.vue');
+
+        $this->assertStringNotContainsString('Active Season', $page);
+        $this->assertStringNotContainsString('Active Season', $panel);
+        $this->assertStringContainsString('Full Season Stats', $panel);
     }
 
     public function test_the_dashboard_renders_with_no_points_structure_at_all(): void

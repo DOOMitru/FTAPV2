@@ -54,14 +54,41 @@ class UpcomingEventsCardTest extends TestCase
         }
     }
 
-    private function card(User $as): string
+    /**
+     * The names the card is sent, in the order it is sent them.
+     *
+     * The card is Vue: which rows it draws is the `upcoming` prop, and the
+     * order is the order of that array. The old version cut the rendered HTML
+     * between two card titles and searched it -- the cut is unnecessary now
+     * because the rows are their own prop.
+     *
+     * @return list<string>
+     */
+    private function names(User $as): array
     {
-        $html = $this->actingAs($as)->get(route('dashboard'))->assertOk()->getContent();
+        return collect($this->props($as)['upcoming'])->pluck('name')->all();
+    }
 
-        $at = strpos($html, 'Upcoming Tournaments');
+    /**
+     * Everything the dashboard is sent.
+     *
+     * @return array<string, mixed>
+     */
+    private function props(User $as): array
+    {
+        return $this->actingAs($as)->get(route('dashboard'))->assertOk()
+            ->viewData('page')['props'];
+    }
+
+    /** The card's markup, cut from the page at its own title. */
+    private function card(): string
+    {
+        $page = (string) file_get_contents(resource_path('js/Pages/Dashboard.vue'));
+
+        $at = strpos($page, 'title="Upcoming Tournaments"');
         $this->assertNotFalse($at, 'The upcoming card is not on the dashboard.');
 
-        return substr($html, $at, (int) (strpos($html, 'Recent Results', $at) ?: strlen($html)) - $at);
+        return substr($page, $at, (int) (strpos($page, 'title="Recent Results"', $at) ?: strlen($page)) - $at);
     }
 
     public function test_only_the_next_five_are_drawn(): void
@@ -70,15 +97,9 @@ class UpcomingEventsCardTest extends TestCase
         // assertDontSee means what it says.
         $this->schedule(9);
 
-        $card = $this->card($this->player());
+        $names = $this->names($this->player());
 
-        foreach (['Night 01', 'Night 02', 'Night 03', 'Night 04', 'Night 05'] as $shown) {
-            $this->assertStringContainsString($shown, $card);
-        }
-
-        foreach (['Night 06', 'Night 07', 'Night 08', 'Night 09'] as $hidden) {
-            $this->assertStringNotContainsString($hidden, $card);
-        }
+        $this->assertSame(['Night 01', 'Night 02', 'Night 03', 'Night 04', 'Night 05'], $names);
     }
 
     public function test_they_are_the_NEXT_five_rather_than_any_five(): void
@@ -88,8 +109,12 @@ class UpcomingEventsCardTest extends TestCase
         // felt like.
         $this->schedule(9);
 
-        $this->actingAs($this->player())->get(route('dashboard'))->assertOk()
-            ->assertSeeInOrder(['Night 01', 'Night 02', 'Night 03', 'Night 04', 'Night 05']);
+        // assertSame on the list, which is assertSeeInOrder with no gaps
+        // allowed: a sixth name between two of these would fail it.
+        $this->assertSame(
+            ['Night 01', 'Night 02', 'Night 03', 'Night 04', 'Night 05'],
+            $this->names($this->player())
+        );
     }
 
     public function test_the_header_carries_no_count_and_no_link(): void
@@ -98,7 +123,7 @@ class UpcomingEventsCardTest extends TestCase
         // sitting in the corner furthest from the list they described.
         $this->schedule(9);
 
-        $card = $this->card($this->player());
+        $card = $this->card();
 
         $this->assertStringNotContainsString('9 Events', $card);
         $this->assertStringNotContainsString('All events', $card);
@@ -108,14 +133,15 @@ class UpcomingEventsCardTest extends TestCase
     {
         $this->schedule(9);
 
-        $card = $this->card($this->player());
-
         // "of 9", not "of 5": the figure is every event scheduled, not the
         // rows drawn. This is what the header badge used to hold, and the only
         // place that distinction is now visible.
-        $this->assertStringContainsString('The next 5 of 9 scheduled.', $card);
+        $this->assertSame('The next 5 of 9 scheduled.', $this->props($this->player())['upcoming_note']);
+
+        $card = $this->card();
+
         $this->assertStringContainsString('See the full schedule', $card);
-        $this->assertStringContainsString(route('events'), $card);
+        $this->assertStringContainsString('href="/events"', $card);
     }
 
     public function test_nothing_is_claimed_to_be_hidden_when_nothing_is(): void
@@ -124,11 +150,14 @@ class UpcomingEventsCardTest extends TestCase
         // on a complete list is noise.
         $this->schedule(3);
 
-        $card = $this->card($this->player());
+        $props = $this->props($this->player());
 
-        $this->assertStringContainsString('Night 03', $card);
-        $this->assertStringNotContainsString('scheduled.', $card);
-        $this->assertStringNotContainsString('See the full schedule', $card);
+        $this->assertContains('Night 03', collect($props['upcoming'])->pluck('name')->all());
+
+        // Null, not a sentence: the note and its link are both drawn from it,
+        // so nothing is claimed and nothing is offered.
+        $this->assertNull($props['upcoming_note']);
+        $this->assertStringContainsString('v-if="upcoming_note"', $this->card());
     }
 
     public function test_exactly_five_scheduled_is_not_a_hidden_one(): void
@@ -136,7 +165,7 @@ class UpcomingEventsCardTest extends TestCase
         // The boundary. A `>=` here would announce a full list as a partial one.
         $this->schedule(5);
 
-        $this->assertStringNotContainsString('See the full schedule', $this->card($this->player()));
+        $this->assertNull($this->props($this->player())['upcoming_note']);
     }
 
     public function test_a_complete_list_offers_no_route_to_the_schedule(): void
@@ -148,17 +177,17 @@ class UpcomingEventsCardTest extends TestCase
         // whole diary has to reach it from the public site.
         $this->schedule(2);
 
-        $card = $this->card($this->player());
-
-        $this->assertStringNotContainsString(route('events'), $card);
+        $this->assertNull($this->props($this->player())['upcoming_note']);
     }
 
     public function test_an_empty_diary_says_so(): void
     {
-        $card = $this->card($this->player());
+        $props = $this->props($this->player());
 
-        $this->assertStringContainsString('No upcoming tournaments scheduled.', $card);
-        $this->assertStringNotContainsString('See the full schedule', $card);
+        $this->assertSame([], $props['upcoming']);
+        $this->assertNull($props['upcoming_note']);
+
+        $this->assertStringContainsString('No upcoming tournaments scheduled.', $this->card());
     }
 
     public function test_a_tournament_already_under_way_is_not_upcoming(): void
@@ -174,11 +203,7 @@ class UpcomingEventsCardTest extends TestCase
             ])->id,
         ]);
 
-        $card = $this->card($this->player());
-
-        $this->assertStringNotContainsString('Already Started', $card);
-        $this->assertStringContainsString('Night 01', $card);
-        $this->assertStringContainsString('Night 02', $card);
+        $this->assertSame(['Night 01', 'Night 02'], $this->names($this->player()));
     }
 
     public function test_the_note_is_two_elements_so_it_can_stack(): void
@@ -193,18 +218,24 @@ class UpcomingEventsCardTest extends TestCase
         // broken across both, and no stylesheet can fix that from the outside.
         $this->schedule(9);
 
-        $card = $this->card($this->player());
+        $card = $this->card();
 
         $this->assertStringContainsString('card__note--split', $card);
 
+        // The sentence is its own element. It is a prop now, so the element
+        // holds the binding rather than the words -- and the words themselves
+        // are checked above, where the controller builds them.
         $this->assertMatchesRegularExpression(
-            '/<span>The next 5 of 9 scheduled\.<\/span>/',
+            '/<span>\{\{ upcoming_note \}\}<\/span>/',
             $card,
             'The sentence must be its own element.'
         );
 
         // And no stray space left inside the translatable string now that the
         // gap between them is the flex gap.
-        $this->assertStringNotContainsString('scheduled. </span>', $card);
+        $this->assertStringNotContainsString(
+            'scheduled. ',
+            $this->props($this->player())['upcoming_note'] ?? ''
+        );
     }
 }

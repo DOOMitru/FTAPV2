@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\User;
+use App\Models\PokerTournament;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\Concerns\BuildsTournaments;
 use Tests\TestCase;
@@ -29,27 +30,23 @@ class RegisteredPlayersOrderTest extends TestCase
 {
     use BuildsTournaments, RefreshDatabase;
 
-    /** The panel's rows, in the order they are rendered. */
-    private function rowsFor(string $html): array
+    /**
+     * The panel's rows, in the order the page is given them.
+     *
+     * The old version had to find the card in the document and stop before the
+     * register panel, then pull names out of markup that may or may not hold
+     * an anchor. The order is the order of a prop now, and the names are a
+     * field in it.
+     *
+     * @return array<int, string>
+     */
+    private function rowsFor(PokerTournament $tournament): array
     {
-        // Anchored on the card's own class. The heading is "Registered
-        // Players", "Standings" or "Final Standings" depending on how much of
-        // the tournament has been played, and strpos() returns false for a
-        // heading that is not there -- which (int) turns into 0, quietly
-        // handing back the whole document instead of failing.
-        $at = strpos($html, 'tshow__players');
-        $this->assertNotFalse($at, 'The standings card is not on the page.');
-
-        $panel = substr($html, $at);
-        $panel = substr($panel, 0, strpos($panel, 'Admin: Register') ?: null);
-
-        // The title holds a name that may be an <a> -- a player with an account
-        // links to their figures, one without stays plain text -- so the
-        // capture spans elements and the tags come off after. [^<]+ matched
-        // bare text only, and quietly returned an empty list for every row.
-        preg_match_all('/<div class="entry__title">(.*?)<\/div>/s', $panel, $matches);
-
-        return array_map(fn ($cell) => trim(strip_tags($cell)), $matches[1]);
+        return collect(
+            $this->actingAs($this->admin())
+                ->get(route('tournaments.show', $tournament->fresh()))->assertOk()
+                ->viewData('page')['props']['standings']
+        )->pluck('name')->all();
     }
 
     private function player(string $first, string $last): User
@@ -78,10 +75,7 @@ class RegisteredPlayersOrderTest extends TestCase
         $this->score($tournament, $winner, 1, 100);
         $this->score($tournament, $second, 2, 60);
 
-        $rows = $this->rowsFor(
-            $this->actingAs($this->admin())->get(route('tournaments.show', $tournament->fresh()))
-                ->assertOk()->getContent()
-        );
+        $rows = $this->rowsFor($tournament);
 
         $this->assertSame(['Zoe Abbott', 'Adam Zeller', 'Mia Nolan'], $rows);
     }
@@ -103,10 +97,7 @@ class RegisteredPlayersOrderTest extends TestCase
             $this->score($tournament, $out[$i], $place, $points);
         }
 
-        $rows = $this->rowsFor(
-            $this->actingAs($this->admin())->get(route('tournaments.show', $tournament->fresh()))
-                ->assertOk()->getContent()
-        );
+        $rows = $this->rowsFor($tournament);
 
         $this->assertSame(
             ['Eli Ash', 'Dee Young', 'Cal Third', 'Ben Fourth', 'Ann Fifth'],
@@ -122,10 +113,7 @@ class RegisteredPlayersOrderTest extends TestCase
             $this->enter($tournament, $this->player($first, $last));
         }
 
-        $rows = $this->rowsFor(
-            $this->actingAs($this->admin())->get(route('tournaments.show', $tournament->fresh()))
-                ->assertOk()->getContent()
-        );
+        $rows = $this->rowsFor($tournament);
 
         // Surname order: Abbott, Nolan, Zeller. Full-name order would put Adam
         // Zeller first, so this fails against the old sort.
@@ -142,10 +130,7 @@ class RegisteredPlayersOrderTest extends TestCase
         $orphan = $this->enter($tournament, $this->player('Zoe', 'Abbott'));
         $orphan->forceFill(['user_id' => null, 'player_name' => 'Wanda Reeve'])->save();
 
-        $rows = $this->rowsFor(
-            $this->actingAs($this->admin())->get(route('tournaments.show', $tournament->fresh()))
-                ->assertOk()->getContent()
-        );
+        $rows = $this->rowsFor($tournament);
 
         // Nolan before Reeve, so the surname was taken from the stored name.
         $this->assertSame(['Mia Nolan', 'Wanda Reeve'], $rows);
@@ -159,10 +144,7 @@ class RegisteredPlayersOrderTest extends TestCase
         $single = $this->enter($tournament, $this->player('Zoe', 'Abbott'));
         $single->forceFill(['user_id' => null, 'player_name' => 'Cher'])->save();
 
-        $rows = $this->rowsFor(
-            $this->actingAs($this->admin())->get(route('tournaments.show', $tournament->fresh()))
-                ->assertOk()->getContent()
-        );
+        $rows = $this->rowsFor($tournament);
 
         $this->assertSame(['Cher', 'Mia Nolan'], $rows);
     }

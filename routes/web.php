@@ -271,6 +271,12 @@ Route::middleware('auth')->group(function () {
         Route::post('tournaments/{tournament}/eliminate', [PokerTournamentController::class, 'eliminate'])
             ->name('tournaments.eliminate');
 
+        // Taking the last knockout back. A DELETE on the same URI, the pairing
+        // publish/unpublish already uses: it removes the finish eliminate just
+        // wrote, rather than recording anything of its own.
+        Route::delete('tournaments/{tournament}/eliminate', [PokerTournamentController::class, 'uneliminate'])
+            ->name('tournaments.uneliminate');
+
         // Declaring results final. Not part of the tournaments resource: it
         // sends messages to players and closes the record, which is not what
         // "update a tournament" means.

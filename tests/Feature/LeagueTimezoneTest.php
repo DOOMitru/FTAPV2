@@ -80,9 +80,7 @@ class LeagueTimezoneTest extends TestCase
         $tournament = $this->tournament();
         $player = User::factory()->create(['approval_status' => 'approved']);
 
-        $this->actingAs($player)->get(route('dashboard'))->assertOk()
-            ->assertViewHas('upcomingTournaments',
-                fn ($t) => $t->contains('id', $tournament->id));
+        $this->assertContains($tournament->id, $this->upcomingIds($player));
 
         $this->actingAs($player)->get(route('events'))->assertOk()
             ->assertViewHas('upcomingTournaments',
@@ -96,9 +94,9 @@ class LeagueTimezoneTest extends TestCase
 
         $tournament = $this->tournament();
 
-        $this->actingAs(User::factory()->create(['approval_status' => 'approved']))
-            ->get(route('dashboard'))->assertOk()
-            ->assertViewHas('upcomingTournaments', fn ($t) => $t->contains('id', $tournament->id));
+        $this->assertContains($tournament->id, $this->upcomingIds(
+            User::factory()->create(['approval_status' => 'approved'])
+        ));
     }
 
     public function test_a_tournament_has_started_once_the_clock_reaches_it(): void
@@ -109,9 +107,9 @@ class LeagueTimezoneTest extends TestCase
 
         $tournament = $this->tournament();
 
-        $this->actingAs(User::factory()->create(['approval_status' => 'approved']))
-            ->get(route('dashboard'))->assertOk()
-            ->assertViewHas('upcomingTournaments', fn ($t) => ! $t->contains('id', $tournament->id));
+        $this->assertNotContains($tournament->id, $this->upcomingIds(
+            User::factory()->create(['approval_status' => 'approved'])
+        ));
     }
 
     public function test_the_details_page_does_not_call_a_tournament_past_before_it_starts(): void
@@ -175,5 +173,23 @@ class LeagueTimezoneTest extends TestCase
     {
         Carbon::setTestNow();
         parent::tearDown();
+    }
+
+    /**
+     * The ids the dashboard is sent for its Upcoming Tournaments list.
+     *
+     * The page is Vue: the collection the view used to be handed is a prop
+     * now, and each row is a finished set of labels rather than a model. The
+     * ids are what these tests are about -- whether a tournament is in the
+     * window at all.
+     *
+     * @return list<string>
+     */
+    private function upcomingIds(User $viewer): array
+    {
+        return collect(
+            $this->actingAs($viewer)->get(route('dashboard'))->assertOk()
+                ->viewData('page')['props']['upcoming']
+        )->pluck('id')->all();
     }
 }

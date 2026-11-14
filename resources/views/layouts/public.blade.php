@@ -68,7 +68,7 @@
 
                         {{-- Mobile: log out alone on the left where a destructive action is
                              hard to hit by accident; theme and Dashboard group on the right,
-                             matching layouts/navigation.blade.php exactly. --}}
+                             matching the authenticated shell's Navigation.vue exactly. --}}
                         <div class="topbar__actions-mobile">
                             <form method="POST" action="{{ route('logout') }}">
                                 @csrf
@@ -98,6 +98,35 @@
             {{-- One per page. Every form carrying data-confirm is asked about
                  here rather than through the browser's own dialog. --}}
             <x-confirm-dialog />
+
+            {{-- The shell owns the flash, the same decision AppLayout takes on
+                 the other half. Five views used to render their own -- events
+                 twice, contact, about, and the two auth screens through
+                 x-auth-session-status, which this replaced entirely.
+
+                 Both regions are ALWAYS rendered and are usually empty, which
+                 is the point: a live region has to be in the document before
+                 its message arrives, and one created with its content is
+                 unreliably announced. Only the toast is conditional. Two of
+                 them because politeness belongs to the region -- a
+                 confirmation waits for a pause and a refusal interrupts -- and
+                 the alert inside each carries no role of its own.
+
+                 Assertive first, so a refusal is also the one nearest the eye
+                 if a request ever manages to send both. --}}
+            <div class="toast-host">
+                <div class="toast-live" role="alert" aria-live="assertive">
+                    @if (session('error'))
+                        <x-toast variant="danger">{{ session('error') }}</x-toast>
+                    @endif
+                </div>
+
+                <div class="toast-live" role="status" aria-live="polite">
+                    @if (session('status'))
+                        <x-toast variant="success">{{ session('status') }}</x-toast>
+                    @endif
+                </div>
+            </div>
         </div>
     </body>
 </html>

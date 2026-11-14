@@ -28,16 +28,37 @@ class DashboardRecentResultsLinkTest extends TestCase
         return User::factory()->create(['is_admin' => false, 'approval_status' => 'approved']);
     }
 
-    /** The Recent Results card's markup, and nothing else on the page. */
-    private function card(string $html): string
+    /**
+     * The rows the card is sent.
+     *
+     * The dashboard is Vue, so the card's markup is in Dashboard.vue and what
+     * varies per player is the `results` prop. Each row carries its own
+     * tournament_href, which is what these tests are about -- a link built
+     * from the wrong variable is a row pointing at somebody else's tournament.
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function rows(User $player): array
     {
-        $at = strpos($html, 'Recent Results');
+        return $this->actingAs($player)->get(route('dashboard'))->assertOk()
+            ->viewData('page')['props']['results'];
+    }
+
+    /**
+     * The Recent Results card's markup, and nothing else in the page file.
+     *
+     * Cut at the card rather than read whole, for the reason the old version
+     * cut the HTML: the Upcoming Tournaments list above it also draws rows
+     * with links in them, and a page-wide count would answer about both.
+     */
+    private function card(): string
+    {
+        $page = (string) file_get_contents(resource_path('js/Pages/Dashboard.vue'));
+
+        $at = strpos($page, 'title="Recent Results"');
         $this->assertNotFalse($at, 'The Recent Results card is not on the dashboard.');
 
-        $rest = substr($html, $at);
-        $end = strpos($rest, 'Active Season');
-
-        return $end === false ? $rest : substr($rest, 0, $end);
+        return substr($page, $at);
     }
 
     public function test_a_row_links_to_its_own_tournament(): void
@@ -47,12 +68,14 @@ class DashboardRecentResultsLinkTest extends TestCase
         $this->enter($tournament, $player);
         $this->score($tournament, $player, 1, 100);
 
-        $card = $this->card(
-            $this->actingAs($player)->get(route('dashboard'))->assertOk()->getContent()
+        $rows = $this->rows($player);
+
+        $this->assertSame(
+            [route('tournaments.show', $tournament)],
+            collect($rows)->pluck('tournament_href')->all()
         );
 
-        $this->assertStringContainsString(route('tournaments.show', $tournament), $card);
-        $this->assertStringContainsString('table__row--link', $card);
+        $this->assertStringContainsString('table__row--link', $this->card());
     }
 
     public function test_each_row_links_to_the_tournament_it_names(): void
@@ -70,14 +93,12 @@ class DashboardRecentResultsLinkTest extends TestCase
             $this->score($tournament, $player, $place, $points);
         }
 
-        $card = $this->card(
-            $this->actingAs($player)->get(route('dashboard'))->assertOk()->getContent()
-        );
+        $hrefs = collect($this->rows($player))->pluck('tournament_href')->all();
 
         foreach ([$first, $second] as $tournament) {
             $this->assertSame(
                 1,
-                substr_count($card, route('tournaments.show', $tournament)),
+                count(array_keys($hrefs, route('tournaments.show', $tournament), true)),
                 $tournament->name.' is not linked exactly once.'
             );
         }
@@ -89,19 +110,15 @@ class DashboardRecentResultsLinkTest extends TestCase
         // underlines an <a> -- the reset makes that opt-in -- so three anchors
         // would look identical to one and read as three to a screen reader,
         // with five rows announcing fifteen links to the same five pages.
-        $player = $this->player();
-        $tournament = $this->tournament('Autumn Showdown');
-        $this->enter($tournament, $player);
-        $this->score($tournament, $player, 1, 100);
-
-        $card = $this->card(
-            $this->actingAs($player)->get(route('dashboard'))->assertOk()->getContent()
-        );
+        $card = $this->card();
 
         $row = substr($card, (int) strpos($card, 'table__row--link'));
         $row = substr($row, 0, (int) strpos($row, '</tr>'));
 
-        $this->assertSame(1, substr_count($row, '<a '), 'The row carries more than one anchor.');
+        // <Link> renders an anchor, so it is counted as one. Rank and the
+        // points cell must stay plain.
+        $this->assertSame(1, substr_count($row, '<Link '), 'The row carries more than one anchor.');
+        $this->assertStringNotContainsString('<a ', $row);
     }
 
     public function test_the_link_is_not_underlined_like_body_copy(): void
@@ -110,14 +127,7 @@ class DashboardRecentResultsLinkTest extends TestCase
         // sentence with a link in it, and the venue page learned the same
         // lesson: ten linked rows read as thirty links when every piece of text
         // in them is underlined.
-        $player = $this->player();
-        $tournament = $this->tournament('Autumn Showdown');
-        $this->enter($tournament, $player);
-        $this->score($tournament, $player, 1, 100);
-
-        $row = $this->card(
-            $this->actingAs($player)->get(route('dashboard'))->assertOk()->getContent()
-        );
+        $row = $this->card();
 
         $this->assertStringContainsString('table__link', $row);
         $this->assertStringNotContainsString('class="link"', $row);
@@ -125,12 +135,12 @@ class DashboardRecentResultsLinkTest extends TestCase
 
     public function test_a_player_with_no_results_still_gets_the_card(): void
     {
-        $card = $this->card(
-            $this->actingAs($this->player())->get(route('dashboard'))->assertOk()->getContent()
-        );
+        // No rows sent, and the card says so. The row markup is still in the
+        // page -- it is a v-for over an empty list -- so the absence is in the
+        // data rather than in the template.
+        $this->assertSame([], $this->rows($this->player()));
 
-        $this->assertStringContainsString('No result data recorded yet.', $card);
-        $this->assertStringNotContainsString('table__row--link', $card);
+        $this->assertStringContainsString('No result data recorded yet.', $this->card());
     }
 
     public function test_the_link_survives_a_tournament_a_player_never_registered_for(): void
@@ -142,10 +152,9 @@ class DashboardRecentResultsLinkTest extends TestCase
         $tournament = $this->tournament('Autumn Showdown');
         $this->score($tournament, $player, 3, 75);
 
-        $card = $this->card(
-            $this->actingAs($player)->get(route('dashboard'))->assertOk()->getContent()
+        $this->assertSame(
+            [route('tournaments.show', $tournament)],
+            collect($this->rows($player))->pluck('tournament_href')->all()
         );
-
-        $this->assertStringContainsString(route('tournaments.show', $tournament), $card);
     }
 }

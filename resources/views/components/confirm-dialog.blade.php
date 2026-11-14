@@ -1,15 +1,16 @@
 {{--
-    The application's confirmation dialog. One per page, rendered by the
-    layouts, driven by the `data-confirm` attribute already on every form that
-    needs asking about -- so no call site changes to adopt it.
+    The public site's confirmation dialog. One per page, rendered by
+    layouts/public, driven by the `data-confirm` attribute already on every
+    form that needs asking about -- so no call site changes to adopt it. The
+    authenticated half has its own, ConfirmDialog.vue, driven by useConfirm().
 
     A native <dialog> opened with showModal(), which is what buys the things a
     hand-rolled overlay has to reimplement and usually gets subtly wrong: focus
     moves into the dialog and is trapped there, Escape closes it, the rest of
     the page goes inert to the mouse and to assistive technology, and it renders
     in the top layer so nothing on the page can stack above it. The Alpine
-    x-modal beside it spends about thirty lines of an attribute doing that by
-    hand; this spends none.
+    modal component this replaced spent about thirty lines of an attribute
+    doing that by hand; this spends none, and that component is now deleted.
 
     method="dialog" is the other half. A submit button inside such a form closes
     the dialog and records which button did it in returnValue, so neither button

@@ -4,27 +4,52 @@ namespace App\Http\Controllers\Poker;
 
 use App\Http\Controllers\Controller;
 use App\Models\Venue;
+use App\Support\Paginate;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\View\View;
+use Inertia\Inertia;
+use Inertia\Response;
 
 class VenueController extends Controller
 {
     /**
      * Display a listing of the resource.
      */
-    public function index(): View
+    public function index(): Response
     {
-        $venues = Venue::latest()->paginate(10);
-        return view('poker.venues.index', compact('venues'));
+        $isAdmin = (bool) auth()->user()->is_admin;
+
+        return Inertia::render('Poker/Venues/Index', [
+            'venues' => Paginate::props(
+                Venue::latest()->paginate(10),
+                fn (Venue $venue) => [
+                    'id' => $venue->id,
+                    'name' => $venue->name,
+                    'description' => $venue->description,
+                ]
+            ),
+
+            /*
+             * Whether a row is a link at all.
+             *
+             * poker.venues.show is admin-only -- it carries takings,
+             * leaderboards and per-player point histories -- so a row a player
+             * could follow is a row that leads to a 403. The Blade decided
+             * this with auth()->user()->is_admin inline; as a prop it is
+             * decided where the gate is, and the template has no opinion about
+             * who may read what.
+             */
+            'rows_link' => $isAdmin,
+            'can_create' => $isAdmin,
+        ]);
     }
 
     /**
      * Show the form for creating a new resource.
      */
-    public function create(): View
+    public function create(): Response
     {
-        return view('poker.venues.create');
+        return Inertia::render('Poker/Venues/Create');
     }
 
     /**
@@ -48,7 +73,7 @@ class VenueController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(Venue $venue): View
+    public function show(Venue $venue): Response
     {
         // Not tournaments.results: it was loaded for a Tournament pts tile that
         // no longer exists, and nothing else on the page reads a result. On a
@@ -76,20 +101,85 @@ class VenueController extends Controller
             ->sortByDesc('total_amount')
             ->values();
 
-        return view('poker.venues.show', compact(
-            'venue',
-            'totalTournaments',
-            'totalVenuePoints',
-            'venueLeaderboard'
-        ));
+        return Inertia::render('Poker/Venues/Show', [
+            'venue' => [
+                'id' => $venue->id,
+                'name' => $venue->name,
+                'description' => $venue->description,
+                'address' => $venue->address,
+
+                // Built here, null when there is no address. The URL encodes
+                // the address, and an encoding decision in a template is one
+                // an apostrophe eventually breaks.
+                'map_src' => $venue->address
+                    ? 'https://maps.google.com/maps?q='.urlencode($venue->address).'&t=&z=13&ie=UTF8&iwloc=&output=embed'
+                    : null,
+
+                'map_title' => __('Map of :venue', ['venue' => $venue->name]),
+                'delete_confirm' => __('Delete :name? This cannot be undone.', [
+                    'name' => emph($venue->name),
+                ]),
+            ],
+
+            // Two figures, not four. Point Earners and Tournament pts both
+            // answered questions the panels below answer better: the
+            // leaderboard IS the point earners, named and counted.
+            'tournaments_label' => (string) $totalTournaments,
+            'venue_points_label' => number_format($totalVenuePoints),
+
+            // The whole venue's leaderboard. This page is admin-only, so the
+            // venue-points privacy rule is satisfied by the route rather than
+            // by withholding rows -- see the admin group in routes/web.php and
+            // PlayerLeagueAccessTest, which holds it shut.
+            'leaderboard' => $venueLeaderboard->map(fn (array $entry, int $index) => [
+                'place' => $index + 1,
+
+                // Nullable: user_id is nullOnDelete, so a departed player
+                // leaves a name with no account behind it. PlayerLink renders
+                // plain text rather than a link to a 404.
+                'player_id' => $entry['user']?->id,
+                'player_name' => $entry['user_name'],
+                'last_earned_label' => $entry['last_earned']
+                    ? __('Last earned').': '.\Illuminate\Support\Carbon::parse($entry['last_earned'])->format('M d, Y')
+                    : null,
+                'total_label' => number_format($entry['total_amount']),
+            ])->values()->all(),
+
+            'tournaments' => $venue->tournaments->sortByDesc('start_time')->take(10)
+                ->map(fn (\App\Models\PokerTournament $tournament) => [
+                    'id' => $tournament->id,
+                    'name' => $tournament->name,
+                    'href' => route('tournaments.show', $tournament),
+                    'date_label' => $tournament->start_time->format('M d, Y'),
+                    'season_label' => $tournament->season->name ?? '',
+                ])->values()->all(),
+            'has_more_tournaments' => $totalTournaments > 10,
+
+            // Carrying the venue, which is the whole reason the action lives
+            // here: an administrator entering a night's points is standing on
+            // the venue they were earned at. venue_id is the same query
+            // parameter store() hands back between entries.
+            'add_points_href' => route('poker.venue-points.create', ['venue_id' => $venue->id]),
+        ]);
     }
 
     /**
      * Show the form for editing the specified resource.
      */
-    public function edit(Venue $venue): View
+    public function edit(Venue $venue): Response
     {
-        return view('poker.venues.edit', compact('venue'));
+        // The record's values, once. No old(): useForm holds what was typed
+        // and a failed submission returns errors without re-rendering, so
+        // there is nothing to restore -- and re-seeding from the session would
+        // overwrite what is on screen.
+        return Inertia::render('Poker/Venues/Edit', [
+            'venue' => [
+                'id' => $venue->id,
+                'name' => $venue->name,
+                'description' => $venue->description,
+                'address' => $venue->address,
+            ],
+        ]);
     }
 
     /**

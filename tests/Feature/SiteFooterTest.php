@@ -34,13 +34,40 @@ class SiteFooterTest extends TestCase
         return ['public' => ['/'], 'dashboard' => ['/dashboard']];
     }
 
+    /**
+     * The footer's markup, from whichever half of the app draws it.
+     *
+     * The public shell renders it in Blade and the dashboard shell in Vue, so
+     * the dashboard's comes from the component rather than from the response:
+     * the server sends props and an empty shell there.
+     *
+     * The year is the one difference. Blade writes it at render time and the
+     * component computes it in the browser, so the source carries `{{ year }}`
+     * where the response carries a number -- substituted here so that the
+     * three assertions below are byte-identical across both shells, which is
+     * the whole point of running them twice.
+     */
     private function footer(string $path): string
     {
-        $response = $path === '/dashboard'
-            ? $this->actingAs(User::factory()->create(['approval_status' => 'approved']))->get($path)
-            : $this->get($path);
+        if ($path === '/dashboard') {
+            // The page still has to load for a signed-in player, and the shell
+            // still has to mount the footer.
+            $this->actingAs(User::factory()->create(['approval_status' => 'approved']))
+                ->get($path)->assertOk();
 
-        $html = $response->assertOk()->getContent();
+            $layout = (string) file_get_contents(resource_path('js/Layouts/AppLayout.vue'));
+
+            $this->assertStringContainsString('<SiteFooter', $layout,
+                'The dashboard shell no longer draws the footer.');
+
+            return str_replace(
+                '{{ year }}',
+                date('Y'),
+                (string) file_get_contents(resource_path('js/Components/SiteFooter.vue'))
+            );
+        }
+
+        $html = $this->get($path)->assertOk()->getContent();
 
         $at = strpos($html, 'site-footer');
         $this->assertNotFalse($at, "No footer on {$path}.");

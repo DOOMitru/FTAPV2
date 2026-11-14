@@ -9,6 +9,7 @@ use Illuminate\Auth\Notifications\VerifyEmail;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
 
 class UserManagementTest extends TestCase
@@ -22,7 +23,20 @@ class UserManagementTest extends TestCase
         $response = $this->actingAs($admin)->get(route('users.index'));
 
         $response->assertStatus(200);
-        $response->assertSee('User Management');
+
+        // The heading is in the page file now; what the response proves is
+        // that the right page was rendered with the props it needs.
+        //
+        // No ->component() assertion: it verifies the page file through a view
+        // finder reading config('inertia.testing.*'), which the published
+        // config does not define. InertiaPropContractTest asserts the
+        // component name off viewData instead.
+        $this->assertSame('Users/Index', $response->viewData('page')['component']);
+
+        $response->assertInertia(fn (Assert $page) => $page
+            ->has('users.data')
+            ->has('pending')
+        );
     }
 
     public function test_non_admin_cannot_access_user_index()
@@ -76,10 +90,16 @@ class UserManagementTest extends TestCase
         $admin = User::factory()->create(['is_admin' => true]);
         User::factory()->pending()->create(['first_name' => 'Pendingly']);
 
+        // The queue is its own prop, so "is this person in the queue" is a
+        // direct question. The old assertion searched the whole page, where a
+        // pending account also appears in the main table below -- it would
+        // have passed with the queue missing entirely.
         $this->actingAs($admin)->get(route('users.index'))
             ->assertOk()
-            ->assertSee('Pendingly')
-            ->assertSee('Awaiting approval');
+            ->assertInertia(fn (Assert $page) => $page
+                ->has('pending', 1)
+                ->where('pending.0.id', User::where('first_name', 'Pendingly')->value('id'))
+            );
     }
 
     public function test_the_queue_is_absent_when_nothing_is_pending()
@@ -146,7 +166,8 @@ class UserManagementTest extends TestCase
         $admin = User::factory()->create(['is_admin' => true]);
         User::factory()->pending()->create(['first_name' => 'Refusedly', 'last_name' => 'Turned']);
 
-        $html = $this->actingAs($admin)->get(route('users.index'))->assertOk()->getContent();
+        $props = $this->actingAs($admin)->get(route('users.index'))
+            ->assertOk()->viewData('page')['props'];
 
         // The whole sentence, markers included, so the copy and the marking are
         // pinned together in one assertion.
@@ -156,9 +177,13 @@ class UserManagementTest extends TestCase
         // string, so it matched either way; and the markers ALONE appear
         // regardless, because a pending account is listed in the main table
         // too, where the Delete dialog marks the very same name.
-        $this->assertStringContainsString(
+        //
+        // Read off the QUEUE's own prop now, which rules that out by
+        // construction: the main table's delete_confirm is a different key on
+        // a different list, so there is nothing for this to match by accident.
+        $this->assertSame(
             'Reject '.EMPH.'Refusedly Turned'.EMPH.'? Their account will be deleted and cannot be recovered.',
-            $html
+            $props['pending'][0]['reject_confirm']
         );
     }
 
@@ -185,6 +210,35 @@ class UserManagementTest extends TestCase
         $this->assertFalse($other->fresh()->isApproved());
     }
 
+    public function test_the_account_page_offers_only_the_decision_that_is_available()
+    {
+        // Each control is offered only while it can do something. The Blade
+        // this replaces wrote that as @unless($user->isApproved()) around
+        // Approve and @if(...) around Reject, and nothing asserted either --
+        // making Approve unconditional broke no test.
+        $admin = User::factory()->create(['is_admin' => true]);
+
+        $approved = User::factory()->create(['approval_status' => 'approved']);
+        $pending = User::factory()->create(['approval_status' => 'pending']);
+
+        $of = fn (User $user) => $this->actingAs($admin)->get(route('users.show', $user))
+            ->assertOk()->viewData('page')['props']['user'];
+
+        $this->assertFalse($of($approved)['can_approve'], 'An approved account was offered Approve.');
+        $this->assertTrue($of($approved)['can_reject']);
+
+        $this->assertTrue($of($pending)['can_approve']);
+        $this->assertFalse($of($pending)['can_reject'], 'A pending account was offered Reject.');
+
+        // And a verified address is not offered a verification link, which is
+        // the third control with a condition of its own.
+        $verified = User::factory()->create(['email_verified_at' => now()]);
+        $unverified = User::factory()->unverified()->create();
+
+        $this->assertFalse($of($verified)['can_verify']);
+        $this->assertTrue($of($unverified)['can_verify']);
+    }
+
     public function test_a_rejected_account_is_still_listed_and_still_reversible()
     {
         // The main table no longer prints an approval state -- the column was
@@ -198,16 +252,40 @@ class UserManagementTest extends TestCase
         $admin = User::factory()->create(['is_admin' => true]);
         $rejected = User::factory()->rejected()->create(['first_name' => 'Refusedly']);
 
-        $this->actingAs($admin)->get(route('users.index'))
-            ->assertOk()
-            ->assertSee('Refusedly')
-            // The exact href: users.show is a prefix of users.edit, so a bare
-            // substring is satisfied by the Edit link beside it.
-            ->assertSee('href="'.route('users.show', $rejected).'"', false);
+        // Contained, not at index 0. The list orders by first name and the
+        // admin's is random, which is the same coin toss DeleteConfirmationTest
+        // records losing about once in fifty runs.
+        $props = $this->actingAs($admin)->get(route('users.index'))
+            ->assertOk()->viewData('page')['props'];
 
-        $this->actingAs($admin)->get(route('users.show', $rejected))
-            ->assertOk()
-            ->assertSee(route('users.approve', $rejected), false);
+        $this->assertContains(
+            $rejected->id,
+            collect($props['users']['data'])->pluck('id')->all(),
+            'A rejected account must still be listed.'
+        );
+
+        // The row still reaches the account page, where the approve control
+        // lives. The URL is built in the template from the id above -- the
+        // prefix trap the old assertion guarded against (users.show being a
+        // prefix of users.edit) cannot happen to an id comparison.
+        $page = file_get_contents(resource_path('js/Pages/Users/Index.vue'));
+
+        $this->assertStringContainsString('<Action icon="view" label="View" :href="`/users/${user.id}`" />', $page);
+
+        // And the approve control is offered there. It is a flag on the props
+        // now rather than a form in the markup -- which is the better thing to
+        // assert: the old version looked for the route's URL, and finding a
+        // URL is not the same as being offered the button that calls it.
+        $shown = $this->actingAs($admin)->get(route('users.show', $rejected))
+            ->assertOk()->viewData('page')['props'];
+
+        $this->assertTrue($shown['user']['can_approve'],
+            'A rejected account must still be offered Approve.');
+
+        $this->assertStringContainsString(
+            'v-if="user.can_approve"',
+            (string) file_get_contents(resource_path('js/Pages/Users/Show.vue'))
+        );
     }
 
     public function test_an_admin_can_register_a_player_who_is_approved_immediately()

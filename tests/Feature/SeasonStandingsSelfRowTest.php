@@ -71,40 +71,41 @@ class SeasonStandingsSelfRowTest extends TestCase
     }
 
     /**
-     * The standings rows, as [class attribute => row markup].
+     * The standings rows the page is sent.
      *
-     * Matched on the rank cell rather than on <tr>, because the header row and
-     * any other table on the page are <tr>s too and would otherwise be counted
-     * as standings.
+     * Which row is the viewer's is a per-row flag now rather than a class on a
+     * <tr>. The old version had to find the standings rows among every <tr> on
+     * the page by looking for the rank cell; there is nothing to disentangle
+     * in a list of props.
      *
-     * @return array<int, array{attrs: string, body: string}>
+     * @return array<int, array<string, mixed>>
      */
-    private function rows(string $html): array
-    {
-        preg_match_all('/<tr(?<attrs>[^>]*)>(?<body>.*?)<\/tr>/s', $html, $matches, PREG_SET_ORDER);
-
-        return array_values(array_filter(
-            array_map(fn ($m) => ['attrs' => $m['attrs'], 'body' => $m['body']], $matches),
-            fn ($row) => str_contains($row['body'], 'season-show__rank')
-        ));
-    }
-
-    /** @return array<int, array{attrs: string, body: string}> */
     private function standingsFor(User $viewer, PokerSeason $season): array
     {
-        $html = $this->actingAs($viewer)
-            ->get(route('seasons.show', $season))->assertOk()->getContent();
+        $rows = $this->actingAs($viewer)
+            ->get(route('seasons.show', $season))->assertOk()
+            ->viewData('page')['props']['standings'];
 
-        $rows = $this->rows($html);
         $this->assertNotEmpty($rows, 'The fixture should have produced standings rows.');
 
         return $rows;
     }
 
-    /** @param array<int, array{attrs: string, body: string}> $rows */
+    /**
+     * The rows marked as the viewer's own.
+     *
+     * @param  array<int, array<string, mixed>>  $rows
+     * @return array<int, array<string, mixed>>
+     */
     private function marked(array $rows): array
     {
-        return array_values(array_filter($rows, fn ($r) => str_contains($r['attrs'], self::SELF)));
+        return array_values(array_filter($rows, fn (array $r) => $r['is_self'] === true));
+    }
+
+    /** The page's own markup, for the questions that are about the template. */
+    private function page(): string
+    {
+        return (string) file_get_contents(resource_path('js/Pages/Poker/Seasons/Show.vue'));
     }
 
     public function test_the_viewers_own_row_is_marked(): void
@@ -121,7 +122,12 @@ class SeasonStandingsSelfRowTest extends TestCase
         $marked = $this->marked($this->standingsFor($me, $season));
 
         $this->assertCount(1, $marked, 'Exactly one row is the viewer.');
-        $this->assertStringContainsString('Mine Player', $marked[0]['body']);
+        $this->assertSame('Mine Player', $marked[0]['shown_name']);
+
+        // And the tint is applied from that flag.
+        $this->assertStringContainsString(
+            "'season-show__self-row': row.is_self", $this->page()
+        );
     }
 
     public function test_nobody_elses_row_is_marked(): void
@@ -142,8 +148,7 @@ class SeasonStandingsSelfRowTest extends TestCase
         $marked = $this->marked($this->standingsFor($other, $season));
 
         $this->assertCount(1, $marked);
-        $this->assertStringContainsString('Theirs Player', $marked[0]['body']);
-        $this->assertStringNotContainsString('Mine Player', $marked[0]['body']);
+        $this->assertSame('Theirs Player', $marked[0]['shown_name']);
     }
 
     public function test_a_viewer_who_is_not_in_the_standings_marks_no_row(): void
@@ -160,10 +165,18 @@ class SeasonStandingsSelfRowTest extends TestCase
 
     public function test_a_result_with_no_account_is_not_read_as_the_viewer(): void
     {
-        // What this actually pins is the grouping: a result with no account
-        // must still render as somebody else's row, not vanish and not get the
-        // mark. The null guard in the view is NOT what this catches -- removing
-        // it leaves all seven tests green, because auth()->id() cannot be null
+        // A result with no account never reaches these standings at all: it
+        // has no registration behind it, and the table is scoped to players
+        // who entered -- SeasonStandingsScopeTest holds that rule.
+        //
+        // This used to loop over the rows looking for one named "Nobody At
+        // All" and assert it was unmarked. That loop had stopped matching
+        // anything when the scope rule landed, so the only assertion doing
+        // work was the count below; porting it to the props is what showed
+        // that, because an absent row is null rather than a silent no-op.
+        //
+        // The null guard in the page is still NOT what this catches -- removing
+        // it leaves every test here green, because auth()->id() cannot be null
         // on a route inside the auth group. That guard is for the day the route
         // leaves it, and it is untestable until then.
         $season = $this->season();
@@ -173,13 +186,14 @@ class SeasonStandingsSelfRowTest extends TestCase
         $this->finish($night, $me, 2, 85);
         $this->finish($night, null, 1, 100, name: 'Nobody At All');
 
-        foreach ($this->standingsFor($me, $season) as $row) {
-            if (str_contains($row['body'], 'Nobody At All')) {
-                $this->assertStringNotContainsString(self::SELF, $row['attrs']);
-            }
-        }
+        $rows = $this->standingsFor($me, $season);
 
-        $this->assertCount(1, $this->marked($this->standingsFor($me, $season)));
+        $this->assertNull(
+            collect($rows)->firstWhere('shown_name', 'Nobody At All'),
+            'A finish with no registration behind it is not in the standings.'
+        );
+
+        $this->assertCount(1, $this->marked($rows));
     }
 
     public function test_the_marked_row_names_the_viewer_without_colour(): void
@@ -193,17 +207,18 @@ class SeasonStandingsSelfRowTest extends TestCase
         $this->finish($night, $me, 2, 85);
         $this->finish($night, $this->player('Theirs'), 1, 100);
 
-        $rows = $this->standingsFor($me, $season);
-        $marked = $this->marked($rows);
+        $marked = $this->marked($this->standingsFor($me, $season));
 
-        $this->assertStringContainsString('u-visually-hidden', $marked[0]['body']);
-        $this->assertStringContainsString('(you)', $marked[0]['body']);
+        $this->assertCount(1, $marked);
 
-        foreach ($rows as $row) {
-            if (! str_contains($row['attrs'], self::SELF)) {
-                $this->assertStringNotContainsString('(you)', $row['body']);
-            }
-        }
+        // The words are drawn from the same flag as the tint, and clipped
+        // rather than display:none -- the latter would take the text out of
+        // the accessibility tree and leave the tint carrying the meaning
+        // alone.
+        $this->assertMatchesRegularExpression(
+            '/<span v-if="row\.is_self" class="u-visually-hidden">\(you\)<\/span>/',
+            $this->page()
+        );
     }
 
     public function test_the_tint_is_scoped_hard_enough_to_beat_the_hover_rule(): void

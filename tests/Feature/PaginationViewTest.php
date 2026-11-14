@@ -54,6 +54,14 @@ class PaginationViewTest extends TestCase
         ]);
         $admin = User::factory()->create(['is_admin' => true, 'approval_status' => 'approved']);
 
-        $this->actingAs($admin)->get(route('users.index'))->assertOk()->assertSee('pager', false);
+        // The users list is Inertia now, so the pager is rendered in the
+        // browser. What the response carries is the status line, which
+        // Paginate::props sets only when the list actually has pages -- the
+        // same condition the Blade view opens with.
+        $props = $this->actingAs($admin)->get(route('users.index'))
+            ->assertOk()->viewData('page')['props'];
+
+        $this->assertNotNull($props['users']['status_label'],
+            'Twenty-one users at fifteen a page is two pages, and two pages carry a status line.');
     }
 }

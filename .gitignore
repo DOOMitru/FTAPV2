@@ -22,3 +22,8 @@
 Homestead.json
 Homestead.yaml
 Thumbs.db
+
+# Backups the browser-measurement harness writes while it has a layout
+# patched. They exist only between patch and restore, which is a window a
+# commit can land in -- one did.
+*.sweepbak

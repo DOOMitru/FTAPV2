@@ -7,6 +7,7 @@ use App\Models\PointsStructure;
 use App\Models\PokerSeason;
 use App\Models\PokerTournament;
 use App\Models\Venue;
+use App\Support\Paginate;
 use App\Notifications\TournamentPlacement;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\RedirectResponse;
@@ -15,14 +16,15 @@ use Illuminate\Notifications\DatabaseNotification;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Number;
 use Illuminate\Support\Str;
-use Illuminate\View\View;
+use Inertia\Inertia;
+use Inertia\Response;
 
 class PokerTournamentController extends Controller
 {
     /**
      * Display a listing of the resource.
      */
-    public function index(): View
+    public function index(): \Inertia\Response
     {
         // By START TIME, not latest(). latest() orders by created_at -- the
         // order the rows were typed in -- which for a league that schedules a
@@ -51,19 +53,51 @@ class PokerTournamentController extends Controller
             ->orderByDesc('start_time')
             ->paginate(100);
 
-        return view('poker.tournaments.index', compact('tournaments', 'currentSeason'));
+        return \Inertia\Inertia::render('Poker/Tournaments/Index', [
+            'tournaments' => Paginate::props(
+                $tournaments,
+                fn (PokerTournament $tournament) => [
+                    'id' => $tournament->id,
+                    'name' => $tournament->name,
+                    // TBD is the venue's empty state, decided here rather than
+                    // left as a null the template has an opinion about.
+                    'venue_name' => $tournament->venue->name ?? __('TBD'),
+                    'start_label' => $tournament->start_time?->format('M d, Y · h:i A') ?? '—',
+                ]
+            ),
+
+            /*
+             * Null when no season is running, and the page says something
+             * different in each case.
+             *
+             * An administrator can act on an unset season and cannot act on an
+             * empty one, so "No tournaments in Season 9 yet." and "No season is
+             * running." must not read alike. The name is what distinguishes
+             * them, so it is sent rather than inferred from an empty list.
+             */
+            'season_name' => $currentSeason?->name,
+            'can_create' => (bool) auth()->user()->is_admin,
+        ]);
     }
 
     /**
      * Show the form for creating a new resource.
      */
-    public function create(): View
+    public function create(): Response
     {
-        $venues = Venue::all();
-        $seasons = PokerSeason::orderBy('name', 'desc')->get();
-        $currentSeason = PokerSeason::current();
-        
-        return view('poker.tournaments.create', compact('venues', 'seasons', 'currentSeason'));
+        // No $seasons here. The Blade view was handed a list it never read --
+        // the season is not chosen on this page, it is assigned by store().
+        return Inertia::render('Poker/Tournaments/Create', [
+            'venues' => Venue::all()->map(fn (Venue $venue) => [
+                'id' => $venue->id,
+                'name' => $venue->name,
+            ])->all(),
+
+            // The label, not the season: it is read-only here and the fallback
+            // wording is a translated string, which belongs on this side of
+            // the wire rather than in a template (spec 5a).
+            'season_label' => PokerSeason::current()?->name ?? __('No active season'),
+        ]);
     }
 
     /**
@@ -118,7 +152,7 @@ class PokerTournamentController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(PokerTournament $tournament): View
+    public function show(PokerTournament $tournament): Response
     {
         $tournament->load([
             'venue',
@@ -156,6 +190,11 @@ class PokerTournamentController extends Controller
         // is computed once here rather than per row.
         $nextPlace = $registrantsCount - $resultsCount;
         $nextPlacePoints = $pointsStructure->firstWhere('place', $nextPlace)?->points ?? 0;
+
+        // The one finish that can be taken back: the lowest place on record,
+        // which is the one eliminate() handed out last. Asked once here rather
+        // than per row, the way $nextPlace is.
+        $undoable = $tournament->lastEliminated();
 
         // One row per player, whether they are still in, already out, or hold a
         // result with no registration behind them at all.
@@ -274,6 +313,12 @@ class PokerTournamentController extends Controller
                     'nickname' => $user->nickname,
                     'email' => $user->email,
                     'played' => $user->tournament_registrations_count,
+
+                    // Pluralised in PHP, like everything else the page places.
+                    'played_label' => trans_choice(
+                        '{1}1 tournament|[2,*]:count tournaments',
+                        $user->tournament_registrations_count
+                    ),
                     'registered' => in_array($user->id, $entered, true),
                     'approved' => $user->isApproved(),
                     // One lowercase haystack per row, built here rather than in
@@ -286,18 +331,190 @@ class PokerTournamentController extends Controller
                 ->values();
         }
 
-        return view('poker.tournaments.show', compact(
-            'tournament',
-            'registrantsCount',
-            'isUserRegistered',
-            'isPast',
-            'registerCandidates',
-            'isComplete',
-            'nextPlace',
-            'nextPlacePoints',
-            'standings',
-            'standingsTitle'
-        ));
+        $user = auth()->user();
+        $isAdmin = (bool) $user->is_admin;
+
+        return Inertia::render('Poker/Tournaments/Show', [
+            // The card's own props, in the shape PEvent.vue declares. The
+            // details page turns the map off and the Details button with it:
+            // this IS the details page.
+            'tournament' => [
+                'id' => $tournament->id,
+                'name' => $tournament->name,
+                'description' => $tournament->description,
+                'season_label' => $tournament->season->name,
+                'month_label' => $tournament->start_time->format('M'),
+                'day_label' => $tournament->start_time->format('j'),
+                'weekday_label' => $tournament->start_time->format('D'),
+                'date_label' => $tournament->start_time->format('D, M j'),
+                'time_label' => $tournament->start_time->format('g:i A'),
+                'full_date_label' => $tournament->start_time->format('l j F Y, g:i A'),
+                'venue_label' => $tournament->venue->name ?? __('Location TBD'),
+
+                // No map on this page: it is reached from inside the dashboard
+                // by people who already know where the league plays, and a
+                // third of the card spent on one pushes the panels this page
+                // exists for below the fold.
+                'map_src' => null,
+                'map_title' => __('Map of :venue', ['venue' => $tournament->venue->name ?? '']),
+                'address' => null,
+
+                'href' => route('tournaments.show', $tournament),
+                'season_href' => route('seasons.show', $tournament->season),
+
+                // poker.venues.show is inside the admin-only prefix; offering
+                // it to a player is offering a 403.
+                'venue_href' => $isAdmin && $tournament->venue
+                    ? route('poker.venues.show', $tournament->venue)
+                    : null,
+
+                'is_registered' => $isUserRegistered,
+
+                // The controller's own rules, restated once. A player's window
+                // closes when the cards go in the air; an administrator
+                // registers from the room until the results are published.
+                'can_register' => ! $isUserRegistered
+                    && $user->isApproved()
+                    && ($isAdmin || ! $tournament->hasStarted()),
+
+                // Asymmetric with the above, deliberately: joining a field of
+                // ten makes it a field of eleven, while leaving a settled one
+                // makes every recorded place describe a tournament that never
+                // happened.
+                'can_unregister' => $isUserRegistered && ! $tournament->hasRecordedResults(),
+                'awaiting_approval' => ! $isUserRegistered && ! $user->isApproved(),
+                'unregister_confirm' => __('Unregister from :tournament? You can enter again any time before results are recorded.', [
+                    'tournament' => emph($tournament->name),
+                ]),
+
+                'is_published' => $tournament->isPublished(),
+                'publish_confirm' => __('Publish results for :tournament? Every player who scored points will be notified, and the tournament will be locked.', [
+                    'tournament' => emph($tournament->name),
+                ]),
+                'unpublish_confirm' => __('Unpublish :tournament? The notifications sent to players will be withdrawn.', [
+                    'tournament' => emph($tournament->name),
+                ]),
+                'delete_confirm' => __('Delete :name? Its registrations and every recorded finish go with it. This cannot be undone.', [
+                    'name' => emph($tournament->name),
+                ]),
+            ],
+
+            'can_manage' => $isAdmin,
+
+            // Offered only when it can act, so it is never a click that fails
+            // -- the controller refuses an incomplete field too.
+            'can_publish' => ! $tournament->isPublished() && $isComplete,
+
+            'standings_title' => $standingsTitle,
+            'registrants_label' => number_format($registrantsCount),
+
+            'standings' => $standings->map(function (array $row) use ($tournament, $isAdmin, $nextPlace, $nextPlacePoints, $undoable) {
+                $result = $row['result'];
+
+                return [
+                    // A row comes from a registrant OR from a result with no
+                    // registration behind it -- the results screen makes those
+                    // -- so neither id is on every row. A v-for with a
+                    // duplicate or missing key reorders rows silently.
+                    'key' => $row['registrant'] ? 'r'.$row['registrant']->id : 'x'.$result->id,
+
+                    'name' => $row['name'],
+                    'nickname' => $row['nickname'],
+                    'player_id' => $row['user']?->id,
+                    'initials' => initials($row['name']),
+
+                    'place' => $result?->place,
+                    'points_label' => $result ? number_format($result->points).' '.__('pts') : null,
+
+                    // No timing gate. This once required registration closed,
+                    // on the reasoning that a late entry would change how many
+                    // places there are -- but the shift hook handles exactly
+                    // that.
+                    'can_eliminate' => $isAdmin && ! $result,
+
+                    /*
+                     * Exactly one row ever carries this, and only while the
+                     * results are open.
+                     *
+                     * user_id must be there: results outlive the accounts
+                     * behind them -- nullOnDelete leaves the snapshotted name
+                     * and nothing else -- and the route addresses a player by
+                     * user_id. Such a finish cannot be undone, so it must not
+                     * offer a button that would only be refused.
+                     */
+                    'can_undo' => $isAdmin
+                        && ! $tournament->isPublished()
+                        && $result
+                        && $result->user_id !== null
+                        && $undoable
+                        && $result->is($undoable),
+
+                    // Null on every other row. The place and the points come
+                    // from the finish being given up rather than from the
+                    // structure, because that is what was actually awarded --
+                    // a structure edited since would otherwise quote a figure
+                    // nobody holds.
+                    'undo_confirm' => $result ? __(
+                        'Put :name back in? They give up :place place and :points points, and the place goes back on offer.',
+                        [
+                            'name' => emph($row['name']),
+                            'place' => Number::ordinal($result->place),
+                            'points' => number_format($result->points),
+                        ]
+                    ) : null,
+                    'user_id' => $row['registrant']?->user_id,
+
+                    // The confirmation names the place and the points because
+                    // neither is chosen here -- they fall out of how many
+                    // players are still in, and an administrator should see
+                    // what they are about to award before they award it.
+                    'eliminate_confirm' => __('Eliminate :name? They finish in :place place and are awarded :points points. This records a tournament result.', [
+                        'name' => emph($row['name']),
+                        'place' => Number::ordinal($nextPlace),
+                        'points' => number_format($nextPlacePoints),
+                    ]),
+
+                    // ! $result is load-bearing rather than decoration:
+                    // without it an eliminated player gets their points badge
+                    // AND a remove button the controller then refuses. The
+                    // registrant check stays because the route needs one, and
+                    // a row built from a result alone has none.
+                    'can_remove' => $isAdmin && ! $result && ! $tournament->isPublished() && $row['registrant'],
+                    'registrant_id' => $row['registrant']?->id,
+                    'remove_confirm' => __('Remove :name from :tournament? Any finishes already recorded move up a place and are repriced. An administrator can enter them again until the results are published.', [
+                        'name' => emph($row['name']),
+                        'tournament' => emph($tournament->name),
+                    ]),
+                ];
+            })->values()->all(),
+
+            // Asked the moment the field is settled, and flashed: it appears
+            // once, right after the last elimination, and never again on a
+            // reload.
+            'offer_publish' => (bool) session('offer_publish'),
+            'offer_publish_message' => __('That is the whole field for :tournament. Publish the results now?', [
+                'tournament' => $tournament->name,
+            ]),
+
+            // Publishing is the only thing that locks the field now, so that
+            // is what the note says. It read "Results recorded, entries
+            // locked", which was true when the first elimination closed
+            // removal for the whole field and is false now.
+            'field_locked_note' => $isAdmin && $tournament->isPublished() && $registrantsCount > 0
+                ? __('Results published · field locked')
+                : null,
+
+            // Everyone, not everyone available. The dialog shows a player who
+            // cannot be picked, named and inert, because absence is ambiguous:
+            // an administrator looking for somebody who is not in the list
+            // cannot tell whether they are already entered or simply not
+            // approved, and the first is the common case.
+            'register_candidates' => $registerCandidates->all(),
+
+            // Said inside the dialog, where the administrator is looking: the
+            // page-level alert is behind the backdrop while it is open.
+            'registered_name' => session('registered_name'),
+        ]);
     }
 
     /**
@@ -471,18 +688,63 @@ class PokerTournamentController extends Controller
         return $back;
     }
 
+    /**
+     * Put the most recently eliminated player back in the field.
+     *
+     * One row deleted and nothing else. The lowest place on record is the one
+     * just handed out, so removing it leaves every other finish exactly where
+     * it is and returns `registrants - results` to what it was -- which means
+     * the next eliminate() offers that same place at that same price. There is
+     * no repricing here, and no second arithmetic beside eliminate()'s.
+     */
+    public function uneliminate(PokerTournament $tournament, Request $request): RedirectResponse
+    {
+        $validated = $request->validate(['user_id' => ['required', 'string']]);
+
+        // Published is final, and this is the seventh call site of the one
+        // sentence that says so.
+        if ($refusal = $tournament->publishedRefusal()) {
+            return back()->with('error', $refusal);
+        }
+
+        $last = $tournament->lastEliminated();
+
+        if (! $last) {
+            return back()->with('error', __('Nobody has been eliminated from :tournament yet.', [
+                'tournament' => emph($tournament->name),
+            ]));
+        }
+
+        // The administrator names the player they believe is last, and this
+        // refuses if that is not who it is. Without it, two administrators on
+        // two phones -- or one page left open while the night moved on -- means
+        // deleting a finish nobody was looking at. eliminate() learned the same
+        // lesson from its unique constraint.
+        if ($last->user_id !== $validated['user_id']) {
+            return back()->with('error', __(
+                ':name was not the last player eliminated. Undo the most recent finish first.',
+                ['name' => emph($last->player_name)]
+            ));
+        }
+
+        $place = $last->place;
+        $points = $last->points;
+
+        $last->delete();
+
+        return back()->with('status', __(
+            ':name is back in, and :place place is on offer again. :points points go with it.',
+            [
+                'name' => emph($last->player_name),
+                'place' => Number::ordinal($place),
+                'points' => number_format($points),
+            ]
+        ));
+    }
+
     public function register(PokerTournament $tournament, Request $request): RedirectResponse
     {
         $isAdmin = auth()->user()->is_admin;
-
-        // Registering somebody else means this came from the admin dialog, which
-        // is built to add several players in a row. Every exit below carries the
-        // flag so the dialog reopens on the way back -- including the refusals,
-        // where closing it would hide the list the administrator was working
-        // through behind the message explaining what went wrong.
-        $reopen = fn (RedirectResponse $back) => $isAdmin && $request->has('user_id')
-            ? $back->with('register_open', true)
-            : $back;
 
         // A published tournament is finished. Its players have been told where
         // they came, and a place is a position in a field -- so nothing may
@@ -515,7 +777,7 @@ class PokerTournamentController extends Controller
             $errorMsg = ($targetUserId === auth()->id())
                 ? 'You are already registered for this tournament.'
                 : 'That user is already registered for this tournament.';
-            return $reopen(back()->with('error', $errorMsg));
+            return back()->with('error', $errorMsg);
         }
 
         $user = \App\Models\User::findOrFail($targetUserId);
@@ -529,9 +791,9 @@ class PokerTournamentController extends Controller
         // approval or by email verification, and an unexplained refusal turns
         // support into guesswork.
         if (! $user->isApproved()) {
-            return $reopen(back()->with('error', $targetUserId === auth()->id()
+            return back()->with('error', $targetUserId === auth()->id()
                 ? 'Your account is waiting for approval by a league administrator, so you cannot enter tournaments yet.'
-                : 'That account has not been approved by a league administrator yet.'));
+                : 'That account has not been approved by a league administrator yet.');
         }
 
         $tournament->registrants()->create([
@@ -554,7 +816,7 @@ class PokerTournamentController extends Controller
             $back->with('registered_name', trim($user->first_name.' '.$user->last_name));
         }
 
-        return $reopen($back);
+        return $back;
     }
 
     /**
@@ -595,11 +857,30 @@ class PokerTournamentController extends Controller
     /**
      * Show the form for editing the specified resource.
      */
-    public function edit(PokerTournament $tournament): View
+    public function edit(PokerTournament $tournament): Response
     {
-        $venues = Venue::all();
-        $seasons = PokerSeason::all();
-        return view('poker.tournaments.edit', compact('tournament', 'venues', 'seasons'));
+        return Inertia::render('Poker/Tournaments/Edit', [
+            'tournament' => [
+                'id' => $tournament->id,
+                'name' => $tournament->name,
+                'description' => $tournament->description,
+                'venue_id' => $tournament->venue_id,
+                'season_id' => $tournament->season_id,
+
+                // Y-m-d\TH:i, the only shape an <input type="datetime-local">
+                // will show. The cast Carbon stringifies with a space and
+                // seconds, and the control renders that as blank.
+                'start_time' => $tournament->start_time?->format('Y-m-d\TH:i'),
+            ],
+            'venues' => Venue::all()->map(fn (Venue $venue) => [
+                'id' => $venue->id,
+                'name' => $venue->name,
+            ])->all(),
+            'seasons' => PokerSeason::all()->map(fn (PokerSeason $season) => [
+                'id' => $season->id,
+                'name' => $season->name,
+            ])->all(),
+        ]);
     }
 
     /**

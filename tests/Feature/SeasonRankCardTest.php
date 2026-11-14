@@ -237,6 +237,7 @@ class SeasonRankCardTest extends TestCase
         $this->assertMatchesRegularExpression('/Sharp Player.*Grinder Player/s', $rank);
 
         // And the dashboard says the same of the same player.
-        $this->assertSame(1, $this->actingAs($sharp)->get(route('dashboard'))->assertOk()->viewData('season')['rank']);
+        $this->assertSame('#1', $this->actingAs($sharp)->get(route('dashboard'))
+            ->assertOk()->viewData('page')['props']['season']['rank_label']);
     }
 }

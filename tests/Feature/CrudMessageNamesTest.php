@@ -33,6 +33,36 @@ class CrudMessageNamesTest extends TestCase
         'deleted successfully',
     ];
 
+    /**
+     * Strings that name an entity and are NOT messages.
+     *
+     * The rule is about text a reader is shown as a receipt -- a flash, a
+     * confirmation -- where the name is what tells them which record they just
+     * acted on.
+     *
+     * Four are accessible names: an iframe's title, and the three labels the
+     * season page gives its meters. The fifth is the publish offer's own
+     * question, which the dialog sets in its heading -- the name is the
+     * subject of a sentence there rather than a receipt for something done,
+     * and the Blade it replaces did not mark it either. They are read aloud or shown in a
+     * tooltip rather than displayed as a sentence, and an emph marker in one
+     * is a stray U+2063 a screen reader announces as a character.
+     *
+     * If this list reaches a length nobody wants to read, the rule to replace
+     * it with is structural rather than textual: a __() assigned to a prop key
+     * ending in _label or _title is a name, not a receipt.
+     *
+     * Pinned by the test below so the list cannot grow quietly: an exemption
+     * that is easy to add is a rule that stops meaning anything.
+     */
+    private const NOT_A_MESSAGE = [
+        'Map of :venue',
+        'Points for :name',
+        'points per event, for :name',
+        'Tournaments at :venue',
+        'That is the whole field for :tournament',
+    ];
+
     /** @return array<int, string> every controller file, keyed by nothing */
     private function controllers(): array
     {
@@ -104,6 +134,12 @@ class CrudMessageNamesTest extends TestCase
             );
 
             foreach ($calls as $call) {
+                foreach (self::NOT_A_MESSAGE as $exempt) {
+                    if (str_contains($call['msg'], $exempt)) {
+                        continue 2;
+                    }
+                }
+
                 foreach ($keys as $key) {
                     if (! str_contains($call['msg'], ':'.$key)) {
                         continue;
@@ -134,5 +170,19 @@ class CrudMessageNamesTest extends TestCase
             ['An entity name reaches a message unmarked, so it will not be set apart:'],
             $offenders
         )));
+    }
+
+    public function test_the_exemption_covers_only_accessible_names(): void
+    {
+        // The same pinning InlineStyleGuardTest gives its one exception.
+        // Widening this should be a deliberate edit to a test rather than a
+        // line in a diff nobody reads.
+        $this->assertSame([
+            'Map of :venue',
+            'Points for :name',
+            'points per event, for :name',
+            'Tournaments at :venue',
+            'That is the whole field for :tournament',
+        ], self::NOT_A_MESSAGE);
     }
 }

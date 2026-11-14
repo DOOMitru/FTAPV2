@@ -1,20 +1,119 @@
 # Resume here
 
-**Last worked: 2026-09-17.** First to Act Poker — a league app for free-to-play
+**Last worked: 2026-11-14.** First to Act Poker — a league app for free-to-play
 poker nights in Regina.
+
+**2026-11-14: the upgrade backlog is cleared.**
+`docs/superpowers/plans/2026-11-14-local-tooling-and-majors.md` is done except
+two items blocked upstream: TypeScript 7 (until `vue-tsc` runs on the native
+compiler) and lifting the `vue-tsc` pin (until a release after 3.3.14). The
+local "PHP segfault" is very probably a degraded CPU core -- see the segfault
+section -- so **pin heavy local runs off cores 10-11**
+(`taskset -c 0-9,12-31 …`) until the hardware is dealt with.
 
 ## Where things stand
 
-Suite: **962 passed across 112 files**, on Laravel 13.32.0 and PHPUnit 12. `php artisan test` is the command, but
-see the segfault note below -- a full-suite run dies on this machine and has to
-be taken file by file, and the script there is how that 962 was counted. Do not
-count it by hand: the previous figure in this line went stale, and so did the
-loop that produced it.
+Suite: **1022 passed across 119 files**, on Laravel 13.42.0 and PHPUnit 13.4.7,
+counted 2026-11-14. `php artisan test` is the command, but see the segfault note
+below -- a full-suite run dies on this machine and has to be taken file by file,
+which is what `bin/suite.sh` does.
+
+**The script reports FILES, not tests** -- `ran 118 of 118 files, 0 failing`.
+The test figure above is the sum of each file's `Tests:` line over the same
+`find tests -name '*Test.php' | sort` list the script derives, with the same one
+retry on a crash. This line used to claim `bin/suite.sh` produced it, which it
+never did. Do not count it by hand: the previous figure went stale, and so did
+the loop that produced it.
+
+**`bin/sweep.sh` is the other half, added 2026-09-21.** It visits every GET
+route in a real browser as admin, player and guest -- 141 pages -- and asks what
+no server-side assertion can: did the Inertia page mount, did anything throw,
+are there nested anchors or duplicate ids, does the page scroll sideways, is the
+shell's furniture there. It builds its own SQLite database, serves the app
+against it on its own port, and signs in through the real login form, so nothing
+in the working tree is touched. Run it before deploying; it is not in CI.
+
+**It has been run against a committed tree once, 2026-11-13: 141 pages across
+three roles, 47 routes each, no findings.** That is the baseline -- a finding
+on a later run is a change you made, not the harness warming up.
+
+It replaces `~/ftap-shots/sweep.py`, which patched three layout files and
+appended temporary routes to `routes/web.php`. That broke when
+`layouts/app.blade.php` was deleted, and it is how probe instrumentation once
+reached a commit.
+
+**The Inertia + Vue conversion is DONE, 2026-09-20.** The view layer behind
+login is Inertia with Vue 3 and TypeScript: 33 page components and 28 shared
+components under `resources/js`. All 29 authenticated routes converted; the 18
+public ones are Blade and are STAYING, because Inertia SSR needs a persistent
+Node process and DreamHost shared hosting cannot run one, and because
+`/register` carries the reCAPTCHA gate that is verified end to end. Two Vite
+entries keep Vue out of the public pages' bundle -- `app.ts` is ~57 kB and
+`inertia-app.ts` ~310 kB (Vite 8, 2026-11-14), and a single entry would have
+put the second on the landing page.
+
+Read `docs/superpowers/specs/2026-09-19-inertia-vue-conversion-design.md`
+first. Its §1 and §6 carry amendments recording where it was wrong. The six
+plans beside it -- `-foundation`, `-components`, `-index-pages`, `-forms`,
+`-detail-pages`, `-large-pages` -- are all complete and are worth reading in
+order if you need to know why a page is shaped the way it is.
+
+**What still renders Blade**, and what each is: `home`, `events`, `about`,
+`contact`, four `rules/*` pages, and the four public auth screens. Plus
+`layouts/public`, `layouts/guest`, the 27 `components/*.blade.php` that survive,
+and the mail templates. Eighteen of those components exist TWICE -- a Blade
+half for the public pages and a Vue half for the app -- and
+`ComponentParityTest` discovers each pair by name and holds the two to the same
+class hooks. That is not temporary; it is the shape of the app now.
+
+**The Blade dashboard shell is gone, 2026-09-20.** `layouts/app`,
+`layouts/navigation`, `App\View\Components\AppLayout` and the View Composer that
+fed the navigation are deleted, along with eight components nothing called any
+more: `input-error`, `meter`, `page-header`, `season-panel`, `stat`,
+`notification-card`, `action` and `modal`. `UnusedCssClassTest` stayed green
+through it, which is `ComponentParityTest` paying for itself -- every class the
+dead half used, its Vue twin already used, so nothing was orphaned.
+
+**Alpine stays too**, for `topbar` and `dropdown`, which the public pages
+render. So do `MarkupBalanceTest` and `AlpineAttributeGuardTest`, which the spec
+predicted would retire. `confirm.ts` still serves the Blade half; the Vue half
+uses the `useConfirm` composable.
+
+**The flash is a toast, 2026-09-21.** Both shells own it -- `AppLayout` and
+`GuestLayout` hang `FlashToasts.vue`, and `layouts/public.blade.php` renders
+`<x-toast>` server-side -- so no page draws a flash of its own on either half.
+A toast is AN ALERT IN A DIFFERENT PLACE: `_alert.css` still owns the variant
+colours, the live-region role and the emphasis markers, and `_toast.css` owns
+only position and elevation. `Toast.vue` and `toast.blade.php` are the
+eighteenth duplicated pair. Success dismisses itself after 5s; a danger toast
+waits to be read, because a refusal is the message a timer is most likely to
+take away. `x-auth-session-status` had no caller left and is deleted.
+
+Two alerts stay inline, deliberately: `Users/Index` and `Users/Show` print an
+invite or verification URL beside theirs, and a toast that slides away takes
+the link with it.
+
+**The flash moved into `AppLayout` first, 2026-09-20**, and the two loose ends
+the conversion left are both closed. No controller flashes a sentinel any more:
+`ProfileController` and `Auth\PasswordController` flash NOTHING -- each only
+ever told one of the three forms on the profile page that it had saved, and
+`useForm`'s `recentlySuccessful` says that per-form -- and
+`Auth\EmailVerificationNotificationController` flashes the sentence itself,
+because it has to reach two screens. Eleven pages lost their own copy of the
+alert. Registering and unregistering from the dashboard now say so, and so does
+a refusal; all of it was verified in a browser, since no server-side assertion
+can see a rendered banner.
+
+One page holds the shell's flash back: `Poker/Tournaments/Show` passes
+`:show-flash="! dialogOpen"`, because its register dialog is modal and a banner
+behind it is announced to somebody who can neither see nor reach it.
+`Auth/VerifyEmail` draws its own, because it wears `GuestLayout`.
 
 **The design-system work is finished and is no longer what this project is
 about.** Phases 0-5 moved all 86 views off Tailwind onto hand-built CSS
-(`docs/PHASE-5-EXIT-AUDIT.md`); the red-and-black refresh then moved the app onto
-the logo's palette (`docs/RED-BLACK-EXIT-AUDIT.md`). Colour is enforced rather
+and the red-and-black refresh then moved the app onto the logo's palette; what
+still binds from both is under **Carried over from the phase audits** below.
+Colour is enforced rather
 than asserted: `TokenContrastTest` parses the real token file and fails the suite
 on any pair below AA. Everything since has been features and defect work on top
 of that foundation.
@@ -152,8 +251,10 @@ conversion** below; what follows immediately is only what is still open.
    was never public. The four `<select>` forms are the only sites left, and an
    `<option>` cannot hold markup, so they are not deferred -- they are out of
    reach. Recorded in the test rather than here.
-6. `docs/` holds six audit documents from finished phases. Their open-items
-   sections are largely resolved; treat this file as the index, not them.
+6. ~~`docs/` holds six audit documents from finished phases.~~ **DONE,
+   2026-11-13.** Every open item in them was resolved; what still binds was
+   moved under **Carried over from the phase audits**, and the files were
+   deleted. This file is the one index.
 
 7. ~~Upgrade to Laravel 13.~~ **DONE, 2026-09-19.** On 13.32.0. It was three
    constraints in the end, not the five this entry predicted:
@@ -205,6 +306,37 @@ The severity tiering is done in the script rather than by
 passed. Do not simplify it back to the flag without checking the flag has
 started working. Verified both ways: the lock from before the update fails it,
 naming 13; the lock after it passes.
+
+**It caught the same drift again, 2026-11-13** -- eight weeks after the last
+update, seven blocking advisories: a high in `league/commonmark` and six of
+unknown severity across `symfony/http-foundation`, `http-kernel` and `routing`.
+The next deploy would have been refused. `composer update` inside the existing
+constraints cleared them all (Laravel 13.32.0 → 13.42.0, 61 packages; note
+`brick/math` 0.19 → 1.0.0 arrived transitively and nothing noticed), and
+`npm update` moved the front end within its ranges. **Update monthly rather
+than when the audit forces it.**
+
+**Vite 8 minifies CSS with Lightning CSS, 2026-11-14** (with
+`laravel-vite-plugin` 3; neither needed a config change). The built CSS was
+compared against Vite 7's rule by rule: same selectors, custom properties and
+declarations, with four rewrites. Three are equivalent -- `:is()` merging,
+`inset-inline` shorthand, the `-moz-user-select` prefix dropped -- and the
+`--lightningcss-light/-dark` variables it adds beside every `color-scheme`
+are inert here, since nothing uses `light-dark()`; the theme toggle's three
+blocks are intact. **The fourth moves the browser floor: media queries are
+emitted in range syntax, `(width<=48rem)`**, which Safari/iOS before 16.4
+ignores -- every responsive rule would vanish there, not degrade. The app
+already needed iOS 15.4 for `:has()`. To restore the old syntax, set
+`build.cssTarget` below `safari16.4`; decided against for now.
+
+**`vue-tsc` is pinned exactly at `3.3.11`.** 3.3.14 reports seven false
+`Property 'value' does not exist on type 'InertiaForm<…>'` errors in
+`Sponsors/Partials/SponsorForm.vue` and nowhere else, on code that is unchanged
+and clean under 3.3.11 -- bisected to vue-tsc alone, not Vue or Inertia. Not
+the native `<select v-model>`, the `v-if`, the file input's event or its `id`;
+the cause was not found. It is a check-only dev tool, so the pin ships nothing.
+To lift it: `npm install -D vue-tsc@latest`, run `npm run typecheck`, and drop
+the pin if SponsorForm is clean.
 Nothing else is known-broken. There are no TODO, FIXME or HACK markers anywhere
 in `app/`, `routes/` or `resources/` -- re-checked 2026-09-17. Three checks gate
 a release: `bin/audit.sh` before the suite, and `mail:check` and
@@ -276,7 +408,7 @@ been running fine for weeks:
   took an hour to clear. Every ssh call in the workflow names its key and only
   its key.
 
-## PHP 8.5.4 segfaults on a full-suite run (2026-09-08, unresolved)
+## PHP 8.5.4 segfaults on a suite run (2026-09-08, unresolved)
 
 `./vendor/bin/phpunit` with no arguments dies with **exit 139, SIGSEGV**, most
 runs, at a different point each time -- sometimes 24 tests in, sometimes 567 of
@@ -288,6 +420,62 @@ runs, at a different point each time -- sometimes 24 tests in, sometimes 567 of
   row on its own.
 - Not memory (55GB free), not disk, not opcache (off for CLI), not JIT
   (disabled), and **not PCRE JIT** -- `-d pcre.jit=0` still segfaults.
+
+**It reaches SINGLE-FILE runs too, 2026-11-13**, which this section used to say
+was the safe ground. `bin/suite.sh` reported two of 118 files crashed;
+`PointsStructureAdminTest` on its own died at **exit 139** partway through its
+dots and then passed three times in a row, and `AdminRegisterDialogTest` passed
+first try. The script already retries a crashed file once, and both retries hit
+it. So `ran N of N, 0 failing` is not guaranteed on this machine: a `FAIL` with
+**no summary line (crashed)** is a file to run by hand before believing it, and
+only a real summary line naming a failure is a real failure.
+
+A second full pass an hour later crashed nothing at all -- 118 of 118, 1007
+tests, no retries needed. That is the shape of it: intermittent, and capable of
+sitting out an entire run.
+
+**It reaches the browser sweep as well, 2026-11-13.** `bin/sweep.sh` looked
+flaky -- failing on a first run and passing on the next. Ten instrumented runs
+failed three times, every one `Segmentation fault` in `php artisan tinker`
+while seeding; the old script ignored tinker's exit status, so a crash printed
+"Seeding failed:" over an empty log. The sweep now retries a database step
+that dies of a signal (exit 128+), up to three times and from an empty
+database each time, and fails at once on an ordinary error. Ten runs after:
+one recovered from two crashes in a row and swept clean.
+
+One rarer failure remains unexplained: **"Server never came up"**, once in
+twenty runs, with an empty `serve.log`. Probably the same crash taking down
+`artisan serve` as it starts, but not shown. Re-running gets past it. To chase
+it, make that message report whether the server process is alive and its exit
+status before guessing.
+
+**It is very probably the CPU, not PHP, 2026-11-14.** PHP is now 8.5.12
+(sury PPA, built 2026-11-11). Three bare full `./vendor/bin/phpunit` runs passed
+clean (1022 tests, ~9.5s each) where most bare runs used to crash -- but ten
+`bin/sweep.sh` runs still failed twice, and the two crashes are the evidence:
+
+- Run 7: **`vite build` -- Node, not PHP -- died of SIGSEGV.** Two unrelated
+  runtimes crashing points below both of them.
+- Run 9: **`php artisan serve` died of SIGSEGV as it started**, which is what
+  "Server never came up" was. The kernel log shows the instruction pointer
+  equal to the fault address, on the stack -- execution jumped somewhere
+  nonsensical.
+- **The crashes cluster on one physical core.** Of 30 kernel segfault lines in
+  30 days, 26 are on CPU 10 (core 20, hyperthread pair 10-11), 4 on CPU 8.
+  Software bugs do not care which core they run on.
+- The machine is an **Intel Core i9-14900K**, the generation with the known
+  Vmin-shift degradation. Microcode is already 0x133 (post-fix), but that fix
+  stops the damage; it does not undo damage already done. `coredumpctl` also
+  holds crashes from systemd, kmod, apparmor_parser and plasmashell.
+
+**Pinned off cores 10-11, the sweep went 10 of 10 clean**
+(`taskset -c 0-9,12-31 bin/sweep.sh`, 2026-11-14) -- no crash lines, no core
+dumps, nothing in the kernel log, against 8 of 10 unpinned an hour earlier.
+Suggestive rather than proof: at the unpinned rate a clean ten happens by
+chance about one time in nine. Still to do: check the BIOS for Intel's default power profile;
+and if confirmed, Intel's warranty covers this. **Keep `bin/suite.sh`'s
+per-file workaround and the sweep's retry** until the hardware question is
+settled -- a faster PHP made the bare suite pass, but did not fix the machine.
 
 **Work around it with `bin/suite.sh`**, which runs one file at a time:
 
@@ -357,10 +545,13 @@ the dump uses the clamped viewport too.
 - **No inline CSS, anywhere.** The only permitted `style` attribute is one setting only
   custom properties (`style="--meter-fill: 86%"`). Enforced by `InlineStyleGuardTest`,
   which also rejects `<style>` blocks. There is likewise no inline JavaScript left.
-- **The app has no browser-based tests** — the owner declined Laravel Dusk. Alpine
-  dropdowns, the modal focus trap, the theme toggle and responsive breakpoints are verified
-  by hand. Headless Chromium was used throughout for screenshots and computed-style
-  measurement, but it cannot drive Alpine's `x-show`.
+- **The app has no browser-based tests IN THE SUITE** — the owner declined Laravel Dusk,
+  and `bin/sweep.sh` is a pre-deploy pass rather than a test: it is not in `phpunit.xml`
+  and not in CI. Alpine dropdowns, the modal focus trap and the theme toggle are still
+  verified by hand. Headless Chromium over CDP is what the sweep drives, and what to
+  reach for when a behaviour is invisible to PHPUnit — a toast's five-second timer, a
+  form's "Saved." indicator, whether a component remounts. Several defects this year were
+  found that way and by nothing else.
 - **Screenshots of dumped HTML render in the WRONG FONT unless you fix the font URLs.**
   The faces are self-hosted at the root-relative `/fonts/archivo.woff2`, which a
   `file://` page resolves to a path that does not exist — so the page silently falls back
@@ -405,8 +596,18 @@ it is a deliberate edit rather than a line in a diff nobody reads.
 The Blade-artifact detector was proven to fire by injecting a literal `@if` into a view
 and confirming the sweeps failed. It is not an assumption.
 
-Five more guards were added as the conversion went on; all eight are listed in
-`docs/PHASE-5-EXIT-AUDIT.md`.
+More were added as the conversion went on, and they are why it cannot quietly
+regress:
+
+| Test | What it guards |
+|---|---|
+| `ConvertedViewsTest` | Tailwind returning to any view. Its allowlist is empty. |
+| `ModifierClassGuardTest` | A layout modifier used without its base class, which silently does nothing. |
+| `PublicRegisterTest` | Gradient and elevation tokens outside the public register, and raw `box-shadow` in the app shell. |
+| `InlineStyleGuardTest` | Inline CSS: `style` attributes and `<style>` blocks. |
+| `TokenContrastTest` | Parses the real token file and asserts every text pair meets AA, plus hairline floors. Proven to bite by substituting the logo red `#EF4537` into the light theme, which failed exactly the two pairs it should. |
+
+**A guard nobody has watched fail is an assumption.**
 
 ## Deferred minor findings from Phase 0 — CLEARED, 2026-09-13
 
@@ -651,6 +852,38 @@ looking rather than by running the suite.
 The first two share `Tests\Concerns\RendersEveryPage`, which carries the
 requirement both depend on: the fixture's tournament must be PAST and scored, or
 the events page renders no archive and passes a check it never ran.
+
+### The guards learned about Vue (2026-09-20)
+
+Ten guards swept `resources/views` for `*.blade.php` and nothing else, which
+meant their coverage shrank with every page converted -- passing more easily
+each time. They read `.vue` too now, through `Tests\Concerns\ScansTemplates`,
+which yields every template keyed by a path relative to `resources/` so a
+failure says which half it is in.
+
+Nothing had slipped through yet. What the change turned up was subtler, and
+came from mutating the dead-CSS guard rather than running it: **a class named
+in a COMMENT counted as used.** `venues-table` is discussed in a comment
+directly above the element that uses it, so deleting the class from that
+element left the guard silent. It strips comments first now -- block comments
+in all three languages, and line comments only where one starts a line, since a
+mid-line `//` is usually the middle of a URL. Both halves are mutation-proven:
+removing a Vue-only class and a Blade-only class each fail it.
+
+Three re-pointings worth knowing about:
+
+- `UnusedCssClassTest` reads `.vue` as well as `.ts` under `resources/js`, and
+  its composed-modifier rule now recognises a template literal --
+  `` `badge--${variant}` `` is the same thing as `'badge badge--'.$variant`.
+- `PlayerLinkCoverageTest` and `MonogramCoverageTest` name screens, not files.
+  An entry moves from `views/` to `js/Pages/` the day its page converts, and
+  both accept either spelling of their component.
+- `FlashMessageParityTest` was rewritten. It used to pair a converted page with
+  the Blade view it replaced; that premise expired the moment converted views
+  started being deleted. It reads the CONTROLLERS now: a redirect carrying
+  `->with('status')` names the route it lands on, and the page that route
+  renders must read the flash. Which is a better question anyway -- it asks
+  what the app sends rather than what the old template happened to draw.
 
 ### Players can read the league's records (2026-09-08)
 
@@ -977,6 +1210,76 @@ Plan: `docs/superpowers/plans/2026-09-06-player-notifications.md`.
 - **Public form actions share `.p-form-actions`** -- full width on a phone,
   label-width and flush right above 40rem. `btn--block` survives on the sign-in
   button alone, where a full-width primary in a 38rem column is right.
+- **An administrator can undo the last elimination, and only the last** (2026-11-13).
+  `DELETE poker/tournaments/{tournament}/eliminate`, the same URI-pair shape as
+  publish/unpublish. The most recent elimination is the result holding the
+  **lowest place**, not the newest row: places are handed out from the bottom up,
+  and a late registration shifts and reprices every recorded place without
+  touching a timestamp. `PokerTournament::lastEliminated()` is the one way to
+  ask. The request names the player the page believes is last, and the server
+  refuses if that is not who it is, so two administrators, or one stale page,
+  cannot delete a finish nobody was looking at. A result with no `user_id` is
+  never offered undo, because the route cannot address it. Undo stops at
+  publish, through `publishedRefusal()`. Nothing is repriced: deleting the lowest
+  place returns `registrants - results` to what it was, so the next
+  `eliminate()` hands out the same place at the same price.
+
+### Carried over from the phase audits (2026-11-13)
+
+Six exit audits used to sit in `docs/` -- Phase 0, Phase 1, Phase 5, red and
+black, player approval, sponsor management. Every open item in them had since
+been resolved, so they were deleted; git history holds them. What follows is
+what in them still binds. Their other decisions were superseded -- notably
+"rejection keeps the account", reversed for pending accounts on 2026-09-15.
+
+**Colour and motif**
+
+- **A filled red button always means "go."** Destructive controls rest neutral
+  and commit to red on hover -- `.btn--danger` and `.link--danger` alike.
+- **Red is the brand; green is "open"; medals are discs.** `--c-open` carries
+  state so the brand colour does not have to. Gold, silver and bronze, not a
+  podium painted one colour.
+- **Motif must do a job.** Suits mark hero eyebrows and watermark hero bands.
+  They do not appear beside table rows: there is no tournament-type column, so
+  one there would imply a category that does not exist.
+- **Claim nothing the page cannot show.** No registration window or location is
+  stated anywhere the data does not back it.
+
+**Invitations**
+
+- **The invite is a password-reset link**, not a new mechanism. The framework
+  already issues signed, expiring, single-use tokens.
+- **The invite action is offered unconditionally.** Whether an account has ever
+  set a password is not knowable: every account has a hash, and the random one a
+  new player starts with is indistinguishable from a chosen one.
+
+**Sponsors**
+
+- **`tier` is a string, not `is_premium`.** A boolean cannot grow a third tier.
+- **`Sponsor::ordered()` is the only expression of display order.** The admin
+  list and the home page's wall both call it, so what an administrator arranges
+  is what the page renders; `sort_order` exists so moving a sponsor does not
+  mean deleting it and re-uploading the logo.
+- **The old logo is deleted after the replacement is stored.** The other order
+  leaves a sponsor with no logo if the upload fails.
+- **`object-fit: contain`, never `cover`.** Do not crop a paying sponsor's mark.
+- **The logo plate is a fixed white, not themed.** A dark transparent logo on a
+  dark surface is an empty rectangle -- the one case where the theme must not win.
+- **The card is a link only when there is a website**, and **`alt` carries the
+  sponsor name**, because the logo is the content, not decoration.
+- **SVG uploads are accepted** because only administrators upload. If that ever
+  changes, drop the format or serve uploads from another domain; the reason is
+  recorded in `SponsorController`.
+
+**Two lessons the conversion kept teaching**
+
+- **Computed-style checks pass while a page looks wrong.** Removing Tailwind
+  reverted `box-sizing` to `content-box` across the whole app and 108 tests
+  stayed green. Look at the page; the suite tells you it responded, not that it
+  works.
+- **A value escaped for HTML is not escaped for JavaScript.** Both stored-XSS
+  defects found during the conversion were a player-supplied name crossing from
+  an HTML context into a JS one, where Blade's escaping no longer applies.
 
 ## Four defects found in the plan itself during Phase 0
 

@@ -282,17 +282,23 @@ class SponsorTest extends TestCase
             'website_url' => 'https://linked.example',
         ]);
 
-        $response = $this->actingAs($this->admin())->get(route('sponsors.index'))->assertOk();
+        // The URL travels as a prop; the markup that wraps it is in the page.
+        $props = $this->actingAs($this->admin())->get(route('sponsors.index'))
+            ->assertOk()->viewData('page')['props'];
 
-        $response->assertSee('sponsor-thumb-link', false);
-        $response->assertSee('href="https://linked.example"', false);
-        // The address, under the name, as stored.
-        $response->assertSee('https://linked.example');
+        // The address, as stored -- not a prettied host. This is the screen an
+        // administrator checks the setting on.
+        $this->assertSame('https://linked.example', $props['sponsors'][0]['website_url']);
+
+        $page = file_get_contents(resource_path('js/Pages/Sponsors/Index.vue'));
+
+        $this->assertStringContainsString('sponsor-thumb-link', $page);
+        $this->assertStringContainsString(':href="sponsor.website_url"', $page);
 
         // Both columns are gone: their headers and the old link's text.
-        $response->assertDontSee('>Website<', false);
-        $response->assertDontSee('>Order<', false);
-        $response->assertDontSee('>Visit<', false);
+        $this->assertStringNotContainsString('>Website<', $page);
+        $this->assertStringNotContainsString('>Order<', $page);
+        $this->assertStringNotContainsString('>Visit<', $page);
     }
 
     public function test_the_admin_table_leaves_a_logo_unlinked_without_a_website(): void
@@ -318,10 +324,24 @@ class SponsorTest extends TestCase
         ]);
         Sponsor::create(['name' => 'Empty Alt', 'logo_path' => 'sponsor-logos/b.png']);
 
-        $response = $this->actingAs($this->admin())->get(route('sponsors.index'))->assertOk();
+        $this->actingAs($this->admin())->get(route('sponsors.index'))->assertOk();
 
-        $response->assertSee('alt="Named Alt"', false);
-        $response->assertDontSee('alt="Empty Alt"', false);
-        $response->assertSee('alt=""', false);
+        // The alt is bound, so it cannot be read off a rendered page any more.
+        // What can be read is that the two branches differ the way the rule
+        // requires: the linked logo is named after the sponsor, the unlinked
+        // one is empty.
+        $page = file_get_contents(resource_path('js/Pages/Sponsors/Index.vue'));
+
+        $this->assertMatchesRegularExpression(
+            '/sponsor-thumb-link.*?:alt="sponsor\.name"/s',
+            $page,
+            'The linked logo must be named after the sponsor -- it is the link\'s accessible name.'
+        );
+
+        $this->assertMatchesRegularExpression(
+            '/v-else[^>]*class="sponsor-thumb"[^>]*alt=""/s',
+            $page,
+            'The unlinked logo must be decorative; the name is in the very next cell.'
+        );
     }
 }

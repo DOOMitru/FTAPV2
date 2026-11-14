@@ -81,6 +81,23 @@ class PokerTournament extends Model
     }
 
     /**
+     * The finish that can be taken back, or null when nobody is out yet.
+     *
+     * The LOWEST place on record, not the newest row. Places are handed out
+     * from the bottom up -- first out of ten finishes tenth -- so the player
+     * eliminated most recently always holds the smallest number.
+     *
+     * created_at would be wrong, and not only in theory: registering a late
+     * entry shifts every recorded place down and reprices it, moving finishes
+     * without touching their timestamps. Place is what eliminate() counts
+     * down, so place is the authority on which finish is the last one.
+     */
+    public function lastEliminated(): ?PokerTournamentResult
+    {
+        return $this->results()->orderBy('place')->first();
+    }
+
+    /**
      * The podium, but only the places that are actually settled.
      *
      * Places are handed out from the bottom of the field up, so the lowest

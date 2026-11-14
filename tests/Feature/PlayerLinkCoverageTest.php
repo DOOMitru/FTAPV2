@@ -2,7 +2,7 @@
 
 namespace Tests\Feature;
 
-use Symfony\Component\Finder\Finder;
+use Tests\Concerns\ScansTemplates;
 use Tests\TestCase;
 
 /**
@@ -20,14 +20,23 @@ use Tests\TestCase;
  */
 class PlayerLinkCoverageTest extends TestCase
 {
-    /** @var array<string, string> view => the list it draws */
+    use ScansTemplates;
+
+    /**
+     * Paths are relative to `resources/`, so each says which half it is in.
+     * An entry moves from `views/` to `js/Pages/` the day its page converts;
+     * the list is the same list either way, because the rule is about screens
+     * rather than about file extensions.
+     *
+     * @var array<string, string> template => the list it draws
+     */
     private const LINKED = [
-        'poker/seasons/show.blade.php' => 'the season standings',
-        'poker/tournaments/show.blade.php' => 'the registered players panel',
-        'poker/venues/show.blade.php' => 'the venue leaderboard',
-        'rules/points-structure.blade.php' => 'Current Season Leaders',
-        'home.blade.php' => 'the landing page leader cards',
-        'users/index.blade.php' => 'the admin players list, both tables',
+        'js/Pages/Poker/Seasons/Show.vue' => 'the season standings',
+        'js/Pages/Poker/Tournaments/Show.vue' => 'the registered players panel',
+        'js/Pages/Poker/Venues/Show.vue' => 'the venue leaderboard',
+        'views/rules/points-structure.blade.php' => 'Current Season Leaders',
+        'views/home.blade.php' => 'the landing page leader cards',
+        'js/Pages/Users/Index.vue' => 'the admin players list, both tables',
     ];
 
     /**
@@ -38,7 +47,7 @@ class PlayerLinkCoverageTest extends TestCase
      * shrank on purpose.
      */
     private const NOT_LINKED = [
-        'events.blade.php' => 'the archive podium — the card is itself one big <a> to the tournament, '
+        'views/events.blade.php' => 'the archive podium — the card is itself one big <a> to the tournament, '
             .'and an <a> may not contain an <a>. A link here is not a worse link, it is a card the '
             .'browser takes apart: it closes the outer anchor and spills the podium and the foot into '
             .'the grid as separate cells. NestedAnchorTest holds that. Nothing is lost -- the card '
@@ -97,9 +106,12 @@ class PlayerLinkCoverageTest extends TestCase
      */
     private function usesTheComponent(string $view): bool
     {
+        // Either spelling of the same component: <x-player-link> in Blade,
+        // <PlayerLink> in Vue. ComponentParityTest is what keeps the two from
+        // drifting apart.
         return (bool) preg_match(
-            '/<x-player-link(?![\w-])/',
-            (string) file_get_contents(resource_path('views/'.$view))
+            '/<x-player-link(?![\w-])|<PlayerLink(?![\w-])/',
+            (string) file_get_contents(resource_path($view))
         );
     }
 
@@ -110,20 +122,22 @@ class PlayerLinkCoverageTest extends TestCase
         // the account still exists, and the one place that does check is the
         // component.
         $offenders = [];
-        $root = resource_path('views').DIRECTORY_SEPARATOR;
 
-        foreach (Finder::create()->files()->in(resource_path('views'))->name('*.blade.php') as $file) {
-            if ($file->getFilename() === 'player-link.blade.php') {
+        foreach ($this->templates() as $relative => $source) {
+            if (in_array($relative, ['views/components/player-link.blade.php', 'js/Components/PlayerLink.vue'], true)) {
                 continue;
             }
 
-            if (str_contains($file->getContents(), "route('players.show'")) {
-                $offenders[] = str_replace($root, '', $file->getRealPath());
+            // route('players.show', ...) in Blade; a hand-built /players/ path
+            // in Vue, where there is no route helper to reach for and the URL
+            // is written out.
+            if (str_contains($source, "route('players.show'") || str_contains($source, '/players/')) {
+                $offenders[] = $relative;
             }
         }
 
         $this->assertSame([], $offenders, implode("\n  ", array_merge(
-            ['A view builds a player link itself instead of using <x-player-link>:'], $offenders
+            ['A template builds a player link itself instead of using the component:'], $offenders
         )));
     }
 

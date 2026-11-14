@@ -139,6 +139,17 @@ jobs:
         # on anything real.
         run: npm run build
 
+      # Vite strips types with esbuild without checking them, so a green build
+      # says nothing at all about types. Once per run rather than once per
+      # database leg -- the check does not touch the database.
+      #
+      # It earned its place immediately: switching it on surfaced a type error
+      # that had been sitting in app.ts, where alpinejs resolves with no
+      # declarations.
+      - name: Type-check
+        if: matrix.database == 'sqlite'
+        run: npm run typecheck
+
       - name: Run the test suite
         # phpunit.xml pins DB_CONNECTION to sqlite, but PHPUnit does not
         # overwrite a variable already present in the environment, so setting it

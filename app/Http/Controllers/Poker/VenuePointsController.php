@@ -9,27 +9,72 @@ use App\Models\VenuePoints;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
-use Illuminate\View\View;
+use Inertia\Inertia;
+use Inertia\Response;
 
 class VenuePointsController extends Controller
 {
     /**
      * Show the form for creating a new resource.
      */
-    public function create(Request $request): View
+    public function create(Request $request): Response
     {
-        return view('poker.venue-points.create', [
+        // Handed back by store() so the next entry for the same sitting starts
+        // where the last one left off. In the query string rather than the
+        // session: it survives a refresh, and a link to "tonight at the
+        // Diamond Club" is a useful thing to be able to keep.
+        $venueId = $request->query('venue_id');
+        $eventDate = $request->query('event_date');
+
+        return Inertia::render('Poker/VenuePoints/Create', [
+            'venues' => Venue::orderBy('name')->get()->map(fn (Venue $venue) => [
+                'id' => $venue->id,
+                'name' => $venue->name,
+            ])->all(),
+
+            'venue_id' => $venueId,
+            'event_date' => $eventDate,
+
+            // A return trip. The sitting came back in the query string, so the
+            // venue and the date are already answered and the only thing left
+            // to do is name the next player -- which is where the caret should
+            // be, rather than on a venue select that is going to be tabbed
+            // straight past a dozen times a night.
+            'returning' => filled($venueId) && filled($eventDate),
+
             // Ordered, because this is a list somebody reads and searches
             // rather than a set of options a machine picks from.
-            'users' => User::orderBy('first_name')->orderBy('last_name')->get(),
-            'venues' => Venue::orderBy('name')->get(),
+            'players' => User::orderBy('first_name')->orderBy('last_name')->get()
+                ->map(fn (User $user) => [
+                    'id' => $user->id,
 
-            // Handed back by store() so the next entry for the same sitting
-            // starts where the last one left off. In the query string rather
-            // than the session: it survives a refresh, and a link to "tonight
-            // at the Diamond Club" is a useful thing to be able to keep.
-            'venueId' => $request->query('venue_id'),
-            'eventDate' => $request->query('event_date'),
+                    // What gets POSTed as user_name, and what the chosen row
+                    // shows: "First Last", nothing else. It is stored beside
+                    // user_id so a record still says who it was for after an
+                    // account is gone.
+                    'name' => trim($user->first_name.' '.$user->last_name),
+
+                    // What the row reads, nickname included. Composed here
+                    // rather than in the template: where the brackets go is a
+                    // wording decision (spec 5a).
+                    'label' => trim($user->first_name.' '.$user->last_name)
+                        .(filled($user->nickname) ? ' ('.$user->nickname.')' : ''),
+
+                    'email' => $user->email,
+
+                    // initials() is one definition, in PHP. The register
+                    // dialog builds its player list in the browser from
+                    // letters PHP computed, for the same reason.
+                    'initials' => initials(trim($user->first_name.' '.$user->last_name)),
+
+                    // One lowercase haystack per row, built once here rather
+                    // than in the filter: the search has to cover name,
+                    // nickname and email, and doing that in the expression
+                    // would repeat four fields in two places.
+                    'search' => mb_strtolower(trim(
+                        $user->first_name.' '.$user->last_name.' '.$user->nickname.' '.$user->email
+                    )),
+                ])->all(),
         ]);
     }
 

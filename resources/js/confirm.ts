@@ -24,6 +24,8 @@
  * below.
  */
 
+import { emphParts, withoutEmph } from './emph';
+
 /**
  * Forms whose confirmation has been answered yes and which are being submitted
  * again because of it.
@@ -35,12 +37,6 @@
 const approved = new WeakSet<HTMLFormElement>();
 
 /**
- * The marker an entity's name is wrapped in. Must match EMPH in
- * app/Support/helpers.php -- U+2063 INVISIBLE SEPARATOR.
- */
-const EMPH = '\u2063';
-
-/**
  * Write the message, bolding the runs marked as entity names.
  *
  * Built out of text nodes and elements rather than assigned to innerHTML. That
@@ -49,37 +45,24 @@ const EMPH = '\u2063';
  * carried as a value, the escaping argument at the top of this file stops being
  * true. Nothing here parses anything.
  *
- * Odd-numbered segments are the marked ones, so balanced markers always split
- * into an odd number of parts. An even count means a marker lost its partner,
- * and bolding everything from there to the end of the sentence is a louder way
- * to be wrong than bolding nothing -- so an unbalanced message gets none.
+ * The marker rule itself lives in emph.ts, because Emph.vue applies the same
+ * one on the Inertia side and two copies of a rule this subtle would be a
+ * liability.
  */
 function writeMessage(target: HTMLElement, message: string): void {
     target.textContent = '';
 
-    const parts = message.split(EMPH);
-
-    if (parts.length % 2 === 0) {
-        target.textContent = parts.join('');
-
-        return;
-    }
-
-    parts.forEach((part, index) => {
-        if (part === '') {
-            return;
-        }
-
-        if (index % 2 === 1) {
-            const strong = document.createElement('strong');
-            strong.className = 'emph';
-            strong.textContent = part;
-            target.appendChild(strong);
+    emphParts(message).forEach((part) => {
+        if (! part.marked) {
+            target.appendChild(document.createTextNode(part.text));
 
             return;
         }
 
-        target.appendChild(document.createTextNode(part));
+        const strong = document.createElement('strong');
+        strong.className = 'emph';
+        strong.textContent = part.text;
+        target.appendChild(strong);
     });
 }
 
@@ -144,7 +127,7 @@ export function initConfirm(): void {
         if (! dialog || typeof dialog.showModal !== 'function') {
             // A native confirm cannot bold anything, so the markers come out
             // rather than riding along as invisible characters.
-            if (window.confirm(message.split(EMPH).join(''))) {
+            if (window.confirm(withoutEmph(message))) {
                 send();
             }
 

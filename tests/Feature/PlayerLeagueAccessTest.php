@@ -9,6 +9,7 @@ use App\Models\Venue;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\Concerns\BuildsTournaments;
+use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
 
 /**
@@ -129,30 +130,31 @@ class PlayerLeagueAccessTest extends TestCase
     {
         $this->seedLeague();
 
-        $html = $this->actingAs($this->player())
-            ->get(route('poker.seasons.index'))->assertOk()->getContent();
-
-        $this->assertStringNotContainsString('Create Season', $html);
-        $this->assertStringNotContainsString(route('poker.seasons.create'), $html);
-        $this->assertStringNotContainsString('title="Edit"', $html);
-        $this->assertStringNotContainsString('title="Delete"', $html);
-
-        // Reading a season is the reason a player is here at all.
-        $this->assertStringContainsString(route('seasons.show', PokerSeason::first()), $html);
+        // Now an Inertia page, so what a player may do is a PROP rather than
+        // a string that happens to be absent from the markup. That reads
+        // better: absence-of-substring passes for the wrong reasons all the
+        // time -- a renamed button, a changed label -- where can_create is the
+        // decision itself.
+        $this->actingAs($this->player())
+            ->get(route('poker.seasons.index'))->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('can_create', false)
+                // Reading a season is the reason a player is here at all.
+                ->has('seasons.data.0.id')
+            );
     }
 
     public function test_the_tournaments_list_offers_a_player_nothing_to_change(): void
     {
         $this->seedLeague();
 
-        $html = $this->actingAs($this->player())
-            ->get(route('poker.tournaments.index'))->assertOk()->getContent();
-
-        $this->assertStringNotContainsString('Schedule Tournament', $html);
-        $this->assertStringNotContainsString('title="Edit"', $html);
-        $this->assertStringNotContainsString('title="Delete"', $html);
-
-        $this->assertStringContainsString(route('tournaments.show', PokerTournament::first()), $html);
+        $this->actingAs($this->player())
+            ->get(route('poker.tournaments.index'))->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('can_create', false)
+                // Reading the night is the point: a player registers there.
+                ->where('tournaments.data.0.id', PokerTournament::first()->id)
+            );
     }
 
     public function test_the_venue_list_offers_a_player_no_way_in_at_all(): void
@@ -161,16 +163,17 @@ class PlayerLeagueAccessTest extends TestCase
         // to it is a link to a 403.
         $this->seedLeague();
 
-        $html = $this->actingAs($this->player())
-            ->get(route('poker.venues.index'))->assertOk()->getContent();
-
-        $this->assertStringNotContainsString('Add Venue', $html);
-        $this->assertStringNotContainsString(route('poker.venues.show', Venue::first()), $html);
-        $this->assertStringNotContainsString('title="Edit"', $html);
-        $this->assertStringNotContainsString('title="Delete"', $html);
-
-        // The venue itself is still named -- that is the point of the page.
-        $this->assertStringContainsString(Venue::first()->name, $html);
+        // Props rather than absent substrings, now the page is Inertia.
+        // rows_link false is the decision itself -- the row is not a link at
+        // all, so there is no URL to be absent.
+        $this->actingAs($this->player())
+            ->get(route('poker.venues.index'))->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('can_create', false)
+                ->where('rows_link', false)
+                // The venue itself is still named -- that is the point of the page.
+                ->where('venues.data.0.name', Venue::first()->name)
+            );
     }
 
     public function test_an_admin_still_gets_every_control(): void
@@ -185,30 +188,43 @@ class PlayerLeagueAccessTest extends TestCase
         // deleting moved to each record's own page, so Delete is asserted
         // there rather than in a row.
         $this->actingAs($admin)->get(route('poker.seasons.index'))->assertOk()
-            ->assertSee('Create Season');
+            ->assertInertia(fn (Assert $page) => $page->where('can_create', true));
 
         $this->actingAs($admin)->get(route('seasons.show', PokerSeason::firstOrFail()))->assertOk()
-            ->assertSee('Delete season');
+            ->assertInertia(fn (Assert $page) => $page->where('can_manage', true));
 
         $this->actingAs($admin)->get(route('poker.tournaments.index'))->assertOk()
-            ->assertSee('Schedule Tournament');
+            ->assertInertia(fn (Assert $page) => $page->where('can_create', true));
 
         $this->actingAs($admin)->get(route('poker.venues.index'))->assertOk()
-            ->assertSee('Add Venue')
-            ->assertSee(route('poker.venues.show', Venue::first()), false);
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('can_create', true)
+                ->where('rows_link', true)
+            );
     }
 
     public function test_the_league_menu_is_offered_to_a_player(): void
     {
         $this->seedLeague();
 
-        $html = $this->actingAs($this->player())
-            ->get(route('dashboard'))->assertOk()->getContent();
-
         // Access with no way to navigate to it is half a feature.
-        $this->assertStringContainsString(route('poker.seasons.index'), $html);
-        $this->assertStringContainsString(route('poker.venues.index'), $html);
-        $this->assertStringContainsString(route('poker.tournaments.index'), $html);
+        //
+        // The navigation is Vue and renders after mount, so the links are in
+        // the component rather than in the response. What makes this a real
+        // check is the ungated part: the League menu sits OUTSIDE the
+        // v-if="…is_admin" that wraps the admin one, so a player is offered
+        // it. The page still has to load for a player at all, which the
+        // assertOk below keeps.
+        $this->actingAs($this->player())->get(route('dashboard'))->assertOk();
+
+        $nav = (string) file_get_contents(resource_path('js/Layouts/Navigation.vue'));
+
+        $league = substr($nav, 0, (int) strpos($nav, 'v-if="page.props.auth.user?.is_admin"'));
+
+        foreach (['/poker/seasons', '/poker/venues', '/poker/tournaments'] as $href) {
+            $this->assertStringContainsString('href="'.$href.'"', $league,
+                'The League menu must be offered to a player, outside the admin gate.');
+        }
     }
 
     public function test_the_admin_menus_are_not(): void
