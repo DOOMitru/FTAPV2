@@ -407,6 +407,18 @@ been running fine for weeks:
   and DreamHost blocks the IP. That happened once, from a home connection, and
   took an hour to clear. Every ssh call in the workflow names its key and only
   its key.
+- **Several logins in a minute get throttled, too, 2026-11-14.** Each deploy
+  step opened its own connection -- six logins in about a minute. The
+  fifth timed out "during banner exchange" (TCP open, sshd silent) and the
+  sixth could not connect at all, so the release synced, migrate never ran,
+  and the site sat at 503 because `Bring the site back up` could not reach
+  the server either. The deploy now opens ONE master connection
+  (`ControlMaster`/`ControlPersist`, written to `~/.ssh/config` in `Open an
+  SSH connection`) and every later ssh and rsync rides inside it -- so the
+  server sees one login, and the always() step reuses an open connection
+  rather than needing a new one. **If a deploy ever leaves the site down,
+  re-run the failed jobs**: every step is idempotent, and a re-run gets a
+  fresh runner address.
 
 ## PHP 8.5.4 segfaults on a suite run (2026-09-08, unresolved)
 
