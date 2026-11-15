@@ -63,6 +63,8 @@ class PokerTournamentController extends Controller
                     // left as a null the template has an opinion about.
                     'venue_name' => $tournament->venue->name ?? __('TBD'),
                     'start_label' => $tournament->start_time?->format('M d, Y · h:i A') ?? '—',
+                    // Upcoming, awaiting results or published: the badge.
+                    'status' => $tournament->status(),
                 ]
             ),
 

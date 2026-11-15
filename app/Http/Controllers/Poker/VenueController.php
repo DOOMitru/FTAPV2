@@ -152,6 +152,8 @@ class VenueController extends Controller
                     'href' => route('tournaments.show', $tournament),
                     'date_label' => $tournament->start_time->format('M d, Y'),
                     'season_label' => $tournament->season->name ?? '',
+                    // Upcoming, awaiting results or published: the badge.
+                    'status' => $tournament->status(),
                 ])->values()->all(),
             'has_more_tournaments' => $totalTournaments > 10,
 

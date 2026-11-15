@@ -7,13 +7,15 @@ import Table from '../../../Components/Table.vue';
 import Btn from '../../../Components/Btn.vue';
 import EmptyState from '../../../Components/EmptyState.vue';
 import Pagination from '../../../Components/Pagination.vue';
-import type { Paginated } from '../../../types/inertia';
+import TournamentStatusBadge from '../../../Components/TournamentStatus.vue';
+import type { Paginated, TournamentStatus } from '../../../types/inertia';
 
 interface Tournament {
     id: string;
     name: string;
     venue_name: string;
     start_label: string;
+    status: TournamentStatus;
 }
 
 interface Props {
@@ -46,6 +48,7 @@ const props = defineProps<Props>();
                 <Table cards class="tournaments-index__table">
                     <template #head>
                         <th scope="col">Name</th>
+                        <th scope="col">Status</th>
                         <th scope="col">Venue</th>
                         <th scope="col" class="table__num">Start Time</th>
                     </template>
@@ -65,6 +68,15 @@ const props = defineProps<Props>();
                             <Link class="table__link" :href="`/tournaments/${tournament.id}`">{{ tournament.name }}</Link>
                         </td>
 
+                        <!--
+                            A column of its own, so the badges line up down the
+                            list on a wide screen. On a phone the card puts it
+                            at the end of the name's line instead.
+                        -->
+                        <td class="tournaments-index__status">
+                            <TournamentStatusBadge :status="tournament.status" />
+                        </td>
+
                         <td class="tournaments-index__venue">{{ tournament.venue_name }}</td>
 
                         <!--
@@ -77,7 +89,7 @@ const props = defineProps<Props>();
                     </tr>
 
                     <tr v-if="props.tournaments.data.length === 0">
-                        <td colspan="3">
+                        <td colspan="4">
                             <!--
                                 Two different nothings, and an administrator can
                                 act on only one of them. "No tournaments" on a

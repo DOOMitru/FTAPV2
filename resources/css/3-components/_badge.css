@@ -32,7 +32,11 @@
    season. Distinct from .badge--primary, which marks IDENTITY (Admin, Podium
    Level) rather than state. The two were the same variant until they were
    split, so a badge saying "Registered" and one saying "Admin" looked like the
-   same kind of fact. */
+   same kind of fact.
+
+   One deliberate exception: a tournament "Awaiting results" uses
+   .badge--primary for a STATE, because it is the one state on that list that
+   asks for attention (TournamentStatus.vue). */
 .badge--open {
     border-color: var(--c-open);
     color: var(--c-open);
