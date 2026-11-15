@@ -14,12 +14,13 @@ use Tests\TestCase;
 /**
  * The landing page's season standings, and the rank that leads them.
  *
- * Three boards: rank, wins, points. Rank is first because it is the one that
- * decides the season -- points and wins both reward turning up more often,
- * where a rank is points per tournament ENTERED and does not.
+ * Two boards: Season Rank, then Most Wins. There were three until 2026-11-14,
+ * with Most Points beside the rank; once the owner made rank mean season
+ * points the two were the same list, and they merged into one card that shows
+ * each player's place and points.
  *
- * The arithmetic is PokerSeason::rankings(), the same board the dashboard puts
- * a player's own position against. That sharing is the point of these tests:
+ * The board is PokerSeason::rankings(), the same one the dashboard puts a
+ * player's own position against. That sharing is the point of these tests:
  * two pages showing a "rank" that meant different things would be worse than
  * neither showing one.
  */
@@ -70,124 +71,143 @@ class SeasonRankCardTest extends TestCase
         ]);
     }
 
-    public function test_the_three_boards_are_ordered_rank_wins_points(): void
+    /**
+     * A player who entered a night of their own and scored $points there.
+     *
+     * Their own night, because entering a night that already has results
+     * reprices them -- to nil, with no points structure -- and a player on nil
+     * is not ranked.
+     */
+    private function scorer(PokerSeason $season, string $first, int $points, int $venuePoints = 0): User
+    {
+        $user = $this->player($first);
+        $this->play($this->night($season, "{$first}'s night"), $user, 1, $points);
+
+        if ($venuePoints > 0) {
+            \App\Models\VenuePoints::create([
+                'venue_id' => Venue::first()->id, 'user_id' => $user->id, 'user_name' => $first.' Player',
+                'event_date' => now()->subDays(3)->toDateString(), 'amount' => $venuePoints,
+                'season_id' => $season->id,
+            ]);
+        }
+
+        return $user;
+    }
+
+    /** The Season Rank card's markup, cut from the landing page. */
+    private function rankCard(User $viewer): string
+    {
+        $html = $this->actingAs($viewer)->get('/')->assertOk()->getContent();
+        $start = (int) strpos($html, 'Season Rank');
+
+        return substr($html, $start, (int) strpos($html, 'Most Wins') - $start);
+    }
+
+    public function test_the_boards_are_rank_then_wins(): void
     {
         $season = $this->season();
-        $viewer = $this->player('Viewer');
-        $this->play($this->night($season, 'Night 1'), $viewer, 1, 100);
+        $viewer = $this->scorer($season, 'Viewer', 100);
 
         $this->actingAs($viewer)->get('/')->assertOk()
-            ->assertSeeInOrder(['Season Rank', 'Most Wins', 'Most Points']);
+            ->assertSeeInOrder(['Season Rank', 'Most Wins'])
+            ->assertDontSee('Most Points');
     }
 
-    public function test_the_rank_board_is_points_per_event_entered(): void
+    public function test_the_rank_card_shows_places_and_points(): void
     {
-        // The whole reason this board exists beside Most Points. The grinder
-        // scores more in total; the sharp scores more per night and leads.
         $season = $this->season();
-        $grinder = $this->player('Grinder');
-        $sharp = $this->player('Sharp');
+        $this->scorer($season, 'Ben', 120);
+        $ana = $this->scorer($season, 'Ana', 1400);
 
-        $nights = collect(range(1, 4))->map(fn ($i) => $this->night($season, 'Night '.$i));
+        $card = $this->rankCard($ana);
 
-        // Everyone entered before anyone is scored: registering into a
-        // tournament that already has finishes is a late entry, and the shift
-        // hook reprices every recorded result to match.
-        foreach ($nights as $n) {
-            $this->play($n, $grinder);
-        }
-
-        $this->play($nights[0], $sharp);
-
-        foreach ($nights as $n) {
-            PokerTournamentResult::create([
-                'tournament_id' => $n->id, 'user_id' => $grinder->id,
-                'player_name' => 'Grinder Player', 'place' => 5, 'points' => 50,
-            ]);
-        }
-
-        PokerTournamentResult::create([
-            'tournament_id' => $nights[0]->id, 'user_id' => $sharp->id,
-            'player_name' => 'Sharp Player', 'place' => 1, 'points' => 100,
-        ]);
-
-        $html = $this->actingAs($grinder)->get('/')->assertOk()->getContent();
-
-        $rank = substr($html, (int) strpos($html, 'Season Rank'), (int) strpos($html, 'Most Wins') - (int) strpos($html, 'Season Rank'));
-        $points = substr($html, (int) strpos($html, 'Most Points'));
-
-        // 100.0 a night beats 50.0 a night, even on half the total points.
-        $this->assertMatchesRegularExpression('/Sharp Player.*Grinder Player/s', $rank);
-
-        // And Most Points still says the opposite, which is the point of having
-        // both: 200 beats 100.
-        $this->assertMatchesRegularExpression('/Grinder Player.*Sharp Player/s', $points);
+        $this->assertMatchesRegularExpression('/Ana Player.*1,400 pts.*Ben Player.*120 pts/s', $card);
+        $this->assertStringNotContainsString('#1', $card, 'The badge is the place; the figure is the points.');
     }
 
-    public function test_the_rank_board_shows_the_rank(): void
+    public function test_a_tie_at_third_shows_everyone_tied(): void
+    {
+        // Four rows, not an arbitrary three: Cal and Dev share third, and
+        // cutting one of them would rank them differently by omission.
+        $season = $this->season();
+        $viewer = $this->scorer($season, 'Ana', 300);
+        $this->scorer($season, 'Ben', 200);
+        $this->scorer($season, 'Cal', 100);
+        $this->scorer($season, 'Dev', 100);
+        $this->scorer($season, 'Eve', 50);
+
+        $card = $this->rankCard($viewer);
+
+        $this->assertSame(4, substr_count($card, 'p-standing__row'));
+        $this->assertStringNotContainsString('Eve Player', $card);
+    }
+
+    public function test_venue_points_break_a_tie_without_being_shown(): void
     {
         $season = $this->season();
-        $player = $this->player('Ann');
+        $viewer = $this->scorer($season, 'Ana', 100);
+        $this->scorer($season, 'Ben', 100, venuePoints: 7);
 
-        foreach (range(1, 2) as $i) {
-            $this->play($this->night($season, 'Night '.$i), $player);
-        }
+        $card = $this->rankCard($viewer);
 
-        foreach (PokerTournament::all() as $t) {
-            PokerTournamentResult::create([
-                'tournament_id' => $t->id, 'user_id' => $player->id,
-                'player_name' => 'Ann Player', 'place' => 1, 'points' => 75,
-            ]);
-        }
-
-        // The position, not the 75.0 pts/event it is computed from.
-        $html = $this->actingAs($player)->get('/')->assertOk()->getContent();
-        $rank = substr($html, (int) strpos($html, 'Season Rank'), (int) strpos($html, 'Most Wins') - (int) strpos($html, 'Season Rank'));
-
-        $this->assertStringContainsString('#1', $rank);
-        $this->assertStringNotContainsString('pts/event', $rank);
+        $this->assertMatchesRegularExpression('/Ben Player.*Ana Player/s', $card);
+        $this->assertStringNotContainsString('7 ', strip_tags($card));
     }
 
     public function test_it_shows_at_most_three(): void
     {
         $season = $this->season();
-        $night = $this->night($season, 'Night 1');
 
         foreach (range(1, 6) as $i) {
-            $this->play($night, $this->player('Player'.$i), $i, 100 - $i);
+            $this->scorer($season, 'Player'.$i, 100 - $i);
         }
 
-        $html = $this->actingAs(User::factory()->create(['approval_status' => 'approved']))
-            ->get('/')->assertOk()->getContent();
+        $card = $this->rankCard(User::factory()->create(['approval_status' => 'approved']));
 
-        $rank = substr($html, (int) strpos($html, 'Season Rank'), (int) strpos($html, 'Most Wins') - (int) strpos($html, 'Season Rank'));
-
-        $this->assertSame(3, substr_count($rank, 'p-standing__row'));
+        $this->assertSame(3, substr_count($card, 'p-standing__row'));
     }
 
     public function test_a_player_with_a_result_but_no_entry_is_not_ranked(): void
     {
-        // No denominator, so no ratio. The results screen can create a finish
-        // without a registration behind it.
+        // Data from before September 2026, when an admin results screen could
+        // record a finish with no registration behind it; entering is what
+        // puts a player on the board.
         $season = $this->season();
-        $entered = $this->player('Entered');
-        $night = $this->night($season, 'Night 1');
-        $this->play($night, $entered, 2, 50);
+        $entered = $this->scorer($season, 'Entered', 50);
 
         PokerTournamentResult::create([
-            'tournament_id' => $night->id, 'user_id' => $this->player('Unentered')->id,
+            'tournament_id' => $this->night($season, 'Unentered night')->id,
+            'user_id' => $this->player('Unentered')->id,
             'player_name' => 'Unentered Player', 'place' => 1, 'points' => 100,
         ]);
 
-        $html = $this->actingAs($entered)->get('/')->assertOk()->getContent();
+        $card = $this->rankCard($entered);
 
-        $rank = substr($html, (int) strpos($html, 'Season Rank'), (int) strpos($html, 'Most Wins') - (int) strpos($html, 'Season Rank'));
+        $this->assertStringContainsString('Entered Player', $card);
+        $this->assertStringNotContainsString('Unentered Player', $card);
+    }
 
-        $this->assertStringContainsString('Entered Player', $rank);
-        $this->assertStringNotContainsString('Unentered Player', $rank);
+    public function test_wins_without_points_still_show_the_wins_card(): void
+    {
+        // A win worth nothing -- no points structure yet, or one that pays
+        // only the places below. Nobody is ranked, but somebody HAS won, and
+        // hiding the whole grid would hide that too.
+        $season = $this->season();
+        $viewer = $this->scorer($season, 'Ana', 0);
 
-        // Most Points still counts them: that board asks a different question.
-        $this->assertStringContainsString('Unentered Player', substr($html, (int) strpos($html, 'Most Points')));
+        $this->actingAs($viewer)->get('/')->assertOk()
+            ->assertSeeInOrder(['Season Rank', 'No points scored yet this season.', 'Most Wins', 'Ana Player']);
+    }
+
+    public function test_with_nothing_won_or_scored_there_are_no_boards(): void
+    {
+        $season = $this->season();
+        $viewer = $this->player('Ana');
+        $this->play($this->night($season, 'Night'), $viewer, 4, 0);
+
+        $this->actingAs($viewer)->get('/')->assertOk()
+            ->assertDontSee('Season Rank')
+            ->assertDontSee('Most Wins');
     }
 
     public function test_a_stranger_sees_no_standings_at_all(): void
@@ -195,7 +215,7 @@ class SeasonRankCardTest extends TestCase
         // A leaderboard is for people playing in it; to a stranger it is a list
         // of names.
         $season = $this->season();
-        $this->play($this->night($season, 'Night 1'), $this->player('Ann'), 1, 100);
+        $this->scorer($season, 'Ann', 100);
 
         $this->get('/')->assertOk()
             ->assertDontSee('Season Rank')
@@ -206,38 +226,18 @@ class SeasonRankCardTest extends TestCase
     {
         // The reason rankings() lives on the season rather than in either
         // controller. The player the landing page puts first must be the player
-        // the dashboard tells "#1".
+        // the dashboard tells "#1" -- and a shared place must read the same on
+        // both.
         $season = $this->season();
-        $sharp = $this->player('Sharp');
-        $grinder = $this->player('Grinder');
+        $leader = $this->scorer($season, 'Leader', 300);
+        $a = $this->scorer($season, 'Ada', 120);
+        $b = $this->scorer($season, 'Bo', 120);
 
-        $nights = collect(range(1, 3))->map(fn ($i) => $this->night($season, 'Night '.$i));
+        $this->assertMatchesRegularExpression('/Leader Player.*Ada Player.*Bo Player/s', $this->rankCard($leader));
 
-        foreach ($nights as $n) {
-            $this->play($n, $grinder);
+        foreach ([$leader->id => '#1', $a->id => '#2', $b->id => '#2'] as $id => $label) {
+            $this->assertSame($label, $this->actingAs(User::find($id))->get(route('dashboard'))
+                ->assertOk()->viewData('page')['props']['season']['rank_label']);
         }
-
-        $this->play($nights[0], $sharp);
-
-        foreach ($nights as $n) {
-            PokerTournamentResult::create([
-                'tournament_id' => $n->id, 'user_id' => $grinder->id,
-                'player_name' => 'Grinder Player', 'place' => 4, 'points' => 40,
-            ]);
-        }
-
-        PokerTournamentResult::create([
-            'tournament_id' => $nights[0]->id, 'user_id' => $sharp->id,
-            'player_name' => 'Sharp Player', 'place' => 1, 'points' => 100,
-        ]);
-
-        $html = $this->actingAs($sharp)->get('/')->assertOk()->getContent();
-        $rank = substr($html, (int) strpos($html, 'Season Rank'), (int) strpos($html, 'Most Wins') - (int) strpos($html, 'Season Rank'));
-
-        $this->assertMatchesRegularExpression('/Sharp Player.*Grinder Player/s', $rank);
-
-        // And the dashboard says the same of the same player.
-        $this->assertSame('#1', $this->actingAs($sharp)->get(route('dashboard'))
-            ->assertOk()->viewData('page')['props']['season']['rank_label']);
     }
 }

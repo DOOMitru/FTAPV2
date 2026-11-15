@@ -25,6 +25,21 @@ class SeasonStandingsSelfRowTest extends TestCase
 
     private const SELF = 'season-show__self-row';
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        // finish() enters and scores one player at a time, and entering a
+        // night that already has results reprices them from the points
+        // structure. With no structure that is nil -- and since 2026-11-14 a
+        // player on nil is not listed, so the viewer's own row vanished from
+        // the table these tests look for it in. A structure keeps every
+        // finish worth something, as it is in production.
+        foreach ([1 => 100, 2 => 85, 3 => 70] as $place => $points) {
+            \App\Models\PointsStructure::create(['place' => $place, 'points' => $points]);
+        }
+    }
+
     private function season(): PokerSeason
     {
         return PokerSeason::create([

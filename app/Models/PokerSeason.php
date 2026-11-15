@@ -173,20 +173,40 @@ class PokerSeason extends Model
     /**
      * Every ranked player in this season, best first.
      *
-     * The one definition of what a season rank IS: points scored divided by
-     * tournaments ENTERED. A player who turns up to half the nights and scores
-     * what somebody scored across all of them is not behind them, which a
-     * straight points total says they are.
+     * The one definition of what a season rank IS, set by the owner on
+     * 2026-11-14 (docs/superpowers/specs/2026-11-14-points-rank-design.md):
      *
-     * Lives here rather than in a controller because two pages read it -- the
-     * dashboard, for the viewer's own position, and the landing page, for the
-     * top three -- and a rank that meant one thing on one and something else on
-     * the other would be worse than no rank at all. Same reasoning as the
-     * comment on the home route about points and wins.
+     *   1. Ranked: entered a tournament this season and scored at least one
+     *      point in it. Nobody on nil is on the board.
+     *   2. Points, highest first.
+     *   3. A tie on points goes to more venue points THIS season -- by
+     *      season_id, never by date range.
+     *   4. A tie on both shares the place, counted the way a sports table
+     *      counts: 1, 2, 2, 4.
      *
-     * Two grouped queries rather than a join: results and registrations answer
-     * different questions -- what you scored, and how often you turned up --
-     * and a player can have either without the other.
+     * It replaced points per tournament entered, which every page then had to
+     * explain beside the number.
+     *
+     * Rule 3 is the owner's one exception to venue-points privacy: the ORDER
+     * and a shared place may reflect venue points, the figure may not. So the
+     * figure is used to place each row and then dropped -- nothing that reads
+     * this board can print it, because it is not on the board.
+     *
+     * Tied players are listed by recorded name, ignoring case, then id. Not
+     * by whatever each page displays: the season page shows nicknames, and
+     * sorting on what is shown would let two pages list one tie in two orders.
+     * Ignoring case because names are typed on the night, and a byte-order
+     * sort puts every lower-case name after every capital.
+     *
+     * Lives here rather than in a controller because every page that shows a
+     * rank reads it -- the dashboard and profile panel, the season standings,
+     * the landing page's card -- and a rank that meant one thing on one and
+     * something else on another would be worse than no rank at all.
+     *
+     * Grouped queries rather than a join: results, registrations and venue
+     * points answer different questions -- what you scored, whether you turned
+     * up, what the venues awarded you -- and a player can have any without the
+     * others.
      *
      * Queried from the tables rather than through $this->results(), which is a
      * HasManyThrough. That relation silently adds `tournaments`.`season_id` as
@@ -197,7 +217,7 @@ class PokerSeason extends Model
      * that rule, so such a query runs locally for months and fails on the first
      * request against production's driver.
      *
-     * @return Collection<int, array{user_id: string, name: string, ratio: float, points: int, events: int}>
+     * @return Collection<int, array{user_id: string, name: string, points: int, place: int}>
      */
     public function rankings(): Collection
     {
@@ -220,32 +240,67 @@ class PokerSeason extends Model
         // The name as it was recorded on the night, which is what every other
         // standings list on the site shows -- a player who has since changed
         // their account name still appears under the name they played as.
+        //
+        // MIN(), grouped: one deterministic name per player. A plain pluck
+        // kept whichever row came back last, which on MySQL with no ORDER BY
+        // can change between requests -- and the name is the tie-break, so a
+        // tie could list two ways on two loads.
         $names = PokerTournamentRegistrant::query()
             ->whereHas('tournament', $inSeason)
             ->whereNotNull('user_id')
-            ->pluck('player_name', 'user_id');
+            ->selectRaw('user_id, MIN(player_name) as name')
+            ->groupBy('user_id')
+            ->pluck('name', 'user_id');
 
-        // Entering is what puts you on the board. A player with a result but no
-        // registration -- which the results screen can create -- has no
-        // denominator, and dividing by nothing is not a rank. They are absent
-        // from $entries entirely, which is what leaves them unranked.
-        //
-        // The filter cannot fire: a GROUP BY ... COUNT(*) never returns a zero.
-        // It is the guard on the division rather than on the data.
-        return $entries
-            ->filter(fn ($count) => (int) $count > 0)
-            ->map(fn ($count, $id) => [
-                'user_id' => $id,
-                'name' => $names[$id] ?? '',
-                'ratio' => (float) (int) ($points[$id] ?? 0) / (int) $count,
-                // The tie-break, so two players on the same average are ordered
-                // by who scored more rather than by whatever the database
-                // happened to return first.
+        $venuePoints = VenuePoints::query()
+            ->where('season_id', $this->id)
+            ->whereNotNull('user_id')
+            ->selectRaw('user_id, SUM(amount) as total')
+            ->groupBy('user_id')
+            ->pluck('total', 'user_id');
+
+        // Entering is what puts you on the board, and scoring is what ranks
+        // you on it. A player with a result but no registration -- possible
+        // only in data from before September 2026, when an admin results
+        // screen could record one -- is absent from $entries entirely, which
+        // is what leaves them unranked.
+        $board = $entries
+            ->keys()
+            ->map(fn ($id) => [
+                'user_id' => (string) $id,
+                // Same table, same filters as $entries: every key has a name.
+                'name' => (string) $names[$id],
+                // (int): MySQL returns SUM() as a numeric string.
                 'points' => (int) ($points[$id] ?? 0),
-                'events' => (int) $count,
+                'venue' => (int) ($venuePoints[$id] ?? 0),
             ])
-            ->sortByDesc(fn (array $row) => [$row['ratio'], $row['points']])
+            ->filter(fn (array $row) => $row['points'] > 0)
+            // Points and venue points descending, then name (ignoring case)
+            // and id ascending: $b before $a in the first two places, $a
+            // before $b in the last two, compared element by element.
+            ->sort(fn (array $a, array $b) => [$b['points'], $b['venue'], mb_strtolower($a['name']), $a['user_id']]
+                <=> [$a['points'], $a['venue'], mb_strtolower($b['name']), $b['user_id']])
             ->values();
+
+        // Competition ranking: a row shares the place of the row before it
+        // only when points AND venue points are both equal; otherwise its place
+        // is its position. That is what makes 1, 2, 2, 4.
+        $previous = null;
+
+        return $board->map(function (array $row, int $index) use (&$previous) {
+            $place = $previous !== null
+                && $previous['points'] === $row['points']
+                && $previous['venue'] === $row['venue']
+                ? $previous['place']
+                : $index + 1;
+
+            $previous = [...$row, 'place' => $place];
+
+            // The venue figure placed the row and goes no further.
+            unset($row['venue']);
+
+            return [...$row, 'place' => $place];
+        });
     }
 
     public function registrants(): HasManyThrough
@@ -271,7 +326,7 @@ class PokerSeason extends Model
         $empty = [
             'events' => 0, 'points' => 0, 'venuePoints' => 0,
             'first' => 0, 'second' => 0, 'third' => 0,
-            'rank' => null, 'ranked' => 0, 'perEvent' => null,
+            'rank' => null, 'ranked' => 0,
         ];
 
         if (! $currentSeason) {
@@ -303,11 +358,6 @@ class PokerSeason extends Model
             'first' => $results->where('place', 1)->count(),
             'second' => $results->where('place', 2)->count(),
             'third' => $results->where('place', 3)->count(),
-            // Points per event rather than points: a player who enters half the
-            // nights is not behind somebody who entered all of them and scored
-            // the same. Null rather than zero when nothing has been entered --
-            // there is no average of no events, and 0.0 reads as a bad one.
-            'perEvent' => $events > 0 ? (float) $points / $events : null,
             ...self::rank($currentSeason, $userId),
         ];
     }
@@ -326,10 +376,12 @@ class PokerSeason extends Model
     {
         $board = $currentSeason->rankings();
 
-        $index = $board->search(fn (array $row) => $row['user_id'] === $userId);
+        // The row's PLACE, not its position: two players sharing second are
+        // both #2, though one of them is listed third.
+        $row = $board->firstWhere('user_id', $userId);
 
         return [
-            'rank' => $index === false ? null : $index + 1,
+            'rank' => $row['place'] ?? null,
             'ranked' => $board->count(),
         ];
     }

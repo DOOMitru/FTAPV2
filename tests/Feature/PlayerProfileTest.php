@@ -390,8 +390,8 @@ class PlayerProfileTest extends TestCase
 
     public function test_an_unranked_player_is_told_so_in_the_third_person(): void
     {
-        // The panel's copy addresses the viewer on the dashboard -- "Enter a
-        // tournament to be ranked" -- which is the wrong thing to say about
+        // The panel's copy addresses the viewer on the dashboard -- "Score
+        // points to be ranked." -- which is the wrong thing to say about
         // somebody else.
         $newcomer = $this->makePlayer('Newly', 'Joined');
 
@@ -405,7 +405,7 @@ class PlayerProfileTest extends TestCase
         // Both sentences live in the panel, one per branch.
         $panel = (string) file_get_contents(resource_path('js/Components/SeasonPanel.vue'));
 
-        $this->assertStringContainsString('A player is ranked once they enter a tournament.', $panel);
-        $this->assertStringContainsString('Enter a tournament to be ranked.', $panel);
+        $this->assertStringContainsString('A player is ranked once they score points.', $panel);
+        $this->assertStringContainsString('Score points to be ranked.', $panel);
     }
 }

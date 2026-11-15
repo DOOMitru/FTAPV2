@@ -274,13 +274,12 @@ class ContentPreservationTest extends TestCase
         $this->assertSame('0', $figures['venue_points_label']);
 
         // Only ranked player in the season, so first by default -- but ranked
-        // at all is the point: a dash here means the denominator was lost.
+        // at all is the point: a dash here means the player fell off the board.
         $this->assertSame('#1', $figures['rank_label']);
 
-        // 645 over 4 is 161.25, said to one decimal because that is what the
-        // panel shows -- the arithmetic is still being checked, in the form
-        // the reader actually gets.
-        $this->assertSame('161.3 pts per event', $figures['per_event_label']);
+        // The panel's reasoning beside the rank: the season's points and the
+        // events they came from, checked in the form the reader gets.
+        $this->assertSame('645 pts over 4 events', $figures['totals_label']);
 
         // The props above prove the CONTROLLER computes the right figures.
         // That would still pass if a rewrite deleted the panel entirely, so it

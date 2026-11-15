@@ -102,14 +102,11 @@ class SeasonStandingsLayoutTest extends TestCase
         // desktop reads exactly as it did.
         $html = $this->standings();
 
-        foreach (['Rank', 'Player', 'Played', 'Wins', 'Venue points', 'Finale'] as $header) {
+        // All seven are literals again: the figure column read "Points" or
+        // "Per event" by the order until the toggle went, 2026-11-14.
+        foreach (['Rank', 'Player', 'Points', 'Played', 'Wins', 'Venue points', 'Finale'] as $header) {
             $this->assertStringContainsString('>'.$header.'</th>', $html);
         }
-
-        // The figure column is the one header that is not a literal: it reads
-        // "Points" or "Per event" depending on the order, so the template
-        // draws it from a prop and SeasonStandingsOrderTest checks the words.
-        $this->assertStringContainsString('>{{ figure_heading }}</th>', $html);
     }
 
     public function test_the_name_is_a_block_beside_the_initials(): void

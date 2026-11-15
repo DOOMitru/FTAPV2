@@ -213,33 +213,38 @@
         </div>
 
         @auth
-            @if ($topByPoints->isNotEmpty())
+            {{-- Either board is reason to draw the grid. A win worth no
+                 points -- no structure yet, or one paying only lower places --
+                 ranks nobody, and hiding the grid would hide the win too. --}}
+            @if ($topByRank->isNotEmpty() || $topByWins->isNotEmpty())
                 {{-- Signed-in players only. A leaderboard is for people playing
                      in it; to a stranger it is a list of names. --}}
                 <div class="l-grid p-season-standings">
                     {{-- First, because it is the standing that decides the
-                         season. Points and wins are both inputs to it, and both
-                         reward turning up more often; this one does not. --}}
+                         season: points, venue points breaking a tie. It was
+                         two cards, Season Rank and Most Points, until rank
+                         came to mean points (2026-11-14). --}}
                     <x-card :title="__('Season Rank')" class="p-raised">
+                        @if ($topByRank->isEmpty())
+                            <x-empty-state :title="__('No points scored yet this season.')" />
+                        @else
                         <ol class="p-standing">
-                            @foreach ($topByRank as $i => $row)
+                            @foreach ($topByRank as $row)
                                 <li class="p-standing__row">
-                                    <x-rank :place="$i + 1" />
+                                    {{-- The PLACE, shared on a tie: two rows
+                                         can both read 3. --}}
+                                    <x-rank :place="$row['place']" />
                                     <x-monogram :name="$row['name']" size="sm" decorative />
                                     <span class="p-standing__name">
                                         <x-player-link :user="$row['user'] ?? null">{{ $row['name'] }}</x-player-link>
                                     </span>
-                                    {{-- The rank itself, not the points-per-event
-                                         it is computed from. The ratio is the
-                                         rule rather than the reading: what a
-                                         player wants off this card is where they
-                                         stand, and "75.0 pts/event" only answers
-                                         that once you have compared it to two
-                                         other numbers. --}}
-                                    <span class="p-standing__value">#{{ $i + 1 }}</span>
+                                    {{-- The badge says where they stand, so the
+                                         figure is what put them there. --}}
+                                    <span class="p-standing__value">{{ number_format($row['points']) }} {{ __('pts') }}</span>
                                 </li>
                             @endforeach
                         </ol>
+                        @endif
                     </x-card>
 
                     <x-card :title="__('Most Wins')" class="p-raised">
@@ -259,21 +264,6 @@
                         @else
                             <x-empty-state :title="__('No wins yet this season.')" />
                         @endif
-                    </x-card>
-
-                    <x-card :title="__('Most Points')" class="p-raised">
-                        <ol class="p-standing">
-                            @foreach ($topByPoints as $i => $row)
-                                <li class="p-standing__row">
-                                    <x-rank :place="$i + 1" />
-                                    <x-monogram :name="$row['name']" size="sm" decorative />
-                                    <span class="p-standing__name">
-                                        <x-player-link :user="$row['user'] ?? null">{{ $row['name'] }}</x-player-link>
-                                    </span>
-                                    <span class="p-standing__value">{{ number_format($row['points']) }} {{ __('pts') }}</span>
-                                </li>
-                            @endforeach
-                        </ol>
                     </x-card>
                 </div>
             @endif

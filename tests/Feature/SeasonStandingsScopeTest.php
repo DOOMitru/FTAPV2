@@ -15,8 +15,8 @@ use Tests\TestCase;
  * Who appears in a season's standings.
  *
  * The table is built from RESULTS, and a result can exist with no registration
- * behind it: the results screen creates one without requiring an entry, where
- * Eliminate refuses. That row is a finish in a field nobody joined, and it has
+ * behind it: the admin results screen, removed in September 2026, created one
+ * without requiring an entry, where Eliminate refuses. That row is a finish in a field nobody joined, and it has
  * no business in a table of how the season is going.
  *
  * On the league's current data this excludes nobody -- every one of the eighty
@@ -110,8 +110,8 @@ class SeasonStandingsScopeTest extends TestCase
 
     public function test_a_scorer_who_never_entered_is_left_out(): void
     {
-        // Reachable: the results screen writes a result without requiring a
-        // registration.
+        // Reachable in older data: the admin results screen, removed in
+        // September 2026, wrote a result without requiring a registration.
         $season = $this->season();
         $night = $this->night($season);
 

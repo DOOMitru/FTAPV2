@@ -50,8 +50,9 @@ class PokerTournamentRegistrant extends Model
                 // One UPDATE, not a read-modify-write per row: atomic, and it
                 // shifts whatever places are already recorded rather than
                 // recomputing them from an elimination order this table does
-                // not keep. A result entered by hand through the results screen
-                // moves down with the rest rather than being resequenced.
+                // not keep. A result entered by hand -- possible until the
+                // admin results screen was removed in September 2026 -- moves
+                // down with the rest rather than being resequenced.
                 PokerTournamentResult::where('tournament_id', $registrant->tournament_id)
                     ->increment('place');
 

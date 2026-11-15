@@ -214,9 +214,10 @@ class PokerTournamentController extends Controller
             'nickname' => $registrant->player_nickname,
         ]);
 
-        // A finish with nobody registered behind it. The results screen creates
-        // results without requiring a registration, so these exist and used to
-        // appear in Final Standings -- which the registrants list never showed.
+        // A finish with nobody registered behind it. The admin results screen,
+        // removed in September 2026, created results without requiring a
+        // registration, so these exist in older tournaments and used to appear
+        // in Final Standings -- which the registrants list never showed.
         // Merging the two on registrants alone would have deleted them from the
         // page.
         $matched = $rows->pluck('result')->filter()->pluck('id')->all();
@@ -413,7 +414,8 @@ class PokerTournamentController extends Controller
 
                 return [
                     // A row comes from a registrant OR from a result with no
-                    // registration behind it -- the results screen makes those
+                    // registration behind it -- older tournaments have those,
+                    // from the admin results screen removed in September 2026
                     // -- so neither id is on every row. A v-for with a
                     // duplicate or missing key reorders rows silently.
                     'key' => $row['registrant'] ? 'r'.$row['registrant']->id : 'x'.$result->id,

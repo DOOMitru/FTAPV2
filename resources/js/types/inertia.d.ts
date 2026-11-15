@@ -73,16 +73,10 @@ export interface Notification {
  * shape.
  */
 export interface SeasonFigures {
-    /** "#3", or "—" when unranked. */
+    /** "#3" -- the place, shared on a tie -- or "—" when unranked. */
     rank_label: string;
-    /**
-     * "8.4 pts per event", or null when the player has not entered yet.
-     *
-     * One decimal, decided in PHP: these run to a couple of hundred points
-     * over a couple of dozen events, so the second decimal is noise that
-     * changes every night.
-     */
-    per_event_label: string | null;
+    /** On the board: at least one point this season. Picks the panel's branch. */
+    is_ranked: boolean;
     /** "218 pts over 26 events" -- pluralised in PHP. */
     totals_label: string;
     /** "of 41 ranked players", or null when unranked. Pluralised in PHP. */

@@ -16,9 +16,8 @@ use Tests\TestCase;
  * The season panel's props, built once.
  *
  * The panel is rendered by the dashboard and by a player's profile, about
- * different people. Its props are labels rather than numbers -- one decimal,
- * thousands separators, two pluralisations and the dash an unranked player
- * gets -- and building them in two controllers would be two definitions of one
+ * different people. Its props are labels rather than numbers -- thousands
+ * separators, two pluralisations and the dash an unranked player gets -- and building them in two controllers would be two definitions of one
  * thing, which is how PokerSeason::current() and initials() came to exist.
  */
 class SeasonFiguresTest extends TestCase
@@ -53,7 +52,7 @@ class SeasonFiguresTest extends TestCase
         $this->assertSame('Current Season', $props['season_name']);
     }
 
-    public function test_an_unentered_player_has_no_average_and_no_rank(): void
+    public function test_an_unranked_player_has_no_rank(): void
     {
         $season = $this->season();
         $player = User::factory()->create();
@@ -63,24 +62,46 @@ class SeasonFiguresTest extends TestCase
         $this->assertSame('Season 12', $props['season_name']);
         $this->assertSame(route('seasons.show', $season), $props['season_href']);
         $this->assertSame('—', $props['season']['rank_label']);
-        $this->assertNull($props['season']['per_event_label'],
-            'No events means no average; 0.0 reads as a bad one.');
+        $this->assertFalse($props['season']['is_ranked']);
         $this->assertNull($props['season']['ranked_label']);
+        $this->assertArrayNotHasKey('per_event_label', $props['season'],
+            'The average is gone from the panel, not blanked.');
     }
 
-    public function test_the_labels_are_finished_sentences(): void
+    public function test_a_ranked_player_shows_totals_and_the_field(): void
     {
         $season = $this->season();
+        $leader = User::factory()->create();
         $player = User::factory()->create();
+        $third = User::factory()->create();
 
-        $this->scored($season, $player, points: 218, events: 26);
+        $this->scored($season, $leader, points: 300, events: 6);
+        $this->scored($season, $player, points: 120, events: 6);
+        $this->scored($season, $third, points: 40, events: 2);
 
         $figures = SeasonFigures::props($season, $player->id, $player, self: true)['season'];
 
-        // One decimal. These run to a couple of hundred points over a couple
-        // of dozen events, so the second decimal is noise that changes nightly.
-        $this->assertSame('8.4 pts per event', $figures['per_event_label']);
-        $this->assertStringContainsString('218 pts over 26 events', $figures['totals_label']);
+        $this->assertTrue($figures['is_ranked']);
+        $this->assertSame('#2', $figures['rank_label']);
+        $this->assertSame('120 pts over 6 events', $figures['totals_label']);
+        $this->assertSame('of 3 ranked players', $figures['ranked_label']);
+    }
+
+    public function test_a_shared_place_is_shown_as_that_place(): void
+    {
+        $season = $this->season();
+        $leader = User::factory()->create();
+        $a = User::factory()->create();
+        $b = User::factory()->create();
+
+        $this->scored($season, $leader, points: 300, events: 2);
+        $this->scored($season, $a, points: 120, events: 2);
+        $this->scored($season, $b, points: 120, events: 3);
+
+        foreach ([$a, $b] as $tied) {
+            $this->assertSame('#2',
+                SeasonFigures::props($season, $tied->id, $tied, self: true)['season']['rank_label']);
+        }
     }
 
     public function test_one_event_is_said_in_the_singular(): void

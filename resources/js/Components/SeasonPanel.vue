@@ -73,27 +73,26 @@ const PODIUM = [
                     <span class="season__rank-value">{{ season.rank_label }}</span>
 
                     <div class="season__ratio">
-                        <template v-if="season.per_event_label === null">
-                            <p class="season__ratio-main">Not entered yet</p>
+                        <template v-if="! season.is_ranked">
+                            <p class="season__ratio-main">No points yet</p>
                             <!--
                                 Addressed to the reader on their own dashboard,
                                 and about a third party on somebody else's page.
                             -->
                             <p class="season__ratio-sub">
                                 {{ self
-                                    ? 'Enter a tournament to be ranked.'
-                                    : 'A player is ranked once they enter a tournament.' }}
+                                    ? 'Score points to be ranked.'
+                                    : 'A player is ranked once they score points.' }}
                             </p>
                         </template>
 
+                        <!--
+                            The rank is the season's points, so the points are
+                            its reasoning, and the field is what it is out of.
+                        -->
                         <template v-else>
-                            <p class="season__ratio-main">{{ season.per_event_label }}</p>
-                            <p class="season__ratio-sub">
-                                {{ season.totals_label }}
-                                <template v-if="season.ranked_label">
-                                    <br>{{ season.ranked_label }}
-                                </template>
-                            </p>
+                            <p class="season__ratio-main">{{ season.totals_label }}</p>
+                            <p class="season__ratio-sub">{{ season.ranked_label }}</p>
                         </template>
                     </div>
                 </div>
