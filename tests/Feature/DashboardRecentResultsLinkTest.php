@@ -145,8 +145,9 @@ class DashboardRecentResultsLinkTest extends TestCase
 
     public function test_the_link_survives_a_tournament_a_player_never_registered_for(): void
     {
-        // Results are created from the results screen without a registration,
-        // and the dashboard reads results rather than registrations. The row
+        // Older tournaments hold results with no registration behind them,
+        // from the admin results screen removed in September 2026, and the
+        // dashboard reads results rather than registrations. The row
         // still has a tournament to point at.
         $player = $this->player();
         $tournament = $this->tournament('Autumn Showdown');

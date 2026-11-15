@@ -218,8 +218,9 @@ class MergedStandingsPanelTest extends TestCase
 
     public function test_a_finish_with_no_registration_behind_it_is_still_shown(): void
     {
-        // Results can be created from the results screen without a
-        // registration, and those rows only ever appeared in Final Standings.
+        // Older tournaments hold results with no registration behind them,
+        // from the admin results screen removed in September 2026, and those
+        // rows only ever appeared in Final Standings.
         // Merging the two lists on registrants alone would have deleted them
         // from the page.
         $tournament = $this->tournament();
