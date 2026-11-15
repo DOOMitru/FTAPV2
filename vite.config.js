@@ -36,4 +36,18 @@ export default defineConfig({
             },
         }),
     ],
+    build: {
+        /*
+         * Lightning CSS (Vite 8) writes media queries in range syntax,
+         * (width<=48rem), for any target that supports it. Safari before
+         * iOS 16.4 does not, and IGNORES such a query -- every phone-width
+         * rule vanished there and the desktop layout was squeezed onto the
+         * screen. iPhone 6s, 7 and the first SE cannot update past iOS 15.
+         *
+         * safari15 brings back (max-width:48rem). The app's real floor is
+         * iOS 15.4, for :has(), so this targets the gap and nothing below it.
+         * CSS only: the JS target is untouched.
+         */
+        cssTarget: ['chrome107', 'edge107', 'firefox104', 'safari15'],
+    },
 });

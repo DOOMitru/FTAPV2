@@ -326,8 +326,13 @@ are inert here, since nothing uses `light-dark()`; the theme toggle's three
 blocks are intact. **The fourth moves the browser floor: media queries are
 emitted in range syntax, `(width<=48rem)`**, which Safari/iOS before 16.4
 ignores -- every responsive rule would vanish there, not degrade. The app
-already needed iOS 15.4 for `:has()`. To restore the old syntax, set
-`build.cssTarget` below `safari16.4`; decided against for now.
+already needed iOS 15.4 for `:has()`. **Fixed the same day:** `vite.config.js`
+sets `build.cssTarget` to `safari15` (Chrome/Edge 107, Firefox 104 as Vite's
+default), which emits `(max-width:48rem)` again. Against the range-syntax
+build: +155 bytes, every media query converted, and otherwise only four
+rules -- three `:focus-visible` lists wrapped in `:is()` (same specificity)
+and a `-webkit-backface-visibility` prefix. The floor is iOS 15.4 again. Do
+not drop the setting without deciding to leave iOS 15.4-16.3 behind.
 
 **`vue-tsc` is pinned exactly at `3.3.11`.** 3.3.14 reports seven false
 `Property 'value' does not exist on type 'InertiaForm<…>'` errors in
