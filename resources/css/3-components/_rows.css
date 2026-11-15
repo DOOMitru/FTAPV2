@@ -94,6 +94,26 @@
     font-weight: 600;
 }
 
+/* A title with a badge at its far end -- a tournament and where it stands.
+   The badge is held at the end edge so a list of them lines up in a column;
+   the name takes the rest and wraps within it rather than pushing the badge
+   onto a line of its own. Start-aligned, so a badge beside a two-line name
+   sits on the first line. */
+.entry__title--status {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--space-2);
+}
+
+.entry__title-text {
+    min-width: 0;
+}
+
+.entry__title--status .badge {
+    flex: none;
+}
+
 .entry__meta {
     display: flex;
     flex-wrap: wrap;

@@ -13,7 +13,7 @@ section -- so **pin heavy local runs off cores 10-11**
 
 ## Where things stand
 
-Suite: **1032 passed across 120 files**, on Laravel 13.42.0 and PHPUnit 13.4.7,
+Suite: **1038 passed across 121 files**, on Laravel 13.42.0 and PHPUnit 13.4.7,
 counted 2026-11-14. `php artisan test` is the command, but see the segfault note
 below -- a full-suite run dies on this machine and has to be taken file by file,
 which is what `bin/suite.sh` does.
@@ -777,6 +777,18 @@ Spec: `docs/superpowers/specs/2026-11-14-points-rank-design.md`.
   structure -- to 0 when a test has none -- and a 0-point player is now off
   the board. A test that enters and scores players one at a time on one night
   must either give each a night of their own or seed a structure.
+
+### A tournament's status is a badge (2026-11-14)
+
+The Poker Tournaments list (its own Status column; on a phone, the end of the
+name's line) and a venue's Recent Tournaments (the end of the name's line) put
+one badge on each night: **Upcoming** (green, `open`), **Awaiting results** (red,
+`primary`) or **Results published** (plain). `PokerTournament::status()` is
+the one definition -- published first, whatever the date; otherwise awaiting
+from the minute `start_time` passes, so a night being played reads "Awaiting
+results" (owner-accepted). `TournamentStatus.vue` holds the words and colours
+for both pages. A past night nobody entered and nobody published stays red; that
+is true, not a fault. Spec: `docs/superpowers/specs/2026-11-14-tournament-status-design.md`.
 
 ### The season standings read two ways (2026-09-13) -- SUPERSEDED 2026-11-14
 

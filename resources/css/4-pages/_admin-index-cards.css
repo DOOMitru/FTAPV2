@@ -17,11 +17,22 @@
        the season went with the column -- the list is one season's nights and
        the heading names it. */
     .tournaments-index__table .table tbody tr {
-        grid-template-columns: minmax(0, 1fr);
+        grid-template-columns: minmax(0, 1fr) auto;
         grid-template-areas:
-            "name"
-            "venue"
-            "start";
+            "name  status"
+            "venue venue"
+            "start start";
+    }
+
+    /* The status badge at the end of the name's line, so the badges still
+       line up down the right edge of the cards. The name is the one flexible
+       column: a long one wraps beside the badge rather than pushing it onto a
+       line of its own. Start-aligned, so a badge beside a two-line name sits
+       on the first line. */
+    .tournaments-index__table .tournaments-index__status {
+        grid-area: status;
+        align-self: start;
+        justify-self: end;
     }
 
     .tournaments-index__table .tournaments-index__name {

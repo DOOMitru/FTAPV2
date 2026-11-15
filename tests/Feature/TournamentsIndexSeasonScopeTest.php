@@ -148,8 +148,8 @@ class TournamentsIndexSeasonScopeTest extends TestCase
     {
         // The Season column went with the scoping that made it constant: every
         // row carried the same name, under a heading that already says it.
-        // Three columns now -- name, venue, start time -- and the empty state
-        // spans all three.
+        // Four columns now -- name, status, venue, start time (Status added
+        // 2026-11-14) -- and the empty state spans all four.
         $now = $this->season('Season 9', true, '2026-01-01', '2026-12-31');
         $this->night('This year', $now, '2026-06-01 19:00:00');
         $this->night('Also this year', $now, '2026-07-01 19:00:00');
@@ -171,14 +171,15 @@ class TournamentsIndexSeasonScopeTest extends TestCase
         $page = file_get_contents(resource_path('js/Pages/Poker/Tournaments/Index.vue'));
 
         $this->assertStringNotContainsString('tournaments-index__season', $page);
-        $this->assertSame(3, substr_count($page, '<th scope="col"'));
+        $this->assertSame(4, substr_count($page, '<th scope="col"'));
     }
 
     public function test_the_empty_state_still_spans_every_column(): void
     {
         // One cell pretending to be a row. It went from four columns to three
-        // with the Season column, and a colspan left at four pushes a phantom
-        // column into the header row.
+        // with the Season column, and back to four with the Status column
+        // (2026-11-14). A colspan out of step with the header pushes a phantom
+        // column into the header row, or leaves one empty.
         $this->season('Season 9', true, '2026-01-01', '2026-12-31');
 
         $this->actingAs($this->admin())->get(route('poker.tournaments.index'))->assertOk()
@@ -186,7 +187,7 @@ class TournamentsIndexSeasonScopeTest extends TestCase
 
         // The colspan lives in the page file now.
         $this->assertStringContainsString(
-            'colspan="3"',
+            'colspan="4"',
             file_get_contents(resource_path('js/Pages/Poker/Tournaments/Index.vue'))
         );
     }

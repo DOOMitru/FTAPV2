@@ -40,6 +40,29 @@ class PokerTournament extends Model
     }
 
     /**
+     * Where the night stands, for the badge on a list of tournaments.
+     *
+     * Published first, whatever the date says: results declared final are
+     * final, even on a night whose start time was edited afterwards. Then the
+     * clock -- a night is "awaiting" from the minute it starts, so a night
+     * being played reads the same as one played last week and not yet
+     * published. Both are true: results are owed.
+     *
+     * One definition, read by the tournaments list and the venue page, so the
+     * two cannot disagree about a night (owner's request, 2026-11-14).
+     *
+     * @return 'upcoming'|'awaiting'|'published'
+     */
+    public function status(): string
+    {
+        if ($this->isPublished()) {
+            return 'published';
+        }
+
+        return $this->start_time->lte(now()) ? 'awaiting' : 'upcoming';
+    }
+
+    /**
      * Every player who entered has a finish, and somebody entered.
      *
      * Comparing counts would be wrong twice over. An empty tournament has zero

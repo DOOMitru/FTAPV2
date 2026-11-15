@@ -6,11 +6,13 @@ import Card from '../../../Components/Card.vue';
 import Table from '../../../Components/Table.vue';
 import Rank from '../../../Components/Rank.vue';
 import Badge from '../../../Components/Badge.vue';
+import TournamentStatusBadge from '../../../Components/TournamentStatus.vue';
 import Btn from '../../../Components/Btn.vue';
 import Stat from '../../../Components/Stat.vue';
 import EmptyState from '../../../Components/EmptyState.vue';
 import PlayerLink from '../../../Components/PlayerLink.vue';
 import { useConfirm } from '../../../composables/useConfirm';
+import type { TournamentStatus } from '../../../types/inertia';
 
 interface LeaderboardRow {
     place: number;
@@ -27,6 +29,7 @@ interface TournamentRow {
     href: string;
     date_label: string;
     season_label: string;
+    status: TournamentStatus;
 }
 
 interface Props {
@@ -170,7 +173,14 @@ const destroy = async (): Promise<void> => {
                     <Link v-for="tournament in tournaments" :key="tournament.id"
                           class="entry entry--link" :href="tournament.href">
                         <div class="entry__body">
-                            <div class="entry__title">{{ tournament.name }}</div>
+                            <!-- The badge at the end of the name's line, so
+                                 the badges line up down the card. A span, so
+                                 the row stays one link with nothing nested in
+                                 it. -->
+                            <div class="entry__title entry__title--status">
+                                <span class="entry__title-text">{{ tournament.name }}</span>
+                                <TournamentStatusBadge :status="tournament.status" />
+                            </div>
 
                             <div class="entry__meta">
                                 <span>{{ tournament.date_label }}</span>

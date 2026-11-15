@@ -64,6 +64,12 @@ export interface Notification {
 }
 
 /**
+ * Where a tournament stands, from PokerTournament::status(). Rendered by
+ * TournamentStatus.vue on the tournaments list and a venue's page.
+ */
+export type TournamentStatus = 'upcoming' | 'awaiting' | 'published';
+
+/**
  * One season's figures for one player, as App\Support\SeasonFigures builds
  * them.
  *

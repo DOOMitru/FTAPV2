@@ -69,8 +69,8 @@ class AdminIndexCardLayoutTest extends TestCase
             // response. The conversion is incremental, so for a while this
             // file checks the same rule two ways.
             'tournaments' => ['poker.tournaments.index', 'tournaments-index__table', [
-                'tournaments-index__name', 'tournaments-index__venue',
-                'tournaments-index__start',
+                'tournaments-index__name', 'tournaments-index__status',
+                'tournaments-index__venue', 'tournaments-index__start',
             ], 'js/Pages/Poker/Tournaments/Index.vue'],
             'sponsors' => ['sponsors.index', 'sponsors-index__table', [
                 'sponsors-index__logo', 'sponsors-index__name', 'sponsors-index__tier',
