@@ -169,8 +169,9 @@ class SeasonRankCardTest extends TestCase
 
     public function test_a_player_with_a_result_but_no_entry_is_not_ranked(): void
     {
-        // The results screen can create a finish without a registration behind
-        // it; entering is what puts a player on the board.
+        // Data from before September 2026, when an admin results screen could
+        // record a finish with no registration behind it; entering is what
+        // puts a player on the board.
         $season = $this->season();
         $entered = $this->scorer($season, 'Entered', 50);
 

@@ -76,9 +76,9 @@ rule absolute; (C) no tie-break, a tie on points simply shares a place.
 ## Left to the builder
 
 - Results with no linked account cannot be ranked, because `rankings()` keys
-  on `user_id`, as it does today. On the season page such a row, if it has
-  points, is listed unranked (`—`) below the ranked rows. Builder's call if
-  a cleaner treatment falls out.
+  on `user_id`, as it does today. They are not listed on the season page
+  either: it lists the board, and it already left such rows out before this
+  change, because they have no registration behind them.
 - The home grid going from three cards to two: check the layout and the
   `UnusedCssClassTest` fallout.
 - Tests that encode the per-event rule are rewritten, not deleted, so each

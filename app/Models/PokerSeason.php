@@ -192,9 +192,11 @@ class PokerSeason extends Model
      * figure is used to place each row and then dropped -- nothing that reads
      * this board can print it, because it is not on the board.
      *
-     * Tied players are listed by recorded name, then id. Not by whatever each
-     * page displays: the season page shows nicknames, and sorting on what is
-     * shown would let two pages list one tie in two orders.
+     * Tied players are listed by recorded name, ignoring case, then id. Not
+     * by whatever each page displays: the season page shows nicknames, and
+     * sorting on what is shown would let two pages list one tie in two orders.
+     * Ignoring case because names are typed on the night, and a byte-order
+     * sort puts every lower-case name after every capital.
      *
      * Lives here rather than in a controller because every page that shows a
      * rank reads it -- the dashboard and profile panel, the season standings,
@@ -215,7 +217,7 @@ class PokerSeason extends Model
      * that rule, so such a query runs locally for months and fails on the first
      * request against production's driver.
      *
-     * @return Collection<int, array{user_id: string, name: string, points: int, events: int, place: int}>
+     * @return Collection<int, array{user_id: string, name: string, points: int, place: int}>
      */
     public function rankings(): Collection
     {
@@ -258,25 +260,26 @@ class PokerSeason extends Model
             ->pluck('total', 'user_id');
 
         // Entering is what puts you on the board, and scoring is what ranks
-        // you on it. A player with a result but no registration -- which the
-        // results screen can create -- is absent from $entries entirely, which
+        // you on it. A player with a result but no registration -- possible
+        // only in data from before September 2026, when an admin results
+        // screen could record one -- is absent from $entries entirely, which
         // is what leaves them unranked.
         $board = $entries
             ->keys()
             ->map(fn ($id) => [
                 'user_id' => (string) $id,
-                'name' => (string) ($names[$id] ?? ''),
+                // Same table, same filters as $entries: every key has a name.
+                'name' => (string) $names[$id],
                 // (int): MySQL returns SUM() as a numeric string.
                 'points' => (int) ($points[$id] ?? 0),
-                'events' => (int) $entries[$id],
                 'venue' => (int) ($venuePoints[$id] ?? 0),
             ])
             ->filter(fn (array $row) => $row['points'] > 0)
-            // Points and venue points descending, then name and id ascending:
-            // $b before $a in the first two places, $a before $b in the last
-            // two, compared element by element.
-            ->sort(fn (array $a, array $b) => [$b['points'], $b['venue'], $a['name'], $a['user_id']]
-                <=> [$a['points'], $a['venue'], $b['name'], $b['user_id']])
+            // Points and venue points descending, then name (ignoring case)
+            // and id ascending: $b before $a in the first two places, $a
+            // before $b in the last two, compared element by element.
+            ->sort(fn (array $a, array $b) => [$b['points'], $b['venue'], mb_strtolower($a['name']), $a['user_id']]
+                <=> [$a['points'], $a['venue'], mb_strtolower($b['name']), $b['user_id']])
             ->values();
 
         // Competition ranking: a row shares the place of the row before it

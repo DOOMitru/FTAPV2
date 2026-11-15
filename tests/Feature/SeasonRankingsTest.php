@@ -138,6 +138,16 @@ class SeasonRankingsTest extends TestCase
         $this->assertSame([$ada->id, $zed->id], $this->order());
     }
 
+    public function test_tied_players_are_listed_by_name_ignoring_case(): void
+    {
+        // A name typed in lower case on the night is still the same name: a
+        // byte-order sort would put every lower-case name after every capital.
+        $zed = $this->player('Zed', 110, venue: 5);
+        $alice = $this->player('alice', 110, venue: 5);
+
+        $this->assertSame([$alice->id, $zed->id], $this->order());
+    }
+
     public function test_a_player_on_zero_points_is_not_ranked(): void
     {
         $scorer = $this->player('Ana', 50);
@@ -175,7 +185,7 @@ class SeasonRankingsTest extends TestCase
         $this->player('Ana', 110, venue: 7);
 
         $this->assertSame(
-            ['user_id', 'name', 'points', 'events', 'place'],
+            ['user_id', 'name', 'points', 'place'],
             array_keys($this->season->rankings()->first()),
         );
     }

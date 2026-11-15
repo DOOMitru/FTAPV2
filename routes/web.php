@@ -52,10 +52,9 @@ Route::get('/', function () {
         ->orderBy('start_time', 'asc')
         ->first();
 
-    // Season standings, for signed-in players only. Grouped the same way
-    // PokerSeasonController@show groups them -- points summed, a win being
-    // place 1 -- so the home page and the season page cannot disagree about
-    // what either word means.
+    // Season standings, for signed-in players only. A win is place 1, as on
+    // PokerSeasonController@show, so the home page and the season page cannot
+    // disagree about what the word means.
     $topByWins = collect();
     $topByRank = collect();
 
@@ -68,7 +67,6 @@ Route::get('/', function () {
                 // been deleted has a name and no account to point at.
                 'user' => $rows->first()->user,
                 'name' => $rows->first()->player_name,
-                'points' => $rows->sum('points'),
                 'wins' => $rows->where('place', 1)->count(),
             ])
             ->values();
